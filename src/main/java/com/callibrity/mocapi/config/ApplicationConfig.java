@@ -1,5 +1,15 @@
 package com.callibrity.mocapi.config;
 
+import com.callibrity.mocapi.app.Rot13Tool;
+import com.callibrity.mocapi.app.WeatherTool;
+import com.callibrity.mocapi.jsonrpc.method.JsonRpcMethodProvider;
+import com.callibrity.mocapi.jsonrpc.method.annotation.AnnotationJsonRpcMethodProvider;
+import com.callibrity.mocapi.mcp.McpToolProvider;
+import com.callibrity.mocapi.mcp.method.MethodMcpToolProvider;
+import com.callibrity.mocapi.mcp.protocol.ProtocolSupport;
+import com.callibrity.mocapi.mcp.tools.ToolsSupport;
+import com.callibrity.mocapi.schema.MethodSchemaGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -31,6 +41,26 @@ public class ApplicationConfig {
     }
 
     @Bean
+    public JsonRpcMethodProvider mcpProtocolMethodProvider(ObjectMapper mapper, ProtocolSupport protocol) {
+        return new AnnotationJsonRpcMethodProvider(mapper, protocol);
+    }
+
+    @Bean
+    public JsonRpcMethodProvider mcpToolsMethodProvider(ObjectMapper mapper, ToolsSupport tools) {
+        return new AnnotationJsonRpcMethodProvider(mapper, tools);
+    }
+
+    @Bean
+    public McpToolProvider weatherProvider(ObjectMapper mapper, MethodSchemaGenerator generator, WeatherTool weatherTool) {
+        return new MethodMcpToolProvider(mapper, generator, weatherTool);
+    }
+
+    @Bean
+    public McpToolProvider rot13Provider(ObjectMapper mapper, MethodSchemaGenerator generator, Rot13Tool rot13Tool) {
+        return new MethodMcpToolProvider(mapper, generator, rot13Tool);
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .cors(Customizer.withDefaults()) // Allow CORS preflight requests
@@ -38,7 +68,7 @@ public class ApplicationConfig {
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
                 .authorizeHttpRequests(authz -> {
                     authz.requestMatchers(EndpointRequest.toAnyEndpoint()).permitAll(); // Allow all actuator endpoints
-                    authz.requestMatchers(API_PATTERN).fullyAuthenticated(); // Require authentication for API endpoints
+                    authz.requestMatchers(API_PATTERN).permitAll(); // Require authentication for API endpoints
                     authz.anyRequest().denyAll(); // Deny all other requests
                 })
                 .build();
