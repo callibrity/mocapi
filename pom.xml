@@ -73,6 +73,7 @@
 
         <!-- Plugin Versions -->
         <central-publishing-maven-plugin.version>0.7.0</central-publishing-maven-plugin.version>
+        <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
         <license-maven-plugin.version>5.0.0</license-maven-plugin.version>
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
         <maven-dependency-plugin.version>3.8.1</maven-dependency-plugin.version>
@@ -90,7 +91,6 @@
         <!-- License Header Configuration -->
         <license.email>contactus@callibrity.com</license.email>
         <license.owner>Callibrity, Inc.</license.owner>
-
     </properties>
 
     <dependencies>
@@ -211,6 +211,7 @@
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
+                        <version>${jacoco-maven-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>prepare-agent</id>
@@ -223,11 +224,11 @@
                                 <goals>
                                     <goal>report</goal>
                                 </goals>
-                                <configuration>
-                                    <formats>
-                                        <format>XML</format>
-                                    </formats>
-                                </configuration>
+<!--                                <configuration>-->
+<!--                                    <formats>-->
+<!--                                        <format>XML</format>-->
+<!--                                    </formats>-->
+<!--                                </configuration>-->
                             </execution>
                         </executions>
                     </plugin>
