@@ -58,8 +58,8 @@ public class McpToolsCapability implements McpServerCapability {
     }
 
     @Override
-    public Descriptor describe() {
-        return new Descriptor(false);
+    public ToolsCapabilityDescriptor describe() {
+        return new ToolsCapabilityDescriptor(false);
     }
 
 // -------------------------- OTHER METHODS --------------------------
@@ -99,8 +99,15 @@ public class McpToolsCapability implements McpServerCapability {
 
 // -------------------------- INNER CLASSES --------------------------
 
-    public record Descriptor(boolean listChanged) {
-
+    public record ToolsCapabilityDescriptor(boolean listChanged) {
     }
 
+    public record CallToolResponse(ObjectNode structuredContent) {
+    }
+
+    public record ListToolsResponse(List<McpToolDescriptor> tools, String nextCursor) {
+    }
+
+    public record McpToolDescriptor(String name, String title, String description, ObjectNode inputSchema, ObjectNode outputSchema) {
+    }
 }
