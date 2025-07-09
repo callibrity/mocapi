@@ -88,6 +88,7 @@
         <!-- SonarQube Configuration -->
         <sonar.organization>callibrity</sonar.organization>
         <sonar.projectKey>callibrity_mocapi</sonar.projectKey>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/mocapi-coverage/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
         <!-- License Header Configuration -->
         <license.email>contactus@callibrity.com</license.email>
