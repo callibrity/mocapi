@@ -69,7 +69,8 @@ class AnnotationMcpToolTest {
 
     @Test
     void invalidReturnTypeShouldThrowException() {
-        assertThatThrownBy(() -> factory.create(new InvalidReturnTool()))
+        var invalidTool = new InvalidReturnTool();
+        assertThatThrownBy(() -> factory.create(invalidTool))
                 .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 }
