@@ -21,7 +21,7 @@ import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.tools.annotation.DefaultAnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
-import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProvider;
+import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodHandlerProviderFactory;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -62,7 +62,7 @@ public class MocapiToolsAutoConfiguration {
     }
 
     @Bean
-    public JsonRpcMethodHandlerProvider mcpToolsMethodHandlerProvider(ObjectMapper mapper, McpToolsCapability mcpToolsCapability) {
-        return new AnnotationJsonRpcMethodProvider(mapper, mcpToolsCapability);
+    public JsonRpcMethodHandlerProvider mcpToolsMethodHandlerProvider(AnnotationJsonRpcMethodHandlerProviderFactory factory, McpToolsCapability mcpToolsCapability) {
+        return factory.create(mcpToolsCapability);
     }
 }

@@ -17,10 +17,9 @@ package com.callibrity.mocapi.autoconfigure;
 
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpServerCapability;
-import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProvider;
+import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodHandlerProviderFactory;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
@@ -53,8 +52,8 @@ public class MocapiAutoConfiguration {
     }
 
     @Bean
-    public JsonRpcMethodHandlerProvider mcpServerMethodHandlerProvider(ObjectMapper mapper, McpServer server) {
-        return new AnnotationJsonRpcMethodProvider(mapper, server);
+    public JsonRpcMethodHandlerProvider mcpServerMethodHandlerProvider(AnnotationJsonRpcMethodHandlerProviderFactory factory, McpServer server) {
+        return factory.create(server);
     }
 
 }
