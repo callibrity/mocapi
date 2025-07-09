@@ -63,28 +63,34 @@
     <properties>
         <java.version>24</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-        <maven.compiler.parameters>true</maven.compiler.parameters>
-        <sonar.organization>callibrity</sonar.organization>
 
+        <!-- Dependency Versions -->
         <everit-json-schema.version>1.14.6</everit-json-schema.version>
         <ripcurl.version>0.0.3</ripcurl.version>
         <victools.version>4.38.0</victools.version>
         <spring-boot.version>3.5.3</spring-boot.version>
         <swagger-annotations.version>2.2.20</swagger-annotations.version>
 
+        <!-- Plugin Versions -->
+        <central-publishing-maven-plugin.version>0.7.0</central-publishing-maven-plugin.version>
         <license-maven-plugin.version>5.0.0</license-maven-plugin.version>
-
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
         <maven-dependency-plugin.version>3.8.1</maven-dependency-plugin.version>
         <maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
+        <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
+        <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
+        <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
         <maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
+        <sonar-maven-plugin.version>5.1.0.4751</sonar-maven-plugin.version>
 
+        <!-- SonarQube Configuration -->
+        <sonar.organization>callibrity</sonar.organization>
+        <sonar.projectKey>callibrity_mocapi</sonar.projectKey>
 
         <!-- License Header Configuration -->
         <license.email>contactus@callibrity.com</license.email>
         <license.owner>Callibrity, Inc.</license.owner>
+
     </properties>
 
     <dependencies>
@@ -198,6 +204,108 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>ci</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>prepare-agent</id>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>report</id>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                                <configuration>
+                                    <formats>
+                                        <format>XML</format>
+                                    </formats>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonarsource.scanner.maven</groupId>
+                        <artifactId>sonar-maven-plugin</artifactId>
+                        <version>${sonar-maven-plugin.version}</version>
+
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central-publishing-maven-plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <tokenAuth>true</tokenAuth>
+                            <autoPublish>true</autoPublish>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>${maven-source-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${maven-javadoc-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${maven-gpg-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>license</id>
             <activation>
