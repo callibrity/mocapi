@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.example;
 
+import com.callibrity.mocapi.example.tools.HelloTool;
 import com.callibrity.mocapi.example.tools.Rot13Tool;
 import com.callibrity.mocapi.example.tools.WeatherTool;
 import com.callibrity.mocapi.tools.McpToolProvider;
@@ -35,6 +36,11 @@ public class MocapiExampleApplicationConfig {
     @Bean
     public McpToolProvider weatherToolsProvider(AnnotationMcpToolProviderFactory factory, WeatherTool weatherTool) {
         return factory.create(weatherTool);
+    }
+
+    @Bean
+    public McpToolProvider helloToolsProvider(AnnotationMcpToolProviderFactory factory, HelloTool helloTool) {
+        return factory.create(helloTool);
     }
 
 }
