@@ -1,6 +1,6 @@
 # Mocapi
 
-![Maven Central Version](https://img.shields.io/maven-central/v/com.callibrity.mocapi/mocapi)
+![Maven Central Version](https://img.shields.io/maven-central/v/com.callibrity.mocapi/mocapi-parent)
 ![GitHub License](https://img.shields.io/github/license/callibrity/mocapi)
 
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=callibrity_mocapi&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=callibrity_mocapi)
