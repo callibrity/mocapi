@@ -17,7 +17,6 @@ package com.callibrity.mocapi.example.tools;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class Rot13ToolTest {
@@ -25,8 +24,8 @@ class Rot13ToolTest {
     @Test
     void encodingShouldRotateChars() {
         var tool = new Rot13Tool();
-        var response = tool.encode("A-b");
+        var response = tool.encode(" A-b");
         assertThat(response).isNotNull();
-        assertThat(response.encoded()).isEqualTo("N-o");
+        assertThat(response.encoded()).isEqualTo(" N-o");
     }
 }
