@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.autoconfigure;
+package com.callibrity.mocapi.autoconfigure.tools;
 
+import com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration;
+import com.callibrity.mocapi.tools.McpTool;
 import com.callibrity.mocapi.tools.McpToolProvider;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
@@ -49,6 +51,11 @@ public class MocapiToolsAutoConfiguration {
     @Bean
     public McpToolsCapability mcpToolsCapability(List<McpToolProvider> toolProviders) {
         return new McpToolsCapability(toolProviders);
+    }
+
+    @Bean
+    public McpToolProvider mcpToolBeansProvider(List<McpTool> beans) {
+        return () -> List.copyOf(beans);
     }
 
     @Bean

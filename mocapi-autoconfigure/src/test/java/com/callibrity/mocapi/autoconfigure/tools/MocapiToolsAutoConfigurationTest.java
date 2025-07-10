@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.autoconfigure;
+package com.callibrity.mocapi.autoconfigure.tools;
 
+import com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
 import com.callibrity.ripcurl.autoconfigure.RipCurlAutoConfiguration;
@@ -53,6 +54,13 @@ class MocapiToolsAutoConfigurationTest {
             assertThat(tools).isNotNull();
             assertThat(tools).isEmpty();
 
+        });
+    }
+
+    @Test
+    void mcpToolBeanProviderInitializes() {
+        contextRunner.run(context -> {
+            assertThat(context).hasBean("mcpToolBeansProvider");
         });
     }
 }

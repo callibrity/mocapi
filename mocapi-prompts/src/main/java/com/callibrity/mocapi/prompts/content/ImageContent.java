@@ -13,22 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.example.tools;
+package com.callibrity.mocapi.prompts.content;
 
-import com.callibrity.mocapi.tools.annotation.Tool;
-import com.callibrity.mocapi.tools.annotation.ToolService;
-import org.springframework.stereotype.Component;
+public class ImageContent extends BinaryContent {
 
-@Component
-@ToolService
-public class HelloTool {
+// ------------------------------ FIELDS ------------------------------
 
-    @Tool(name = "hello", description = "Returns a greeting message")
-    public HelloResponse sayHello(String name) {
-        return new HelloResponse(String.format("Hello, %s!", name));
+    public static final String IMAGE_TYPE = "image";
+
+// --------------------------- CONSTRUCTORS ---------------------------
+
+    public ImageContent(byte[] data, String mimeType) {
+        super(IMAGE_TYPE, data, mimeType);
     }
 
-    public record HelloResponse(String message) {
+    public ImageContent(byte[] data, String mimeType, Annotations annotations) {
+        super(IMAGE_TYPE, data, mimeType, annotations);
     }
 
 }

@@ -13,22 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.example.tools;
+package com.callibrity.mocapi.prompts;
 
-import com.callibrity.mocapi.tools.annotation.Tool;
-import com.callibrity.mocapi.tools.annotation.ToolService;
-import org.springframework.stereotype.Component;
+import com.callibrity.mocapi.prompts.content.TextContent;
 
-@Component
-@ToolService
-public class HelloTool {
+import java.util.List;
 
-    @Tool(name = "hello", description = "Returns a greeting message")
-    public HelloResponse sayHello(String name) {
-        return new HelloResponse(String.format("Hello, %s!", name));
+public record GetPromptResult(String description, List<PromptMessage> messages) {
+
+    public static GetPromptResult text(String description, String text) {
+        return new GetPromptResult(description, List.of(
+                new PromptMessage(Role.USER, new TextContent(text))
+        ));
     }
-
-    public record HelloResponse(String message) {
-    }
-
 }

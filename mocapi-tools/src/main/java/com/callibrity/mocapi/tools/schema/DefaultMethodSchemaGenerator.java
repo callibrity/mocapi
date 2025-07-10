@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.tools.schema;
 
+import com.callibrity.mocapi.server.util.Parameters;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -25,8 +26,6 @@ import com.github.victools.jsonschema.generator.SchemaVersion;
 import com.github.victools.jsonschema.module.jackson.JacksonModule;
 import com.github.victools.jsonschema.module.jakarta.validation.JakartaValidationModule;
 import com.github.victools.jsonschema.module.swagger2.Swagger2Module;
-import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;
 
 import java.lang.reflect.Method;
@@ -72,19 +71,14 @@ public class DefaultMethodSchemaGenerator implements MethodSchemaGenerator {
 
         for (int i = 0; i < parameters.length; i++) {
             var param = parameters[i];
-            var paramSchemaNode =  generator.generateSchema(parameterTypes[i]);
+            var paramSchemaNode = generator.generateSchema(parameterTypes[i]);
             paramSchemaNode.remove(SCHEMA_PROPERTY_NAME);
+            putIfNotNull(paramSchemaNode, "title", Parameters.titleOf(param));
+            putIfNotNull(paramSchemaNode, "description", Parameters.descriptionOf(param));
             propsNode.set(param.getName(), paramSchemaNode);
-            if(param.isAnnotationPresent(Schema.class)) {
-                var annotation =  param.getAnnotation(Schema.class);
-                if(StringUtils.isNotBlank(annotation.title())) {
-                    paramSchemaNode.put("title", annotation.title());
-                }
-                if(StringUtils.isNotBlank(annotation.description())) {
-                    paramSchemaNode.put("description", annotation.description());
-                }
+            if (Parameters.isRequired(param)) {
+                requiredNode.add(param.getName());
             }
-            requiredNode.add(param.getName());
         }
         schemaNode.put("type", "object");
         schemaNode.set("properties", propsNode);
@@ -92,6 +86,12 @@ public class DefaultMethodSchemaGenerator implements MethodSchemaGenerator {
             schemaNode.set("required", requiredNode);
         }
         return schemaNode;
+    }
+
+    private void putIfNotNull(ObjectNode node, String key, String value) {
+        if (value != null) {
+            node.put(key, value);
+        }
     }
 
     @Override

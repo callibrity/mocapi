@@ -24,8 +24,8 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
     <artifactId>mocapi-coverage</artifactId>
-    <name>RipCurl - Coverage</name>
-    <description>RipCurl Code Coverage Aggregation Report</description>
+    <name>Mocapi - Coverage</name>
+    <description>Mocapi Code Coverage Aggregation Report</description>
     <dependencies>
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
@@ -35,6 +35,11 @@
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
             <artifactId>mocapi-tools</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-prompts</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>

@@ -61,6 +61,12 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-prompts</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>

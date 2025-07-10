@@ -13,22 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.example.tools;
+package com.callibrity.mocapi.prompts;
 
-import com.callibrity.mocapi.tools.annotation.Tool;
-import com.callibrity.mocapi.tools.annotation.ToolService;
-import org.springframework.stereotype.Component;
+import org.junit.jupiter.api.Test;
 
-@Component
-@ToolService
-public class HelloTool {
+import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-    @Tool(name = "hello", description = "Returns a greeting message")
-    public HelloResponse sayHello(String name) {
-        return new HelloResponse(String.format("Hello, %s!", name));
-    }
+class RoleTest {
 
-    public record HelloResponse(String message) {
+    @Test
+    void jsonValueShouldReturnCorrectValues() {
+        assertThat(Role.USER.jsonValue()).isEqualTo("user");
+        assertThat(Role.ASSISTANT.jsonValue()).isEqualTo("assistant");
     }
 
 }

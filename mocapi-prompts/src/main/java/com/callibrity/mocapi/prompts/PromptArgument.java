@@ -13,14 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.autoconfigure;
+package com.callibrity.mocapi.prompts;
 
-import com.github.victools.jsonschema.generator.SchemaVersion;
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
-@ConfigurationProperties("mocapi.tools")
-@Data
-public class MocapiToolsProperties {
-    private SchemaVersion schemaVersion;
+public record PromptArgument(String name, String description, Boolean required) {
 }

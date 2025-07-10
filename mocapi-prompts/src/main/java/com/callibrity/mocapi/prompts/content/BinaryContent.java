@@ -13,22 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.example.tools;
+package com.callibrity.mocapi.prompts.content;
 
-import com.callibrity.mocapi.tools.annotation.Tool;
-import com.callibrity.mocapi.tools.annotation.ToolService;
-import org.springframework.stereotype.Component;
+import lombok.Getter;
 
-@Component
-@ToolService
-public class HelloTool {
+import java.util.Base64;
 
-    @Tool(name = "hello", description = "Returns a greeting message")
-    public HelloResponse sayHello(String name) {
-        return new HelloResponse(String.format("Hello, %s!", name));
+@Getter
+public abstract class BinaryContent extends Content {
+
+    private final String data;
+    private final String mimeType;
+
+    protected BinaryContent(String type, byte[] data, String mimeType) {
+        this(type, data, mimeType, null);
     }
 
-    public record HelloResponse(String message) {
+    protected BinaryContent(String type, byte[] data, String mimeType, Annotations annotations) {
+        super(type, annotations);
+        this.data = Base64.getEncoder().encodeToString(data);
+        this.mimeType = mimeType;
     }
-
 }

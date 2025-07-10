@@ -42,7 +42,7 @@ class HelloToolIT {
                                 {
                                     "jsonrpc": "2.0",
                                     "method": "tools/call",
-                                    "params": {"name": "hello-tool.say-hello", "arguments":  {"name": "John"}},
+                                    "params": {"name": "hello", "arguments":  {"name": "John"}},
                                     "id": 1
                                 }
                                 """))

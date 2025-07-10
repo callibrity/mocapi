@@ -13,14 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.autoconfigure;
+package com.callibrity.mocapi.autoconfigure.prompts;
 
-import com.callibrity.mocapi.tools.McpTool;
-import com.callibrity.mocapi.tools.McpToolProvider;
-import com.callibrity.mocapi.tools.annotation.AnnotationMcpTool;
-import com.callibrity.mocapi.tools.annotation.ToolService;
-import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.callibrity.mocapi.prompts.McpPrompt;
+import com.callibrity.mocapi.prompts.McpPromptProvider;
+import com.callibrity.mocapi.prompts.annotation.AnnotationMcpPrompt;
+import com.callibrity.mocapi.prompts.annotation.PromptService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationContext;
@@ -28,30 +26,28 @@ import org.springframework.context.ApplicationContext;
 import java.util.List;
 
 @RequiredArgsConstructor
-public class ToolServiceMcpToolProvider implements McpToolProvider {
+public class PromptServiceMcpPromptProvider implements McpPromptProvider {
 
 // ------------------------------ FIELDS ------------------------------
 
     private final ApplicationContext context;
-    private final ObjectMapper mapper;
-    private final MethodSchemaGenerator generator;
-    private List<AnnotationMcpTool> tools;
+    private List<AnnotationMcpPrompt> prompts;
 
 // ------------------------ INTERFACE METHODS ------------------------
 
-// --------------------- Interface McpToolProvider ---------------------
+// --------------------- Interface McpPromptProvider ---------------------
 
     @Override
-    public List<McpTool> getMcpTools() {
-        return List.copyOf(tools);
+    public List<McpPrompt> getMcpPrompts() {
+        return List.copyOf(prompts);
     }
 
 // -------------------------- OTHER METHODS --------------------------
 
     @PostConstruct
     public void initialize() {
-        tools = context.getBeansWithAnnotation(ToolService.class).values().stream()
-                .flatMap(bean -> AnnotationMcpTool.createTools(mapper, generator, bean).stream())
+        this.prompts = context.getBeansWithAnnotation(PromptService.class).values().stream()
+                .flatMap(targetObject -> AnnotationMcpPrompt.createPrompts(targetObject).stream())
                 .toList();
     }
 

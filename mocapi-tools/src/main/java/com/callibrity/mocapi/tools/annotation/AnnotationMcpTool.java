@@ -21,15 +21,14 @@ import com.callibrity.ripcurl.core.exception.JsonRpcInternalErrorException;
 import com.callibrity.ripcurl.core.invoke.JsonMethodInvoker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
+import static com.callibrity.mocapi.server.util.Names.humanReadableName;
+import static com.callibrity.mocapi.server.util.Names.identifier;
 import static java.util.Optional.ofNullable;
 
 
@@ -73,33 +72,9 @@ public class AnnotationMcpTool implements McpTool {
                 .orElseGet(() -> identifier(targetObject, method));
     }
 
-    private static String identifier(Object targetObject, Method method) {
-        var className = ClassUtils.getShortClassName(targetObject.getClass());
-        var methodName = method.getName();
-        return String.format("%s.%s", kebab(className), kebab(methodName));
-    }
-
-    private static String kebab(String input) {
-        return Arrays.stream(StringUtils.splitByCharacterTypeCamelCase(input))
-                .map(String::toLowerCase)
-                .collect(Collectors.joining("-"));
-    }
-
     private static String titleOf(Object targetObject, Method method, Tool annotation) {
         return ofNullable(StringUtils.trimToNull(annotation.title()))
                 .orElseGet(() -> humanReadableName(targetObject, method));
-    }
-
-    private static String humanReadableName(Object targetObject, Method method) {
-        var className = ClassUtils.getShortClassName(targetObject.getClass());
-        var methodName = method.getName();
-        return String.format("%s - %s", capitalizedWords(className), capitalizedWords(methodName));
-    }
-
-    private static String capitalizedWords(String input) {
-        return Arrays.stream(StringUtils.splitByCharacterTypeCamelCase(input))
-                .map(StringUtils::capitalize)
-                .collect(Collectors.joining(" "));
     }
 
     private static String descriptionOf(Object targetObject, Method method, Tool annotation) {
