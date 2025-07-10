@@ -33,7 +33,7 @@ ripcurl.endpoint=/your-custom-endpoint
 
 ## Writing Tools
 
-In order to create MCP tools using Mocapi, you first need to import the `mocapi-tools` dependency into your project:
+To create MCP tools using Mocapi, you first need to import the `mocapi-tools` dependency into your project:
 
 ```xml
 <dependency>
@@ -61,5 +61,54 @@ public class HelloTool {
     }
 
     public record HelloResponse(String message) { }
+}
+```
+
+## Writing Prompts
+To create MCP prompts using Mocapi, you first need to import the `mocapi-prompts` dependency into your project:
+
+```xml
+<dependency>
+    <groupId>com.callibrity.mocapi</groupId>
+    <artifactId>mocapi-prompts</artifactId>
+    <version>${mocapi.version}</version>
+</dependency>
+```
+
+This will automatically activate the `MocapiPromptsAutoConfiguration` which will enable MCP prompts support. To register a
+prompt, you need to create a bean annotated with `@PromptService` having methods annotated with `@Prompt`:
+
+```java
+import com.callibrity.mocapi.prompts.GetPromptResult;
+import com.callibrity.mocapi.prompts.PromptMessage;
+import com.callibrity.mocapi.prompts.Role;
+import com.callibrity.mocapi.prompts.annotation.Prompt;
+import com.callibrity.mocapi.prompts.annotation.PromptService;
+import com.callibrity.mocapi.prompts.content.TextContent;
+import io.swagger.v3.oas.annotations.media.Schema;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Component
+@PromptService
+public class CodeReviewPrompts {
+
+    @Prompt(name = "review-code", description = "Provide a short review of the given code snippet")
+    public GetPromptResult reviewCode(
+            @Schema(description = "The programming language used") String language, 
+            @Schema(description = "The code snippet to review") String code) {
+        var prompt = String.format("""
+                Please review the following %s code and suggest improvements:
+                
+                ```%s
+                %s
+                ```
+                """, language, language, code);
+
+        return new GetPromptResult("Provide a short review of the given code snippet", List.of(
+                new PromptMessage(Role.USER, new TextContent(prompt))
+        ));
+    }
 }
 ```
