@@ -113,10 +113,10 @@ public class CodeReviewPrompts {
 
 ## Building from Source
 
-To build the project locally:
+To build the project yourself, simply clone the repository and use [Apache Maven](https://maven.apache.org/) to compile and package it:
 
 ```bash
-./mvnw clean install
+mvn clean install
 ```
 
 ## License
