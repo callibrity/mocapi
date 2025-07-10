@@ -21,7 +21,6 @@ import com.callibrity.mocapi.tools.util.NullTool;
 import com.callibrity.ripcurl.core.exception.JsonRpcInternalErrorException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import org.junit.jupiter.api.Test;
 
