@@ -44,7 +44,7 @@ In order to create MCP tools using Mocapi, you first need to import the `mocapi-
 ```
 
 This will automatically activate the `MocapiToolsAutoConfiguration` which will enable MCP tools support. To register a
-tool, you need to create a bean annotated with `@ToolService` having method(s) annotated with `@Tool`:
+tool, you need to create a bean annotated with `@ToolService` having methods annotated with `@Tool`:
 
 ```java
 import com.callibrity.mocapi.tools.annotation.Tool;
