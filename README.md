@@ -1,5 +1,7 @@
 # Mocapi
 
+Mocapi is a modular framework for building [Model Context Protocol (MCP)](https://modelcontextprotocol.io/specification/2025-06-18) tools and prompts using Spring Boot. It simplifies secure, structured interactions between LLMs and services via annotated Java components.
+
 ![Maven Central Version](https://img.shields.io/maven-central/v/com.callibrity.mocapi/mocapi-parent)
 ![GitHub License](https://img.shields.io/github/license/callibrity/mocapi)
 
@@ -10,9 +12,6 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=callibrity_mocapi&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=callibrity_mocapi)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=callibrity_mocapi&metric=coverage)](https://sonarcloud.io/summary/new_code?id=callibrity_mocapi)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=callibrity_mocapi&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=callibrity_mocapi)
-
-
-A [Model Context Protocol (2025-06-18)](https://modelcontextprotocol.io/specification/2025-06-18) compliant framework built for Spring Boot.
 
 ## Getting Started
 
@@ -31,7 +30,7 @@ By default, Mocapi will listen for MCP requests on the `/mcp` endpoint. You can 
 ripcurl.endpoint=/your-custom-endpoint
 ```
 
-## Writing Tools
+## Creating MCP Tools
 
 To create MCP tools using Mocapi, you first need to import the `mocapi-tools` dependency into your project:
 
@@ -64,7 +63,8 @@ public class HelloTool {
 }
 ```
 
-## Writing Prompts
+## Creating MCP Prompts
+
 To create MCP prompts using Mocapi, you first need to import the `mocapi-prompts` dependency into your project:
 
 ```xml
@@ -95,9 +95,7 @@ import java.util.List;
 public class CodeReviewPrompts {
 
     @Prompt(name = "review-code", description = "Provide a short review of the given code snippet")
-    public GetPromptResult reviewCode(
-            @Schema(description = "The programming language used") String language, 
-            @Schema(description = "The code snippet to review") String code) {
+    public GetPromptResult reviewCode(String language, String code) {
         var prompt = String.format("""
                 Please review the following %s code and suggest improvements:
                 
@@ -112,3 +110,15 @@ public class CodeReviewPrompts {
     }
 }
 ```
+
+## Building from Source
+
+To build the project locally:
+
+```bash
+./mvnw clean install
+```
+
+## License
+
+This project is licensed under the Apache License 2.0—see the [LICENSE](LICENSE) file for details.
