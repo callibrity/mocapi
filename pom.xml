@@ -68,7 +68,7 @@
 
         <!-- Dependency Versions -->
         <everit-json-schema.version>1.14.6</everit-json-schema.version>
-        <ripcurl.version>0.0.5</ripcurl.version>
+        <ripcurl.version>0.0.6</ripcurl.version>
         <victools.version>4.38.0</victools.version>
         <spring-boot.version>3.5.3</spring-boot.version>
         <swagger-annotations.version>2.2.20</swagger-annotations.version>
