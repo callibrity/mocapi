@@ -138,6 +138,11 @@ You can interact with the example application using the MCP Inspector. To do thi
 4. Click "Connect" to establish a connection to the example application.
 5. You can now explore the available tools and prompts, send requests, and view responses directly in the MCP Inspector interface.
 6. Enjoy!
+
+## What's in a Name?
+
+Why the name Mocapi? It's a made-up word with the letters MCP in it. It's pronounced *moh-cap-ee*.
+
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
