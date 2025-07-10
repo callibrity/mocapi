@@ -48,6 +48,7 @@ tool, you need to create a bean annotated with `@ToolService` having methods ann
 
 ```java
 import com.callibrity.mocapi.tools.annotation.Tool;
+import com.callibrity.mocapi.tools.annotation.ToolService;
 import org.springframework.stereotype.Component;
 
 @Component
