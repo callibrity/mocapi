@@ -17,7 +17,9 @@ package com.callibrity.mocapi.tools;
 
 import com.callibrity.mocapi.server.McpServerCapability;
 import com.callibrity.ripcurl.core.annotation.JsonRpc;
+import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
+import com.callibrity.ripcurl.core.util.LazyInitializer;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.ValidationException;
@@ -32,20 +34,20 @@ import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
+@JsonRpcService
 public class McpToolsCapability implements McpServerCapability {
 
 // ------------------------------ FIELDS ------------------------------
 
-    private final Map<String, McpTool> tools;
-
-    private final ConcurrentHashMap<String, Schema> inputSchema = new ConcurrentHashMap<>();
+    private final LazyInitializer<Map<String,McpTool>> tools;
+    private final ConcurrentHashMap<String, Schema> inputSchemas = new ConcurrentHashMap<>();
 
 // --------------------------- CONSTRUCTORS ---------------------------
 
     public McpToolsCapability(List<McpToolProvider> toolProviders) {
-        this.tools = toolProviders.stream()
+        this.tools = LazyInitializer.of(() -> toolProviders.stream()
                 .flatMap(provider -> provider.getMcpTools().stream())
-                .collect(Collectors.toMap(McpTool::name, t -> t));
+                .collect(Collectors.toMap(McpTool::name, t -> t)));
     }
 
 // ------------------------ INTERFACE METHODS ------------------------
@@ -73,7 +75,7 @@ public class McpToolsCapability implements McpServerCapability {
     }
 
     private McpTool lookupTool(String name) {
-        return ofNullable(tools.get(name)).orElseThrow(() -> new JsonRpcInvalidParamsException(String.format("Tool %s not found.", name)));
+        return ofNullable(tools.get().get(name)).orElseThrow(() -> new JsonRpcInvalidParamsException(String.format("Tool %s not found.", name)));
     }
 
     private void validateInput(String name, ObjectNode arguments, McpTool tool) {
@@ -85,12 +87,12 @@ public class McpToolsCapability implements McpServerCapability {
     }
 
     private Schema getInputSchema(String name, McpTool tool) {
-        return inputSchema.computeIfAbsent(name, _ -> SchemaLoader.load(new JSONObject(tool.inputSchema().toString())));
+        return inputSchemas.computeIfAbsent(name, _ -> SchemaLoader.load(new JSONObject(tool.inputSchema().toString())));
     }
 
     @JsonRpc("tools/list")
     public ListToolsResponse listTools(String cursor) {
-        var descriptors = tools.values().stream()
+        var descriptors = tools.get().values().stream()
                 .map(t -> new McpToolDescriptor(t.name(), t.title(), t.description(), t.inputSchema(), t.outputSchema()))
                 .sorted(Comparator.comparing(McpToolDescriptor::name))
                 .toList();

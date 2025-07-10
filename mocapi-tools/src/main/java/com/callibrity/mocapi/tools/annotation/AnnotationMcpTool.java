@@ -21,18 +21,19 @@ import com.callibrity.ripcurl.core.exception.JsonRpcInternalErrorException;
 import com.callibrity.ripcurl.core.invoke.JsonMethodInvoker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.Getter;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.reflect.MethodUtils;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
-@Getter
-class AnnotationMcpTool implements McpTool {
+
+public class AnnotationMcpTool implements McpTool {
 
 // ------------------------------ FIELDS ------------------------------
 
@@ -43,9 +44,17 @@ class AnnotationMcpTool implements McpTool {
     private final ObjectNode inputSchema;
     private final ObjectNode outputSchema;
 
+// -------------------------- STATIC METHODS --------------------------
+
+    public static List<AnnotationMcpTool> createTools(ObjectMapper mapper, MethodSchemaGenerator generator, Object targetObject) {
+        return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), Tool.class).stream()
+                .map(m -> new AnnotationMcpTool(mapper, generator, targetObject, m))
+                .toList();
+    }
+
 // --------------------------- CONSTRUCTORS ---------------------------
 
-    public AnnotationMcpTool(ObjectMapper mapper, MethodSchemaGenerator generator, Object targetObject, Method method) {
+    AnnotationMcpTool(ObjectMapper mapper, MethodSchemaGenerator generator, Object targetObject, Method method) {
         var annotation = method.getAnnotation(Tool.class);
         this.name = nameOf(targetObject, method, annotation);
         this.title = titleOf(targetObject, method, annotation);

@@ -36,6 +36,10 @@
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
         <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.callibrity.ripcurl</groupId>
             <artifactId>ripcurl-autoconfigure</artifactId>
             <version>${ripcurl.version}</version>

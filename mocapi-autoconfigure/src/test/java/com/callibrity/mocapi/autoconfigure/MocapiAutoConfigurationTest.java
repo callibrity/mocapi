@@ -36,11 +36,4 @@ class MocapiAutoConfigurationTest {
             assertThat(context).hasSingleBean(McpServer.class);
         });
     }
-
-    @Test
-    void jsonRpcMethodHandlerInitializes() {
-        contextRunner.run(context -> {
-            assertThat(context).hasBean("mcpServerMethodHandlerProvider");
-        });
-    }
 }

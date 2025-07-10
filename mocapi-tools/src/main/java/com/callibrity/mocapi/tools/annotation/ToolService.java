@@ -13,21 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.example.tools;
+package com.callibrity.mocapi.tools.annotation;
 
-import com.callibrity.mocapi.tools.annotation.Tool;
-import com.callibrity.mocapi.tools.annotation.ToolService;
-import org.springframework.stereotype.Component;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@Component
-@ToolService
-public class HelloTool {
-
-    @Tool
-    public HelloResponse sayHello(String name) {
-        return new HelloResponse(String.format("Hello, %s!", name));
-    }
-
-    public record HelloResponse(String message) { }
-
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+@Documented
+@Inherited
+public @interface ToolService {
 }

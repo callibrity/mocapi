@@ -13,30 +13,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.tools.annotation;
+package com.callibrity.mocapi.autoconfigure;
 
+import com.callibrity.mocapi.tools.McpTool;
 import com.callibrity.mocapi.tools.McpToolProvider;
+import com.callibrity.mocapi.tools.annotation.AnnotationMcpTool;
+import com.callibrity.mocapi.tools.annotation.ToolService;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationContext;
 
 import java.util.List;
 
 @RequiredArgsConstructor
-public class DefaultAnnotationMcpToolProviderFactory implements AnnotationMcpToolProviderFactory {
+public class ToolServiceMcpToolProvider implements McpToolProvider {
 
 // ------------------------------ FIELDS ------------------------------
 
+    private final ApplicationContext context;
     private final ObjectMapper mapper;
     private final MethodSchemaGenerator generator;
+    private List<AnnotationMcpTool> tools;
 
 // ------------------------ INTERFACE METHODS ------------------------
 
-// --------------------- Interface AnnotationMcpToolProviderFactory ---------------------
+// --------------------- Interface McpToolProvider ---------------------
 
-    public McpToolProvider create(Object targetObject) {
-        final var tools = AnnotationMcpTool.createTools(mapper, generator, targetObject);
-        return () -> List.copyOf(tools);
+    @Override
+    public List<McpTool> getMcpTools() {
+        return List.copyOf(tools);
+    }
+
+// -------------------------- OTHER METHODS --------------------------
+
+    @PostConstruct
+    public void initialize() {
+        tools = context.getBeansWithAnnotation(ToolService.class).values().stream()
+                .flatMap(bean -> AnnotationMcpTool.createTools(mapper, generator, bean).stream())
+                .toList();
     }
 
 }

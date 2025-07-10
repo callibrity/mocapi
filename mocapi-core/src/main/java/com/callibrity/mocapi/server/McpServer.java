@@ -19,6 +19,7 @@ package com.callibrity.mocapi.server;
 import com.callibrity.mocapi.client.ClientCapabilities;
 import com.callibrity.mocapi.client.ClientInfo;
 import com.callibrity.ripcurl.core.annotation.JsonRpc;
+import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
+@JsonRpcService
 public class McpServer {
 
 // ------------------------------ FIELDS ------------------------------

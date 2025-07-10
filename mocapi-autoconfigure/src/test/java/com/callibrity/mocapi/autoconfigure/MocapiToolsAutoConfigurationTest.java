@@ -43,4 +43,16 @@ class MocapiToolsAutoConfigurationTest {
             assertThat(context).hasSingleBean(AnnotationMcpToolProviderFactory.class);
         });
     }
+
+    @Test
+    void toolServiceMcpToolProviderInitializes() {
+        contextRunner.run(context -> {
+            assertThat(context).hasSingleBean(ToolServiceMcpToolProvider.class);
+            ToolServiceMcpToolProvider bean = context.getBean(ToolServiceMcpToolProvider.class);
+            var tools = bean.getMcpTools();
+            assertThat(tools).isNotNull();
+            assertThat(tools).isEmpty();
+
+        });
+    }
 }

@@ -21,14 +21,14 @@ import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.tools.annotation.DefaultAnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
-import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodHandlerProviderFactory;
-import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 
@@ -62,7 +62,7 @@ public class MocapiToolsAutoConfiguration {
     }
 
     @Bean
-    public JsonRpcMethodHandlerProvider mcpToolsMethodHandlerProvider(AnnotationJsonRpcMethodHandlerProviderFactory factory, McpToolsCapability mcpToolsCapability) {
-        return factory.create(mcpToolsCapability);
+    public ToolServiceMcpToolProvider toolServiceMcpToolProvider(ApplicationContext context, ObjectMapper mapper, MethodSchemaGenerator generator) {
+        return new ToolServiceMcpToolProvider(context, mapper, generator);
     }
 }
