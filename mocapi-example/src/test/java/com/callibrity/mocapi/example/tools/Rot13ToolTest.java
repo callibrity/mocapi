@@ -24,8 +24,8 @@ class Rot13ToolTest {
     @Test
     void encodingShouldRotateChars() {
         var tool = new Rot13Tool();
-        var response = tool.encode(" A-b");
+        var response = tool.encode("(A-b]}");
         assertThat(response).isNotNull();
-        assertThat(response.encoded()).isEqualTo(" N-o");
+        assertThat(response.encoded()).isEqualTo("(N-o]}");
     }
 }
