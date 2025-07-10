@@ -29,6 +29,10 @@
     <name>Mocapi - Example</name>
     <description>An example application highlighting Mocapi&apos;s capabilities</description>
 
+    <properties>
+        <sonar.exclusions>src/main/java/**/MocapiExampleApplication.java</sonar.exclusions>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -81,15 +85,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
             </plugin>
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>com/callibrity/**/MocapiExampleApplication.class</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
+
         </plugins>
     </build>
 </project>
