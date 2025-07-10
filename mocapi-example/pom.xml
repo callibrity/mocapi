@@ -86,7 +86,7 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <configuration>
                     <excludes>
-                        <exclude>com/callibrity/mocapi/example/MocapiExampleApplication*</exclude>
+                        <exclude>com/callibrity/**/MocapiExampleApplication.class</exclude>
                     </excludes>
                 </configuration>
             </plugin>
