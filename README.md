@@ -111,6 +111,33 @@ public class CodeReviewPrompts {
 }
 ```
 
+## Running the Example Application
+
+Mocapi includes an example application to demonstrate how to use the framework. To run it, follow these steps:
+
+1. Navigate to the `mocapi-example` directory.
+    ```bash
+    cd mocapi-example
+    ```
+2. Run the application using Maven:
+
+    ```bash
+    mvn spring-boot:run
+    ```
+3. The application will start on port 8080 by default. You can access the example tools and prompts at the `/mcp` endpoint.
+
+## Using the MCP Inspector
+
+You can interact with the example application using the MCP Inspector. To do this, follow these steps:
+1. Launch the MCP inspector by running the following command in your terminal:
+    ```bash
+    npx @modelcontextprotocol/inspector
+    ```
+2. Your browser will open the MCP Inspector interface. Enter the URL of the running example application (e.g., `http://localhost:8080/mcp`) in the URL field.
+3. Select the "Streamable HTTP" transport option.
+4. Click "Connect" to establish a connection to the example application.
+5. You can now explore the available tools and prompts, send requests, and view responses directly in the MCP Inspector interface.
+6. Enjoy!
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
