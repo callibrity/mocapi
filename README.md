@@ -141,7 +141,7 @@ You can interact with the example application using the MCP Inspector. To do thi
 
 ## What's in a Name?
 
-Why the name Mocapi? It's a made-up word with the letters MCP in it. It's pronounced *moh-cap-ee*.
+Mocapi is a made-up word that includes the letters MCP (Model Context Protocol). It’s pronounced moh-cap-ee (/ˈmoʊˌkæpi/), like a friendly little robot who speaks protocol.
 
 ## Contributing
 
