@@ -30,10 +30,7 @@ public class Parameters {
         if(parameter.isAnnotationPresent(Nullable.class)) {
             return false;
         }
-        if(parameter.isAnnotationPresent(Schema.class) && parameter.getAnnotation(Schema.class).requiredMode() == Schema.RequiredMode.NOT_REQUIRED) {
-            return false;
-        }
-        return true;
+        return !parameter.isAnnotationPresent(Schema.class) || parameter.getAnnotation(Schema.class).requiredMode() != Schema.RequiredMode.NOT_REQUIRED;
     }
 
     public static String descriptionOf(Parameter parameter) {

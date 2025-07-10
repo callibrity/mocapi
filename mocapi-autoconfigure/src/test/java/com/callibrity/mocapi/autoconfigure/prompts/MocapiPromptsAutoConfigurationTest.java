@@ -16,11 +16,7 @@
 package com.callibrity.mocapi.autoconfigure.prompts;
 
 import com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration;
-import com.callibrity.mocapi.autoconfigure.tools.MocapiToolsAutoConfiguration;
-import com.callibrity.mocapi.autoconfigure.tools.ToolServiceMcpToolProvider;
 import com.callibrity.mocapi.prompts.McpPromptsCapability;
-import com.callibrity.mocapi.tools.McpToolsCapability;
-import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
 import com.callibrity.ripcurl.autoconfigure.RipCurlAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -36,9 +32,7 @@ class MocapiPromptsAutoConfigurationTest {
 
     @Test
     void mcpCapabilityInitializes() {
-        contextRunner.run(context -> {
-            assertThat(context).hasSingleBean(McpPromptsCapability.class);
-        });
+        contextRunner.run(context -> assertThat(context).hasSingleBean(McpPromptsCapability.class));
     }
 
     @Test
@@ -54,8 +48,6 @@ class MocapiPromptsAutoConfigurationTest {
 
     @Test
     void mcpPromptBeanProviderInitializes() {
-        contextRunner.run(context -> {
-            assertThat(context).hasBean("mcpPromptBeanProvider");
-        });
+        contextRunner.run(context -> assertThat(context).hasBean("mcpPromptBeanProvider"));
     }
 }
