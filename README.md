@@ -111,6 +111,10 @@ public class CodeReviewPrompts {
 }
 ```
 
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
 ## Building from Source
 
 To build the project yourself, simply clone the repository and use [Apache Maven](https://maven.apache.org/) to compile and package it:
