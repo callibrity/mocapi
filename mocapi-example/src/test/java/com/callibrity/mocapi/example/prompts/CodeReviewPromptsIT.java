@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.hamcrest.Matchers.containsString;
 
 @SpringBootTest(classes = MocapiExampleApplication.class)
 @AutoConfigureMockMvc
@@ -52,6 +53,9 @@ class CodeReviewPromptsIT {
                 .andExpect(jsonPath("$.result.description").value("Provide a short review of the given code snippet"))
                 .andExpect(jsonPath("$.result.messages").isArray())
                 .andExpect(jsonPath("$.result.messages[0].role").value("user"))
-                .andExpect(jsonPath("$.result.messages[0].content.type").value("text"));
+                .andExpect(jsonPath("$.result.messages[0].content.type").value("text"))
+                .andExpect(jsonPath("$.result.messages[0].content.text").value(containsString("Please review the following python code")))
+                .andExpect(jsonPath("$.result.messages[0].content.text").value(containsString("def hello():")))
+                .andExpect(jsonPath("$.result.messages[0].content.text").value(containsString("print('Hello, world!')")));
     }
 }
