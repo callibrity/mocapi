@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.resources.content;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.Getter;
 
 import java.util.Map;
 
@@ -25,7 +24,7 @@ public abstract class ResourceContents {
 
     private final String uri;
     private final String mimeType;
-    private final Map<String, Object> _meta;
+    private final Map<String, Object> meta;
 
     protected ResourceContents(String uri, String mimeType) {
         this(uri, mimeType, null);
@@ -34,7 +33,7 @@ public abstract class ResourceContents {
     protected ResourceContents(String uri, String mimeType, Map<String, Object> meta) {
         this.uri = uri;
         this.mimeType = mimeType;
-        this._meta = meta;
+        this.meta = meta;
     }
 
     public String getUri() {
@@ -45,7 +44,7 @@ public abstract class ResourceContents {
         return mimeType;
     }
 
-    public Map<String, Object> get_meta() {
-        return _meta;
+    public Map<String, Object> getMeta() {
+        return meta;
     }
 }

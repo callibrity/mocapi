@@ -153,29 +153,4 @@ class ReadResourceResultTest {
         assertThat(blobContent.getUri()).isEqualTo("test://uri");
     }
 
-    @Test
-    void shouldCreateTextResultWithUriParameter() {
-        var result = ReadResourceResult.text("Hello World", "text/plain", "test://uri");
-        
-        assertThat(result.contents()).hasSize(1);
-        var content = result.contents().get(0);
-        assertThat(content).isInstanceOf(TextResourceContents.class);
-        var textContent = (TextResourceContents) content;
-        assertThat(textContent.getText()).isEqualTo("Hello World");
-        assertThat(textContent.getMimeType()).isEqualTo("text/plain");
-        assertThat(textContent.getUri()).isEqualTo("test://uri");
-    }
-
-    @Test
-    void shouldCreateBlobResultWithUriParameter() {
-        var result = ReadResourceResult.blob("SGVsbG8gV29ybGQ=", "application/octet-stream", "test://uri");
-        
-        assertThat(result.contents()).hasSize(1);
-        var content = result.contents().get(0);
-        assertThat(content).isInstanceOf(BlobResourceContents.class);
-        var blobContent = (BlobResourceContents) content;
-        assertThat(blobContent.getBlob()).isEqualTo("SGVsbG8gV29ybGQ=");
-        assertThat(blobContent.getMimeType()).isEqualTo("application/octet-stream");
-        assertThat(blobContent.getUri()).isEqualTo("test://uri");
-    }
 }

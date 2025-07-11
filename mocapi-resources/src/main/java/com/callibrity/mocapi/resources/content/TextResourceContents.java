@@ -15,8 +15,6 @@
  */
 package com.callibrity.mocapi.resources.content;
 
-import lombok.Getter;
-
 import java.util.Map;
 
 public class TextResourceContents extends ResourceContents {

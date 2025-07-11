@@ -30,7 +30,7 @@ class ResourceContentsTest {
         assertThat(content.getUri()).isEqualTo("test://uri");
         assertThat(content.getText()).isEqualTo("Hello World");
         assertThat(content.getMimeType()).isEqualTo("text/plain");
-        assertThat(content.get_meta()).isNull();
+        assertThat(content.getMeta()).isNull();
     }
 
     @Test
@@ -41,7 +41,7 @@ class ResourceContentsTest {
         assertThat(content.getUri()).isEqualTo("test://uri");
         assertThat(content.getText()).isEqualTo("Hello World");
         assertThat(content.getMimeType()).isEqualTo("text/plain");
-        assertThat(content.get_meta()).isEqualTo(meta);
+        assertThat(content.getMeta()).isEqualTo(meta);
     }
 
     @Test
@@ -51,7 +51,7 @@ class ResourceContentsTest {
         assertThat(content.getUri()).isEqualTo("test://uri");
         assertThat(content.getBlob()).isEqualTo("SGVsbG8gV29ybGQ=");
         assertThat(content.getMimeType()).isEqualTo("application/octet-stream");
-        assertThat(content.get_meta()).isNull();
+        assertThat(content.getMeta()).isNull();
     }
 
     @Test
@@ -62,7 +62,7 @@ class ResourceContentsTest {
         assertThat(content.getUri()).isEqualTo("test://uri");
         assertThat(content.getBlob()).isEqualTo("SGVsbG8gV29ybGQ=");
         assertThat(content.getMimeType()).isEqualTo("application/octet-stream");
-        assertThat(content.get_meta()).isEqualTo(meta);
+        assertThat(content.getMeta()).isEqualTo(meta);
     }
 
     @Test
