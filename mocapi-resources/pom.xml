@@ -24,36 +24,29 @@
         <artifactId>mocapi-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>mocapi-spring-boot-starter</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>Mocapi - Spring Boot Starter</name>
-    <description>A Spring Boot Starter for Mocapi</description>
+    <artifactId>mocapi-resources</artifactId>
+    <name>Mocapi - Resources</name>
+    <description>MCP Resources capability for Mocapi</description>
 
     <dependencies>
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
             <artifactId>mocapi-core</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-autoconfigure</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <groupId>com.callibrity.ripcurl</groupId>
+            <artifactId>ripcurl-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-tools</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-prompts</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-resources</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <optional>true</optional>
         </dependency>
     </dependencies>
+
 </project>
