@@ -20,8 +20,11 @@ import com.callibrity.mocapi.tools.annotation.DefaultAnnotationMcpToolProviderFa
 import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tools.util.HelloTool;
 import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.POJONode;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -296,5 +299,60 @@ class McpToolsCapabilityTest {
         
         assertThat(response).isNotNull();
         assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, ByteUser!");
+    }
+
+    @Test
+    void shouldHandlePOJONodes() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "POJOUser");
+        
+        var customObject = new Object() {
+            @Override
+            public String toString() {
+                return "customPOJO";
+            }
+        };
+        objectNode.set("pojoField", new POJONode(customObject));
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, POJOUser!");
+    }
+
+    @Test
+    void shouldHandleBinaryNodes() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "BinaryUser");
+        
+        byte[] binaryData = "test binary data".getBytes();
+        objectNode.set("binaryField", JsonNodeFactory.instance.binaryNode(binaryData));
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, BinaryUser!");
+    }
+
+    @Test
+    void shouldHandleMissingNodes() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "MissingUser");
+        
+        objectNode.set("missingField", JsonNodeFactory.instance.missingNode());
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, MissingUser!");
     }
 }
