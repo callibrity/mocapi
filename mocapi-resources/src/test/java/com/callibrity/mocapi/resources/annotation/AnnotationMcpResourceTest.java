@@ -76,7 +76,9 @@ class AnnotationMcpResourceTest {
 
     @Test
     void shouldThrowExceptionForInvalidReturnType() {
-        assertThatThrownBy(() -> AnnotationMcpResource.createResources(new InvalidReturnTypeResource()))
+        var invalidResource = new InvalidReturnTypeResource();
+        
+        assertThatThrownBy(() -> AnnotationMcpResource.createResources(invalidResource))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Resource method 'invalidMethod' returns String (ReadResourceResult is required)");
     }
