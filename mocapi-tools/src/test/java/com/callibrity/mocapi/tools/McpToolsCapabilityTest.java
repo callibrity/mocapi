@@ -21,7 +21,10 @@ import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tools.util.HelloTool;
 import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.victools.jsonschema.generator.SchemaVersion;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -105,5 +108,116 @@ class McpToolsCapabilityTest {
         assertThatThrownBy(() -> capability.callTool("non-existent-tool", request))
                 .isExactlyInstanceOf(JsonRpcInvalidParamsException.class)
                 .hasMessageContaining("Tool non-existent-tool not found.");
+    }
+
+    @Test
+    void shouldConvertSimpleObjectNodeToJSONObject() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("stringField", "test")
+                .put("intField", 42)
+                .put("boolField", true)
+                .put("doubleField", 3.14);
+        objectNode.putNull("nullField");
+        
+        var response = capability.callTool("hello-tool.say-hello", 
+                mapper.createObjectNode().put("name", "TestUser"));
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, TestUser!");
+    }
+
+    @Test
+    void shouldConvertNestedObjectNodeToJSONObject() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode nestedObject = mapper.createObjectNode()
+                .put("nestedString", "nested value")
+                .put("nestedNumber", 123);
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "ComplexUser")
+                .set("nested", nestedObject);
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, ComplexUser!");
+    }
+
+    @Test
+    void shouldConvertArrayNodeToJSONObject() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        var arrayNode = mapper.createArrayNode()
+                .add("item1")
+                .add("item2")
+                .add(42);
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "ArrayUser")
+                .set("items", arrayNode);
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, ArrayUser!");
+    }
+
+    @Test
+    void shouldHandleComplexNestedStructures() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        var innerArray = mapper.createArrayNode()
+                .add("arrayItem1")
+                .add(999);
+        
+        var innerObject = mapper.createObjectNode()
+                .put("innerProp", "innerValue")
+                .set("innerArray", innerArray);
+        
+        ObjectNode complexObject = mapper.createObjectNode()
+                .put("name", "ComplexStructureUser")
+                .put("level", 1)
+                .set("data", innerObject);
+        complexObject.putNull("optionalField");
+        
+        var response = capability.callTool("hello-tool.say-hello", complexObject);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, ComplexStructureUser!");
+    }
+
+    @Test
+    void shouldHandleEmptyObjectNode() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode emptyObject = mapper.createObjectNode();
+        
+        assertThatThrownBy(() -> capability.callTool("hello-tool.say-hello", emptyObject))
+                .isExactlyInstanceOf(JsonRpcInvalidParamsException.class);
+    }
+
+    @Test
+    void shouldHandleNumericTypes() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "NumericUser")
+                .put("longField", Long.MAX_VALUE)
+                .put("floatField", 2.5f)
+                .put("shortField", (short) 100);
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, NumericUser!");
     }
 }
