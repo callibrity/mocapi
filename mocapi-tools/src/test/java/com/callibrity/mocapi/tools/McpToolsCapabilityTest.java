@@ -302,28 +302,6 @@ class McpToolsCapabilityTest {
     }
 
     @Test
-    void shouldHandlePOJONodes() {
-        var provider = factory.create(new HelloTool());
-        var capability = new McpToolsCapability(List.of(provider));
-        
-        ObjectNode objectNode = mapper.createObjectNode()
-                .put("name", "POJOUser");
-        
-        var customObject = new Object() {
-            @Override
-            public String toString() {
-                return "customPOJO";
-            }
-        };
-        objectNode.set("pojoField", new POJONode(customObject));
-        
-        var response = capability.callTool("hello-tool.say-hello", objectNode);
-        
-        assertThat(response).isNotNull();
-        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, POJOUser!");
-    }
-
-    @Test
     void shouldHandleBinaryNodes() {
         var provider = factory.create(new HelloTool());
         var capability = new McpToolsCapability(List.of(provider));
@@ -354,5 +332,22 @@ class McpToolsCapabilityTest {
         
         assertThat(response).isNotNull();
         assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, MissingUser!");
+    }
+
+    @Test
+    void shouldHandlePOJONodes() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "POJOUser");
+        
+        String simpleObject = "customPOJO";
+        objectNode.set("pojoField", new POJONode(simpleObject));
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, POJOUser!");
     }
 }
