@@ -65,7 +65,7 @@
     <properties>
         <java.version>24</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <required.maven.version>3.8</required.maven.version>
+        <required.maven.version>3.6</required.maven.version>
 
         <!-- Dependency Versions -->
         <everit-json-schema.version>1.14.6</everit-json-schema.version>
