@@ -20,6 +20,7 @@ import com.callibrity.mocapi.tools.McpToolProvider;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpTool;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
+import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +58,7 @@ public class ToolServiceMcpToolProvider implements McpToolProvider {
                 .flatMap(entry -> {
                     var beanName = entry.getKey();
                     var bean = entry.getValue();
-                    log.info("Registering MCP list for {} bean named \"{}\"...", bean.getClass(), beanName);
+                    log.info("Registering MCP tools for @{} bean \"{}\"...", ToolService.class.getSimpleName(), beanName);
                     var list = AnnotationMcpTool.createTools(mapper, generator, bean);
                     list.forEach(tool -> log.info("\tRegistered MCP tool: \"{}\"", tool.name()));
                     return list.stream();

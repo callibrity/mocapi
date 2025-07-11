@@ -19,6 +19,7 @@ import com.callibrity.mocapi.prompts.McpPrompt;
 import com.callibrity.mocapi.prompts.McpPromptProvider;
 import com.callibrity.mocapi.prompts.annotation.AnnotationMcpPrompt;
 import com.callibrity.mocapi.prompts.annotation.PromptService;
+import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,7 +53,7 @@ public class PromptServiceMcpPromptProvider implements McpPromptProvider {
                 .flatMap(entry -> {
                     var beanName = entry.getKey();
                     var bean = entry.getValue();
-                    log.info("Registering MCP prompts for {} bean named \"{}\"...", bean.getClass(), beanName);
+                    log.info("Registering MCP prompts for @{} bean \"{}\"...", PromptService.class.getSimpleName(), beanName);
                     var list = AnnotationMcpPrompt.createPrompts(bean);
                     list.forEach(prompt -> log.info("\tRegistered MCP prompt: \"{}\".", prompt.name()));
                     return list.stream();
