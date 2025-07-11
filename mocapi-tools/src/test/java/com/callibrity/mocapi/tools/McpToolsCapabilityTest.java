@@ -350,4 +350,74 @@ class McpToolsCapabilityTest {
         assertThat(response).isNotNull();
         assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, POJOUser!");
     }
+
+    @Test
+    void shouldHandleComplexPOJONodes() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "ComplexPOJOUser");
+        
+        var complexPojo = new java.util.HashMap<String, Object>();
+        complexPojo.put("key", "value");
+        objectNode.set("complexPojoField", new POJONode(complexPojo));
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, ComplexPOJOUser!");
+    }
+
+    @Test
+    void shouldHandleAllElseBranchNodeTypes() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "ElseBranchUser");
+        
+        byte[] binaryData = "binary".getBytes();
+        objectNode.set("binaryField", JsonNodeFactory.instance.binaryNode(binaryData));
+        objectNode.set("missingField", JsonNodeFactory.instance.missingNode());
+        objectNode.set("pojoField", new POJONode("pojo"));
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, ElseBranchUser!");
+    }
+
+    @Test
+    void shouldDirectlyTestElseBranchConversion() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "ElseBranchDirectUser");
+        
+        var customNode = new com.fasterxml.jackson.databind.node.ValueNode() {
+            @Override
+            public com.fasterxml.jackson.databind.JsonNodeType getNodeType() {
+                return com.fasterxml.jackson.databind.JsonNodeType.POJO;
+            }
+            
+            @Override
+            public String asText() {
+                return "custom-node-value";
+            }
+            
+            @Override
+            public String toString() {
+                return "custom-node-toString";
+            }
+        };
+        
+        objectNode.set("customField", customNode);
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, ElseBranchDirectUser!");
+    }
 }
