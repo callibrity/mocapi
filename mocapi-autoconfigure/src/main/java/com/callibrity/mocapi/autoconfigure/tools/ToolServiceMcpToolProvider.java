@@ -23,11 +23,13 @@ import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 
 import java.util.List;
 
 @RequiredArgsConstructor
+@Slf4j
 public class ToolServiceMcpToolProvider implements McpToolProvider {
 
 // ------------------------------ FIELDS ------------------------------
@@ -50,8 +52,16 @@ public class ToolServiceMcpToolProvider implements McpToolProvider {
 
     @PostConstruct
     public void initialize() {
-        tools = context.getBeansWithAnnotation(ToolService.class).values().stream()
-                .flatMap(bean -> AnnotationMcpTool.createTools(mapper, generator, bean).stream())
+        var beans = context.getBeansWithAnnotation(ToolService.class);
+        tools = beans.entrySet().stream()
+                .flatMap(entry -> {
+                    var beanName = entry.getKey();
+                    var bean = entry.getValue();
+                    log.info("Registering MCP list for {} bean named \"{}\"...", bean.getClass(), beanName);
+                    var list = AnnotationMcpTool.createTools(mapper, generator, bean);
+                    list.forEach(tool -> log.info("\tRegistered MCP tool: \"{}\"", tool.name()));
+                    return list.stream();
+                })
                 .toList();
     }
 

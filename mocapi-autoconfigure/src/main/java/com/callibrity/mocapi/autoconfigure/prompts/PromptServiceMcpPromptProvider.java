@@ -21,11 +21,13 @@ import com.callibrity.mocapi.prompts.annotation.AnnotationMcpPrompt;
 import com.callibrity.mocapi.prompts.annotation.PromptService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 
 import java.util.List;
 
 @RequiredArgsConstructor
+@Slf4j
 public class PromptServiceMcpPromptProvider implements McpPromptProvider {
 
 // ------------------------------ FIELDS ------------------------------
@@ -46,7 +48,15 @@ public class PromptServiceMcpPromptProvider implements McpPromptProvider {
 
     @PostConstruct
     public void initialize() {
-        this.prompts = context.getBeansWithAnnotation(PromptService.class).values().stream()
+        this.prompts = context.getBeansWithAnnotation(PromptService.class).entrySet().stream()
+                .flatMap(entry -> {
+                    var beanName = entry.getKey();
+                    var bean = entry.getValue();
+                    log.info("Registering MCP prompts for {} bean named \"{}\"...", bean.getClass(), beanName);
+                    var list = AnnotationMcpPrompt.createPrompts(bean);
+                    list.forEach(prompt -> log.info("\tRegistered MCP prompt: \"{}\".", prompt.name()));
+                    return list.stream();
+                })
                 .flatMap(targetObject -> AnnotationMcpPrompt.createPrompts(targetObject).stream())
                 .toList();
     }
