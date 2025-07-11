@@ -17,6 +17,7 @@ package com.callibrity.mocapi.resources;
 
 import com.callibrity.mocapi.resources.annotation.AnnotationMcpResourceProviderFactory;
 import com.callibrity.mocapi.resources.annotation.DefaultAnnotationMcpResourceProviderFactory;
+import com.callibrity.mocapi.resources.content.TextResourceContents;
 import com.callibrity.mocapi.resources.util.HelloResource;
 import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
 import org.junit.jupiter.api.Test;
@@ -53,9 +54,12 @@ class McpResourcesCapabilityTest {
 
         var result = capability.readResource("hello://greeting");
 
-        assertThat(result.text()).isEqualTo("Hello from Mocapi Resources!");
-        assertThat(result.mimeType()).isEqualTo("text/plain");
-        assertThat(result.blob()).isNull();
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(TextResourceContents.class);
+        var textContent = (TextResourceContents) content;
+        assertThat(textContent.getText()).isEqualTo("Hello from Mocapi Resources!");
+        assertThat(textContent.getMimeType()).isEqualTo("text/plain");
     }
 
     @Test

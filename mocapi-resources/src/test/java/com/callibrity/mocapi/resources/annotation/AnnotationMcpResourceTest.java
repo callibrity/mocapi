@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.resources.annotation;
 
 import com.callibrity.mocapi.resources.ReadResourceResult;
+import com.callibrity.mocapi.resources.content.TextResourceContents;
 import com.callibrity.mocapi.resources.util.HelloResource;
 import org.junit.jupiter.api.Test;
 
@@ -46,8 +47,13 @@ class AnnotationMcpResourceTest {
 
         var result = resource.read(null);
 
-        assertThat(result.text()).isEqualTo("Hello from Mocapi Resources!");
-        assertThat(result.mimeType()).isEqualTo("text/plain");
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(TextResourceContents.class);
+        var textContent = (TextResourceContents) content;
+        assertThat(textContent.getText()).isEqualTo("Hello from Mocapi Resources!");
+        assertThat(textContent.getMimeType()).isEqualTo("text/plain");
+        assertThat(textContent.getUri()).isEqualTo("hello://greeting");
     }
 
     @Test
@@ -57,8 +63,13 @@ class AnnotationMcpResourceTest {
 
         var result = resource.read(Map.of("param", "value"));
 
-        assertThat(result.text()).isEqualTo("Hello from Mocapi Resources!");
-        assertThat(result.mimeType()).isEqualTo("text/plain");
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(TextResourceContents.class);
+        var textContent = (TextResourceContents) content;
+        assertThat(textContent.getText()).isEqualTo("Hello from Mocapi Resources!");
+        assertThat(textContent.getMimeType()).isEqualTo("text/plain");
+        assertThat(textContent.getUri()).isEqualTo("hello://greeting");
     }
 
     @Test
@@ -148,7 +159,7 @@ class AnnotationMcpResourceTest {
     static class TestResourceWithDefaults {
         @Resource
         public ReadResourceResult getDefaultResource() {
-            return ReadResourceResult.text("default content", "text/plain");
+            return ReadResourceResult.text("default content", "text/plain", "");
         }
     }
 
@@ -169,19 +180,19 @@ class AnnotationMcpResourceTest {
     static class MultipleResourcesClass {
         @Resource(name = "First Resource")
         public ReadResourceResult firstResource() {
-            return ReadResourceResult.text("first", "text/plain");
+            return ReadResourceResult.text("first", "text/plain", "");
         }
 
         @Resource(name = "Second Resource")
         public ReadResourceResult secondResource() {
-            return ReadResourceResult.text("second", "text/plain");
+            return ReadResourceResult.text("second", "text/plain", "");
         }
     }
 
     static class PrivateMethodResource {
         @Resource(name = "Private Resource")
         private ReadResourceResult privateMethod() {
-            return ReadResourceResult.text("private", "text/plain");
+            return ReadResourceResult.text("private", "text/plain", "");
         }
     }
 
@@ -194,21 +205,21 @@ class AnnotationMcpResourceTest {
                 mimeType = "application/custom"
         )
         public ReadResourceResult fullyAnnotated() {
-            return ReadResourceResult.text("custom content", "application/custom");
+            return ReadResourceResult.text("custom content", "application/custom", "");
         }
     }
 
     static class EmptyAnnotationResource {
         @Resource(uri = "", name = "", title = "", description = "")
         public ReadResourceResult emptyMethod() {
-            return ReadResourceResult.text("empty", "text/plain");
+            return ReadResourceResult.text("empty", "text/plain", "");
         }
     }
 
     static class WhitespaceAnnotationResource {
         @Resource(uri = "   ", name = "   ", title = "   ", description = "   ")
         public ReadResourceResult whitespaceMethod() {
-            return ReadResourceResult.text("whitespace", "text/plain");
+            return ReadResourceResult.text("whitespace", "text/plain", "");
         }
     }
 }

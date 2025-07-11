@@ -86,12 +86,12 @@ class ResourceServiceMcpResourceProviderTest {
     static class TestResourceService {
         @Resource(name = "First Resource")
         public ReadResourceResult firstResource() {
-            return ReadResourceResult.text("first", "text/plain");
+            return ReadResourceResult.text("first", "text/plain", "");
         }
 
         @Resource(name = "Second Resource")
         public ReadResourceResult secondResource() {
-            return ReadResourceResult.text("second", "text/plain");
+            return ReadResourceResult.text("second", "text/plain", "");
         }
     }
 
@@ -100,14 +100,14 @@ class ResourceServiceMcpResourceProviderTest {
     static class AnotherResourceService {
         @Resource(name = "Third Resource")
         public ReadResourceResult thirdResource() {
-            return ReadResourceResult.text("third", "text/plain");
+            return ReadResourceResult.text("third", "text/plain", "");
         }
     }
 
     @Component
     static class NonResourceService {
         public ReadResourceResult notAResource() {
-            return ReadResourceResult.text("not a resource", "text/plain");
+            return ReadResourceResult.text("not a resource", "text/plain", "");
         }
     }
 }

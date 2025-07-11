@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.resources;
 
+import com.callibrity.mocapi.resources.content.BlobResourceContents;
+import com.callibrity.mocapi.resources.content.TextResourceContents;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,91 +25,157 @@ class ReadResourceResultTest {
 
     @Test
     void shouldCreateTextResultWithMimeType() {
-        var result = ReadResourceResult.text("Hello World", "text/plain");
+        var result = ReadResourceResult.text("Hello World", "text/plain", "test://uri");
         
-        assertThat(result.text()).isEqualTo("Hello World");
-        assertThat(result.blob()).isNull();
-        assertThat(result.mimeType()).isEqualTo("text/plain");
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(TextResourceContents.class);
+        var textContent = (TextResourceContents) content;
+        assertThat(textContent.getText()).isEqualTo("Hello World");
+        assertThat(textContent.getMimeType()).isEqualTo("text/plain");
+        assertThat(textContent.getUri()).isEqualTo("test://uri");
     }
 
     @Test
     void shouldCreateTextResultWithDefaultMimeType() {
-        var result = ReadResourceResult.text("Hello World");
+        var result = ReadResourceResult.text("Hello World", "test://uri");
         
-        assertThat(result.text()).isEqualTo("Hello World");
-        assertThat(result.blob()).isNull();
-        assertThat(result.mimeType()).isEqualTo("text/plain");
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(TextResourceContents.class);
+        var textContent = (TextResourceContents) content;
+        assertThat(textContent.getText()).isEqualTo("Hello World");
+        assertThat(textContent.getMimeType()).isEqualTo("text/plain");
+        assertThat(textContent.getUri()).isEqualTo("test://uri");
     }
 
     @Test
     void shouldCreateBlobResult() {
-        var result = ReadResourceResult.blob("SGVsbG8gV29ybGQ=", "application/octet-stream");
+        var result = ReadResourceResult.blob("SGVsbG8gV29ybGQ=", "application/octet-stream", "test://uri");
         
-        assertThat(result.text()).isNull();
-        assertThat(result.blob()).isEqualTo("SGVsbG8gV29ybGQ=");
-        assertThat(result.mimeType()).isEqualTo("application/octet-stream");
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(BlobResourceContents.class);
+        var blobContent = (BlobResourceContents) content;
+        assertThat(blobContent.getBlob()).isEqualTo("SGVsbG8gV29ybGQ=");
+        assertThat(blobContent.getMimeType()).isEqualTo("application/octet-stream");
+        assertThat(blobContent.getUri()).isEqualTo("test://uri");
     }
 
     @Test
     void shouldCreateBlobResultWithImageMimeType() {
-        var result = ReadResourceResult.blob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==", "image/png");
+        var result = ReadResourceResult.blob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==", "image/png", "test://uri");
         
-        assertThat(result.text()).isNull();
-        assertThat(result.blob()).isEqualTo("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==");
-        assertThat(result.mimeType()).isEqualTo("image/png");
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(BlobResourceContents.class);
+        var blobContent = (BlobResourceContents) content;
+        assertThat(blobContent.getBlob()).isEqualTo("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==");
+        assertThat(blobContent.getMimeType()).isEqualTo("image/png");
+        assertThat(blobContent.getUri()).isEqualTo("test://uri");
     }
 
     @Test
     void shouldHandleNullTextContent() {
-        var result = ReadResourceResult.text(null, "text/plain");
+        var result = ReadResourceResult.text(null, "text/plain", "test://uri");
         
-        assertThat(result.text()).isNull();
-        assertThat(result.blob()).isNull();
-        assertThat(result.mimeType()).isEqualTo("text/plain");
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(TextResourceContents.class);
+        var textContent = (TextResourceContents) content;
+        assertThat(textContent.getText()).isNull();
+        assertThat(textContent.getMimeType()).isEqualTo("text/plain");
+        assertThat(textContent.getUri()).isEqualTo("test://uri");
     }
 
     @Test
     void shouldHandleNullBlobContent() {
-        var result = ReadResourceResult.blob(null, "application/octet-stream");
+        var result = ReadResourceResult.blob(null, "application/octet-stream", "test://uri");
         
-        assertThat(result.text()).isNull();
-        assertThat(result.blob()).isNull();
-        assertThat(result.mimeType()).isEqualTo("application/octet-stream");
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(BlobResourceContents.class);
+        var blobContent = (BlobResourceContents) content;
+        assertThat(blobContent.getBlob()).isNull();
+        assertThat(blobContent.getMimeType()).isEqualTo("application/octet-stream");
+        assertThat(blobContent.getUri()).isEqualTo("test://uri");
     }
 
     @Test
     void shouldHandleEmptyTextContent() {
-        var result = ReadResourceResult.text("", "text/plain");
+        var result = ReadResourceResult.text("", "text/plain", "test://uri");
         
-        assertThat(result.text()).isEmpty();
-        assertThat(result.blob()).isNull();
-        assertThat(result.mimeType()).isEqualTo("text/plain");
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(TextResourceContents.class);
+        var textContent = (TextResourceContents) content;
+        assertThat(textContent.getText()).isEmpty();
+        assertThat(textContent.getMimeType()).isEqualTo("text/plain");
+        assertThat(textContent.getUri()).isEqualTo("test://uri");
     }
 
     @Test
     void shouldHandleEmptyBlobContent() {
-        var result = ReadResourceResult.blob("", "application/octet-stream");
+        var result = ReadResourceResult.blob("", "application/octet-stream", "test://uri");
         
-        assertThat(result.text()).isNull();
-        assertThat(result.blob()).isEmpty();
-        assertThat(result.mimeType()).isEqualTo("application/octet-stream");
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(BlobResourceContents.class);
+        var blobContent = (BlobResourceContents) content;
+        assertThat(blobContent.getBlob()).isEmpty();
+        assertThat(blobContent.getMimeType()).isEqualTo("application/octet-stream");
+        assertThat(blobContent.getUri()).isEqualTo("test://uri");
     }
 
     @Test
     void shouldCreateTextResultWithJsonMimeType() {
-        var result = ReadResourceResult.text("{\"key\": \"value\"}", "application/json");
+        var result = ReadResourceResult.text("{\"key\": \"value\"}", "application/json", "test://uri");
         
-        assertThat(result.text()).isEqualTo("{\"key\": \"value\"}");
-        assertThat(result.blob()).isNull();
-        assertThat(result.mimeType()).isEqualTo("application/json");
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(TextResourceContents.class);
+        var textContent = (TextResourceContents) content;
+        assertThat(textContent.getText()).isEqualTo("{\"key\": \"value\"}");
+        assertThat(textContent.getMimeType()).isEqualTo("application/json");
+        assertThat(textContent.getUri()).isEqualTo("test://uri");
     }
 
     @Test
     void shouldCreateBlobResultWithPdfMimeType() {
-        var result = ReadResourceResult.blob("JVBERi0xLjQK", "application/pdf");
+        var result = ReadResourceResult.blob("JVBERi0xLjQK", "application/pdf", "test://uri");
         
-        assertThat(result.text()).isNull();
-        assertThat(result.blob()).isEqualTo("JVBERi0xLjQK");
-        assertThat(result.mimeType()).isEqualTo("application/pdf");
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(BlobResourceContents.class);
+        var blobContent = (BlobResourceContents) content;
+        assertThat(blobContent.getBlob()).isEqualTo("JVBERi0xLjQK");
+        assertThat(blobContent.getMimeType()).isEqualTo("application/pdf");
+        assertThat(blobContent.getUri()).isEqualTo("test://uri");
+    }
+
+    @Test
+    void shouldCreateTextResultWithUriParameter() {
+        var result = ReadResourceResult.text("Hello World", "text/plain", "test://uri");
+        
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(TextResourceContents.class);
+        var textContent = (TextResourceContents) content;
+        assertThat(textContent.getText()).isEqualTo("Hello World");
+        assertThat(textContent.getMimeType()).isEqualTo("text/plain");
+        assertThat(textContent.getUri()).isEqualTo("test://uri");
+    }
+
+    @Test
+    void shouldCreateBlobResultWithUriParameter() {
+        var result = ReadResourceResult.blob("SGVsbG8gV29ybGQ=", "application/octet-stream", "test://uri");
+        
+        assertThat(result.contents()).hasSize(1);
+        var content = result.contents().get(0);
+        assertThat(content).isInstanceOf(BlobResourceContents.class);
+        var blobContent = (BlobResourceContents) content;
+        assertThat(blobContent.getBlob()).isEqualTo("SGVsbG8gV29ybGQ=");
+        assertThat(blobContent.getMimeType()).isEqualTo("application/octet-stream");
+        assertThat(blobContent.getUri()).isEqualTo("test://uri");
     }
 }

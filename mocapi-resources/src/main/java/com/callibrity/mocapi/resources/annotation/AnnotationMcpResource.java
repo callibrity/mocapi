@@ -17,6 +17,9 @@ package com.callibrity.mocapi.resources.annotation;
 
 import com.callibrity.mocapi.resources.McpResource;
 import com.callibrity.mocapi.resources.ReadResourceResult;
+import com.callibrity.mocapi.resources.content.BlobResourceContents;
+import com.callibrity.mocapi.resources.content.ResourceContents;
+import com.callibrity.mocapi.resources.content.TextResourceContents;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -86,9 +89,22 @@ public class AnnotationMcpResource implements McpResource {
     @Override
     public ReadResourceResult read(Map<String, String> parameters) {
         try {
-            return (ReadResourceResult) method.invoke(targetObject);
+            ReadResourceResult result = (ReadResourceResult) method.invoke(targetObject);
+            List<ResourceContents> updatedContents = result.contents().stream()
+                    .map(this::updateContentUri)
+                    .toList();
+            return new ReadResourceResult(updatedContents);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new IllegalStateException("Error invoking resource method", e);
         }
+    }
+
+    private ResourceContents updateContentUri(ResourceContents content) {
+        if (content instanceof TextResourceContents textContent) {
+            return new TextResourceContents(uri(), textContent.getText(), textContent.getMimeType());
+        } else if (content instanceof BlobResourceContents blobContent) {
+            return new BlobResourceContents(uri(), blobContent.getBlob(), blobContent.getMimeType());
+        }
+        return content;
     }
 }

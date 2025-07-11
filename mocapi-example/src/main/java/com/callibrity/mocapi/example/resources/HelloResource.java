@@ -32,7 +32,7 @@ public class HelloResource {
             mimeType = "text/plain"
     )
     public ReadResourceResult getGreeting() {
-        return ReadResourceResult.text("Hello from Mocapi Resources!");
+        return ReadResourceResult.text("Hello from Mocapi Resources!", "text/plain", "");
     }
 
     @Resource(
@@ -43,6 +43,6 @@ public class HelloResource {
             mimeType = "application/json"
     )
     public ReadResourceResult getInfo() {
-        return ReadResourceResult.text("{\"service\": \"HelloResource\", \"version\": \"1.0\", \"description\": \"Example resource service\"}", "application/json");
+        return ReadResourceResult.text("{\"service\": \"HelloResource\", \"version\": \"1.0\", \"description\": \"Example resource service\"}", "application/json", "");
     }
 }

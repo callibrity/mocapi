@@ -15,20 +15,27 @@
  */
 package com.callibrity.mocapi.resources;
 
+import com.callibrity.mocapi.resources.content.BlobResourceContents;
+import com.callibrity.mocapi.resources.content.ResourceContents;
+import com.callibrity.mocapi.resources.content.TextResourceContents;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.util.List;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ReadResourceResult(String text, String blob, String mimeType) {
+public record ReadResourceResult(List<ResourceContents> contents) {
 
-    public static ReadResourceResult text(String text, String mimeType) {
-        return new ReadResourceResult(text, null, mimeType);
+    public static ReadResourceResult text(String text, String mimeType, String uri) {
+        return new ReadResourceResult(List.of(new TextResourceContents(uri, text, mimeType)));
     }
 
-    public static ReadResourceResult text(String text) {
-        return new ReadResourceResult(text, null, "text/plain");
+    public static ReadResourceResult text(String text, String uri) {
+        return new ReadResourceResult(List.of(new TextResourceContents(uri, text, "text/plain")));
     }
 
-    public static ReadResourceResult blob(String blob, String mimeType) {
-        return new ReadResourceResult(null, blob, mimeType);
+    public static ReadResourceResult blob(String blob, String mimeType, String uri) {
+        return new ReadResourceResult(List.of(new BlobResourceContents(uri, blob, mimeType)));
     }
+
+
 }

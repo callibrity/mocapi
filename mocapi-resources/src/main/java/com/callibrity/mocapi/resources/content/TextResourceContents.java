@@ -13,21 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.resources.util;
+package com.callibrity.mocapi.resources.content;
 
-import com.callibrity.mocapi.resources.ReadResourceResult;
-import com.callibrity.mocapi.resources.annotation.Resource;
+import lombok.Getter;
 
-public class HelloResource {
+import java.util.Map;
 
-    @Resource(
-            uri = "hello://greeting",
-            name = "Hello Greeting",
-            title = "Hello Greeting Resource",
-            description = "A simple greeting resource",
-            mimeType = "text/plain"
-    )
-    public ReadResourceResult getGreeting() {
-        return ReadResourceResult.text("Hello from Mocapi Resources!", "text/plain", "");
+public class TextResourceContents extends ResourceContents {
+
+    private final String text;
+
+    public TextResourceContents(String uri, String text, String mimeType) {
+        super(uri, mimeType);
+        this.text = text;
+    }
+
+    public TextResourceContents(String uri, String text, String mimeType, Map<String, Object> meta) {
+        super(uri, mimeType, meta);
+        this.text = text;
+    }
+
+    public String getText() {
+        return text;
     }
 }
