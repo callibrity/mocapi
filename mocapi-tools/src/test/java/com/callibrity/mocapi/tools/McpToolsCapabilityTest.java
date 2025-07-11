@@ -27,6 +27,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -219,5 +221,80 @@ class McpToolsCapabilityTest {
         
         assertThat(response).isNotNull();
         assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, NumericUser!");
+    }
+
+    @Test
+    void shouldHandleBigDecimalNodes() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "BigDecimalUser");
+        objectNode.put("bigDecimal", new BigDecimal("123.456789012345678901234567890"));
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, BigDecimalUser!");
+    }
+
+    @Test
+    void shouldHandleBigIntegerNodes() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "BigIntegerUser");
+        objectNode.put("bigInteger", new BigInteger("12345678901234567890123456789012345678901234567890"));
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, BigIntegerUser!");
+    }
+
+    @Test
+    void shouldHandleFloatNodes() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "FloatUser");
+        objectNode.put("floatValue", Float.MAX_VALUE);
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, FloatUser!");
+    }
+
+    @Test
+    void shouldHandleShortNodes() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "ShortUser");
+        objectNode.put("shortValue", Short.MAX_VALUE);
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, ShortUser!");
+    }
+
+    @Test
+    void shouldHandleByteNodes() {
+        var provider = factory.create(new HelloTool());
+        var capability = new McpToolsCapability(List.of(provider));
+        
+        ObjectNode objectNode = mapper.createObjectNode()
+                .put("name", "ByteUser");
+        objectNode.put("byteValue", Byte.MAX_VALUE);
+        
+        var response = capability.callTool("hello-tool.say-hello", objectNode);
+        
+        assertThat(response).isNotNull();
+        assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, ByteUser!");
     }
 }
