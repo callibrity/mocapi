@@ -87,7 +87,7 @@ class AnnotationMcpResourceTest {
         var resource = resources.get(0);
 
         assertThatThrownBy(() -> resource.read(null))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Error invoking resource method");
     }
 

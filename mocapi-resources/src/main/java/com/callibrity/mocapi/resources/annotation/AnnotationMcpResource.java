@@ -40,7 +40,10 @@ public class AnnotationMcpResource implements McpResource {
 
     public static List<AnnotationMcpResource> createResources(Object targetObject) {
         return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), Resource.class).stream()
-                .peek(AnnotationMcpResource::verifyMethodSignature)
+                .filter(method -> {
+                    verifyMethodSignature(method);
+                    return true;
+                })
                 .map(method -> new AnnotationMcpResource(targetObject, method, method.getAnnotation(Resource.class)))
                 .toList();
     }
@@ -85,7 +88,7 @@ public class AnnotationMcpResource implements McpResource {
         try {
             return (ReadResourceResult) method.invoke(targetObject);
         } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException("Error invoking resource method", e);
+            throw new IllegalStateException("Error invoking resource method", e);
         }
     }
 }

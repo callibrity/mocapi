@@ -79,7 +79,7 @@ class ReadResourceResultTest {
     void shouldHandleEmptyTextContent() {
         var result = ReadResourceResult.text("", "text/plain");
         
-        assertThat(result.text()).isEqualTo("");
+        assertThat(result.text()).isEmpty();
         assertThat(result.blob()).isNull();
         assertThat(result.mimeType()).isEqualTo("text/plain");
     }
@@ -89,7 +89,7 @@ class ReadResourceResultTest {
         var result = ReadResourceResult.blob("", "application/octet-stream");
         
         assertThat(result.text()).isNull();
-        assertThat(result.blob()).isEqualTo("");
+        assertThat(result.blob()).isEmpty();
         assertThat(result.mimeType()).isEqualTo("application/octet-stream");
     }
 
