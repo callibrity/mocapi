@@ -20,10 +20,12 @@ import com.callibrity.ripcurl.core.annotation.JsonRpc;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
 import com.callibrity.ripcurl.core.util.LazyInitializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.ValidationException;
 import org.everit.json.schema.loader.SchemaLoader;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.Comparator;
@@ -80,7 +82,7 @@ public class McpToolsCapability implements McpServerCapability {
 
     private void validateInput(String name, ObjectNode arguments, McpTool tool) {
         try {
-            getInputSchema(name, tool).validate(new JSONObject(arguments.toString()));
+            getInputSchema(name, tool).validate(convertObjectNodeToJSONObject(arguments));
         } catch (ValidationException e) {
             throw new JsonRpcInvalidParamsException(e.getMessage());
         }
@@ -88,6 +90,38 @@ public class McpToolsCapability implements McpServerCapability {
 
     private Schema getInputSchema(String name, McpTool tool) {
         return inputSchemas.computeIfAbsent(name, _ -> SchemaLoader.load(new JSONObject(tool.inputSchema().toString())));
+    }
+
+    private JSONObject convertObjectNodeToJSONObject(ObjectNode objectNode) {
+        JSONObject jsonObject = new JSONObject();
+        objectNode.fields().forEachRemaining(entry -> {
+            jsonObject.put(entry.getKey(), convertJsonNodeValue(entry.getValue()));
+        });
+        return jsonObject;
+    }
+
+    private Object convertJsonNodeValue(JsonNode node) {
+        if (node.isNull()) {
+            return JSONObject.NULL;
+        } else if (node.isBoolean()) {
+            return node.booleanValue();
+        } else if (node.isInt()) {
+            return node.intValue();
+        } else if (node.isLong()) {
+            return node.longValue();
+        } else if (node.isDouble()) {
+            return node.doubleValue();
+        } else if (node.isTextual()) {
+            return node.textValue();
+        } else if (node.isArray()) {
+            JSONArray array = new JSONArray();
+            node.elements().forEachRemaining(element -> array.put(convertJsonNodeValue(element)));
+            return array;
+        } else if (node.isObject()) {
+            return convertObjectNodeToJSONObject((ObjectNode) node);
+        } else {
+            return node.toString();
+        }
     }
 
     @JsonRpc("tools/list")
