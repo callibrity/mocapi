@@ -21,4 +21,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 @ConfigurationProperties(prefix = "mocapi.resources")
 public class MocapiResourcesProperties {
+    private boolean enabled = true;
 }
