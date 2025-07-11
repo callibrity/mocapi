@@ -35,9 +35,16 @@ public class Names {
     }
 
     public static String capitalizedWords(String input) {
-        return Arrays.stream(StringUtils.splitByCharacterTypeCamelCase(input))
-                .map(StringUtils::capitalize)
-                .collect(Collectors.joining(" "));
+        String[] words = StringUtils.splitByCharacterTypeCamelCase(input);
+        if (words.length == 0) return "";
+        if (words.length == 1) return StringUtils.capitalize(words[0]);
+        
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < words.length; i++) {
+            if (i > 0) result.append(' ');
+            result.append(StringUtils.capitalize(words[i]));
+        }
+        return result.toString();
     }
 
     public static String identifier(Object targetObject, Method method) {
@@ -47,9 +54,16 @@ public class Names {
     }
 
     public static String kebab(String input) {
-        return Arrays.stream(StringUtils.splitByCharacterTypeCamelCase(input))
-                .map(String::toLowerCase)
-                .collect(Collectors.joining("-"));
+        String[] words = StringUtils.splitByCharacterTypeCamelCase(input);
+        if (words.length == 0) return "";
+        if (words.length == 1) return words[0].toLowerCase();
+        
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < words.length; i++) {
+            if (i > 0) result.append('-');
+            result.append(words[i].toLowerCase());
+        }
+        return result.toString();
     }
 
 }
