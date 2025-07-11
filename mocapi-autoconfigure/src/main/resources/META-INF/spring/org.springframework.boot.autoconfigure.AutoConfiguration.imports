@@ -1,3 +1,4 @@
 com.callibrity.mocapi.autoconfigure.tools.MocapiToolsAutoConfiguration
 com.callibrity.mocapi.autoconfigure.prompts.MocapiPromptsAutoConfiguration
+com.callibrity.mocapi.autoconfigure.resources.MocapiResourcesAutoConfiguration
 com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration

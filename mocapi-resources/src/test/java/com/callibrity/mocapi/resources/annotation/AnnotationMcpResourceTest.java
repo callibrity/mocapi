@@ -100,6 +100,49 @@ class AnnotationMcpResourceTest {
         assertThat(resources.get(1).name()).isEqualTo("Second Resource");
     }
 
+    @Test
+    void shouldIgnorePrivateMethods() {
+        var resources = AnnotationMcpResource.createResources(new PrivateMethodResource());
+        
+        assertThat(resources).isEmpty();
+    }
+
+    @Test
+    void shouldUseAnnotationValuesWhenProvided() {
+        var resources = AnnotationMcpResource.createResources(new FullyAnnotatedResource());
+        var resource = resources.get(0);
+
+        assertThat(resource.uri()).isEqualTo("custom://uri");
+        assertThat(resource.name()).isEqualTo("Custom Name");
+        assertThat(resource.title()).isEqualTo("Custom Title");
+        assertThat(resource.description()).isEqualTo("Custom Description");
+        assertThat(resource.mimeType()).isEqualTo("application/custom");
+    }
+
+    @Test
+    void shouldHandleEmptyAnnotationValues() {
+        var resources = AnnotationMcpResource.createResources(new EmptyAnnotationResource());
+        var resource = resources.get(0);
+
+        assertThat(resource.uri()).isEqualTo("annotation-mcp-resource-test-.-empty-annotation-resource.empty-method");
+        assertThat(resource.name()).isEqualTo("Annotation Mcp Resource Test . Empty Annotation Resource - Empty Method");
+        assertThat(resource.title()).isEqualTo("Annotation Mcp Resource Test . Empty Annotation Resource - Empty Method");
+        assertThat(resource.description()).isEqualTo("Annotation Mcp Resource Test . Empty Annotation Resource - Empty Method");
+        assertThat(resource.mimeType()).isEqualTo("text/plain");
+    }
+
+    @Test
+    void shouldHandleWhitespaceOnlyAnnotationValues() {
+        var resources = AnnotationMcpResource.createResources(new WhitespaceAnnotationResource());
+        var resource = resources.get(0);
+
+        assertThat(resource.uri()).isEqualTo("annotation-mcp-resource-test-.-whitespace-annotation-resource.whitespace-method");
+        assertThat(resource.name()).isEqualTo("Annotation Mcp Resource Test . Whitespace Annotation Resource - Whitespace Method");
+        assertThat(resource.title()).isEqualTo("Annotation Mcp Resource Test . Whitespace Annotation Resource - Whitespace Method");
+        assertThat(resource.description()).isEqualTo("Annotation Mcp Resource Test . Whitespace Annotation Resource - Whitespace Method");
+        assertThat(resource.mimeType()).isEqualTo("text/plain");
+    }
+
     static class TestResourceWithDefaults {
         @Resource
         public ReadResourceResult getDefaultResource() {
@@ -130,6 +173,40 @@ class AnnotationMcpResourceTest {
         @Resource(name = "Second Resource")
         public ReadResourceResult secondResource() {
             return ReadResourceResult.text("second", "text/plain");
+        }
+    }
+
+    static class PrivateMethodResource {
+        @Resource(name = "Private Resource")
+        private ReadResourceResult privateMethod() {
+            return ReadResourceResult.text("private", "text/plain");
+        }
+    }
+
+    static class FullyAnnotatedResource {
+        @Resource(
+                uri = "custom://uri",
+                name = "Custom Name",
+                title = "Custom Title",
+                description = "Custom Description",
+                mimeType = "application/custom"
+        )
+        public ReadResourceResult fullyAnnotated() {
+            return ReadResourceResult.text("custom content", "application/custom");
+        }
+    }
+
+    static class EmptyAnnotationResource {
+        @Resource(uri = "", name = "", title = "", description = "")
+        public ReadResourceResult emptyMethod() {
+            return ReadResourceResult.text("empty", "text/plain");
+        }
+    }
+
+    static class WhitespaceAnnotationResource {
+        @Resource(uri = "   ", name = "   ", title = "   ", description = "   ")
+        public ReadResourceResult whitespaceMethod() {
+            return ReadResourceResult.text("whitespace", "text/plain");
         }
     }
 }

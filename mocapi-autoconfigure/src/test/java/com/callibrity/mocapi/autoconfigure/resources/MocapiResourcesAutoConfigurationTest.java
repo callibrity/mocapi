@@ -18,6 +18,7 @@ package com.callibrity.mocapi.autoconfigure.resources;
 import com.callibrity.mocapi.resources.McpResourceProvider;
 import com.callibrity.mocapi.resources.McpResourcesCapability;
 import com.callibrity.mocapi.resources.ReadResourceResult;
+import com.callibrity.mocapi.resources.annotation.AnnotationMcpResourceProviderFactory;
 import com.callibrity.mocapi.resources.annotation.Resource;
 import com.callibrity.mocapi.resources.annotation.ResourceService;
 import org.junit.jupiter.api.Test;
@@ -73,6 +74,55 @@ class MocapiResourcesAutoConfigurationTest {
                 });
     }
 
+    @Test
+    void shouldConfigureMcpResourceBeansProvider() {
+        contextRunner
+                .withUserConfiguration(TestResourceBeanConfiguration.class)
+                .run(context -> {
+                    var providers = context.getBeansOfType(McpResourceProvider.class);
+                    assertThat(providers).hasSize(2);
+                    assertThat(providers).containsKeys("mcpResourceBeansProvider", "resourceServiceMcpResourceProvider");
+                });
+    }
+
+    @Test
+    void shouldConfigureAnnotationMcpResourceProviderFactory() {
+        contextRunner.run(context -> {
+            assertThat(context).hasSingleBean(AnnotationMcpResourceProviderFactory.class);
+            var factory = context.getBean(AnnotationMcpResourceProviderFactory.class);
+            assertThat(factory).isNotNull();
+        });
+    }
+
+    @Test
+    void shouldConfigureResourceServiceMcpResourceProvider() {
+        contextRunner.run(context -> {
+            assertThat(context).hasSingleBean(ResourceServiceMcpResourceProvider.class);
+            var provider = context.getBean(ResourceServiceMcpResourceProvider.class);
+            assertThat(provider).isNotNull();
+        });
+    }
+
+    @Test
+    void shouldConfigurePropertiesBean() {
+        contextRunner.run(context -> {
+            assertThat(context).hasSingleBean(MocapiResourcesProperties.class);
+            var properties = context.getBean(MocapiResourcesProperties.class);
+            assertThat(properties.isEnabled()).isTrue();
+        });
+    }
+
+    @Test
+    void shouldConfigurePropertiesWithCustomValue() {
+        contextRunner
+                .withPropertyValues("mocapi.resources.enabled=false")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(MocapiResourcesProperties.class);
+                    var properties = context.getBean(MocapiResourcesProperties.class);
+                    assertThat(properties.isEnabled()).isFalse();
+                });
+    }
+
     @Configuration
     static class TestResourceServiceConfiguration {
         @Bean
@@ -86,6 +136,14 @@ class MocapiResourcesAutoConfigurationTest {
         @Bean
         public McpResourceProvider testResourceProvider() {
             return () -> java.util.List.of(new TestMcpResource());
+        }
+    }
+
+    @Configuration
+    static class TestResourceBeanConfiguration {
+        @Bean
+        public TestMcpResource testMcpResource() {
+            return new TestMcpResource();
         }
     }
 

@@ -29,7 +29,7 @@ import java.util.List;
 public class ResourceServiceMcpResourceProvider implements McpResourceProvider {
 
     private final ApplicationContext context;
-    private List<AnnotationMcpResource> resources;
+    private List<AnnotationMcpResource> resources = List.of();
 
     @Override
     public List<McpResource> getMcpResources() {
