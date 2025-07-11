@@ -20,9 +20,11 @@ import com.callibrity.mocapi.tools.annotation.DefaultAnnotationMcpToolProviderFa
 import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tools.util.HelloTool;
 import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.POJONode;
 import com.github.victools.jsonschema.generator.SchemaVersion;
@@ -398,8 +400,8 @@ class McpToolsCapabilityTest {
         
         var customNode = new com.fasterxml.jackson.databind.node.ValueNode() {
             @Override
-            public com.fasterxml.jackson.databind.JsonNodeType getNodeType() {
-                return com.fasterxml.jackson.databind.JsonNodeType.POJO;
+            public JsonNodeType getNodeType() {
+                return JsonNodeType.POJO;
             }
             
             @Override
@@ -410,6 +412,11 @@ class McpToolsCapabilityTest {
             @Override
             public String toString() {
                 return "custom-node-toString";
+            }
+            
+            @Override
+            public JsonToken asToken() {
+                return JsonToken.VALUE_EMBEDDED_OBJECT;
             }
         };
         
