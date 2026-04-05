@@ -18,9 +18,10 @@ package com.callibrity.mocapi.autoconfigure.sse;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 
 /**
  * Manages MCP sessions for SSE streaming support.
@@ -36,7 +37,6 @@ import org.springframework.stereotype.Component;
  * <p>Thread-safe for concurrent access.
  */
 @Slf4j
-@Component
 public class McpSessionManager {
 
   // ------------------------------ FIELDS ------------------------------
@@ -44,8 +44,11 @@ public class McpSessionManager {
   /** Default session timeout in seconds (1 hour). */
   private static final long DEFAULT_SESSION_TIMEOUT_SECONDS = 3600L;
 
+  private static final long CLEANUP_INTERVAL_SECONDS = 300L;
+
   private final Map<String, McpSession> sessions = new ConcurrentHashMap<>();
   private final long sessionTimeoutSeconds;
+  private final ScheduledExecutorService cleanupExecutor;
 
   // --------------------------- CONSTRUCTORS ---------------------------
 
@@ -61,6 +64,18 @@ public class McpSessionManager {
    */
   public McpSessionManager(long sessionTimeoutSeconds) {
     this.sessionTimeoutSeconds = sessionTimeoutSeconds;
+    this.cleanupExecutor =
+        Executors.newSingleThreadScheduledExecutor(
+            r -> {
+              Thread t = new Thread(r, "mcp-session-cleanup");
+              t.setDaemon(true);
+              return t;
+            });
+    this.cleanupExecutor.scheduleAtFixedRate(
+        this::cleanupInactiveSessions,
+        CLEANUP_INTERVAL_SECONDS,
+        CLEANUP_INTERVAL_SECONDS,
+        TimeUnit.SECONDS);
   }
 
   // -------------------------- OTHER METHODS --------------------------
@@ -118,20 +133,19 @@ public class McpSessionManager {
     return false;
   }
 
-  /** Scheduled task to clean up inactive sessions. Runs every 5 minutes. */
-  @Scheduled(fixedRate = 300000) // 5 minutes
-  public void cleanupInactiveSessions() {
-    int removedCount = 0;
-    for (Map.Entry<String, McpSession> entry : sessions.entrySet()) {
-      if (entry.getValue().isInactive(sessionTimeoutSeconds)) {
-        sessions.remove(entry.getKey());
-        removedCount++;
-      }
+  /** Cleans up inactive sessions. Runs periodically via the internal executor. */
+  void cleanupInactiveSessions() {
+    int sizeBefore = sessions.size();
+    sessions.entrySet().removeIf(e -> e.getValue().isInactive(sessionTimeoutSeconds));
+    int removed = sizeBefore - sessions.size();
+    if (removed > 0) {
+      log.info("Cleaned up {} inactive MCP sessions", removed);
     }
+  }
 
-    if (removedCount > 0) {
-      log.info("Cleaned up {} inactive MCP sessions", removedCount);
-    }
+  /** Shuts down the internal cleanup executor. */
+  public void shutdown() {
+    cleanupExecutor.shutdownNow();
   }
 
   /**

@@ -31,7 +31,7 @@ public class McpServer {
 
   private final ServerInfo serverInfo;
   private final String instructions;
-  private final Map<String, Object> serverCapabilities;
+  private final Map<String, CapabilityDescriptor> serverCapabilities;
 
   // --------------------------- CONSTRUCTORS ---------------------------
 
@@ -62,7 +62,7 @@ public class McpServer {
 
   public record InitializeResponse(
       String protocolVersion,
-      Map<String, Object> capabilities,
+      Map<String, CapabilityDescriptor> capabilities,
       ServerInfo serverInfo,
       String instructions) {}
 

@@ -28,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -57,11 +58,13 @@ public class MocapiToolsAutoConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean
   MethodSchemaGenerator methodSchemaGenerator(ObjectMapper mapper) {
     return new DefaultMethodSchemaGenerator(mapper, props.getSchemaVersion());
   }
 
   @Bean
+  @ConditionalOnMissingBean
   public AnnotationMcpToolProviderFactory annotationMcpToolProviderFactory(
       ObjectMapper mapper, MethodSchemaGenerator generator) {
     return new DefaultAnnotationMcpToolProviderFactory(mapper, generator);

@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.autoconfigure;
 
 import com.callibrity.mocapi.server.ServerInfo;
+import java.util.List;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -25,4 +26,5 @@ public class MocapiProperties {
 
   private ServerInfo serverInfo;
   private String instructions;
+  private List<String> allowedOrigins = List.of("localhost", "127.0.0.1", "[::1]");
 }

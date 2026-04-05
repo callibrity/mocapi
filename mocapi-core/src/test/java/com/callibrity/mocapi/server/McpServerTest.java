@@ -35,11 +35,14 @@ class McpServerTest {
 
   @Mock private McpServerCapability capability;
 
+  private record TestCapabilityDescriptor(String value) implements CapabilityDescriptor {}
+
   @Test
   void constructorShouldInitializeServer() {
+    var descriptor = new TestCapabilityDescriptor("test describe");
 
     when(capability.name()).thenReturn("test-capability");
-    when(capability.describe()).thenReturn("test describe");
+    when(capability.describe()).thenReturn(descriptor);
 
     var server =
         new McpServer(
@@ -55,10 +58,10 @@ class McpServerTest {
             new ClientInfo("Test Client", "A test client", "1.0.0"));
 
     assertThat(response).isNotNull();
-    assertThat(response.protocolVersion()).isEqualTo("2025-11-25");
+    assertThat(response.protocolVersion()).isEqualTo(McpServer.PROTOCOL_VERSION);
     assertThat(response.capabilities()).isNotNull();
     assertThat(response.capabilities()).hasSize(1);
-    assertThat(response.capabilities()).containsEntry("test-capability", "test describe");
+    assertThat(response.capabilities()).containsEntry("test-capability", descriptor);
     assertThat(response.serverInfo()).isNotNull();
     assertThat(response.serverInfo().name()).isEqualTo("Test Server");
     assertThat(response.serverInfo().title()).isEqualTo("The Test Server");
@@ -67,8 +70,10 @@ class McpServerTest {
 
   @Test
   void pingShouldReturnResponse() {
+    var descriptor = new TestCapabilityDescriptor("test describe");
+
     when(capability.name()).thenReturn("test-capability");
-    when(capability.describe()).thenReturn("test describe");
+    when(capability.describe()).thenReturn(descriptor);
 
     var server =
         new McpServer(
@@ -81,8 +86,10 @@ class McpServerTest {
 
   @Test
   void clientInitializedShouldDoNothing() {
+    var descriptor = new TestCapabilityDescriptor("test describe");
+
     when(capability.name()).thenReturn("test-capability");
-    when(capability.describe()).thenReturn("test describe");
+    when(capability.describe()).thenReturn(descriptor);
 
     var server =
         new McpServer(

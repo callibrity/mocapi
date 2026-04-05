@@ -17,6 +17,7 @@ package com.callibrity.mocapi.tools;
 
 import static java.util.Optional.ofNullable;
 
+import com.callibrity.mocapi.server.CapabilityDescriptor;
 import com.callibrity.mocapi.server.McpServerCapability;
 import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
 import java.util.Comparator;
@@ -102,7 +103,7 @@ public class McpToolsCapability implements McpServerCapability {
 
   // -------------------------- INNER CLASSES --------------------------
 
-  public record ToolsCapabilityDescriptor(boolean listChanged) {}
+  public record ToolsCapabilityDescriptor(boolean listChanged) implements CapabilityDescriptor {}
 
   public record CallToolResponse(ObjectNode structuredContent) {}
 

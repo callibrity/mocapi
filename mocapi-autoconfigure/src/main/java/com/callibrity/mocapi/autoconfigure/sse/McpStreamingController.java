@@ -17,6 +17,8 @@ package com.callibrity.mocapi.autoconfigure.sse;
 
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.tools.McpToolsCapability;
+import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -54,11 +56,12 @@ public class McpStreamingController {
   private final McpSessionManager sessionManager;
   private final TaskExecutor taskExecutor;
   private final ObjectMapper objectMapper;
+  private final List<String> allowedOrigins;
 
   @Autowired(required = false)
   private McpToolsCapability toolsCapability;
 
-  private static final String DEFAULT_PROTOCOL_VERSION = "2025-03-26";
+  private static final String DEFAULT_PROTOCOL_VERSION = McpServer.PROTOCOL_VERSION;
 
   // -------------------------- OTHER METHODS --------------------------
 
@@ -70,9 +73,27 @@ public class McpStreamingController {
       @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId,
       @RequestHeader(value = "Origin", required = false) String origin) {
 
-    // Parse JSON-RPC request
+    // Validate JSON-RPC envelope
+    JsonNode jsonrpcNode = requestBody.path("jsonrpc");
+    if (!"2.0".equals(jsonrpcNode.asText(null))) {
+      return ResponseEntity.badRequest()
+          .body(createErrorResponse(requestBody.get("id"), -32600, "jsonrpc must be \"2.0\""));
+    }
+
+    JsonNode methodNode = requestBody.path("method");
+    if (methodNode.isMissingNode() || methodNode.asText("").isEmpty()) {
+      return ResponseEntity.badRequest()
+          .body(createErrorResponse(requestBody.get("id"), -32600, "method is required"));
+    }
+
     JsonNode idNode = requestBody.get("id");
-    String method = requestBody.path("method").asText();
+    if (idNode != null && !idNode.isNull() && !idNode.isTextual() && !idNode.isNumber()) {
+      return ResponseEntity.badRequest()
+          .body(createErrorResponse(null, -32600, "id must be a string, number, or null"));
+    }
+
+    // Parse JSON-RPC request
+    String method = methodNode.asText();
     JsonNode params = requestBody.get("params");
 
     // Validate protocol version
@@ -139,8 +160,7 @@ public class McpStreamingController {
             streamEmitter.sendAndComplete(errorResponse);
           } catch (Exception e) {
             log.error("Error processing JSON-RPC request", e);
-            ObjectNode errorResponse =
-                createErrorResponse(idNode, -32603, "Internal error: " + e.getMessage());
+            ObjectNode errorResponse = createErrorResponse(idNode, -32603, "Internal error");
             streamEmitter.sendAndComplete(errorResponse);
           }
         });
@@ -184,13 +204,14 @@ public class McpStreamingController {
           Optional.ofNullable(toolsCapability)
               .map(cap -> cap.listTools(params != null ? params.path("cursor").asText(null) : null))
               .orElseThrow(() -> new IllegalArgumentException("Tools capability not available"));
-      case "tools/call" ->
-          Optional.ofNullable(toolsCapability)
-              .map(
-                  cap ->
-                      cap.callTool(
-                          params.path("name").asText(), (ObjectNode) params.get("arguments")))
-              .orElseThrow(() -> new IllegalArgumentException("Tools capability not available"));
+      case "tools/call" -> {
+        JsonNode argsNode = params.path("arguments");
+        ObjectNode arguments =
+            argsNode.isObject() ? (ObjectNode) argsNode : objectMapper.createObjectNode();
+        yield Optional.ofNullable(toolsCapability)
+            .map(cap -> cap.callTool(params.path("name").asText(), arguments))
+            .orElseThrow(() -> new IllegalArgumentException("Tools capability not available"));
+      }
       default -> throw new IllegalArgumentException("Unknown method: " + method);
     };
   }
@@ -221,6 +242,14 @@ public class McpStreamingController {
     if (origin == null) {
       return true;
     }
-    return origin.contains("localhost") || origin.contains("127.0.0.1") || origin.contains("[::1]");
+    try {
+      String host = URI.create(origin).getHost();
+      if (host == null) {
+        return false;
+      }
+      return allowedOrigins.contains(host);
+    } catch (IllegalArgumentException e) {
+      return false;
+    }
   }
 }

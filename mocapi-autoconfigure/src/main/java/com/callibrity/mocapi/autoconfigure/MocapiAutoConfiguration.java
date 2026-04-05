@@ -22,21 +22,20 @@ import com.callibrity.mocapi.server.McpServerCapability;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @AutoConfiguration
 @EnableConfigurationProperties(MocapiProperties.class)
 @PropertySource("classpath:mocapi-defaults.properties")
-@EnableScheduling
 @RequiredArgsConstructor
 public class MocapiAutoConfiguration {
 
@@ -52,13 +51,14 @@ public class MocapiAutoConfiguration {
   }
 
   @Bean
-  JsonMapperBuilderCustomizer jacksonCustomizer() {
-    return builder ->
-        builder.changeDefaultPropertyInclusion(
-            v -> v.withValueInclusion(JsonInclude.Include.NON_NULL));
+  @ConditionalOnMissingBean(name = "mcpObjectMapper")
+  public ObjectMapper mcpObjectMapper() {
+    return JsonMapper.builder()
+        .changeDefaultPropertyInclusion(v -> v.withValueInclusion(JsonInclude.Include.NON_NULL))
+        .build();
   }
 
-  @Bean
+  @Bean(destroyMethod = "shutdown")
   @ConditionalOnMissingBean
   public McpSessionManager mcpSessionManager() {
     return new McpSessionManager();
@@ -82,7 +82,8 @@ public class MocapiAutoConfiguration {
       McpServer mcpServer,
       McpSessionManager sessionManager,
       TaskExecutor mcpTaskExecutor,
-      ObjectMapper objectMapper) {
-    return new McpStreamingController(mcpServer, sessionManager, mcpTaskExecutor, objectMapper);
+      @Qualifier("mcpObjectMapper") ObjectMapper mcpObjectMapper) {
+    return new McpStreamingController(
+        mcpServer, sessionManager, mcpTaskExecutor, mcpObjectMapper, props.getAllowedOrigins());
   }
 }

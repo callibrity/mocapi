@@ -15,8 +15,5 @@
  */
 package com.callibrity.mocapi.server;
 
-public interface McpServerCapability {
-  String name();
-
-  CapabilityDescriptor describe();
-}
+/** Marker interface for MCP server capability descriptors. */
+public interface CapabilityDescriptor {}
