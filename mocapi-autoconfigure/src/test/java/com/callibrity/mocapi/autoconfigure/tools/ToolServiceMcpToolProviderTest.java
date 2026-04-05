@@ -33,20 +33,22 @@ class ToolServiceMcpToolProviderTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
 
+  private ObjectNode objectSchema() {
+    ObjectNode schema = mapper.createObjectNode();
+    schema.put("type", "object");
+    return schema;
+  }
+
   private MethodSchemaGenerator createSchemaGenerator() {
     return new MethodSchemaGenerator() {
       @Override
       public ObjectNode generateInputSchema(Object targetObject, Method method) {
-        ObjectNode schema = mapper.createObjectNode();
-        schema.put("type", "object");
-        return schema;
+        return objectSchema();
       }
 
       @Override
       public ObjectNode generateOutputSchema(Object targetObject, Method method) {
-        ObjectNode schema = mapper.createObjectNode();
-        schema.put("type", "object");
-        return schema;
+        return objectSchema();
       }
     };
   }

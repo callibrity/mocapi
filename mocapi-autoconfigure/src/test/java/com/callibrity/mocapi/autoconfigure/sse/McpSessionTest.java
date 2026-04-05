@@ -100,9 +100,8 @@ class McpSessionTest {
   }
 
   @Test
-  void isInactiveShouldReturnTrueForExpiredSession() throws Exception {
+  void isInactiveShouldReturnTrueForExpiredSession() {
     var session = new McpSession();
-    Thread.sleep(50);
     assertThat(session.isInactive(0)).isTrue();
   }
 

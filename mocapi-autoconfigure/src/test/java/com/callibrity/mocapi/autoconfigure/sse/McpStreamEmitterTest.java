@@ -149,8 +149,14 @@ class McpStreamEmitterTest {
     var session = new McpSession();
     var emitter = new McpStreamEmitter(session);
 
+    AtomicInteger closeCount = new AtomicInteger(0);
+    emitter.onClose(closeCount::incrementAndGet);
+
     emitter.complete();
     emitter.send("ignored");
+
+    // close listeners only called once (from complete, not from ignored send)
+    assertThat(closeCount.get()).isEqualTo(1);
   }
 
   @Test
@@ -292,6 +298,9 @@ class McpStreamEmitterTest {
     var session = new McpSession();
     var streamEmitter = new McpStreamEmitter(session);
 
+    AtomicBoolean closed = new AtomicBoolean(false);
+    streamEmitter.onClose(() -> closed.set(true));
+
     initializeWithHandler(
         streamEmitter,
         (method, args) -> {
@@ -302,12 +311,17 @@ class McpStreamEmitterTest {
         });
 
     streamEmitter.complete();
+
+    assertThat(closed.get()).isTrue();
   }
 
   @Test
   void completeWithErrorShouldHandleIllegalStateFromSseEmitter() throws Exception {
     var session = new McpSession();
     var streamEmitter = new McpStreamEmitter(session);
+
+    AtomicBoolean closed = new AtomicBoolean(false);
+    streamEmitter.onClose(() -> closed.set(true));
 
     initializeWithHandler(
         streamEmitter,
@@ -322,6 +336,8 @@ class McpStreamEmitterTest {
         });
 
     streamEmitter.send("data");
+
+    assertThat(closed.get()).isTrue();
   }
 
   // --- Helpers ---

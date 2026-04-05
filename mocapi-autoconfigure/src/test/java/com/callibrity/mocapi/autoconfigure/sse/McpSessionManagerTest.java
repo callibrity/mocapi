@@ -63,11 +63,10 @@ class McpSessionManagerTest {
   }
 
   @Test
-  void getSessionShouldReturnEmptyForExpiredSession() throws Exception {
+  void getSessionShouldReturnEmptyForExpiredSession() {
     manager = new McpSessionManager(0);
     var session = manager.createSession();
 
-    Thread.sleep(50);
     assertThat(manager.getSession(session.getSessionId())).isEmpty();
   }
 
@@ -88,12 +87,11 @@ class McpSessionManagerTest {
   }
 
   @Test
-  void cleanupInactiveSessionsShouldRemoveExpiredSessions() throws Exception {
+  void cleanupInactiveSessionsShouldRemoveExpiredSessions() {
     manager = new McpSessionManager(0);
     manager.createSession();
     manager.createSession();
 
-    Thread.sleep(50);
     manager.cleanupInactiveSessions();
 
     assertThat(manager.getSessionCount()).isZero();
