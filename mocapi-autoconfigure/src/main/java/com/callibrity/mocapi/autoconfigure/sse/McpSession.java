@@ -67,13 +67,14 @@ public class McpSession {
 
   /**
    * Generates the next unique event ID for this session. Event IDs are formatted as {@code
-   * sessionId:counter} for global uniqueness.
+   * streamId:counter} so the server can correlate a Last-Event-ID to the originating stream.
    *
+   * @param streamId the stream identifier to encode in the event ID
    * @return the next event ID
    */
-  public String nextEventId() {
+  public String nextEventId(String streamId) {
     updateActivity();
-    return sessionId + ":" + eventIdCounter.incrementAndGet();
+    return streamId + ":" + eventIdCounter.incrementAndGet();
   }
 
   /**
@@ -88,20 +89,42 @@ public class McpSession {
   }
 
   /**
-   * Retrieves events after a specific event ID for stream resumption.
+   * Extracts the stream ID from an event ID. Event IDs are formatted as {@code streamId:counter}.
    *
-   * @param streamId the stream identifier
+   * @param eventId the event ID to extract from
+   * @return the stream ID, or null if the format is invalid
+   */
+  public static String extractStreamId(String eventId) {
+    if (eventId == null) {
+      return null;
+    }
+    int lastColon = eventId.lastIndexOf(':');
+    if (lastColon <= 0) {
+      return null;
+    }
+    return eventId.substring(0, lastColon);
+  }
+
+  /**
+   * Retrieves events after a specific event ID for stream resumption. The original stream ID is
+   * extracted from the Last-Event-ID, ensuring events are only replayed from the originating
+   * stream.
+   *
    * @param lastEventId the last event ID received by the client
    * @return queue of events after the specified ID, or null if stream not found
    */
-  public Queue<SseEvent> getEventsAfter(String streamId, String lastEventId) {
+  public Queue<SseEvent> getEventsAfter(String lastEventId) {
     updateActivity();
-    Queue<SseEvent> events = streamEvents.get(streamId);
+    String originalStreamId = extractStreamId(lastEventId);
+    if (originalStreamId == null) {
+      return null;
+    }
+
+    Queue<SseEvent> events = streamEvents.get(originalStreamId);
     if (events == null) {
       return null;
     }
 
-    // Find events after the last event ID
     Queue<SseEvent> replayEvents = new ConcurrentLinkedQueue<>();
     boolean foundLast = false;
 

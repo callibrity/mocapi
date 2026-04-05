@@ -39,6 +39,7 @@ class Rot13ToolIT {
         .perform(
             post("/mcp")
                 .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON, MediaType.TEXT_EVENT_STREAM)
                 .content(
                     """
                                 {

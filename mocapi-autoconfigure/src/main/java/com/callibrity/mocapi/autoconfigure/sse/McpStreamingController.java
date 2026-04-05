@@ -28,6 +28,7 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -70,8 +71,13 @@ public class McpStreamingController {
       @RequestBody JsonNode requestBody,
       @RequestHeader(value = "MCP-Protocol-Version", required = false) String protocolVersion,
       @RequestHeader(value = "MCP-Session-Id", required = false) String sessionId,
-      @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId,
+      @RequestHeader(value = "Accept", required = false) String acceptHeader,
       @RequestHeader(value = "Origin", required = false) String origin) {
+
+    // Gap 5: Validate Accept header — must include both application/json and text/event-stream
+    if (!isValidPostAcceptHeader(acceptHeader)) {
+      return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
+    }
 
     // Validate JSON-RPC envelope
     JsonNode jsonrpcNode = requestBody.path("jsonrpc");
@@ -80,19 +86,29 @@ public class McpStreamingController {
           .body(createErrorResponse(requestBody.get("id"), -32600, "jsonrpc must be \"2.0\""));
     }
 
-    JsonNode methodNode = requestBody.path("method");
-    if (methodNode.isMissingNode() || methodNode.asText("").isEmpty()) {
-      return ResponseEntity.badRequest()
-          .body(createErrorResponse(requestBody.get("id"), -32600, "method is required"));
+    JsonNode idNode = requestBody.get("id");
+
+    // Gap 1: Detect JSON-RPC notifications and responses early
+    JsonNode methodNode = requestBody.get("method");
+    boolean isNotification = methodNode != null && idNode == null;
+    boolean isResponse =
+        methodNode == null && (requestBody.has("result") || requestBody.has("error"));
+
+    if (isNotification || isResponse) {
+      return handleNotificationOrResponse(requestBody, sessionId, isNotification);
     }
 
-    JsonNode idNode = requestBody.get("id");
+    // From here on, this is a JSON-RPC request (has method and id)
+    if (methodNode == null || methodNode.isMissingNode() || methodNode.asText("").isEmpty()) {
+      return ResponseEntity.badRequest()
+          .body(createErrorResponse(idNode, -32600, "method is required"));
+    }
+
     if (idNode != null && !idNode.isNull() && !idNode.isTextual() && !idNode.isNumber()) {
       return ResponseEntity.badRequest()
           .body(createErrorResponse(null, -32600, "id must be a string, number, or null"));
     }
 
-    // Parse JSON-RPC request
     String method = methodNode.asText();
     JsonNode params = requestBody.get("params");
 
@@ -178,7 +194,13 @@ public class McpStreamingController {
   public ResponseEntity<?> handleGet(
       @RequestHeader(value = "MCP-Session-Id", required = false) String sessionId,
       @RequestHeader(value = "MCP-Protocol-Version", required = false) String protocolVersion,
-      @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId) {
+      @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId,
+      @RequestHeader(value = "Accept", required = false) String acceptHeader) {
+
+    // Gap 5: Validate Accept header — must include text/event-stream
+    if (!isValidGetAcceptHeader(acceptHeader)) {
+      return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
+    }
 
     if (sessionId == null) {
       log.warn("GET request missing MCP-Session-Id header");
@@ -202,9 +224,9 @@ public class McpStreamingController {
     McpStreamEmitter streamEmitter = new McpStreamEmitter(session);
     streamEmitter.sendPrimingEvent();
 
-    // Replay stored events after Last-Event-ID if provided
+    // Gap 4: Replay stored events from the *original* stream identified by Last-Event-ID
     if (lastEventId != null) {
-      var replayEvents = session.getEventsAfter(streamEmitter.getStreamId(), lastEventId);
+      var replayEvents = session.getEventsAfter(lastEventId);
       if (replayEvents != null) {
         for (SseEvent event : replayEvents) {
           streamEmitter.send(event.data());
@@ -216,6 +238,23 @@ public class McpStreamingController {
     session.registerNotificationEmitter(streamEmitter);
 
     return ResponseEntity.ok().body(streamEmitter.getEmitter());
+  }
+
+  // Gap 2: DELETE endpoint for session termination
+  @DeleteMapping
+  public ResponseEntity<?> handleDelete(
+      @RequestHeader(value = "MCP-Session-Id", required = false) String sessionId) {
+
+    if (sessionId == null) {
+      return ResponseEntity.badRequest().body(Map.of("error", "MCP-Session-Id header is required"));
+    }
+
+    if (!sessionManager.terminateSession(sessionId)) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+          .body(Map.of("error", "Session not found or expired"));
+    }
+
+    return ResponseEntity.noContent().build();
   }
 
   /** Invokes the appropriate MCP method based on the method name. */
@@ -285,5 +324,63 @@ public class McpStreamingController {
     } catch (IllegalArgumentException e) {
       return false;
     }
+  }
+
+  /**
+   * Handles JSON-RPC notifications and responses by invoking the handler (for notifications) and
+   * returning 202 Accepted with no body.
+   */
+  private ResponseEntity<?> handleNotificationOrResponse(
+      JsonNode requestBody, String sessionId, boolean isNotification) {
+    if (isNotification) {
+      String method = requestBody.get("method").asText();
+      log.debug("Received notification: {}", method);
+
+      if ("notifications/initialized".equals(method)) {
+        if (sessionId != null) {
+          sessionManager.getSession(sessionId).ifPresent(s -> mcpServer.clientInitialized());
+        }
+      }
+    } else {
+      log.debug("Received JSON-RPC response, acknowledging with 202");
+    }
+
+    return ResponseEntity.accepted().build();
+  }
+
+  /**
+   * Validates the Accept header for POST requests. Must include both application/json and
+   * text/event-stream, or *&#47;*.
+   */
+  private boolean isValidPostAcceptHeader(String acceptHeader) {
+    if (acceptHeader == null) {
+      return false;
+    }
+    List<MediaType> mediaTypes = MediaType.parseMediaTypes(acceptHeader);
+    boolean hasJson = false;
+    boolean hasSse = false;
+    for (MediaType mt : mediaTypes) {
+      if (mt.includes(MediaType.APPLICATION_JSON)) {
+        hasJson = true;
+      }
+      if (mt.includes(MediaType.TEXT_EVENT_STREAM)) {
+        hasSse = true;
+      }
+    }
+    return hasJson && hasSse;
+  }
+
+  /** Validates the Accept header for GET requests. Must include text/event-stream or *&#47;*. */
+  private boolean isValidGetAcceptHeader(String acceptHeader) {
+    if (acceptHeader == null) {
+      return false;
+    }
+    List<MediaType> mediaTypes = MediaType.parseMediaTypes(acceptHeader);
+    for (MediaType mt : mediaTypes) {
+      if (mt.includes(MediaType.TEXT_EVENT_STREAM)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

@@ -200,7 +200,7 @@ public class McpStreamEmitter {
    * data field to prime client reconnection."
    */
   public void sendPrimingEvent() {
-    String eventId = session.nextEventId();
+    String eventId = session.nextEventId(streamId);
     SseEvent event = new SseEvent(eventId, "");
     session.storeEvent(streamId, event);
     trySendInternal(event);
@@ -213,7 +213,7 @@ public class McpStreamEmitter {
    * @param data the event data (typically a JSON-RPC message)
    */
   public void send(Object data) {
-    String eventId = session.nextEventId();
+    String eventId = session.nextEventId(streamId);
     SseEvent event = new SseEvent(eventId, data);
     session.storeEvent(streamId, event);
     trySendInternal(event);
@@ -226,7 +226,7 @@ public class McpStreamEmitter {
    * @param data the final event data
    */
   public void sendAndComplete(Object data) {
-    String eventId = session.nextEventId();
+    String eventId = session.nextEventId(streamId);
     SseEvent event = new SseEvent(eventId, data);
     session.storeEvent(streamId, event);
 
