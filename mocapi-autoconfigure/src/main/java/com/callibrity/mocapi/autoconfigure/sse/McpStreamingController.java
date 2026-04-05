@@ -59,6 +59,10 @@ public class McpStreamingController {
   private final McpToolsCapability toolsCapability;
 
   private static final String ERROR_KEY = "error";
+  private static final String JSONRPC_VERSION = "2.0";
+  private static final String JSONRPC_FIELD = "jsonrpc";
+  private static final String SESSION_NOT_FOUND = "Session not found or expired";
+  private static final String INITIALIZE_METHOD = "initialize";
 
   public McpStreamingController(
       McpServer mcpServer,
@@ -108,7 +112,7 @@ public class McpStreamingController {
     McpSession session = resolveSession(method, sessionId);
     if (session == null) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
-          .body(createErrorResponse(idNode, -32600, "Session not found or expired"));
+          .body(createErrorResponse(idNode, -32600, SESSION_NOT_FOUND));
     }
 
     return processRequest(session, method, requestBody.get("params"), idNode);
@@ -134,8 +138,7 @@ public class McpStreamingController {
     McpSession session = sessionManager.getSession(sessionId).orElse(null);
     if (session == null) {
       log.warn("GET request with unknown session: {}", sessionId);
-      return ResponseEntity.status(HttpStatus.NOT_FOUND)
-          .body(Map.of(ERROR_KEY, "Session not found or expired"));
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(ERROR_KEY, SESSION_NOT_FOUND));
     }
 
     String version = protocolVersion != null ? protocolVersion : McpServer.PROTOCOL_VERSION;
@@ -168,8 +171,7 @@ public class McpStreamingController {
     }
 
     if (!sessionManager.terminateSession(sessionId)) {
-      return ResponseEntity.status(HttpStatus.NOT_FOUND)
-          .body(Map.of(ERROR_KEY, "Session not found or expired"));
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(ERROR_KEY, SESSION_NOT_FOUND));
     }
 
     return ResponseEntity.noContent().build();
@@ -178,7 +180,7 @@ public class McpStreamingController {
   // --- Request validation ---
 
   private ResponseEntity<Object> validateJsonRpcEnvelope(JsonNode requestBody) {
-    if (!"2.0".equals(requestBody.path("jsonrpc").asString(null))) {
+    if (!JSONRPC_VERSION.equals(requestBody.path(JSONRPC_FIELD).asString(null))) {
       return ResponseEntity.badRequest()
           .body(createErrorResponse(requestBody.get("id"), -32600, "jsonrpc must be \"2.0\""));
     }
@@ -221,7 +223,7 @@ public class McpStreamingController {
   // --- Session resolution ---
 
   private McpSession resolveSession(String method, String sessionId) {
-    if ("initialize".equals(method)) {
+    if (INITIALIZE_METHOD.equals(method)) {
       McpSession session = sessionManager.createSession();
       log.info("Created new session {} for initialize request", session.getSessionId());
       return session;
@@ -250,7 +252,7 @@ public class McpStreamingController {
     taskExecutor.execute(() -> executeMethod(streamEmitter, method, params, idNode));
 
     ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
-    if ("initialize".equals(method)) {
+    if (INITIALIZE_METHOD.equals(method)) {
       builder.header("MCP-Session-Id", session.getSessionId());
     }
     return builder.body(streamEmitter.getEmitter());
@@ -262,7 +264,7 @@ public class McpStreamingController {
       Object result = invokeMethod(method, params);
 
       ObjectNode response = objectMapper.createObjectNode();
-      response.put("jsonrpc", "2.0");
+      response.put(JSONRPC_FIELD, JSONRPC_VERSION);
       if (idNode != null) {
         response.set("id", idNode);
       }
@@ -286,7 +288,7 @@ public class McpStreamingController {
 
   private Object invokeMethod(String method, JsonNode params) {
     return switch (method) {
-      case "initialize" -> initializeServer(params);
+      case INITIALIZE_METHOD -> initializeServer(params);
       case "ping" -> mcpServer.ping();
       case "notifications/initialized" -> {
         mcpServer.clientInitialized();
@@ -347,7 +349,7 @@ public class McpStreamingController {
 
   private ObjectNode createErrorResponse(JsonNode id, int code, String message) {
     ObjectNode response = objectMapper.createObjectNode();
-    response.put("jsonrpc", "2.0");
+    response.put(JSONRPC_FIELD, JSONRPC_VERSION);
     if (id != null) {
       response.set("id", id);
     }

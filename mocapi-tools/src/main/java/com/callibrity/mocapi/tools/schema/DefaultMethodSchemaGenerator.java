@@ -43,8 +43,7 @@ public class DefaultMethodSchemaGenerator implements MethodSchemaGenerator {
   public DefaultMethodSchemaGenerator(ObjectMapper mapper, SchemaVersion schemaVersion) {
     this.generator =
         new SchemaGenerator(
-            new SchemaGeneratorConfigBuilder(schemaVersion, OptionPreset.PLAIN_JSON)
-                .withObjectMapper(mapper)
+            new SchemaGeneratorConfigBuilder(mapper, schemaVersion, OptionPreset.PLAIN_JSON)
                 .with(new JacksonModule())
                 .with(new JakartaValidationModule())
                 .with(new Swagger2Module())

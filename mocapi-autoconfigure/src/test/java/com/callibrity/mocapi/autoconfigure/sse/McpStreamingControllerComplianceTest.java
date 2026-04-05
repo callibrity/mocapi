@@ -35,7 +35,6 @@ import tools.jackson.databind.node.ObjectNode;
 class McpStreamingControllerComplianceTest {
 
   private static final String POST_ACCEPT = "application/json, text/event-stream";
-  private static final String SSE_ACCEPT = "text/event-stream";
 
   private McpStreamingController controller;
   private McpSessionManager sessionManager;

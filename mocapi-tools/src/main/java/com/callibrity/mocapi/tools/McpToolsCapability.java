@@ -135,7 +135,7 @@ public class McpToolsCapability implements McpServerCapability {
     try {
       return Integer.parseInt(
           new String(Base64.getDecoder().decode(cursor), StandardCharsets.UTF_8));
-    } catch (IllegalArgumentException e) {
+    } catch (IllegalArgumentException _) {
       return -1;
     }
   }
