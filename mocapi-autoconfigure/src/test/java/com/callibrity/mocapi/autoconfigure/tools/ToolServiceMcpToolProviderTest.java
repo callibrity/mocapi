@@ -76,8 +76,7 @@ class ToolServiceMcpToolProviderTest {
     provider.initialize();
 
     var tools = provider.getMcpTools();
-    assertThat(tools).hasSize(1);
-    assertThat(tools).isUnmodifiable();
+    assertThat(tools).hasSize(1).isUnmodifiable();
   }
 
   @Test

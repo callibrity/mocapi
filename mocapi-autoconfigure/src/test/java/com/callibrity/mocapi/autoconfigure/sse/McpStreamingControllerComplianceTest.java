@@ -19,9 +19,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.server.McpServer;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.http.HttpStatus;
 import tools.jackson.databind.ObjectMapper;
@@ -227,36 +231,20 @@ class McpStreamingControllerComplianceTest {
   @Nested
   class AcceptHeaderValidation {
 
-    @Test
-    void shouldReturn406WhenPostMissingAcceptHeader() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
-      request.put("method", "ping");
-      request.put("id", 1);
-
-      var response = controller.handlePost(request, null, null, null, null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
+    static Stream<String> invalidPostAcceptHeaders() {
+      return Stream.of("text/event-stream", "application/json");
     }
 
-    @Test
-    void shouldReturn406WhenPostAcceptMissesJson() {
+    @ParameterizedTest
+    @NullSource
+    @MethodSource("invalidPostAcceptHeaders")
+    void shouldReturn406WhenPostAcceptHeaderIsInvalid(String acceptHeader) {
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, null, "text/event-stream", null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
-    }
-
-    @Test
-    void shouldReturn406WhenPostAcceptMissesSse() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
-      request.put("method", "ping");
-      request.put("id", 1);
-
-      var response = controller.handlePost(request, null, null, "application/json", null);
+      var response = controller.handlePost(request, null, null, acceptHeader, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
 
