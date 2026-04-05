@@ -96,12 +96,36 @@ class McpStreamingControllerGetTest {
   }
 
   @Test
-  void shouldHandleLastEventIdHeader() {
+  void shouldHandleLastEventIdWithNoStoredEvents() {
     McpSession session = sessionManager.createSession();
     var response =
         controller.handleGet(session.getSessionId(), null, "some-previous-event-id", SSE_ACCEPT);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
+  }
+
+  @Test
+  void shouldReplayStoredEventsAfterLastEventId() {
+    McpSession session = sessionManager.createSession();
+    String streamId = "original-stream";
+
+    // Simulate events stored from a previous POST stream
+    String eventId1 = session.nextEventId(streamId);
+    session.storeEvent(streamId, new SseEvent(eventId1, "data-1"));
+    String eventId2 = session.nextEventId(streamId);
+    session.storeEvent(streamId, new SseEvent(eventId2, "data-2"));
+    String eventId3 = session.nextEventId(streamId);
+    session.storeEvent(streamId, new SseEvent(eventId3, "data-3"));
+
+    // Client reconnects via GET with Last-Event-ID pointing to first event
+    var response = controller.handleGet(session.getSessionId(), null, eventId1, SSE_ACCEPT);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
+
+    // Verify the replay happened by checking events after eventId1 were consumed
+    var remaining = session.getEventsAfter(eventId1);
+    assertThat(remaining).hasSize(2);
   }
 }
