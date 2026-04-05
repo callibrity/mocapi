@@ -16,6 +16,8 @@
 package com.callibrity.mocapi.autoconfigure.sse;
 
 import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.exception.McpException;
+import com.callibrity.mocapi.server.exception.McpInternalErrorException;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import java.net.URI;
 import java.util.List;
@@ -269,26 +271,22 @@ public class McpStreamingController {
       }
 
       streamEmitter.sendAndComplete(response);
+    } catch (McpException e) {
+      log.warn("MCP error processing {}: {}", method, e.getMessage());
+      streamEmitter.sendAndComplete(createErrorResponse(idNode, e.getCode(), e.getMessage()));
     } catch (IllegalArgumentException e) {
       log.warn("Method not found: {}", method);
       streamEmitter.sendAndComplete(
           createErrorResponse(idNode, -32601, "Method not found: " + method));
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       log.error("Error processing JSON-RPC request", e);
       streamEmitter.sendAndComplete(createErrorResponse(idNode, -32603, "Internal error"));
     }
   }
 
-  private Object invokeMethod(String method, JsonNode params) throws Exception {
+  private Object invokeMethod(String method, JsonNode params) {
     return switch (method) {
-      case "initialize" ->
-          mcpServer.initialize(
-              params.path("protocolVersion").asString(),
-              objectMapper.treeToValue(
-                  params.get("capabilities"),
-                  com.callibrity.mocapi.client.ClientCapabilities.class),
-              objectMapper.treeToValue(
-                  params.get("clientInfo"), com.callibrity.mocapi.client.ClientInfo.class));
+      case "initialize" -> initializeServer(params);
       case "ping" -> mcpServer.ping();
       case "notifications/initialized" -> {
         mcpServer.clientInitialized();
@@ -300,16 +298,31 @@ public class McpStreamingController {
                   cap ->
                       cap.listTools(params != null ? params.path("cursor").asString(null) : null))
               .orElseThrow(() -> new IllegalArgumentException("Tools capability not available"));
-      case "tools/call" -> {
-        JsonNode argsNode = params.path("arguments");
-        ObjectNode arguments =
-            argsNode.isObject() ? (ObjectNode) argsNode : objectMapper.createObjectNode();
-        yield Optional.ofNullable(toolsCapability)
-            .map(cap -> cap.callTool(params.path("name").asString(), arguments))
-            .orElseThrow(() -> new IllegalArgumentException("Tools capability not available"));
-      }
+      case "tools/call" -> callTool(params);
       default -> throw new IllegalArgumentException("Unknown method: " + method);
     };
+  }
+
+  private McpServer.InitializeResponse initializeServer(JsonNode params) {
+    try {
+      return mcpServer.initialize(
+          params.path("protocolVersion").asString(),
+          objectMapper.treeToValue(
+              params.get("capabilities"), com.callibrity.mocapi.client.ClientCapabilities.class),
+          objectMapper.treeToValue(
+              params.get("clientInfo"), com.callibrity.mocapi.client.ClientInfo.class));
+    } catch (tools.jackson.core.JacksonException e) {
+      throw new McpInternalErrorException("Failed to deserialize initialize params", e);
+    }
+  }
+
+  private McpToolsCapability.CallToolResponse callTool(JsonNode params) {
+    JsonNode argsNode = params.path("arguments");
+    ObjectNode arguments =
+        argsNode.isObject() ? (ObjectNode) argsNode : objectMapper.createObjectNode();
+    return Optional.ofNullable(toolsCapability)
+        .map(cap -> cap.callTool(params.path("name").asString(), arguments))
+        .orElseThrow(() -> new IllegalArgumentException("Tools capability not available"));
   }
 
   // --- Notification / response handling ---
