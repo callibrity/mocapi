@@ -20,6 +20,8 @@ import static java.util.Optional.ofNullable;
 import com.callibrity.mocapi.server.CapabilityDescriptor;
 import com.callibrity.mocapi.server.McpServerCapability;
 import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -35,16 +37,24 @@ public class McpToolsCapability implements McpServerCapability {
 
   // ------------------------------ FIELDS ------------------------------
 
+  public static final int DEFAULT_PAGE_SIZE = 50;
+
   private final Map<String, McpTool> tools;
   private final ConcurrentHashMap<String, Schema> inputSchemas = new ConcurrentHashMap<>();
+  private final int pageSize;
 
   // --------------------------- CONSTRUCTORS ---------------------------
 
   public McpToolsCapability(List<McpToolProvider> toolProviders) {
+    this(toolProviders, DEFAULT_PAGE_SIZE);
+  }
+
+  public McpToolsCapability(List<McpToolProvider> toolProviders, int pageSize) {
     this.tools =
         toolProviders.stream()
             .flatMap(provider -> provider.getMcpTools().stream())
             .collect(Collectors.toMap(McpTool::name, t -> t));
+    this.pageSize = pageSize;
   }
 
   // ------------------------ INTERFACE METHODS ------------------------
@@ -90,7 +100,7 @@ public class McpToolsCapability implements McpServerCapability {
   }
 
   public ListToolsResponse listTools(String cursor) {
-    var descriptors =
+    var allDescriptors =
         tools.values().stream()
             .map(
                 t ->
@@ -98,7 +108,33 @@ public class McpToolsCapability implements McpServerCapability {
                         t.name(), t.title(), t.description(), t.inputSchema(), t.outputSchema()))
             .sorted(Comparator.comparing(McpToolDescriptor::name))
             .toList();
-    return new ListToolsResponse(descriptors, null);
+
+    int offset = decodeCursor(cursor);
+    if (offset < 0 || offset > allDescriptors.size()) {
+      throw new McpInvalidParamsException("Invalid cursor");
+    }
+
+    int end = Math.min(offset + pageSize, allDescriptors.size());
+    var page = allDescriptors.subList(offset, end);
+    String nextCursor = end < allDescriptors.size() ? encodeCursor(end) : null;
+    return new ListToolsResponse(page, nextCursor);
+  }
+
+  static String encodeCursor(int offset) {
+    return Base64.getEncoder()
+        .encodeToString(String.valueOf(offset).getBytes(StandardCharsets.UTF_8));
+  }
+
+  static int decodeCursor(String cursor) {
+    if (cursor == null) {
+      return 0;
+    }
+    try {
+      return Integer.parseInt(
+          new String(Base64.getDecoder().decode(cursor), StandardCharsets.UTF_8));
+    } catch (IllegalArgumentException e) {
+      return -1;
+    }
   }
 
   // -------------------------- INNER CLASSES --------------------------

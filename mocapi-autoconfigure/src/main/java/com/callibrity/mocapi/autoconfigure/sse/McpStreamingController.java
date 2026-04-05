@@ -177,11 +177,45 @@ public class McpStreamingController {
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public ResponseEntity<?> handleGet(
       @RequestHeader(value = "MCP-Session-Id", required = false) String sessionId,
+      @RequestHeader(value = "MCP-Protocol-Version", required = false) String protocolVersion,
       @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId) {
 
-    log.debug("GET request received, but server-initiated notifications not yet implemented");
-    return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-        .body(Map.of("error", "Server-initiated notifications not yet supported"));
+    if (sessionId == null) {
+      log.warn("GET request missing MCP-Session-Id header");
+      return ResponseEntity.badRequest().body(Map.of("error", "MCP-Session-Id header is required"));
+    }
+
+    McpSession session = sessionManager.getSession(sessionId).orElse(null);
+    if (session == null) {
+      log.warn("GET request with unknown session: {}", sessionId);
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+          .body(Map.of("error", "Session not found or expired"));
+    }
+
+    String version = protocolVersion != null ? protocolVersion : DEFAULT_PROTOCOL_VERSION;
+    if (!isValidProtocolVersion(version)) {
+      log.warn("Invalid protocol version on GET: {}", version);
+      return ResponseEntity.badRequest()
+          .body(Map.of("error", "Invalid MCP-Protocol-Version: " + version));
+    }
+
+    McpStreamEmitter streamEmitter = new McpStreamEmitter(session);
+    streamEmitter.sendPrimingEvent();
+
+    // Replay stored events after Last-Event-ID if provided
+    if (lastEventId != null) {
+      var replayEvents = session.getEventsAfter(streamEmitter.getStreamId(), lastEventId);
+      if (replayEvents != null) {
+        for (SseEvent event : replayEvents) {
+          streamEmitter.send(event.data());
+        }
+      }
+    }
+
+    // Register the emitter for server-initiated notifications
+    session.registerNotificationEmitter(streamEmitter);
+
+    return ResponseEntity.ok().body(streamEmitter.getEmitter());
   }
 
   /** Invokes the appropriate MCP method based on the method name. */

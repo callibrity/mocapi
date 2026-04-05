@@ -17,7 +17,9 @@ package com.callibrity.mocapi.autoconfigure.sse;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Getter;
@@ -53,6 +55,7 @@ public class McpStreamEmitter {
   @Getter private final SseEmitter emitter;
   private final AtomicBoolean completed = new AtomicBoolean(false);
   private final McpSession session;
+  private final List<Runnable> closeListeners = new CopyOnWriteArrayList<>();
 
   // --------------------------- CONSTRUCTORS ---------------------------
 
@@ -109,6 +112,30 @@ public class McpStreamEmitter {
   }
 
   // ------------------------------------------------------------
+  //  CLOSE LISTENERS
+  // ------------------------------------------------------------
+
+  /**
+   * Registers a callback to be invoked when this emitter closes, whether by normal completion,
+   * error, or timeout.
+   *
+   * @param listener the callback to invoke on close
+   */
+  public void onClose(Runnable listener) {
+    closeListeners.add(listener);
+  }
+
+  private void notifyCloseListeners() {
+    for (Runnable listener : closeListeners) {
+      try {
+        listener.run();
+      } catch (Exception e) {
+        log.trace("[MCP-SSE:{}:{}] Close listener threw exception", sessionId, streamId, e);
+      }
+    }
+  }
+
+  // ------------------------------------------------------------
   //  COMPLETION + ERROR HANDLING
   // ------------------------------------------------------------
 
@@ -129,6 +156,7 @@ public class McpStreamEmitter {
 
     log.debug("[MCP-SSE:{}:{}] Completing with error: {}", sessionId, streamId, ex.toString());
     session.clearStream(streamId);
+    notifyCloseListeners();
 
     try {
       emitter.completeWithError(ex);
@@ -153,6 +181,7 @@ public class McpStreamEmitter {
 
     log.debug("[MCP-SSE:{}:{}] Completing stream normally", sessionId, streamId);
     session.clearStream(streamId);
+    notifyCloseListeners();
 
     try {
       emitter.complete();

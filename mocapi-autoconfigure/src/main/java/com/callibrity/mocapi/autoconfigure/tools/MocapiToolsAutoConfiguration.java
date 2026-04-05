@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.autoconfigure.tools;
 
 import com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration;
+import com.callibrity.mocapi.autoconfigure.MocapiProperties;
 import com.callibrity.mocapi.tools.McpTool;
 import com.callibrity.mocapi.tools.McpToolProvider;
 import com.callibrity.mocapi.tools.McpToolsCapability;
@@ -38,7 +39,7 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfiguration
 @AutoConfigureBefore(MocapiAutoConfiguration.class)
 @ConditionalOnClass(McpToolsCapability.class)
-@EnableConfigurationProperties(MocapiToolsProperties.class)
+@EnableConfigurationProperties({MocapiToolsProperties.class, MocapiProperties.class})
 @PropertySource("classpath:mocapi-tools-defaults.properties")
 @RequiredArgsConstructor
 public class MocapiToolsAutoConfiguration {
@@ -46,10 +47,11 @@ public class MocapiToolsAutoConfiguration {
   // -------------------------- OTHER METHODS --------------------------
 
   private final MocapiToolsProperties props;
+  private final MocapiProperties mocapiProperties;
 
   @Bean
   public McpToolsCapability mcpToolsCapability(List<McpToolProvider> toolProviders) {
-    return new McpToolsCapability(toolProviders);
+    return new McpToolsCapability(toolProviders, mocapiProperties.getPagination().getPageSize());
   }
 
   @Bean

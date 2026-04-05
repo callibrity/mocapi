@@ -42,7 +42,7 @@ class McpToolsCapabilityTest {
     var provider = factory.create(new HelloTool());
 
     var capability = new McpToolsCapability(List.of(provider));
-    var response = capability.listTools("foo-bar");
+    var response = capability.listTools(null);
 
     assertThat(response).isNotNull();
     assertThat(response.tools()).isNotNull();

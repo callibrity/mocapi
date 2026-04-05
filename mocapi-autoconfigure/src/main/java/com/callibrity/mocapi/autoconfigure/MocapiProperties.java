@@ -27,4 +27,11 @@ public class MocapiProperties {
   private ServerInfo serverInfo;
   private String instructions;
   private List<String> allowedOrigins = List.of("localhost", "127.0.0.1", "[::1]");
+
+  private Pagination pagination = new Pagination();
+
+  @Data
+  public static class Pagination {
+    private int pageSize = 50;
+  }
 }

@@ -16,11 +16,13 @@
 package com.callibrity.mocapi.autoconfigure.sse;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.Getter;
 
@@ -49,6 +51,7 @@ public class McpSession {
   private final Instant createdAt;
   private final AtomicLong eventIdCounter = new AtomicLong(0);
   private final Map<String, Queue<SseEvent>> streamEvents = new ConcurrentHashMap<>();
+  private final List<McpStreamEmitter> notificationEmitters = new CopyOnWriteArrayList<>();
   private volatile Instant lastActivity;
 
   // --------------------------- CONSTRUCTORS ---------------------------
@@ -121,6 +124,44 @@ public class McpSession {
   public void clearStream(String streamId) {
     updateActivity();
     streamEvents.remove(streamId);
+  }
+
+  /**
+   * Registers a notification emitter for receiving server-initiated messages. The emitter is
+   * automatically removed when it completes or encounters an error.
+   *
+   * @param emitter the emitter to register
+   */
+  public void registerNotificationEmitter(McpStreamEmitter emitter) {
+    updateActivity();
+    notificationEmitters.add(emitter);
+    emitter.onClose(() -> notificationEmitters.remove(emitter));
+  }
+
+  /**
+   * Sends a notification to all registered notification emitters. Emitters that fail to send are
+   * silently removed.
+   *
+   * @param notification the notification payload to send
+   */
+  public void sendNotification(Object notification) {
+    updateActivity();
+    for (McpStreamEmitter emitter : notificationEmitters) {
+      try {
+        emitter.send(notification);
+      } catch (Exception e) {
+        notificationEmitters.remove(emitter);
+      }
+    }
+  }
+
+  /**
+   * Returns the number of currently registered notification emitters.
+   *
+   * @return the count of active notification emitters
+   */
+  public int getNotificationEmitterCount() {
+    return notificationEmitters.size();
   }
 
   /** Updates the last activity timestamp for session timeout tracking. */

@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-05T02:00:00-04:00
-ITERATION: 6
-SPEC_COMPLETED: 006-final-verification-cleanup.md
-WHAT_WAS_DONE: Final verification and cleanup — mvn clean verify passes, stale reference checks pass (ripcurl, LazyInitializer, prompts, old starter names all clean), README.md updated (ripcurl.endpoint → mocapi.endpoint), CODE_REVIEW.md and PRD.example.md and implementation plan deleted, dependency tree verified clean of ripcurl/prompts artifacts, parent pom has no mocapi-prompts module.
-VERIFICATION: mvn clean verify — BUILD SUCCESS (all 7 modules); grep checks all pass — no ripcurl in java/xml/properties, no LazyInitializer, no spring-boot-starter-web (old name), no McpPrompt/PromptService/McpPromptsCapability, no mocapi-prompts in xml; mvn dependency:tree -pl mocapi-example shows no ripcurl or Jackson 2.x (only jackson-annotations:2.21 which is required by Jackson 3.x itself); parent pom.xml has no mocapi-prompts module; CODE_REVIEW.md deleted; PRD.example.md deleted; docs/plans/2026-04-05-java25-spring-boot-ripcurl-removal.md deleted; README.md updated.
-STATUS: MORE_WORK
-NEXT_SPEC: 007-get-sse-endpoint-and-pagination.md
-NOTES: One com.fasterxml.jackson.annotation.JsonInclude import remains in MocapiAutoConfiguration.java — this is correct and expected because Jackson 3.x's MapperBuilder.changeDefaultPropertyInclusion() API itself uses com.fasterxml.jackson.annotation.JsonInclude (the annotations module was intentionally kept in the com.fasterxml namespace in Jackson 3.x). The initial dependency:tree run showed stale ripcurl artifacts from a previous build cache; after mvn clean install they disappeared — not a real dependency.
+LAST_RUN: 2026-04-05T02:07:00-04:00
+ITERATION: 7
+SPEC_COMPLETED: 007-get-sse-endpoint-and-pagination.md
+WHAT_WAS_DONE: Implemented GET SSE endpoint for server-initiated notifications and cursor-based pagination for listTools. GET endpoint validates MCP-Session-Id (400 if missing, 404 if not found), validates MCP-Protocol-Version, creates an McpStreamEmitter with priming event, replays events after Last-Event-ID, and registers the emitter for server-initiated notifications. Pagination uses base64-encoded offset cursors with configurable page size (mocapi.pagination.page-size, default 50). Added onClose listener mechanism to McpStreamEmitter for clean emitter lifecycle management. Prompts module was already removed in spec 004, so pagination only applies to tools.
+VERIFICATION: mvn verify — BUILD SUCCESS (all 7 modules); 10 new pagination tests pass (McpToolsCapabilityPaginationTest); 7 new GET endpoint tests pass (McpStreamingControllerGetTest); 4 new session notification tests pass (McpSessionNotificationTest); spotless and license checks pass.
+STATUS: DONE
+NEXT_SPEC: none
+NOTES: The spec mentions McpPromptsCapability pagination, but the prompts module was removed in spec 004 — only tools pagination was implemented. The MocapiToolsAutoConfiguration now depends on MocapiProperties for the pagination page size config. McpStreamEmitter gained an onClose(Runnable) listener mechanism because Spring's SseEmitter only supports one callback per type (onCompletion/onError), so we couldn't register cleanup callbacks via the SseEmitter directly from McpSession.
