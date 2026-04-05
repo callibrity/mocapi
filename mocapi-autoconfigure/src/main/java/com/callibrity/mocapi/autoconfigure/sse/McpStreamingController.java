@@ -21,9 +21,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -42,227 +40,250 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * MCP Streaming Controller implementing the MCP 2025-11-25 Streamable HTTP transport.
  *
- * <p>Handles both POST (client requests) and GET (server notifications) with SSE streaming.
- * Implements session management, event ID tracking, and stream resumability per the MCP spec.
+ * <p>Handles POST (client requests), GET (server notifications), and DELETE (session termination)
+ * with SSE streaming. Implements session management, event ID tracking, and stream resumability per
+ * the MCP spec.
  */
 @Slf4j
 @RestController
 @RequestMapping("${mocapi.endpoint:/mcp}")
-@RequiredArgsConstructor
 public class McpStreamingController {
-
-  // ------------------------------ FIELDS ------------------------------
 
   private final McpServer mcpServer;
   private final McpSessionManager sessionManager;
   private final TaskExecutor taskExecutor;
   private final ObjectMapper objectMapper;
   private final List<String> allowedOrigins;
+  private final McpToolsCapability toolsCapability;
 
-  @Autowired(required = false)
-  private McpToolsCapability toolsCapability;
+  private static final String ERROR_KEY = "error";
 
-  private static final String DEFAULT_PROTOCOL_VERSION = McpServer.PROTOCOL_VERSION;
-
-  // -------------------------- OTHER METHODS --------------------------
+  public McpStreamingController(
+      McpServer mcpServer,
+      McpSessionManager sessionManager,
+      TaskExecutor taskExecutor,
+      ObjectMapper objectMapper,
+      List<String> allowedOrigins,
+      McpToolsCapability toolsCapability) {
+    this.mcpServer = mcpServer;
+    this.sessionManager = sessionManager;
+    this.taskExecutor = taskExecutor;
+    this.objectMapper = objectMapper;
+    this.allowedOrigins = allowedOrigins;
+    this.toolsCapability = toolsCapability;
+  }
 
   @PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public ResponseEntity<?> handlePost(
+  public ResponseEntity<Object> handlePost(
       @RequestBody JsonNode requestBody,
       @RequestHeader(value = "MCP-Protocol-Version", required = false) String protocolVersion,
       @RequestHeader(value = "MCP-Session-Id", required = false) String sessionId,
       @RequestHeader(value = "Accept", required = false) String acceptHeader,
       @RequestHeader(value = "Origin", required = false) String origin) {
 
-    // Gap 5: Validate Accept header — must include both application/json and text/event-stream
     if (!isValidPostAcceptHeader(acceptHeader)) {
       return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
     }
 
-    // Validate JSON-RPC envelope
-    JsonNode jsonrpcNode = requestBody.path("jsonrpc");
-    if (!"2.0".equals(jsonrpcNode.asText(null))) {
-      return ResponseEntity.badRequest()
-          .body(createErrorResponse(requestBody.get("id"), -32600, "jsonrpc must be \"2.0\""));
+    ResponseEntity<Object> envelopeError = validateJsonRpcEnvelope(requestBody);
+    if (envelopeError != null) {
+      return envelopeError;
     }
 
     JsonNode idNode = requestBody.get("id");
-
-    // Gap 1: Detect JSON-RPC notifications and responses early
     JsonNode methodNode = requestBody.get("method");
-    boolean isNotification = methodNode != null && idNode == null;
-    boolean isResponse =
-        methodNode == null && (requestBody.has("result") || requestBody.has("error"));
 
-    if (isNotification || isResponse) {
-      return handleNotificationOrResponse(requestBody, sessionId, isNotification);
+    if (isNotificationOrResponse(methodNode, idNode, requestBody)) {
+      return handleNotificationOrResponse(requestBody, sessionId, methodNode != null);
     }
 
-    // From here on, this is a JSON-RPC request (has method and id)
-    if (methodNode == null || methodNode.isMissingNode() || methodNode.asText("").isEmpty()) {
-      return ResponseEntity.badRequest()
-          .body(createErrorResponse(idNode, -32600, "method is required"));
+    ResponseEntity<Object> headerError = validateHeaders(protocolVersion, origin, idNode);
+    if (headerError != null) {
+      return headerError;
     }
 
-    if (idNode != null && !idNode.isNull() && !idNode.isTextual() && !idNode.isNumber()) {
-      return ResponseEntity.badRequest()
-          .body(createErrorResponse(null, -32600, "id must be a string, number, or null"));
+    String method = methodNode.asString();
+    McpSession session = resolveSession(method, sessionId);
+    if (session == null) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+          .body(createErrorResponse(idNode, -32600, "Session not found or expired"));
     }
 
-    String method = methodNode.asText();
-    JsonNode params = requestBody.get("params");
-
-    // Validate protocol version
-    String version = protocolVersion != null ? protocolVersion : DEFAULT_PROTOCOL_VERSION;
-    if (!isValidProtocolVersion(version)) {
-      log.warn("Invalid protocol version: {}", version);
-      return ResponseEntity.badRequest()
-          .body(createErrorResponse(idNode, -32600, "Invalid MCP-Protocol-Version: " + version));
-    }
-
-    // Validate Origin header
-    if (origin != null && !isValidOrigin(origin)) {
-      log.warn("Invalid origin: {}", origin);
-      return ResponseEntity.status(HttpStatus.FORBIDDEN)
-          .body(createErrorResponse(idNode, -32600, "Invalid origin"));
-    }
-
-    // Get or create session
-    McpSession session;
-    boolean isInitialize = "initialize".equals(method);
-
-    if (isInitialize) {
-      session = sessionManager.createSession();
-      log.info("Created new session {} for initialize request", session.getSessionId());
-    } else if (sessionId != null) {
-      session = sessionManager.getSession(sessionId).orElse(null);
-      if (session == null) {
-        log.warn("Session not found or expired: {}", sessionId);
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body(createErrorResponse(idNode, -32600, "Session not found or expired"));
-      }
-    } else {
-      session = sessionManager.createSession();
-      log.debug("Created anonymous session {} for request {}", session.getSessionId(), method);
-    }
-
-    // Create stream emitter
-    McpStreamEmitter streamEmitter = new McpStreamEmitter(session);
-
-    // Send priming event per MCP spec
-    streamEmitter.sendPrimingEvent();
-
-    // Process request asynchronously
-    taskExecutor.execute(
-        () -> {
-          try {
-            Object result = invokeMethod(method, params);
-
-            // Build JSON-RPC response
-            ObjectNode response = objectMapper.createObjectNode();
-            response.put("jsonrpc", "2.0");
-            if (idNode != null) {
-              response.set("id", idNode);
-            }
-            if (result != null) {
-              response.set("result", objectMapper.valueToTree(result));
-            }
-
-            streamEmitter.sendAndComplete(response);
-          } catch (IllegalArgumentException e) {
-            log.warn("Method not found: {}", method);
-            ObjectNode errorResponse =
-                createErrorResponse(idNode, -32601, "Method not found: " + method);
-            streamEmitter.sendAndComplete(errorResponse);
-          } catch (Exception e) {
-            log.error("Error processing JSON-RPC request", e);
-            ObjectNode errorResponse = createErrorResponse(idNode, -32603, "Internal error");
-            streamEmitter.sendAndComplete(errorResponse);
-          }
-        });
-
-    // Build response with session ID header for initialize
-    ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
-    if (isInitialize) {
-      builder.header("MCP-Session-Id", session.getSessionId());
-    }
-
-    return builder.body(streamEmitter.getEmitter());
+    return processRequest(session, method, requestBody.get("params"), idNode);
   }
 
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public ResponseEntity<?> handleGet(
+  public ResponseEntity<Object> handleGet(
       @RequestHeader(value = "MCP-Session-Id", required = false) String sessionId,
       @RequestHeader(value = "MCP-Protocol-Version", required = false) String protocolVersion,
       @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId,
       @RequestHeader(value = "Accept", required = false) String acceptHeader) {
 
-    // Gap 5: Validate Accept header — must include text/event-stream
     if (!isValidGetAcceptHeader(acceptHeader)) {
       return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
     }
 
     if (sessionId == null) {
       log.warn("GET request missing MCP-Session-Id header");
-      return ResponseEntity.badRequest().body(Map.of("error", "MCP-Session-Id header is required"));
+      return ResponseEntity.badRequest()
+          .body(Map.of(ERROR_KEY, "MCP-Session-Id header is required"));
     }
 
     McpSession session = sessionManager.getSession(sessionId).orElse(null);
     if (session == null) {
       log.warn("GET request with unknown session: {}", sessionId);
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
-          .body(Map.of("error", "Session not found or expired"));
+          .body(Map.of(ERROR_KEY, "Session not found or expired"));
     }
 
-    String version = protocolVersion != null ? protocolVersion : DEFAULT_PROTOCOL_VERSION;
+    String version = protocolVersion != null ? protocolVersion : McpServer.PROTOCOL_VERSION;
     if (!isValidProtocolVersion(version)) {
       log.warn("Invalid protocol version on GET: {}", version);
       return ResponseEntity.badRequest()
-          .body(Map.of("error", "Invalid MCP-Protocol-Version: " + version));
+          .body(Map.of(ERROR_KEY, "Invalid MCP-Protocol-Version: " + version));
     }
 
     McpStreamEmitter streamEmitter = new McpStreamEmitter(session);
     streamEmitter.sendPrimingEvent();
 
-    // Gap 4: Replay stored events from the *original* stream identified by Last-Event-ID
     if (lastEventId != null) {
-      var replayEvents = session.getEventsAfter(lastEventId);
-      if (replayEvents != null) {
-        for (SseEvent event : replayEvents) {
-          streamEmitter.send(event.data());
-        }
+      for (SseEvent event : session.getEventsAfter(lastEventId)) {
+        streamEmitter.send(event.data());
       }
     }
 
-    // Register the emitter for server-initiated notifications
     session.registerNotificationEmitter(streamEmitter);
-
     return ResponseEntity.ok().body(streamEmitter.getEmitter());
   }
 
-  // Gap 2: DELETE endpoint for session termination
   @DeleteMapping
-  public ResponseEntity<?> handleDelete(
+  public ResponseEntity<Object> handleDelete(
       @RequestHeader(value = "MCP-Session-Id", required = false) String sessionId) {
 
     if (sessionId == null) {
-      return ResponseEntity.badRequest().body(Map.of("error", "MCP-Session-Id header is required"));
+      return ResponseEntity.badRequest()
+          .body(Map.of(ERROR_KEY, "MCP-Session-Id header is required"));
     }
 
     if (!sessionManager.terminateSession(sessionId)) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
-          .body(Map.of("error", "Session not found or expired"));
+          .body(Map.of(ERROR_KEY, "Session not found or expired"));
     }
 
     return ResponseEntity.noContent().build();
   }
 
-  /** Invokes the appropriate MCP method based on the method name. */
+  // --- Request validation ---
+
+  private ResponseEntity<Object> validateJsonRpcEnvelope(JsonNode requestBody) {
+    if (!"2.0".equals(requestBody.path("jsonrpc").asString(null))) {
+      return ResponseEntity.badRequest()
+          .body(createErrorResponse(requestBody.get("id"), -32600, "jsonrpc must be \"2.0\""));
+    }
+
+    JsonNode idNode = requestBody.get("id");
+    if (idNode != null && !idNode.isNull() && !idNode.isString() && !idNode.isNumber()) {
+      return ResponseEntity.badRequest()
+          .body(createErrorResponse(null, -32600, "id must be a string, number, or null"));
+    }
+
+    return null;
+  }
+
+  private ResponseEntity<Object> validateHeaders(
+      String protocolVersion, String origin, JsonNode idNode) {
+    String version = protocolVersion != null ? protocolVersion : McpServer.PROTOCOL_VERSION;
+    if (!isValidProtocolVersion(version)) {
+      log.warn("Invalid protocol version: {}", version);
+      return ResponseEntity.badRequest()
+          .body(createErrorResponse(idNode, -32600, "Invalid MCP-Protocol-Version: " + version));
+    }
+
+    if (origin != null && !isValidOrigin(origin)) {
+      log.warn("Invalid origin: {}", origin);
+      return ResponseEntity.status(HttpStatus.FORBIDDEN)
+          .body(createErrorResponse(idNode, -32600, "Invalid origin"));
+    }
+
+    return null;
+  }
+
+  private static boolean isNotificationOrResponse(
+      JsonNode methodNode, JsonNode idNode, JsonNode requestBody) {
+    boolean isNotification = methodNode != null && idNode == null;
+    boolean isResponse =
+        methodNode == null && (requestBody.has("result") || requestBody.has("error"));
+    return isNotification || isResponse;
+  }
+
+  // --- Session resolution ---
+
+  private McpSession resolveSession(String method, String sessionId) {
+    if ("initialize".equals(method)) {
+      McpSession session = sessionManager.createSession();
+      log.info("Created new session {} for initialize request", session.getSessionId());
+      return session;
+    }
+
+    if (sessionId != null) {
+      Optional<McpSession> session = sessionManager.getSession(sessionId);
+      if (session.isEmpty()) {
+        log.warn("Session not found or expired: {}", sessionId);
+      }
+      return session.orElse(null);
+    }
+
+    McpSession session = sessionManager.createSession();
+    log.debug("Created anonymous session {} for request {}", session.getSessionId(), method);
+    return session;
+  }
+
+  // --- Request processing ---
+
+  private ResponseEntity<Object> processRequest(
+      McpSession session, String method, JsonNode params, JsonNode idNode) {
+    McpStreamEmitter streamEmitter = new McpStreamEmitter(session);
+    streamEmitter.sendPrimingEvent();
+
+    taskExecutor.execute(() -> executeMethod(streamEmitter, method, params, idNode));
+
+    ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
+    if ("initialize".equals(method)) {
+      builder.header("MCP-Session-Id", session.getSessionId());
+    }
+    return builder.body(streamEmitter.getEmitter());
+  }
+
+  private void executeMethod(
+      McpStreamEmitter streamEmitter, String method, JsonNode params, JsonNode idNode) {
+    try {
+      Object result = invokeMethod(method, params);
+
+      ObjectNode response = objectMapper.createObjectNode();
+      response.put("jsonrpc", "2.0");
+      if (idNode != null) {
+        response.set("id", idNode);
+      }
+      if (result != null) {
+        response.set("result", objectMapper.valueToTree(result));
+      }
+
+      streamEmitter.sendAndComplete(response);
+    } catch (IllegalArgumentException e) {
+      log.warn("Method not found: {}", method);
+      streamEmitter.sendAndComplete(
+          createErrorResponse(idNode, -32601, "Method not found: " + method));
+    } catch (Exception e) {
+      log.error("Error processing JSON-RPC request", e);
+      streamEmitter.sendAndComplete(createErrorResponse(idNode, -32603, "Internal error"));
+    }
+  }
+
   private Object invokeMethod(String method, JsonNode params) throws Exception {
     return switch (method) {
       case "initialize" ->
           mcpServer.initialize(
-              params.path("protocolVersion").asText(),
+              params.path("protocolVersion").asString(),
               objectMapper.treeToValue(
                   params.get("capabilities"),
                   com.callibrity.mocapi.client.ClientCapabilities.class),
@@ -275,19 +296,41 @@ public class McpStreamingController {
       }
       case "tools/list" ->
           Optional.ofNullable(toolsCapability)
-              .map(cap -> cap.listTools(params != null ? params.path("cursor").asText(null) : null))
+              .map(
+                  cap ->
+                      cap.listTools(params != null ? params.path("cursor").asString(null) : null))
               .orElseThrow(() -> new IllegalArgumentException("Tools capability not available"));
       case "tools/call" -> {
         JsonNode argsNode = params.path("arguments");
         ObjectNode arguments =
             argsNode.isObject() ? (ObjectNode) argsNode : objectMapper.createObjectNode();
         yield Optional.ofNullable(toolsCapability)
-            .map(cap -> cap.callTool(params.path("name").asText(), arguments))
+            .map(cap -> cap.callTool(params.path("name").asString(), arguments))
             .orElseThrow(() -> new IllegalArgumentException("Tools capability not available"));
       }
       default -> throw new IllegalArgumentException("Unknown method: " + method);
     };
   }
+
+  // --- Notification / response handling ---
+
+  private ResponseEntity<Object> handleNotificationOrResponse(
+      JsonNode requestBody, String sessionId, boolean isNotification) {
+    if (isNotification) {
+      String method = requestBody.get("method").asString();
+      log.debug("Received notification: {}", method);
+
+      if ("notifications/initialized".equals(method) && sessionId != null) {
+        sessionManager.getSession(sessionId).ifPresent(_ -> mcpServer.clientInitialized());
+      }
+    } else {
+      log.debug("Received JSON-RPC response, acknowledging with 202");
+    }
+
+    return ResponseEntity.accepted().build();
+  }
+
+  // --- Validation helpers ---
 
   private ObjectNode createErrorResponse(JsonNode id, int code, String message) {
     ObjectNode response = objectMapper.createObjectNode();
@@ -312,46 +355,14 @@ public class McpStreamingController {
   }
 
   private boolean isValidOrigin(String origin) {
-    if (origin == null) {
-      return true;
-    }
     try {
       String host = URI.create(origin).getHost();
-      if (host == null) {
-        return false;
-      }
-      return allowedOrigins.contains(host);
-    } catch (IllegalArgumentException e) {
+      return host != null && allowedOrigins.contains(host);
+    } catch (IllegalArgumentException _) {
       return false;
     }
   }
 
-  /**
-   * Handles JSON-RPC notifications and responses by invoking the handler (for notifications) and
-   * returning 202 Accepted with no body.
-   */
-  private ResponseEntity<?> handleNotificationOrResponse(
-      JsonNode requestBody, String sessionId, boolean isNotification) {
-    if (isNotification) {
-      String method = requestBody.get("method").asText();
-      log.debug("Received notification: {}", method);
-
-      if ("notifications/initialized".equals(method)) {
-        if (sessionId != null) {
-          sessionManager.getSession(sessionId).ifPresent(s -> mcpServer.clientInitialized());
-        }
-      }
-    } else {
-      log.debug("Received JSON-RPC response, acknowledging with 202");
-    }
-
-    return ResponseEntity.accepted().build();
-  }
-
-  /**
-   * Validates the Accept header for POST requests. Must include both application/json and
-   * text/event-stream, or *&#47;*.
-   */
   private boolean isValidPostAcceptHeader(String acceptHeader) {
     if (acceptHeader == null) {
       return false;
@@ -370,17 +381,11 @@ public class McpStreamingController {
     return hasJson && hasSse;
   }
 
-  /** Validates the Accept header for GET requests. Must include text/event-stream or *&#47;*. */
   private boolean isValidGetAcceptHeader(String acceptHeader) {
     if (acceptHeader == null) {
       return false;
     }
-    List<MediaType> mediaTypes = MediaType.parseMediaTypes(acceptHeader);
-    for (MediaType mt : mediaTypes) {
-      if (mt.includes(MediaType.TEXT_EVENT_STREAM)) {
-        return true;
-      }
-    }
-    return false;
+    return MediaType.parseMediaTypes(acceptHeader).stream()
+        .anyMatch(mt -> mt.includes(MediaType.TEXT_EVENT_STREAM));
   }
 }

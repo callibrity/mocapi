@@ -44,8 +44,8 @@ class AnnotationMcpToolTest {
     assertThat(tool.name()).isEqualTo("hello-tool.say-hello");
     assertThat(tool.title()).isEqualTo("Hello Tool - Say Hello");
     assertThat(tool.description()).isEqualTo("Hello Tool - Say Hello");
-    assertThat(tool.inputSchema().get("type").asText()).isEqualTo("object");
-    assertThat(tool.outputSchema().get("type").asText()).isEqualTo("object");
+    assertThat(tool.inputSchema().get("type").asString()).isEqualTo("object");
+    assertThat(tool.outputSchema().get("type").asString()).isEqualTo("object");
   }
 
   @Test
@@ -67,7 +67,7 @@ class AnnotationMcpToolTest {
 
     assertThat(result).isNotNull();
     assertThat(result.get("message").getNodeType()).isEqualTo(JsonNodeType.STRING);
-    assertThat(result.get("message").textValue()).isEqualTo("Hello, Mocapi!");
+    assertThat(result.get("message").stringValue()).isEqualTo("Hello, Mocapi!");
   }
 
   @Test

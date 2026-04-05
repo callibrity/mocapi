@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.autoconfigure.sse;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -111,18 +112,18 @@ public class McpSession {
    * stream.
    *
    * @param lastEventId the last event ID received by the client
-   * @return queue of events after the specified ID, or null if stream not found
+   * @return events after the specified ID, empty if stream not found
    */
-  public Queue<SseEvent> getEventsAfter(String lastEventId) {
+  public Collection<SseEvent> getEventsAfter(String lastEventId) {
     updateActivity();
     String originalStreamId = extractStreamId(lastEventId);
     if (originalStreamId == null) {
-      return null;
+      return List.of();
     }
 
     Queue<SseEvent> events = streamEvents.get(originalStreamId);
     if (events == null) {
-      return null;
+      return List.of();
     }
 
     Queue<SseEvent> replayEvents = new ConcurrentLinkedQueue<>();
@@ -172,7 +173,7 @@ public class McpSession {
     for (McpStreamEmitter emitter : notificationEmitters) {
       try {
         emitter.send(notification);
-      } catch (Exception e) {
+      } catch (Exception _) {
         notificationEmitters.remove(emitter);
       }
     }

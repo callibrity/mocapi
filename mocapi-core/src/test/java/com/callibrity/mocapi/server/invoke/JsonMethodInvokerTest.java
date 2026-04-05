@@ -40,7 +40,7 @@ class JsonMethodInvokerTest {
 
     var result = invoker.invoke(args);
     assertThat(result.isObject()).isTrue();
-    assertThat(result.get("message").asText()).isEqualTo("Hello, World!");
+    assertThat(result.get("message").asString()).isEqualTo("Hello, World!");
   }
 
   @Test
@@ -97,7 +97,7 @@ class JsonMethodInvokerTest {
 
     var result = invoker.invoke(args);
     assertThat(result.isObject()).isTrue();
-    assertThat(result.get("message").asText()).isEqualTo("Hello, null!");
+    assertThat(result.get("message").asString()).isEqualTo("Hello, null!");
   }
 
   @Test
@@ -110,7 +110,7 @@ class JsonMethodInvokerTest {
 
     var result = invoker.invoke(args);
     assertThat(result.isObject()).isTrue();
-    assertThat(result.get("message").asText()).isEqualTo("Hello, null!");
+    assertThat(result.get("message").asString()).isEqualTo("Hello, null!");
   }
 
   public static class TestService {

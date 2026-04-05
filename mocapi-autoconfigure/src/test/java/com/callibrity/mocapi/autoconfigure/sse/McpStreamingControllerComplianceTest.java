@@ -48,7 +48,12 @@ class McpStreamingControllerComplianceTest {
     objectMapper = new ObjectMapper();
     controller =
         new McpStreamingController(
-            mcpServer, sessionManager, new SyncTaskExecutor(), objectMapper, List.of("localhost"));
+            mcpServer,
+            sessionManager,
+            new SyncTaskExecutor(),
+            objectMapper,
+            List.of("localhost"),
+            null);
   }
 
   // ---- Gap 1: Notifications must return 202 Accepted ----
@@ -196,8 +201,8 @@ class McpStreamingControllerComplianceTest {
 
       // Resumption should only replay from stream 1 after eventId1
       var replayed = session.getEventsAfter(eventId1);
-      assertThat(replayed).isNotNull().hasSize(1);
-      assertThat(replayed.poll().data()).isEqualTo("data-2");
+      assertThat(replayed).hasSize(1);
+      assertThat(replayed.iterator().next().data()).isEqualTo("data-2");
     }
 
     @Test

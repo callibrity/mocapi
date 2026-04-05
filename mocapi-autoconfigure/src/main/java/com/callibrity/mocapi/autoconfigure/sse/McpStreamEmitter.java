@@ -129,8 +129,8 @@ public class McpStreamEmitter {
     for (Runnable listener : closeListeners) {
       try {
         listener.run();
-      } catch (Exception e) {
-        log.trace("[MCP-SSE:{}:{}] Close listener threw exception", sessionId, streamId, e);
+      } catch (Exception _) {
+        log.trace("[MCP-SSE:{}:{}] Close listener threw exception", sessionId, streamId);
       }
     }
   }
@@ -160,7 +160,7 @@ public class McpStreamEmitter {
 
     try {
       emitter.completeWithError(ex);
-    } catch (IllegalStateException e) {
+    } catch (IllegalStateException _) {
       log.trace("[MCP-SSE:{}:{}] completeWithError failed (already closed)", sessionId, streamId);
     } catch (Exception t) {
       log.warn("[MCP-SSE:{}:{}] Unexpected error completing stream", sessionId, streamId, t);
@@ -185,7 +185,7 @@ public class McpStreamEmitter {
 
     try {
       emitter.complete();
-    } catch (IllegalStateException e) {
+    } catch (IllegalStateException _) {
       log.trace("[MCP-SSE:{}:{}] Stream already closed during complete()", sessionId, streamId);
     } catch (Exception t) {
       log.warn("[MCP-SSE:{}:{}] Unexpected error while completing stream", sessionId, streamId, t);

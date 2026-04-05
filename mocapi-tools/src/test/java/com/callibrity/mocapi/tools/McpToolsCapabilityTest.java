@@ -53,8 +53,8 @@ class McpToolsCapabilityTest {
     assertThat(tool.name()).isEqualTo("hello-tool.say-hello");
     assertThat(tool.title()).isEqualTo("Hello Tool - Say Hello");
     assertThat(tool.description()).isEqualTo("Hello Tool - Say Hello");
-    assertThat(tool.inputSchema().get("type").asText()).isEqualTo("object");
-    assertThat(tool.outputSchema().get("type").asText()).isEqualTo("object");
+    assertThat(tool.inputSchema().get("type").asString()).isEqualTo("object");
+    assertThat(tool.outputSchema().get("type").asString()).isEqualTo("object");
   }
 
   @Test
@@ -86,7 +86,8 @@ class McpToolsCapabilityTest {
             "hello-tool.say-hello", mapper.createObjectNode().put("name", "Mocapi"));
 
     assertThat(response).isNotNull();
-    assertThat(response.structuredContent().get("message").textValue()).isEqualTo("Hello, Mocapi!");
+    assertThat(response.structuredContent().get("message").stringValue())
+        .isEqualTo("Hello, Mocapi!");
   }
 
   @Test

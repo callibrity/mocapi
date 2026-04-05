@@ -40,7 +40,12 @@ class McpStreamingControllerGetTest {
     ObjectMapper objectMapper = new ObjectMapper();
     controller =
         new McpStreamingController(
-            mcpServer, sessionManager, new SyncTaskExecutor(), objectMapper, List.of("localhost"));
+            mcpServer,
+            sessionManager,
+            new SyncTaskExecutor(),
+            objectMapper,
+            List.of("localhost"),
+            null);
   }
 
   @Test

@@ -61,7 +61,7 @@ public class AnnotationMcpTool implements McpTool {
     this.invoker = new JsonMethodInvoker(mapper, targetObject, method);
     this.inputSchema = generator.generateInputSchema(targetObject, method);
     this.outputSchema = generator.generateOutputSchema(targetObject, method);
-    var outputSchemaType = outputSchema.get("type").asText();
+    var outputSchemaType = outputSchema.get("type").asString();
     if (!"object".equals(outputSchemaType)) {
       throw new IllegalArgumentException(
           String.format(

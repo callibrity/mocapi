@@ -19,9 +19,11 @@ import com.callibrity.mocapi.autoconfigure.sse.McpSessionManager;
 import com.callibrity.mocapi.autoconfigure.sse.McpStreamingController;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpServerCapability;
+import com.callibrity.mocapi.tools.McpToolsCapability;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -82,8 +84,14 @@ public class MocapiAutoConfiguration {
       McpServer mcpServer,
       McpSessionManager sessionManager,
       TaskExecutor mcpTaskExecutor,
-      @Qualifier("mcpObjectMapper") ObjectMapper mcpObjectMapper) {
+      @Qualifier("mcpObjectMapper") ObjectMapper mcpObjectMapper,
+      @Autowired(required = false) McpToolsCapability toolsCapability) {
     return new McpStreamingController(
-        mcpServer, sessionManager, mcpTaskExecutor, mcpObjectMapper, props.getAllowedOrigins());
+        mcpServer,
+        sessionManager,
+        mcpTaskExecutor,
+        mcpObjectMapper,
+        props.getAllowedOrigins(),
+        toolsCapability);
   }
 }
