@@ -357,7 +357,7 @@ public class McpStreamingController {
     ObjectNode error = objectMapper.createObjectNode();
     error.put("code", code);
     error.put("message", message);
-    response.set("error", error);
+    response.set(ERROR_KEY, error);
 
     return response;
   }
