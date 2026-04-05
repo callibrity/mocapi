@@ -15,7 +15,6 @@
  */
 package com.callibrity.mocapi.autoconfigure.sse;
 
-import com.callibrity.mocapi.prompts.McpPromptsCapability;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import java.util.Map;
@@ -58,9 +57,6 @@ public class McpStreamingController {
 
   @Autowired(required = false)
   private McpToolsCapability toolsCapability;
-
-  @Autowired(required = false)
-  private McpPromptsCapability promptsCapability;
 
   private static final String DEFAULT_PROTOCOL_VERSION = "2025-03-26";
 
@@ -195,20 +191,6 @@ public class McpStreamingController {
                       cap.callTool(
                           params.path("name").asText(), (ObjectNode) params.get("arguments")))
               .orElseThrow(() -> new IllegalArgumentException("Tools capability not available"));
-      case "prompts/list" ->
-          Optional.ofNullable(promptsCapability)
-              .map(
-                  cap ->
-                      cap.listPrompts(params != null ? params.path("cursor").asText(null) : null))
-              .orElseThrow(() -> new IllegalArgumentException("Prompts capability not available"));
-      case "prompts/get" ->
-          Optional.ofNullable(promptsCapability)
-              .map(
-                  cap ->
-                      cap.getPrompt(
-                          params.path("name").asText(),
-                          objectMapper.convertValue(params.get("arguments"), Map.class)))
-              .orElseThrow(() -> new IllegalArgumentException("Prompts capability not available"));
       default -> throw new IllegalArgumentException("Unknown method: " + method);
     };
   }

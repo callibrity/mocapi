@@ -1,6 +1,6 @@
 # Mocapi
 
-Mocapi is a modular framework for building [Model Context Protocol (MCP)](https://modelcontextprotocol.io/specification/2025-11-25) tools and prompts using Spring Boot. It simplifies secure, structured interactions between LLMs and services via annotated Java components.
+Mocapi is a modular framework for building [Model Context Protocol (MCP)](https://modelcontextprotocol.io/specification/2025-11-25) tools using Spring Boot. It simplifies secure, structured interactions between LLMs and services via annotated Java components.
 
 ![Maven Central Version](https://img.shields.io/maven-central/v/com.callibrity.mocapi/mocapi-parent)
 ![GitHub License](https://img.shields.io/github/license/callibrity/mocapi)
@@ -63,54 +63,6 @@ public class HelloTool {
 }
 ```
 
-## Creating MCP Prompts
-
-To create MCP prompts using Mocapi, you first need to import the `mocapi-prompts` dependency into your project:
-
-```xml
-<dependency>
-    <groupId>com.callibrity.mocapi</groupId>
-    <artifactId>mocapi-prompts</artifactId>
-    <version>${mocapi.version}</version>
-</dependency>
-```
-
-This will automatically activate the `MocapiPromptsAutoConfiguration` which will enable MCP prompts support. To register a
-prompt, you need to create a bean annotated with `@PromptService` having methods annotated with `@Prompt`:
-
-```java
-import com.callibrity.mocapi.prompts.GetPromptResult;
-import com.callibrity.mocapi.prompts.PromptMessage;
-import com.callibrity.mocapi.prompts.Role;
-import com.callibrity.mocapi.prompts.annotation.Prompt;
-import com.callibrity.mocapi.prompts.annotation.PromptService;
-import com.callibrity.mocapi.prompts.content.TextContent;
-import io.swagger.v3.oas.annotations.media.Schema;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
-
-@Component
-@PromptService
-public class CodeReviewPrompts {
-
-    @Prompt(name = "review-code", description = "Provide a short review of the given code snippet")
-    public GetPromptResult reviewCode(String language, String code) {
-        var prompt = String.format("""
-                Please review the following %s code and suggest improvements:
-                
-                ```%s
-                %s
-                ```
-                """, language, language, code);
-
-        return new GetPromptResult("Provide a short review of the given code snippet", List.of(
-                new PromptMessage(Role.USER, new TextContent(prompt))
-        ));
-    }
-}
-```
-
 ## Running the Example Application
 
 Mocapi includes an example application to demonstrate how to use the framework. To run it, follow these steps:
@@ -124,7 +76,7 @@ Mocapi includes an example application to demonstrate how to use the framework. 
     ```bash
     mvn spring-boot:run
     ```
-3. The application will start on port 8080 by default. You can access the example tools and prompts at the `/mcp` endpoint.
+3. The application will start on port 8080 by default. You can access the example tools at the `/mcp` endpoint.
 
 ## Using the MCP Inspector
 
@@ -136,7 +88,7 @@ You can interact with the example application using the MCP Inspector. To do thi
 2. Your browser will open the MCP Inspector interface. Enter the URL of the running example application (e.g., `http://localhost:8080/mcp`) in the URL field.
 3. Select the "Streamable HTTP" transport option.
 4. Click "Connect" to establish a connection to the example application.
-5. You can now explore the available tools and prompts, send requests, and view responses directly in the MCP Inspector interface.
+5. You can now explore the available tools, send requests, and view responses directly in the MCP Inspector interface.
 6. Enjoy!
 
 ## What's in a Name?
