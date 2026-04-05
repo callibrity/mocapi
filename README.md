@@ -24,10 +24,10 @@ Mocapi includes a Spring Boot starter, making it easy to get started by simply a
     <version>${mocapi.version}</version>
 </dependency>
 ```
-By default, Mocapi will listen for MCP requests on the `/mcp` endpoint. You can change this by setting the `ripcurl.endpoint` property:
+By default, Mocapi will listen for MCP requests on the `/mcp` endpoint. You can change this by setting the `mocapi.endpoint` property:
 
 ```properties
-ripcurl.endpoint=/your-custom-endpoint
+mocapi.endpoint=/your-custom-endpoint
 ```
 
 ## Creating MCP Tools
