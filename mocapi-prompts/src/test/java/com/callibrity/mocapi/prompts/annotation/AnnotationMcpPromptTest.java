@@ -17,8 +17,8 @@ package com.callibrity.mocapi.prompts.annotation;
 
 import com.callibrity.mocapi.prompts.Role;
 import com.callibrity.mocapi.prompts.content.TextContent;
-import com.callibrity.ripcurl.core.exception.JsonRpcInternalErrorException;
-import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
+import com.callibrity.mocapi.server.exception.McpInternalErrorException;
+import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -124,7 +124,7 @@ class AnnotationMcpPromptTest {
         var prompt = prompts.stream().filter(p -> "test-prompts.bad-return".equals(p.name())).findFirst().orElseGet(Assertions::fail);
         Map<String, String> arguments = new HashMap<>();
         assertThatThrownBy(() -> prompt.getPrompt(arguments))
-                .isInstanceOf(JsonRpcInternalErrorException.class);
+                .isInstanceOf(McpInternalErrorException.class);
     }
 
     @Test
@@ -134,7 +134,7 @@ class AnnotationMcpPromptTest {
         var prompt = prompts.stream().filter(p -> "test-prompts.multi".equals(p.name())).findFirst().orElseGet(Assertions::fail);
         var arguments = Map.of("a", "test");
         assertThatThrownBy(() -> prompt.getPrompt(arguments))
-                .isInstanceOf(JsonRpcInvalidParamsException.class);
+                .isInstanceOf(McpInvalidParamsException.class);
     }
 
     @Test
@@ -172,7 +172,7 @@ class AnnotationMcpPromptTest {
         var prompt = prompts.stream().filter(p -> "test-prompts.evil".equals(p.name())).findFirst().orElseGet(Assertions::fail);
         HashMap<String, String> arguments = new HashMap<>();
         assertThatThrownBy(() -> prompt.getPrompt(arguments))
-                .isInstanceOf(JsonRpcInternalErrorException.class);
+                .isInstanceOf(McpInternalErrorException.class);
     }
 
 }

@@ -17,7 +17,6 @@ package com.callibrity.mocapi.autoconfigure.prompts;
 
 import com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration;
 import com.callibrity.mocapi.prompts.McpPromptsCapability;
-import com.callibrity.ripcurl.autoconfigure.RipCurlAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
@@ -28,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MocapiPromptsAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(MocapiPromptsAutoConfiguration.class, MocapiAutoConfiguration.class, RipCurlAutoConfiguration.class, JacksonAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(MocapiPromptsAutoConfiguration.class, MocapiAutoConfiguration.class, JacksonAutoConfiguration.class));
 
     @Test
     void mcpCapabilityInitializes() {

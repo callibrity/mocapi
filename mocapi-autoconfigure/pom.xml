@@ -40,9 +40,8 @@
             <artifactId>jakarta.annotation-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.callibrity.ripcurl</groupId>
-            <artifactId>ripcurl-autoconfigure</artifactId>
-            <version>${ripcurl.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

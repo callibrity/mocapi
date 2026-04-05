@@ -35,10 +35,6 @@
             <artifactId>mocapi-core</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
-        <dependency>
-            <groupId>com.callibrity.ripcurl</groupId>
-            <artifactId>ripcurl-core</artifactId>
-        </dependency>
     </dependencies>
 
 </project>

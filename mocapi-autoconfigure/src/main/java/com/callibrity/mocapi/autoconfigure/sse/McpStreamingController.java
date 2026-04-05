@@ -47,7 +47,7 @@ import java.util.Queue;
  */
 @Slf4j
 @RestController
-@RequestMapping("${ripcurl.endpoint:/mcp}")
+@RequestMapping("${mocapi.endpoint:/mcp}")
 @RequiredArgsConstructor
 public class McpStreamingController {
 

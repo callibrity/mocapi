@@ -18,7 +18,7 @@ package com.callibrity.mocapi.tools.annotation;
 import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tools.util.HelloTool;
 import com.callibrity.mocapi.tools.util.NullTool;
-import com.callibrity.ripcurl.core.exception.JsonRpcInternalErrorException;
+import com.callibrity.mocapi.server.exception.McpInternalErrorException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.github.victools.jsonschema.generator.SchemaVersion;
@@ -74,7 +74,7 @@ class AnnotationMcpToolTest {
         var tool  = factory.create(new NullTool()).getMcpTools().getFirst();
         var parameters = mapper.createObjectNode().put("name", "Mocapi");
         assertThatThrownBy(() -> tool.call(parameters))
-                .isExactlyInstanceOf(JsonRpcInternalErrorException.class);
+                .isExactlyInstanceOf(McpInternalErrorException.class);
     }
 
     @Test

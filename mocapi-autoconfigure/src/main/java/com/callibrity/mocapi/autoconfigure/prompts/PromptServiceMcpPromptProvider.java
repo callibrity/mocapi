@@ -19,7 +19,6 @@ import com.callibrity.mocapi.prompts.McpPrompt;
 import com.callibrity.mocapi.prompts.McpPromptProvider;
 import com.callibrity.mocapi.prompts.annotation.AnnotationMcpPrompt;
 import com.callibrity.mocapi.prompts.annotation.PromptService;
-import com.callibrity.mocapi.server.jsonrpc.JsonRpcService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

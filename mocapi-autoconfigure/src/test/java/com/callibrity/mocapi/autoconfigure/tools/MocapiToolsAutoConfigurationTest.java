@@ -18,7 +18,6 @@ package com.callibrity.mocapi.autoconfigure.tools;
 import com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
-import com.callibrity.ripcurl.autoconfigure.RipCurlAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
@@ -29,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MocapiToolsAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(MocapiToolsAutoConfiguration.class, MocapiAutoConfiguration.class, RipCurlAutoConfiguration.class, JacksonAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(MocapiToolsAutoConfiguration.class, MocapiAutoConfiguration.class, JacksonAutoConfiguration.class));
 
     @Test
     void mcpCapabilityInitializes() {

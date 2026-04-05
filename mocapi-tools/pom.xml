@@ -75,10 +75,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <dependency>
-            <groupId>com.callibrity.ripcurl</groupId>
-            <artifactId>ripcurl-core</artifactId>
-        </dependency>
     </dependencies>
 
 </project>

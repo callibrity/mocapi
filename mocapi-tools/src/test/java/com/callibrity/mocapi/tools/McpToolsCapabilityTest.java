@@ -19,7 +19,7 @@ import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.tools.annotation.DefaultAnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tools.util.HelloTool;
-import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
+import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import org.junit.jupiter.api.Test;
@@ -93,7 +93,7 @@ class McpToolsCapabilityTest {
         var capability = new McpToolsCapability(List.of(provider));
         var request = mapper.createObjectNode();
         assertThatThrownBy(() -> capability.callTool("hello-tool.say-hello", request))
-                .isExactlyInstanceOf(JsonRpcInvalidParamsException.class);
+                .isExactlyInstanceOf(McpInvalidParamsException.class);
     }
 
     @Test
@@ -103,7 +103,7 @@ class McpToolsCapabilityTest {
         var capability = new McpToolsCapability(List.of(provider));
         var request = mapper.createObjectNode();
         assertThatThrownBy(() -> capability.callTool("non-existent-tool", request))
-                .isExactlyInstanceOf(JsonRpcInvalidParamsException.class)
+                .isExactlyInstanceOf(McpInvalidParamsException.class)
                 .hasMessageContaining("Tool non-existent-tool not found.");
     }
 }

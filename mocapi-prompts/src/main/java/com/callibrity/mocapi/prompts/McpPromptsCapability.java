@@ -16,10 +16,7 @@
 package com.callibrity.mocapi.prompts;
 
 import com.callibrity.mocapi.server.McpServerCapability;
-import com.callibrity.mocapi.server.jsonrpc.JsonRpc;
-import com.callibrity.mocapi.server.jsonrpc.JsonRpcService;
-import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
-import com.callibrity.ripcurl.core.util.LazyInitializer;
+import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
 
 import java.util.List;
 import java.util.Map;
@@ -27,19 +24,18 @@ import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
-@JsonRpcService
 public class McpPromptsCapability implements McpServerCapability {
 
 // ------------------------ INTERFACE METHODS ------------------------
 
 // --------------------- Interface McpServerCapability ---------------------
 
-    private final LazyInitializer<Map<String, McpPrompt>> prompts;
+    private final Map<String, McpPrompt> prompts;
 
     public McpPromptsCapability(List<McpPromptProvider> providers) {
-        this.prompts = new LazyInitializer<>(() -> providers.stream()
+        this.prompts = providers.stream()
                 .flatMap(provider -> provider.getMcpPrompts().stream())
-                .collect(Collectors.toMap(McpPrompt::name, prompt -> prompt)));
+                .collect(Collectors.toMap(McpPrompt::name, prompt -> prompt));
     }
 
     @Override
@@ -52,18 +48,16 @@ public class McpPromptsCapability implements McpServerCapability {
         return new PromptsCapabilityDescriptor(false);
     }
 
-    @JsonRpc("prompts/list")
     public ListPromptsResponse listPrompts(String cursor) {
-        return new ListPromptsResponse(prompts.get().values().stream()
+        return new ListPromptsResponse(prompts.values().stream()
                 .map(p -> new McpPromptDescriptor(p.name(), p.description(), p.arguments()))
                 .toList(), null);
     }
 
-    @JsonRpc("prompts/get")
     public GetPromptResult getPrompt(String name, Map<String, String> arguments) {
-        return ofNullable(prompts.get().get(name))
+        return ofNullable(prompts.get(name))
                 .map(p -> p.getPrompt(arguments))
-                .orElseThrow(() -> new JsonRpcInvalidParamsException(String.format("Prompt '%s' not found.", name)));
+                .orElseThrow(() -> new McpInvalidParamsException(String.format("Prompt '%s' not found.", name)));
     }
 // -------------------------- INNER CLASSES --------------------------
 

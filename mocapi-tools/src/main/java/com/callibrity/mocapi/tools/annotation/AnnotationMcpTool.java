@@ -17,8 +17,8 @@ package com.callibrity.mocapi.tools.annotation;
 
 import com.callibrity.mocapi.tools.McpTool;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
-import com.callibrity.ripcurl.core.exception.JsonRpcInternalErrorException;
-import com.callibrity.ripcurl.core.invoke.JsonMethodInvoker;
+import com.callibrity.mocapi.server.exception.McpInternalErrorException;
+import com.callibrity.mocapi.server.invoke.JsonMethodInvoker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringUtils;
@@ -117,7 +117,7 @@ public class AnnotationMcpTool implements McpTool {
         if (result.isObject()) {
             return (ObjectNode) result;
         }
-        throw new JsonRpcInternalErrorException(String.format("McpTool %s returned non-object (%s) result.", name, result.getNodeType()));
+        throw new McpInternalErrorException(String.format("McpTool %s returned non-object (%s) result.", name, result.getNodeType()));
     }
 
 }

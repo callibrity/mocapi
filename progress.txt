@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-05T01:31:16-04:00
-ITERATION: 1
-SPEC_COMPLETED: 001-mcp-exception-hierarchy-and-invoker.md
-WHAT_WAS_DONE: Created MCP-native exception hierarchy (McpException, McpInvalidParamsException, McpInternalErrorException) and JsonMethodInvoker in mocapi-core, with full unit test coverage.
-VERIFICATION: mvn test (from mocapi-core) — 27 tests run, 0 failures, BUILD SUCCESS
+LAST_RUN: 2026-04-05T01:36:00-04:00
+ITERATION: 2
+SPEC_COMPLETED: 002-remove-ripcurl.md
+WHAT_WAS_DONE: Removed all ripcurl dependencies from all modules, replaced ripcurl exception/invoker imports with MCP-native equivalents from spec 001, removed @JsonRpcService/@JsonRpc annotations and LazyInitializer usage from capability classes, renamed ripcurl.endpoint to mocapi.endpoint, added spring-boot-starter-web to mocapi-autoconfigure and commons-lang3 to mocapi-core (previously transitive via ripcurl-core).
+VERIFICATION: mvn test — 27+14+13+4 tests, 0 failures, BUILD SUCCESS; mvn verify -pl mocapi-example -am — BUILD SUCCESS; grep -r ripcurl — no matches; grep LazyInitializer — no matches; grep @JsonRpcService/@JsonRpc — no matches
 STATUS: MORE_WORK
-NEXT_SPEC: 002-remove-ripcurl.md
-NOTES: Had to add version 0.0.6 to the ripcurl-core dependency in mocapi-core/pom.xml because the parent POM's ripcurl.version property and dependencyManagement entry were already removed in the working tree (pre-existing change from the Java 25/Spring Boot 4 upgrade). This allowed mocapi-core to compile independently. The ripcurl dependency itself will be removed in spec 002.
+NEXT_SPEC: 003-java25-springboot4-spotless.md
+NOTES: Added commons-lang3 as direct dependency to mocapi-core (was previously transitive via ripcurl-core, needed by Names and Parameters utility classes). Added spring-boot-starter-web to mocapi-autoconfigure as specified (replaces transitive dependency from ripcurl-autoconfigure).

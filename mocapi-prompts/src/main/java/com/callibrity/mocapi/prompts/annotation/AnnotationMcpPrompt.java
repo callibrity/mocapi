@@ -19,8 +19,8 @@ import com.callibrity.mocapi.prompts.GetPromptResult;
 import com.callibrity.mocapi.prompts.McpPrompt;
 import com.callibrity.mocapi.prompts.PromptArgument;
 import com.callibrity.mocapi.server.util.Parameters;
-import com.callibrity.ripcurl.core.exception.JsonRpcInternalErrorException;
-import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
+import com.callibrity.mocapi.server.exception.McpInternalErrorException;
+import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
@@ -88,7 +88,7 @@ public class AnnotationMcpPrompt implements McpPrompt {
     private static Object extractArgumentValue(PromptArgument argument, Map<String,String> arguments) {
         var value = arguments.get(argument.name());
         if (value == null && argument.required()) {
-            throw new JsonRpcInvalidParamsException(String.format("Required argument '%s' is missing.", argument.name()));
+            throw new McpInvalidParamsException(String.format("Required argument '%s' is missing.", argument.name()));
         }
         return value;
     }
@@ -121,9 +121,9 @@ public class AnnotationMcpPrompt implements McpPrompt {
             if (result instanceof GetPromptResult r) {
                 return r;
             }
-            throw new JsonRpcInternalErrorException(String.format("Prompt \"%s\" did not return a GetPromptResult.", name));
+            throw new McpInternalErrorException(String.format("Prompt \"%s\" did not return a GetPromptResult.", name));
         } catch (ReflectiveOperationException e) {
-            throw new JsonRpcInternalErrorException(String.format("Unable to get prompt \"%s\".", name), e);
+            throw new McpInternalErrorException(String.format("Unable to get prompt \"%s\".", name), e);
         }
     }
 

@@ -20,7 +20,6 @@ import com.callibrity.mocapi.tools.McpToolProvider;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpTool;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
-import com.callibrity.mocapi.server.jsonrpc.JsonRpcService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
