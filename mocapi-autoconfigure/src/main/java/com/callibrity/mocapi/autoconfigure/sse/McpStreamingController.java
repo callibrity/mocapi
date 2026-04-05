@@ -216,7 +216,7 @@ public class McpStreamingController {
       JsonNode methodNode, JsonNode idNode, JsonNode requestBody) {
     boolean isNotification = methodNode != null && idNode == null;
     boolean isResponse =
-        methodNode == null && (requestBody.has("result") || requestBody.has("error"));
+        methodNode == null && (requestBody.has("result") || requestBody.has(ERROR_KEY));
     return isNotification || isResponse;
   }
 
@@ -276,7 +276,7 @@ public class McpStreamingController {
     } catch (McpException e) {
       log.warn("MCP error processing {}: {}", method, e.getMessage());
       streamEmitter.sendAndComplete(createErrorResponse(idNode, e.getCode(), e.getMessage()));
-    } catch (IllegalArgumentException e) {
+    } catch (IllegalArgumentException _) {
       log.warn("Method not found: {}", method);
       streamEmitter.sendAndComplete(
           createErrorResponse(idNode, -32601, "Method not found: " + method));
