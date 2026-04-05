@@ -20,6 +20,11 @@ import static java.util.Optional.ofNullable;
 import com.callibrity.mocapi.server.CapabilityDescriptor;
 import com.callibrity.mocapi.server.McpServerCapability;
 import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
+import com.github.erosb.jsonsKema.JsonParser;
+import com.github.erosb.jsonsKema.Schema;
+import com.github.erosb.jsonsKema.SchemaLoader;
+import com.github.erosb.jsonsKema.ValidationFailure;
+import com.github.erosb.jsonsKema.Validator;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Comparator;
@@ -27,10 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import org.everit.json.schema.Schema;
-import org.everit.json.schema.ValidationException;
-import org.everit.json.schema.loader.SchemaLoader;
-import org.json.JSONObject;
 import tools.jackson.databind.node.ObjectNode;
 
 public class McpToolsCapability implements McpServerCapability {
@@ -77,7 +78,8 @@ public class McpToolsCapability implements McpServerCapability {
     var tool = lookupTool(name);
     validateInput(name, arguments, tool);
     var structuredOutput = tool.call(arguments);
-    return new CallToolResponse(structuredOutput);
+    var textContent = new TextContent(structuredOutput.toString());
+    return new CallToolResponse(List.of(textContent), structuredOutput);
   }
 
   private McpTool lookupTool(String name) {
@@ -87,16 +89,17 @@ public class McpToolsCapability implements McpServerCapability {
   }
 
   private void validateInput(String name, ObjectNode arguments, McpTool tool) {
-    try {
-      getInputSchema(name, tool).validate(new JSONObject(arguments.toString()));
-    } catch (ValidationException e) {
-      throw new McpInvalidParamsException(e.getMessage());
+    Schema schema = getInputSchema(name, tool);
+    Validator validator = Validator.forSchema(schema);
+    ValidationFailure failure = validator.validate(new JsonParser(arguments.toString()).parse());
+    if (failure != null) {
+      throw new McpInvalidParamsException(failure.getMessage());
     }
   }
 
   private Schema getInputSchema(String name, McpTool tool) {
     return inputSchemas.computeIfAbsent(
-        name, _ -> SchemaLoader.load(new JSONObject(tool.inputSchema().toString())));
+        name, _ -> new SchemaLoader(new JsonParser(tool.inputSchema().toString()).parse()).load());
   }
 
   public ListToolsResponse listTools(String cursor) {
@@ -141,7 +144,13 @@ public class McpToolsCapability implements McpServerCapability {
 
   public record ToolsCapabilityDescriptor(boolean listChanged) implements CapabilityDescriptor {}
 
-  public record CallToolResponse(ObjectNode structuredContent) {}
+  public record TextContent(String type, String text) {
+    public TextContent(String text) {
+      this("text", text);
+    }
+  }
+
+  public record CallToolResponse(List<TextContent> content, ObjectNode structuredContent) {}
 
   public record ListToolsResponse(List<McpToolDescriptor> tools, String nextCursor) {}
 

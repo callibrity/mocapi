@@ -66,14 +66,8 @@
         </dependency>
         <dependency>
             <groupId>com.github.erosb</groupId>
-            <artifactId>everit-json-schema</artifactId>
-            <version>${everit-json-schema.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-validator</groupId>
-                    <artifactId>commons-validator</artifactId>
-                </exclusion>
-            </exclusions>
+            <artifactId>json-sKema</artifactId>
+            <version>${json-skema.version}</version>
         </dependency>
     </dependencies>
 
