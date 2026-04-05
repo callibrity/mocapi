@@ -136,16 +136,6 @@ public class McpStreamingController {
     // Send priming event per MCP spec
     streamEmitter.sendPrimingEvent();
 
-    // Replay stored events after Last-Event-ID if provided
-    if (lastEventId != null) {
-      var replayEvents = session.getEventsAfter(streamEmitter.getStreamId(), lastEventId);
-      if (replayEvents != null) {
-        for (SseEvent event : replayEvents) {
-          streamEmitter.send(event.data());
-        }
-      }
-    }
-
     // Process request asynchronously
     taskExecutor.execute(
         () -> {
