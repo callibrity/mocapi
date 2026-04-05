@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-05T02:54:00-04:00
-ITERATION: 8
-SPEC_COMPLETED: 009-streamable-http-compliance-gaps.md
-WHAT_WAS_DONE: Fixed five MCP 2025-11-25 Streamable HTTP transport compliance gaps: (1) POST with JSON-RPC notifications/responses now returns 202 Accepted with no body instead of creating SSE streams; (2) Added DELETE endpoint for session termination (400/404/204); (3) Removed Last-Event-ID from POST handler — resumption is GET-only; (4) Event IDs now encode stream identity as streamId:counter format, and getEventsAfter extracts the original stream ID from Last-Event-ID to replay only from the originating stream; (5) Accept header validation on POST (requires application/json + text/event-stream) and GET (requires text/event-stream), with */* accepted on both.
-VERIFICATION: mvn verify — BUILD SUCCESS (all 7 modules); 21 new compliance tests pass (McpStreamingControllerComplianceTest: 4 notification, 3 delete, 5 event-id/stream-identity, 9 accept-header); 7 existing GET tests updated and pass; spotless and license checks pass.
+LAST_RUN: 2026-04-05T03:38:00-04:00
+ITERATION: 9
+SPEC_COMPLETED: 010-improve-test-coverage.md
+WHAT_WAS_DONE: Added comprehensive unit tests to bring all 6 target source files to 90%+ line coverage (overall 98.1%). Created new test files for McpStreamEmitter, McpSession, McpSessionManager, ToolServiceMcpToolProvider, and McpStreamingController POST handler; expanded JsonMethodInvoker tests for Error rethrow and IllegalAccessException paths.
+VERIFICATION: mvn verify — BUILD SUCCESS; JaCoCo aggregate coverage 98.1% overall; JsonMethodInvoker 100%, ToolServiceMcpToolProvider 100%, McpSessionManager 100%, McpStreamingController 96.7%, McpStreamEmitter 95.7%, McpSession 96.3%; spotless and license checks pass.
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: Integration tests (HelloToolIT, Rot13ToolIT) updated with Accept headers but failsafe standalone invocation has a pre-existing JVM fork issue on Java 25 — unrelated to this change. The notification detection logic checks for method-present+id-absent (notification) and method-absent+result-or-error-present (response) before any session creation or SSE emitter setup.
+NOTES: McpStreamEmitter tests use reflection to trigger SseEmitter internal callbacks (onTimeout, onError, onCompletion) and a dynamic Proxy handler to test IOException and IllegalStateException catch paths. The 4 remaining uncovered lines in McpStreamEmitter are defensive catch blocks for unexpected exceptions from emitter.complete()/completeWithError() that can only be triggered with a custom handler throwing non-ISE exceptions — not worth testing. McpStreamingController 6 missed lines are in isValidOrigin() catch and minor edge cases.

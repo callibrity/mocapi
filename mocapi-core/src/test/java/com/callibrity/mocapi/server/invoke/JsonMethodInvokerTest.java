@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server.invoke;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.server.exception.McpInternalErrorException;
 import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -72,7 +73,7 @@ class JsonMethodInvokerTest {
   }
 
   @Test
-  void shouldWrapCheckedExceptionInRuntimeException() throws Exception {
+  void shouldWrapCheckedExceptionInMcpInternalErrorException() throws Exception {
     var target = new TestService();
     Method method = TestService.class.getMethod("throwChecked");
     var invoker = new JsonMethodInvoker(mapper, target, method);
@@ -80,10 +81,36 @@ class JsonMethodInvokerTest {
     ObjectNode args = mapper.createObjectNode();
 
     assertThatThrownBy(() -> invoker.invoke(args))
-        .isInstanceOf(RuntimeException.class)
-        .isNotInstanceOf(McpInvalidParamsException.class)
+        .isInstanceOf(McpInternalErrorException.class)
+        .hasMessage("Checked exception during method invocation")
         .hasCauseInstanceOf(IOException.class)
         .hasRootCauseMessage("io failure");
+  }
+
+  @Test
+  void shouldRethrowErrorDirectly() throws Exception {
+    var target = new TestService();
+    Method method = TestService.class.getMethod("throwError");
+    var invoker = new JsonMethodInvoker(mapper, target, method);
+
+    ObjectNode args = mapper.createObjectNode();
+
+    assertThatThrownBy(() -> invoker.invoke(args))
+        .isInstanceOf(StackOverflowError.class)
+        .hasMessage("stack overflow");
+  }
+
+  @Test
+  void shouldWrapIllegalAccessExceptionInMcpInternalErrorException() throws Exception {
+    var target = new TestService();
+    Method method = PrivateService.class.getDeclaredMethod("secret");
+    var invoker = new JsonMethodInvoker(mapper, target, method);
+
+    ObjectNode args = mapper.createObjectNode();
+
+    assertThatThrownBy(() -> invoker.invoke(args))
+        .isInstanceOf(McpInternalErrorException.class)
+        .hasMessage("Cannot access method");
   }
 
   @Test
@@ -128,6 +155,16 @@ class JsonMethodInvokerTest {
 
     public Object throwChecked() throws IOException {
       throw new IOException("io failure");
+    }
+
+    public Object throwError() {
+      throw new StackOverflowError("stack overflow");
+    }
+  }
+
+  private static class PrivateService {
+    private Object secret() {
+      return "secret";
     }
   }
 
