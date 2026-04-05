@@ -15,35 +15,35 @@
  */
 package com.callibrity.mocapi.server.util;
 
+import static java.util.Optional.ofNullable;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
+import java.lang.reflect.Parameter;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.StringUtils;
 
-import java.lang.reflect.Parameter;
-
-import static java.util.Optional.ofNullable;
-
 @UtilityClass
 public class Parameters {
-    public static boolean isRequired(Parameter parameter) {
-        if(parameter.isAnnotationPresent(Nullable.class)) {
-            return false;
-        }
-        return !parameter.isAnnotationPresent(Schema.class) || parameter.getAnnotation(Schema.class).requiredMode() != Schema.RequiredMode.NOT_REQUIRED;
+  public static boolean isRequired(Parameter parameter) {
+    if (parameter.isAnnotationPresent(Nullable.class)) {
+      return false;
     }
+    return !parameter.isAnnotationPresent(Schema.class)
+        || parameter.getAnnotation(Schema.class).requiredMode() != Schema.RequiredMode.NOT_REQUIRED;
+  }
 
-    public static String descriptionOf(Parameter parameter) {
-        return ofNullable(parameter.getAnnotation(Schema.class))
-                .map(Schema::description)
-                .map(StringUtils::trimToNull)
-                .orElse(null);
-    }
+  public static String descriptionOf(Parameter parameter) {
+    return ofNullable(parameter.getAnnotation(Schema.class))
+        .map(Schema::description)
+        .map(StringUtils::trimToNull)
+        .orElse(null);
+  }
 
-    public static String titleOf(Parameter parameter) {
-        return ofNullable(parameter.getAnnotation(Schema.class))
-                .map(Schema::title)
-                .map(StringUtils::trimToNull)
-                .orElseGet(() -> Names.capitalizedWords(parameter.getName()));
-    }
+  public static String titleOf(Parameter parameter) {
+    return ofNullable(parameter.getAnnotation(Schema.class))
+        .map(Schema::title)
+        .map(StringUtils::trimToNull)
+        .orElseGet(() -> Names.capitalizedWords(parameter.getName()));
+  }
 }

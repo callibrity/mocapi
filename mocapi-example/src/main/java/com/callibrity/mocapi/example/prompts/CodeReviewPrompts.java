@@ -22,26 +22,30 @@ import com.callibrity.mocapi.prompts.annotation.Prompt;
 import com.callibrity.mocapi.prompts.annotation.PromptService;
 import com.callibrity.mocapi.prompts.content.TextContent;
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
+import org.springframework.stereotype.Component;
 
 @Component
 @PromptService
 public class CodeReviewPrompts {
 
-    @Prompt(name = "review-code", description = "Provide a short review of the given code snippet")
-    public GetPromptResult reviewCode(@Schema(description = "The programming language used") String language, @Schema(description = "The code snippet to review") String code) {
-        var prompt = String.format("""
+  @Prompt(name = "review-code", description = "Provide a short review of the given code snippet")
+  public GetPromptResult reviewCode(
+      @Schema(description = "The programming language used") String language,
+      @Schema(description = "The code snippet to review") String code) {
+    var prompt =
+        String.format(
+            """
                 Please review the following %s code and suggest improvements:
-                
+
                 ```%s
                 %s
                 ```
-                """, language, language, code);
+                """,
+            language, language, code);
 
-        return new GetPromptResult("Provide a short review of the given code snippet", List.of(
-                new PromptMessage(Role.USER, new TextContent(prompt))
-        ));
-    }
+    return new GetPromptResult(
+        "Provide a short review of the given code snippet",
+        List.of(new PromptMessage(Role.USER, new TextContent(prompt))));
+  }
 }

@@ -18,10 +18,11 @@ package com.callibrity.mocapi.prompts;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum Role {
-    USER, ASSISTANT;
+  USER,
+  ASSISTANT;
 
-    @JsonValue
-    public String jsonValue() {
-        return this.name().toLowerCase();
-    }
+  @JsonValue
+  public String jsonValue() {
+    return this.name().toLowerCase();
+  }
 }

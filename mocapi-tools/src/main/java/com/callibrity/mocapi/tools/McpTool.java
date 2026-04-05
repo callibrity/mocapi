@@ -15,13 +15,18 @@
  */
 package com.callibrity.mocapi.tools;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 
 public interface McpTool {
-    String name();
-    String title();
-    String description();
-    ObjectNode inputSchema();
-    ObjectNode outputSchema();
-    ObjectNode call(ObjectNode parameters);
+  String name();
+
+  String title();
+
+  String description();
+
+  ObjectNode inputSchema();
+
+  ObjectNode outputSchema();
+
+  ObjectNode call(ObjectNode parameters);
 }

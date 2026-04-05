@@ -19,23 +19,21 @@ import lombok.Getter;
 
 public class TextContent extends Content {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    public static final String TEXT_TYPE = "text";
+  public static final String TEXT_TYPE = "text";
 
-    @Getter
-    private final String text;
+  @Getter private final String text;
 
-// --------------------------- CONSTRUCTORS ---------------------------
+  // --------------------------- CONSTRUCTORS ---------------------------
 
-    public TextContent(String text) {
-        super(TEXT_TYPE);
-        this.text = text;
-    }
+  public TextContent(String text) {
+    super(TEXT_TYPE);
+    this.text = text;
+  }
 
-    public TextContent(String text, Annotations annotations) {
-        super(TEXT_TYPE, annotations);
-        this.text = text;
-    }
-
+  public TextContent(String text, Annotations annotations) {
+    super(TEXT_TYPE, annotations);
+    this.text = text;
+  }
 }

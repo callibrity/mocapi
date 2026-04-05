@@ -15,24 +15,26 @@
  */
 package com.callibrity.mocapi.autoconfigure;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.callibrity.mocapi.server.McpServer;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class MocapiAutoConfigurationTest {
 
-    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(MocapiAutoConfiguration.class, JacksonAutoConfiguration.class));
+  private final ApplicationContextRunner contextRunner =
+      new ApplicationContextRunner()
+          .withConfiguration(
+              AutoConfigurations.of(MocapiAutoConfiguration.class, JacksonAutoConfiguration.class));
 
-
-    @Test
-    void mcpServerBeanInitializes() {
-        contextRunner.run(context -> {
-            assertThat(context).hasSingleBean(McpServer.class);
+  @Test
+  void mcpServerBeanInitializes() {
+    contextRunner.run(
+        context -> {
+          assertThat(context).hasSingleBean(McpServer.class);
         });
-    }
+  }
 }

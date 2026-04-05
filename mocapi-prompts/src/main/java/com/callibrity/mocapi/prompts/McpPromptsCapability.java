@@ -15,61 +15,60 @@
  */
 package com.callibrity.mocapi.prompts;
 
+import static java.util.Optional.ofNullable;
+
 import com.callibrity.mocapi.server.McpServerCapability;
 import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static java.util.Optional.ofNullable;
-
 public class McpPromptsCapability implements McpServerCapability {
 
-// ------------------------ INTERFACE METHODS ------------------------
+  // ------------------------ INTERFACE METHODS ------------------------
 
-// --------------------- Interface McpServerCapability ---------------------
+  // --------------------- Interface McpServerCapability ---------------------
 
-    private final Map<String, McpPrompt> prompts;
+  private final Map<String, McpPrompt> prompts;
 
-    public McpPromptsCapability(List<McpPromptProvider> providers) {
-        this.prompts = providers.stream()
-                .flatMap(provider -> provider.getMcpPrompts().stream())
-                .collect(Collectors.toMap(McpPrompt::name, prompt -> prompt));
-    }
+  public McpPromptsCapability(List<McpPromptProvider> providers) {
+    this.prompts =
+        providers.stream()
+            .flatMap(provider -> provider.getMcpPrompts().stream())
+            .collect(Collectors.toMap(McpPrompt::name, prompt -> prompt));
+  }
 
-    @Override
-    public String name() {
-        return "prompts";
-    }
+  @Override
+  public String name() {
+    return "prompts";
+  }
 
-    @Override
-    public PromptsCapabilityDescriptor describe() {
-        return new PromptsCapabilityDescriptor(false);
-    }
+  @Override
+  public PromptsCapabilityDescriptor describe() {
+    return new PromptsCapabilityDescriptor(false);
+  }
 
-    public ListPromptsResponse listPrompts(String cursor) {
-        return new ListPromptsResponse(prompts.values().stream()
-                .map(p -> new McpPromptDescriptor(p.name(), p.description(), p.arguments()))
-                .toList(), null);
-    }
+  public ListPromptsResponse listPrompts(String cursor) {
+    return new ListPromptsResponse(
+        prompts.values().stream()
+            .map(p -> new McpPromptDescriptor(p.name(), p.description(), p.arguments()))
+            .toList(),
+        null);
+  }
 
-    public GetPromptResult getPrompt(String name, Map<String, String> arguments) {
-        return ofNullable(prompts.get(name))
-                .map(p -> p.getPrompt(arguments))
-                .orElseThrow(() -> new McpInvalidParamsException(String.format("Prompt '%s' not found.", name)));
-    }
-// -------------------------- INNER CLASSES --------------------------
+  public GetPromptResult getPrompt(String name, Map<String, String> arguments) {
+    return ofNullable(prompts.get(name))
+        .map(p -> p.getPrompt(arguments))
+        .orElseThrow(
+            () -> new McpInvalidParamsException(String.format("Prompt '%s' not found.", name)));
+  }
 
-    public record PromptsCapabilityDescriptor(boolean listChanged) {
+  // -------------------------- INNER CLASSES --------------------------
 
-    }
+  public record PromptsCapabilityDescriptor(boolean listChanged) {}
 
-    public record ListPromptsResponse(List<McpPromptDescriptor> prompts, String nextCursor) {
-    }
+  public record ListPromptsResponse(List<McpPromptDescriptor> prompts, String nextCursor) {}
 
-    public record McpPromptDescriptor(String name, String description, List<PromptArgument> arguments) {
-
-    }
-
+  public record McpPromptDescriptor(
+      String name, String description, List<PromptArgument> arguments) {}
 }

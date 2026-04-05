@@ -15,16 +15,15 @@
  */
 package com.callibrity.mocapi.prompts;
 
-import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.Test;
 
 class RoleTest {
 
-    @Test
-    void jsonValueShouldReturnCorrectValues() {
-        assertThat(Role.USER.jsonValue()).isEqualTo("user");
-        assertThat(Role.ASSISTANT.jsonValue()).isEqualTo("assistant");
-    }
-
+  @Test
+  void jsonValueShouldReturnCorrectValues() {
+    assertThat(Role.USER.jsonValue()).isEqualTo("user");
+    assertThat(Role.ASSISTANT.jsonValue()).isEqualTo("assistant");
+  }
 }

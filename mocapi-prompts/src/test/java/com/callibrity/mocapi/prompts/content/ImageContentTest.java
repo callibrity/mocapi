@@ -15,34 +15,32 @@
  */
 package com.callibrity.mocapi.prompts.content;
 
-import com.callibrity.mocapi.prompts.Role;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.mocapi.prompts.Role;
 import java.util.Base64;
 import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 class ImageContentTest {
 
-    @Test
-    void shouldHaveTypeAudio() {
-        byte[] data = {1, 2, 3};
-        var content = new ImageContent(data, "img/png");
-        assertThat(content.getType()).isEqualTo("image");
-        assertThat(content.getMimeType()).isEqualTo("img/png");
-        assertThat(content.getData()).isEqualTo(Base64.getEncoder().encodeToString(data));
-    }
+  @Test
+  void shouldHaveTypeAudio() {
+    byte[] data = {1, 2, 3};
+    var content = new ImageContent(data, "img/png");
+    assertThat(content.getType()).isEqualTo("image");
+    assertThat(content.getMimeType()).isEqualTo("img/png");
+    assertThat(content.getData()).isEqualTo(Base64.getEncoder().encodeToString(data));
+  }
 
-    @Test
-    void shouldHaveAnnotations() {
-        byte[] data = {1, 2, 3};
-        var annotations = new Annotations(List.of(Role.USER, Role.ASSISTANT), 0.5);
-        var content = new ImageContent(data, "img/png", annotations);
-        assertThat(content.getType()).isEqualTo("image");
-        assertThat(content.getMimeType()).isEqualTo("img/png");
-        assertThat(content.getData()).isEqualTo(Base64.getEncoder().encodeToString(data));
-        assertThat(content.getAnnotations()).isEqualTo(annotations);
-    }
-
+  @Test
+  void shouldHaveAnnotations() {
+    byte[] data = {1, 2, 3};
+    var annotations = new Annotations(List.of(Role.USER, Role.ASSISTANT), 0.5);
+    var content = new ImageContent(data, "img/png", annotations);
+    assertThat(content.getType()).isEqualTo("image");
+    assertThat(content.getMimeType()).isEqualTo("img/png");
+    assertThat(content.getData()).isEqualTo(Base64.getEncoder().encodeToString(data));
+    assertThat(content.getAnnotations()).isEqualTo(annotations);
+  }
 }

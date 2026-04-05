@@ -17,18 +17,17 @@ package com.callibrity.mocapi.tools.annotation;
 
 import com.callibrity.mocapi.tools.McpToolProvider;
 
-
 public interface AnnotationMcpToolProviderFactory {
 
-// -------------------------- OTHER METHODS --------------------------
+  // -------------------------- OTHER METHODS --------------------------
 
-    /**
-     * Creates a new instance of {@link McpToolProvider} based on the provided target object. All methods annotated with
-     * {@link Tool} will be registered as tools in the provider.
-     *
-     * @param targetObject the object containing methods annotated with {@link Tool}
-     * @return a new instance of {@link McpToolProvider} that contains the tools defined by the annotations
-     */
-    McpToolProvider create(Object targetObject);
-
+  /**
+   * Creates a new instance of {@link McpToolProvider} based on the provided target object. All
+   * methods annotated with {@link Tool} will be registered as tools in the provider.
+   *
+   * @param targetObject the object containing methods annotated with {@link Tool}
+   * @return a new instance of {@link McpToolProvider} that contains the tools defined by the
+   *     annotations
+   */
+  McpToolProvider create(Object targetObject);
 }

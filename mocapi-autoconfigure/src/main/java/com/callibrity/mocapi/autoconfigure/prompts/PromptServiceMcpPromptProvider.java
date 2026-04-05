@@ -20,45 +20,49 @@ import com.callibrity.mocapi.prompts.McpPromptProvider;
 import com.callibrity.mocapi.prompts.annotation.AnnotationMcpPrompt;
 import com.callibrity.mocapi.prompts.annotation.PromptService;
 import jakarta.annotation.PostConstruct;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
-
-import java.util.List;
 
 @RequiredArgsConstructor
 @Slf4j
 public class PromptServiceMcpPromptProvider implements McpPromptProvider {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    private final ApplicationContext context;
-    private List<AnnotationMcpPrompt> prompts;
+  private final ApplicationContext context;
+  private List<AnnotationMcpPrompt> prompts;
 
-// ------------------------ INTERFACE METHODS ------------------------
+  // ------------------------ INTERFACE METHODS ------------------------
 
-// --------------------- Interface McpPromptProvider ---------------------
+  // --------------------- Interface McpPromptProvider ---------------------
 
-    @Override
-    public List<McpPrompt> getMcpPrompts() {
-        return List.copyOf(prompts);
-    }
+  @Override
+  public List<McpPrompt> getMcpPrompts() {
+    return List.copyOf(prompts);
+  }
 
-// -------------------------- OTHER METHODS --------------------------
+  // -------------------------- OTHER METHODS --------------------------
 
-    @PostConstruct
-    public void initialize() {
-        this.prompts = context.getBeansWithAnnotation(PromptService.class).entrySet().stream()
-                .flatMap(entry -> {
-                    var beanName = entry.getKey();
-                    var bean = entry.getValue();
-                    log.info("Registering MCP prompts for @{} bean \"{}\"...", PromptService.class.getSimpleName(), beanName);
-                    var list = AnnotationMcpPrompt.createPrompts(bean);
-                    list.forEach(prompt -> log.info("\tRegistered MCP prompt: \"{}\".", prompt.name()));
-                    return list.stream();
+  @PostConstruct
+  public void initialize() {
+    this.prompts =
+        context.getBeansWithAnnotation(PromptService.class).entrySet().stream()
+            .flatMap(
+                entry -> {
+                  var beanName = entry.getKey();
+                  var bean = entry.getValue();
+                  log.info(
+                      "Registering MCP prompts for @{} bean \"{}\"...",
+                      PromptService.class.getSimpleName(),
+                      beanName);
+                  var list = AnnotationMcpPrompt.createPrompts(bean);
+                  list.forEach(
+                      prompt -> log.info("\tRegistered MCP prompt: \"{}\".", prompt.name()));
+                  return list.stream();
                 })
-                .flatMap(targetObject -> AnnotationMcpPrompt.createPrompts(targetObject).stream())
-                .toList();
-    }
-
+            .flatMap(targetObject -> AnnotationMcpPrompt.createPrompts(targetObject).stream())
+            .toList();
+  }
 }

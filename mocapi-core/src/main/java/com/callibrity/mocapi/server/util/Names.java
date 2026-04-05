@@ -15,41 +15,39 @@
  */
 package com.callibrity.mocapi.server.util;
 
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
 @UtilityClass
 public class Names {
 
-// -------------------------- STATIC METHODS --------------------------
+  // -------------------------- STATIC METHODS --------------------------
 
-    public static String humanReadableName(Object targetObject, Method method) {
-        var className = ClassUtils.getShortClassName(targetObject.getClass());
-        var methodName = method.getName();
-        return String.format("%s - %s", capitalizedWords(className), capitalizedWords(methodName));
-    }
+  public static String humanReadableName(Object targetObject, Method method) {
+    var className = ClassUtils.getShortClassName(targetObject.getClass());
+    var methodName = method.getName();
+    return String.format("%s - %s", capitalizedWords(className), capitalizedWords(methodName));
+  }
 
-    public static String capitalizedWords(String input) {
-        return Arrays.stream(StringUtils.splitByCharacterTypeCamelCase(input))
-                .map(StringUtils::capitalize)
-                .collect(Collectors.joining(" "));
-    }
+  public static String capitalizedWords(String input) {
+    return Arrays.stream(StringUtils.splitByCharacterTypeCamelCase(input))
+        .map(StringUtils::capitalize)
+        .collect(Collectors.joining(" "));
+  }
 
-    public static String identifier(Object targetObject, Method method) {
-        var className = ClassUtils.getShortClassName(targetObject.getClass());
-        var methodName = method.getName();
-        return String.format("%s.%s", kebab(className), kebab(methodName));
-    }
+  public static String identifier(Object targetObject, Method method) {
+    var className = ClassUtils.getShortClassName(targetObject.getClass());
+    var methodName = method.getName();
+    return String.format("%s.%s", kebab(className), kebab(methodName));
+  }
 
-    public static String kebab(String input) {
-        return Arrays.stream(StringUtils.splitByCharacterTypeCamelCase(input))
-                .map(String::toLowerCase)
-                .collect(Collectors.joining("-"));
-    }
-
+  public static String kebab(String input) {
+    return Arrays.stream(StringUtils.splitByCharacterTypeCamelCase(input))
+        .map(String::toLowerCase)
+        .collect(Collectors.joining("-"));
+  }
 }

@@ -15,7 +15,6 @@
  */
 package com.callibrity.mocapi.example.tools;
 
-
 import com.callibrity.mocapi.tools.annotation.Tool;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -25,23 +24,22 @@ import org.springframework.stereotype.Component;
 @ToolService
 public class Rot13Tool {
 
-    @Tool(description = "A ROT-13 encoding utility.")
-    public Rot13Response encode(@Schema(description = "The text to be ROT-13 encoded.") String text) {
-        StringBuilder result = new StringBuilder();
+  @Tool(description = "A ROT-13 encoding utility.")
+  public Rot13Response encode(@Schema(description = "The text to be ROT-13 encoded.") String text) {
+    StringBuilder result = new StringBuilder();
 
-        for (char c : text.toCharArray()) {
-            if ('a' <= c && c <= 'z') {
-                result.append((char) ((c - 'a' + 13) % 26 + 'a'));
-            } else if ('A' <= c && c <= 'Z') {
-                result.append((char) ((c - 'A' + 13) % 26 + 'A'));
-            } else {
-                result.append(c); // leave non-alphabetic characters unchanged
-            }
-        }
-
-        return new Rot13Response(result.toString());
+    for (char c : text.toCharArray()) {
+      if ('a' <= c && c <= 'z') {
+        result.append((char) ((c - 'a' + 13) % 26 + 'a'));
+      } else if ('A' <= c && c <= 'Z') {
+        result.append((char) ((c - 'A' + 13) % 26 + 'A'));
+      } else {
+        result.append(c); // leave non-alphabetic characters unchanged
+      }
     }
 
-    public record Rot13Response(@Schema(description = "The ROT-13 encoded text.") String encoded) {
-    }
+    return new Rot13Response(result.toString());
+  }
+
+  public record Rot13Response(@Schema(description = "The ROT-13 encoded text.") String encoded) {}
 }

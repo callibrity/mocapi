@@ -19,8 +19,11 @@ import java.util.List;
 import java.util.Map;
 
 public interface McpPrompt {
-    String name();
-    String description();
-    List<PromptArgument> arguments();
-    GetPromptResult getPrompt(Map<String,String> arguments);
+  String name();
+
+  String description();
+
+  List<PromptArgument> arguments();
+
+  GetPromptResult getPrompt(Map<String, String> arguments);
 }

@@ -15,68 +15,60 @@
  */
 package com.callibrity.mocapi.server;
 
-
 import com.callibrity.mocapi.client.ClientCapabilities;
 import com.callibrity.mocapi.client.ClientInfo;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class McpServer {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    public static final String PROTOCOL_VERSION = "2025-11-25";
+  public static final String PROTOCOL_VERSION = "2025-11-25";
 
-    private final ServerInfo serverInfo;
-    private final String instructions;
-    private final Map<String, Object> serverCapabilities;
+  private final ServerInfo serverInfo;
+  private final String instructions;
+  private final Map<String, Object> serverCapabilities;
 
-// --------------------------- CONSTRUCTORS ---------------------------
+  // --------------------------- CONSTRUCTORS ---------------------------
 
-    public McpServer(List<McpServerCapability> serverCapabilities, ServerInfo serverInfo, String instructions) {
-        this.serverCapabilities = serverCapabilities.stream()
-                .collect(Collectors.toMap(
-                        McpServerCapability::name,
-                        McpServerCapability::describe
-                ));
-        this.serverInfo = serverInfo;
-        this.instructions = instructions;
-    }
+  public McpServer(
+      List<McpServerCapability> serverCapabilities, ServerInfo serverInfo, String instructions) {
+    this.serverCapabilities =
+        serverCapabilities.stream()
+            .collect(Collectors.toMap(McpServerCapability::name, McpServerCapability::describe));
+    this.serverInfo = serverInfo;
+    this.instructions = instructions;
+  }
 
-// -------------------------- OTHER METHODS --------------------------
+  // -------------------------- OTHER METHODS --------------------------
 
-    public void clientInitialized() {
-        // Do nothing!
-    }
+  public void clientInitialized() {
+    // Do nothing!
+  }
 
-    public InitializeResponse initialize(String protocolVersion,
-                                         ClientCapabilities capabilities,
-                                         ClientInfo clientInfo) {
-        log.info("Client {} initializing with protocol version {} and capabilities {}.", clientInfo, protocolVersion, capabilities);
-        return new InitializeResponse(PROTOCOL_VERSION,
-                serverCapabilities,
-                serverInfo,
-                instructions);
-    }
+  public InitializeResponse initialize(
+      String protocolVersion, ClientCapabilities capabilities, ClientInfo clientInfo) {
+    log.info(
+        "Client {} initializing with protocol version {} and capabilities {}.",
+        clientInfo,
+        protocolVersion,
+        capabilities);
+    return new InitializeResponse(PROTOCOL_VERSION, serverCapabilities, serverInfo, instructions);
+  }
 
-    public record InitializeResponse(
-            String protocolVersion,
-            Map<String,Object> capabilities,
-            ServerInfo serverInfo,
-            String instructions
-    ) {
-    }
+  public record InitializeResponse(
+      String protocolVersion,
+      Map<String, Object> capabilities,
+      ServerInfo serverInfo,
+      String instructions) {}
 
-    public PingResponse ping() {
-        return new PingResponse();
-    }
+  public PingResponse ping() {
+    return new PingResponse();
+  }
 
-    public record PingResponse() {
-    }
-
-
+  public record PingResponse() {}
 }

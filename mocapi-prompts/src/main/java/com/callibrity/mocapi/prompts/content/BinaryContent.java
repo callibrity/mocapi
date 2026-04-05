@@ -15,23 +15,22 @@
  */
 package com.callibrity.mocapi.prompts.content;
 
-import lombok.Getter;
-
 import java.util.Base64;
+import lombok.Getter;
 
 @Getter
 public abstract class BinaryContent extends Content {
 
-    private final String data;
-    private final String mimeType;
+  private final String data;
+  private final String mimeType;
 
-    protected BinaryContent(String type, byte[] data, String mimeType) {
-        this(type, data, mimeType, null);
-    }
+  protected BinaryContent(String type, byte[] data, String mimeType) {
+    this(type, data, mimeType, null);
+  }
 
-    protected BinaryContent(String type, byte[] data, String mimeType, Annotations annotations) {
-        super(type, annotations);
-        this.data = Base64.getEncoder().encodeToString(data);
-        this.mimeType = mimeType;
-    }
+  protected BinaryContent(String type, byte[] data, String mimeType, Annotations annotations) {
+    super(type, annotations);
+    this.data = Base64.getEncoder().encodeToString(data);
+    this.mimeType = mimeType;
+  }
 }

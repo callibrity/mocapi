@@ -28,30 +28,30 @@ import java.lang.annotation.Target;
 @Inherited
 public @interface Tool {
 
-    /**
-     * The name of the tool. If not specified, a dot-separated, kebab-case class name and method name will be used. For
-     * example, if the class is `com.example.MyTool` and the method is `doSomething`, the default name will be
-     * `my-tool.do-something`.
-     *
-     * @return the name of the tool
-     */
-    String name() default "";
+  /**
+   * The name of the tool. If not specified, a dot-separated, kebab-case class name and method name
+   * will be used. For example, if the class is `com.example.MyTool` and the method is
+   * `doSomething`, the default name will be `my-tool.do-something`.
+   *
+   * @return the name of the tool
+   */
+  String name() default "";
 
-    /**
-     * The title of the tool. This is a human-readable name that can be used in documentation or user interfaces.
-     * If not specified, a space-separated, capitalized version of the class name and method name will
-     * be used. For example, if the class is `com.example.MyTool` and the method is `doSomething`, the default title
-     * will be `My Tool Do Something`.
-     *
-     * @return the title of the tool
-     */
-    String title() default "";
+  /**
+   * The title of the tool. This is a human-readable name that can be used in documentation or user
+   * interfaces. If not specified, a space-separated, capitalized version of the class name and
+   * method name will be used. For example, if the class is `com.example.MyTool` and the method is
+   * `doSomething`, the default title will be `My Tool Do Something`.
+   *
+   * @return the title of the tool
+   */
+  String title() default "";
 
-    /**
-     * A description of the tool. This should provide a brief overview of what the tool does and how it can be used. If
-     * not specified, the title will be used as the description.
-     *
-     * @return the description of the tool
-     */
-    String description() default "";
+  /**
+   * A description of the tool. This should provide a brief overview of what the tool does and how
+   * it can be used. If not specified, the title will be used as the description.
+   *
+   * @return the description of the tool
+   */
+  String description() default "";
 }

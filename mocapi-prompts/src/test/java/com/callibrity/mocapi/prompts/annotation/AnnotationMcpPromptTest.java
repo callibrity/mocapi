@@ -15,164 +15,202 @@
  */
 package com.callibrity.mocapi.prompts.annotation;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.callibrity.mocapi.prompts.Role;
 import com.callibrity.mocapi.prompts.content.TextContent;
 import com.callibrity.mocapi.server.exception.McpInternalErrorException;
 import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
+import java.util.HashMap;
+import java.util.Map;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 class AnnotationMcpPromptTest {
 
-    @Test
-    void shouldExtractAllPromptAnnotatedMethods() {
-        var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
-        assertThat(prompts).hasSize(5);
-    }
+  @Test
+  void shouldExtractAllPromptAnnotatedMethods() {
+    var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
+    assertThat(prompts).hasSize(5);
+  }
 
-    @Test
-    void shouldExtractZeroParameters() {
-        var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
-        var prompt = prompts.stream().filter(p -> "test-prompts.none".equals(p.name())).findFirst().orElseGet(Assertions::fail);
-        assertThat(prompt.name()).isEqualTo("test-prompts.none");
-        assertThat(prompt.description()).isEqualTo("Test Prompts - None");
-        assertThat(prompt.arguments()).isEmpty();
-    }
+  @Test
+  void shouldExtractZeroParameters() {
+    var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
+    var prompt =
+        prompts.stream()
+            .filter(p -> "test-prompts.none".equals(p.name()))
+            .findFirst()
+            .orElseGet(Assertions::fail);
+    assertThat(prompt.name()).isEqualTo("test-prompts.none");
+    assertThat(prompt.description()).isEqualTo("Test Prompts - None");
+    assertThat(prompt.arguments()).isEmpty();
+  }
 
-    @Test
-    void shouldCallWithZeroParameters() {
-        var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
+  @Test
+  void shouldCallWithZeroParameters() {
+    var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
 
-        var prompt = prompts.stream().filter(p -> "test-prompts.none".equals(p.name())).findFirst().orElseGet(Assertions::fail);
-        var result = prompt.getPrompt(new HashMap<>());
-        assertThat(result.description()).isEqualTo("A test prompt");
-        assertThat(result.messages()).hasSize(1);
-        var message = result.messages().getFirst();
-        assertThat(message.role()).isEqualTo(Role.USER);
-        assertThat(message.content()).isInstanceOf(TextContent.class);
-    }
+    var prompt =
+        prompts.stream()
+            .filter(p -> "test-prompts.none".equals(p.name()))
+            .findFirst()
+            .orElseGet(Assertions::fail);
+    var result = prompt.getPrompt(new HashMap<>());
+    assertThat(result.description()).isEqualTo("A test prompt");
+    assertThat(result.messages()).hasSize(1);
+    var message = result.messages().getFirst();
+    assertThat(message.role()).isEqualTo(Role.USER);
+    assertThat(message.content()).isInstanceOf(TextContent.class);
+  }
 
-    @Test
-    void shouldExtractSingleParameters() {
-        var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
-        var prompt = prompts.stream().filter(p -> "test-prompts.single".equals(p.name())).findFirst().orElseGet(Assertions::fail);
-        assertThat(prompt.name()).isEqualTo("test-prompts.single");
-        assertThat(prompt.description()).isEqualTo("Test Prompts - Single");
-        assertThat(prompt.arguments()).hasSize(1);
+  @Test
+  void shouldExtractSingleParameters() {
+    var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
+    var prompt =
+        prompts.stream()
+            .filter(p -> "test-prompts.single".equals(p.name()))
+            .findFirst()
+            .orElseGet(Assertions::fail);
+    assertThat(prompt.name()).isEqualTo("test-prompts.single");
+    assertThat(prompt.description()).isEqualTo("Test Prompts - Single");
+    assertThat(prompt.arguments()).hasSize(1);
 
-        var arg = prompt.arguments().getFirst();
-        assertThat(arg.name()).isEqualTo("a");
-        assertThat(arg.description()).isNull();
-        assertThat(arg.required()).isTrue();
-    }
+    var arg = prompt.arguments().getFirst();
+    assertThat(arg.name()).isEqualTo("a");
+    assertThat(arg.description()).isNull();
+    assertThat(arg.required()).isTrue();
+  }
 
-    @Test
-    void shouldCallWithSingleParameter() {
-        var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
+  @Test
+  void shouldCallWithSingleParameter() {
+    var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
 
-        var prompt = prompts.stream().filter(p -> "test-prompts.single".equals(p.name())).findFirst().orElseGet(Assertions::fail);
-        var result = prompt.getPrompt(Map.of("a", "test"));
-        assertThat(result.description()).isEqualTo("A test prompt");
-        assertThat(result.messages()).hasSize(1);
-        var message = result.messages().getFirst();
-        assertThat(message.role()).isEqualTo(Role.USER);
-        assertThat(message.content()).isInstanceOf(TextContent.class);
-    }
+    var prompt =
+        prompts.stream()
+            .filter(p -> "test-prompts.single".equals(p.name()))
+            .findFirst()
+            .orElseGet(Assertions::fail);
+    var result = prompt.getPrompt(Map.of("a", "test"));
+    assertThat(result.description()).isEqualTo("A test prompt");
+    assertThat(result.messages()).hasSize(1);
+    var message = result.messages().getFirst();
+    assertThat(message.role()).isEqualTo(Role.USER);
+    assertThat(message.content()).isInstanceOf(TextContent.class);
+  }
 
-    @Test
-    void shouldExtractMultipleParameters() {
-        var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
-        var prompt = prompts.stream().filter(p -> "test-prompts.multi".equals(p.name())).findFirst().orElseGet(Assertions::fail);
-        assertThat(prompt.name()).isEqualTo("test-prompts.multi");
-        assertThat(prompt.description()).isEqualTo("Test Prompts - Multi");
-        assertThat(prompt.arguments()).hasSize(2);
+  @Test
+  void shouldExtractMultipleParameters() {
+    var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
+    var prompt =
+        prompts.stream()
+            .filter(p -> "test-prompts.multi".equals(p.name()))
+            .findFirst()
+            .orElseGet(Assertions::fail);
+    assertThat(prompt.name()).isEqualTo("test-prompts.multi");
+    assertThat(prompt.description()).isEqualTo("Test Prompts - Multi");
+    assertThat(prompt.arguments()).hasSize(2);
 
-        var argA = prompt.arguments().getFirst();
-        assertThat(argA.name()).isEqualTo("a");
-        assertThat(argA.description()).isNull();
-        assertThat(argA.required()).isFalse();
+    var argA = prompt.arguments().getFirst();
+    assertThat(argA.name()).isEqualTo("a");
+    assertThat(argA.description()).isNull();
+    assertThat(argA.required()).isFalse();
 
-        var argB = prompt.arguments().get(1);
-        assertThat(argB.name()).isEqualTo("b");
-        assertThat(argB.description()).isNull();
-        assertThat(argB.required()).isTrue();
-    }
+    var argB = prompt.arguments().get(1);
+    assertThat(argB.name()).isEqualTo("b");
+    assertThat(argB.description()).isNull();
+    assertThat(argB.required()).isTrue();
+  }
 
-    @Test
-    void shouldCallWithMultipleParameters() {
-        var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
+  @Test
+  void shouldCallWithMultipleParameters() {
+    var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
 
-        var prompt = prompts.stream().filter(p -> "test-prompts.multi".equals(p.name())).findFirst().orElseGet(Assertions::fail);
-        var result = prompt.getPrompt(Map.of("a", "test", "b", "value"));
-        assertThat(result.description()).isEqualTo("A test prompt");
-        assertThat(result.messages()).hasSize(1);
-        var message = result.messages().getFirst();
-        assertThat(message.role()).isEqualTo(Role.USER);
-        assertThat(message.content()).isInstanceOf(TextContent.class);
-    }
+    var prompt =
+        prompts.stream()
+            .filter(p -> "test-prompts.multi".equals(p.name()))
+            .findFirst()
+            .orElseGet(Assertions::fail);
+    var result = prompt.getPrompt(Map.of("a", "test", "b", "value"));
+    assertThat(result.description()).isEqualTo("A test prompt");
+    assertThat(result.messages()).hasSize(1);
+    var message = result.messages().getFirst();
+    assertThat(message.role()).isEqualTo(Role.USER);
+    assertThat(message.content()).isInstanceOf(TextContent.class);
+  }
 
-    @Test
-    void returningNonGetPromptResultShouldThrowException() {
-        var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
+  @Test
+  void returningNonGetPromptResultShouldThrowException() {
+    var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
 
-        var prompt = prompts.stream().filter(p -> "test-prompts.bad-return".equals(p.name())).findFirst().orElseGet(Assertions::fail);
-        Map<String, String> arguments = new HashMap<>();
-        assertThatThrownBy(() -> prompt.getPrompt(arguments))
-                .isInstanceOf(McpInternalErrorException.class);
-    }
+    var prompt =
+        prompts.stream()
+            .filter(p -> "test-prompts.bad-return".equals(p.name()))
+            .findFirst()
+            .orElseGet(Assertions::fail);
+    Map<String, String> arguments = new HashMap<>();
+    assertThatThrownBy(() -> prompt.getPrompt(arguments))
+        .isInstanceOf(McpInternalErrorException.class);
+  }
 
-    @Test
-    void callingWithMissingRequiredArgumentShouldThrowException() {
-        var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
+  @Test
+  void callingWithMissingRequiredArgumentShouldThrowException() {
+    var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
 
-        var prompt = prompts.stream().filter(p -> "test-prompts.multi".equals(p.name())).findFirst().orElseGet(Assertions::fail);
-        var arguments = Map.of("a", "test");
-        assertThatThrownBy(() -> prompt.getPrompt(arguments))
-                .isInstanceOf(McpInvalidParamsException.class);
-    }
+    var prompt =
+        prompts.stream()
+            .filter(p -> "test-prompts.multi".equals(p.name()))
+            .findFirst()
+            .orElseGet(Assertions::fail);
+    var arguments = Map.of("a", "test");
+    assertThatThrownBy(() -> prompt.getPrompt(arguments))
+        .isInstanceOf(McpInvalidParamsException.class);
+  }
 
-    @Test
-    void callingWithMissingNonRequiredArgumentShouldNotThrowException() {
-        var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
+  @Test
+  void callingWithMissingNonRequiredArgumentShouldNotThrowException() {
+    var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
 
-        var prompt = prompts.stream().filter(p -> "test-prompts.multi".equals(p.name())).findFirst().orElseGet(Assertions::fail);
-        var arguments = Map.of("b", "value");
-        var result = prompt.getPrompt(arguments);
-        assertThat(result.description()).isEqualTo("A test prompt");
-        assertThat(result.messages()).hasSize(1);
-        var message = result.messages().getFirst();
-        assertThat(message.role()).isEqualTo(Role.USER);
-        assertThat(message.content()).isInstanceOf(TextContent.class);
-    }
+    var prompt =
+        prompts.stream()
+            .filter(p -> "test-prompts.multi".equals(p.name()))
+            .findFirst()
+            .orElseGet(Assertions::fail);
+    var arguments = Map.of("b", "value");
+    var result = prompt.getPrompt(arguments);
+    assertThat(result.description()).isEqualTo("A test prompt");
+    assertThat(result.messages()).hasSize(1);
+    var message = result.messages().getFirst();
+    assertThat(message.role()).isEqualTo(Role.USER);
+    assertThat(message.content()).isInstanceOf(TextContent.class);
+  }
 
-    @Test
-    void invalidReturnTypeShouldThrowException() {
-        var targetObject = new BadReturnType();
-        assertThatThrownBy(() -> AnnotationMcpPrompt.createPrompts(targetObject))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
+  @Test
+  void invalidReturnTypeShouldThrowException() {
+    var targetObject = new BadReturnType();
+    assertThatThrownBy(() -> AnnotationMcpPrompt.createPrompts(targetObject))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
 
-    @Test
-    void invalidParametersShouldThrowException() {
-        var targetObject = new BadParameterType();
-        assertThatThrownBy(() -> AnnotationMcpPrompt.createPrompts(targetObject))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
+  @Test
+  void invalidParametersShouldThrowException() {
+    var targetObject = new BadParameterType();
+    assertThatThrownBy(() -> AnnotationMcpPrompt.createPrompts(targetObject))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
 
-    @Test
-    void promptCallThrowingExceptionShouldThrowJsonRpcInternalError() {
-        var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
+  @Test
+  void promptCallThrowingExceptionShouldThrowJsonRpcInternalError() {
+    var prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
 
-        var prompt = prompts.stream().filter(p -> "test-prompts.evil".equals(p.name())).findFirst().orElseGet(Assertions::fail);
-        HashMap<String, String> arguments = new HashMap<>();
-        assertThatThrownBy(() -> prompt.getPrompt(arguments))
-                .isInstanceOf(McpInternalErrorException.class);
-    }
-
+    var prompt =
+        prompts.stream()
+            .filter(p -> "test-prompts.evil".equals(p.name()))
+            .findFirst()
+            .orElseGet(Assertions::fail);
+    HashMap<String, String> arguments = new HashMap<>();
+    assertThatThrownBy(() -> prompt.getPrompt(arguments))
+        .isInstanceOf(McpInternalErrorException.class);
+  }
 }

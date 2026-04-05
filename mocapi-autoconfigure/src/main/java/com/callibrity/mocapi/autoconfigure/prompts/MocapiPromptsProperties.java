@@ -20,5 +20,4 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("mocapi.prompts")
 @Data
-public class MocapiPromptsProperties {
-}
+public class MocapiPromptsProperties {}

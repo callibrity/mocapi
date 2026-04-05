@@ -17,12 +17,11 @@ package com.callibrity.mocapi.autoconfigure.sse;
 
 /**
  * Represents a Server-Sent Event with an ID and data payload.
- * <p>
- * Event IDs enable stream resumability via the Last-Event-ID header,
- * allowing clients to reconnect and receive missed events.
+ *
+ * <p>Event IDs enable stream resumability via the Last-Event-ID header, allowing clients to
+ * reconnect and receive missed events.
  *
  * @param id the unique event ID (format: sessionId:counter)
  * @param data the event data (typically a JSON-RPC message)
  */
-public record SseEvent(String id, Object data) {
-}
+public record SseEvent(String id, Object data) {}

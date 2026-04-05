@@ -15,45 +15,51 @@
  */
 package com.callibrity.mocapi.autoconfigure.tools;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class MocapiToolsAutoConfigurationTest {
 
-    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(MocapiToolsAutoConfiguration.class, MocapiAutoConfiguration.class, JacksonAutoConfiguration.class));
+  private final ApplicationContextRunner contextRunner =
+      new ApplicationContextRunner()
+          .withConfiguration(
+              AutoConfigurations.of(
+                  MocapiToolsAutoConfiguration.class,
+                  MocapiAutoConfiguration.class,
+                  JacksonAutoConfiguration.class));
 
-    @Test
-    void mcpCapabilityInitializes() {
-        contextRunner.run(context -> assertThat(context).hasSingleBean(McpToolsCapability.class));
-    }
+  @Test
+  void mcpCapabilityInitializes() {
+    contextRunner.run(context -> assertThat(context).hasSingleBean(McpToolsCapability.class));
+  }
 
-    @Test
-    void annotationMcpToolProviderFactoryInitializes() {
-        contextRunner.run(context -> assertThat(context).hasSingleBean(AnnotationMcpToolProviderFactory.class));
-    }
+  @Test
+  void annotationMcpToolProviderFactoryInitializes() {
+    contextRunner.run(
+        context -> assertThat(context).hasSingleBean(AnnotationMcpToolProviderFactory.class));
+  }
 
-    @Test
-    void toolServiceMcpToolProviderInitializes() {
-        contextRunner.run(context -> {
-            assertThat(context).hasSingleBean(ToolServiceMcpToolProvider.class);
-            ToolServiceMcpToolProvider bean = context.getBean(ToolServiceMcpToolProvider.class);
-            var tools = bean.getMcpTools();
-            assertThat(tools).isNotNull();
-            assertThat(tools).isEmpty();
-
+  @Test
+  void toolServiceMcpToolProviderInitializes() {
+    contextRunner.run(
+        context -> {
+          assertThat(context).hasSingleBean(ToolServiceMcpToolProvider.class);
+          ToolServiceMcpToolProvider bean = context.getBean(ToolServiceMcpToolProvider.class);
+          var tools = bean.getMcpTools();
+          assertThat(tools).isNotNull();
+          assertThat(tools).isEmpty();
         });
-    }
+  }
 
-    @Test
-    void mcpToolBeanProviderInitializes() {
-        contextRunner.run(context -> assertThat(context).hasBean("mcpToolBeansProvider"));
-    }
+  @Test
+  void mcpToolBeanProviderInitializes() {
+    contextRunner.run(context -> assertThat(context).hasBean("mcpToolBeansProvider"));
+  }
 }

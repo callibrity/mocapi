@@ -15,17 +15,17 @@
  */
 package com.callibrity.mocapi.example.tools;
 
-import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.Test;
 
 class Rot13ToolTest {
 
-    @Test
-    void encodingShouldRotateChars() {
-        var tool = new Rot13Tool();
-        var response = tool.encode("(A-b]}");
-        assertThat(response).isNotNull();
-        assertThat(response.encoded()).isEqualTo("(N-o]}");
-    }
+  @Test
+  void encodingShouldRotateChars() {
+    var tool = new Rot13Tool();
+    var response = tool.encode("(A-b]}");
+    assertThat(response).isNotNull();
+    assertThat(response.encoded()).isEqualTo("(N-o]}");
+  }
 }

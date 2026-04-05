@@ -16,14 +16,12 @@
 package com.callibrity.mocapi.prompts;
 
 import com.callibrity.mocapi.prompts.content.TextContent;
-
 import java.util.List;
 
 public record GetPromptResult(String description, List<PromptMessage> messages) {
 
-    public static GetPromptResult text(String description, String text) {
-        return new GetPromptResult(description, List.of(
-                new PromptMessage(Role.USER, new TextContent(text))
-        ));
-    }
+  public static GetPromptResult text(String description, String text) {
+    return new GetPromptResult(
+        description, List.of(new PromptMessage(Role.USER, new TextContent(text))));
+  }
 }

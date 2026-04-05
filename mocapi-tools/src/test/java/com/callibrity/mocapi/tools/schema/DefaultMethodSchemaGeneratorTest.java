@@ -15,67 +15,64 @@
  */
 package com.callibrity.mocapi.tools.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.callibrity.mocapi.tools.annotation.Tool;
 import com.callibrity.mocapi.tools.util.HelloResponse;
 import com.callibrity.mocapi.tools.util.HelloTool;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import jakarta.annotation.Nullable;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.StringNode;
 
 class DefaultMethodSchemaGeneratorTest {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper mapper = new ObjectMapper();
 
-    @Test
-    void testMethodSchemaGeneration() throws Exception {
-        var generator = new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
+  @Test
+  void testMethodSchemaGeneration() throws Exception {
+    var generator = new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
 
-        var method = HelloTool.class.getMethod("sayHello", String.class);
+    var method = HelloTool.class.getMethod("sayHello", String.class);
 
-        var schema = generator.generateInputSchema(new HelloTool(), method);
-        System.out.println(schema.toPrettyString());
-        assertThat(schema).isNotNull();
-        assertThat(schema.get("properties")).isNotNull();
+    var schema = generator.generateInputSchema(new HelloTool(), method);
+    System.out.println(schema.toPrettyString());
+    assertThat(schema).isNotNull();
+    assertThat(schema.get("properties")).isNotNull();
+  }
+
+  @Test
+  void optionalParametersShouldNotBeRequired() throws Exception {
+    var generator = new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
+
+    var method = TestTools.class.getMethod("withOptionalParameter", String.class);
+
+    var schema = generator.generateInputSchema(new TestTools(), method);
+    assertThat(schema.get("required")).isNull();
+  }
+
+  @Test
+  void mixedParametersShouldBeMarkedAsRequiredCorrectly() throws Exception {
+    var generator = new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
+
+    var method = TestTools.class.getMethod("withMixedParameters", String.class, String.class);
+
+    var schema = generator.generateInputSchema(new TestTools(), method);
+    assertThat(schema.get("required")).hasSize(1);
+    assertThat(schema.get("required")).containsExactly(StringNode.valueOf("name"));
+  }
+
+  public static class TestTools {
+
+    @Tool(name = "with-optional-parameter")
+    public HelloResponse withOptionalParameter(@Nullable String name) {
+      return null;
     }
 
-    @Test
-    void optionalParametersShouldNotBeRequired() throws Exception {
-        var generator = new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
-
-        var method = TestTools.class.getMethod("withOptionalParameter", String.class);
-
-        var schema = generator.generateInputSchema(new TestTools(), method);
-        assertThat(schema.get("required")).isNull();
+    @Tool(name = "with-mixed-parameter")
+    public HelloResponse withMixedParameters(String name, @Nullable String optional) {
+      return null;
     }
-
-
-    @Test
-    void mixedParametersShouldBeMarkedAsRequiredCorrectly() throws Exception {
-        var generator = new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
-
-        var method = TestTools.class.getMethod("withMixedParameters", String.class, String.class);
-
-        var schema = generator.generateInputSchema(new TestTools(), method);
-        assertThat(schema.get("required")).hasSize(1);
-        assertThat(schema.get("required")).containsExactly(TextNode.valueOf("name"));
-    }
-
-    public static class TestTools {
-
-        @Tool(name="with-optional-parameter")
-        public HelloResponse withOptionalParameter(@Nullable String name) {
-            return null;
-        }
-
-
-        @Tool(name="with-mixed-parameter")
-        public HelloResponse withMixedParameters(String name, @Nullable String optional) {
-            return null;
-        }
-
-    }
+  }
 }

@@ -15,5 +15,4 @@
  */
 package com.callibrity.mocapi.client;
 
-public record RootsCapability(boolean listChanged) {
-}
+public record RootsCapability(boolean listChanged) {}

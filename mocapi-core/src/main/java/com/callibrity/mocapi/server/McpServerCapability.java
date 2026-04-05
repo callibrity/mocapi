@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server;
 
 public interface McpServerCapability {
-    String name();
-    Object describe();
+  String name();
+
+  Object describe();
 }

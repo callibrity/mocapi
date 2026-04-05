@@ -23,6 +23,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 public class MocapiProperties {
 
-    private ServerInfo serverInfo;
-    private String instructions;
+  private ServerInfo serverInfo;
+  private String instructions;
 }

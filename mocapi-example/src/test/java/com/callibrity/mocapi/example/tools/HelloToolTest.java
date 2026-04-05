@@ -15,17 +15,17 @@
  */
 package com.callibrity.mocapi.example.tools;
 
-import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.Test;
 
 class HelloToolTest {
 
-    @Test
-    void helloShouldReturnMessage() {
-        var tool = new HelloTool();
-        var response = tool.sayHello("Mocapi");
-        assertThat(response).isNotNull();
-        assertThat(response.message()).isEqualTo("Hello, Mocapi!");
-    }
+  @Test
+  void helloShouldReturnMessage() {
+    var tool = new HelloTool();
+    var response = tool.sayHello("Mocapi");
+    assertThat(response).isNotNull();
+    assertThat(response.message()).isEqualTo("Hello, Mocapi!");
+  }
 }

@@ -17,8 +17,8 @@ package com.callibrity.mocapi.prompts.annotation;
 
 public class BadReturnType {
 
-    @Prompt
-    public String badReturnType() {
-        return null;
-    }
+  @Prompt
+  public String badReturnType() {
+    return null;
+  }
 }

@@ -20,49 +20,52 @@ import com.callibrity.mocapi.tools.McpToolProvider;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpTool;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
-
-import java.util.List;
+import tools.jackson.databind.ObjectMapper;
 
 @RequiredArgsConstructor
 @Slf4j
 public class ToolServiceMcpToolProvider implements McpToolProvider {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    private final ApplicationContext context;
-    private final ObjectMapper mapper;
-    private final MethodSchemaGenerator generator;
-    private List<AnnotationMcpTool> tools;
+  private final ApplicationContext context;
+  private final ObjectMapper mapper;
+  private final MethodSchemaGenerator generator;
+  private List<AnnotationMcpTool> tools;
 
-// ------------------------ INTERFACE METHODS ------------------------
+  // ------------------------ INTERFACE METHODS ------------------------
 
-// --------------------- Interface McpToolProvider ---------------------
+  // --------------------- Interface McpToolProvider ---------------------
 
-    @Override
-    public List<McpTool> getMcpTools() {
-        return List.copyOf(tools);
-    }
+  @Override
+  public List<McpTool> getMcpTools() {
+    return List.copyOf(tools);
+  }
 
-// -------------------------- OTHER METHODS --------------------------
+  // -------------------------- OTHER METHODS --------------------------
 
-    @PostConstruct
-    public void initialize() {
-        var beans = context.getBeansWithAnnotation(ToolService.class);
-        tools = beans.entrySet().stream()
-                .flatMap(entry -> {
-                    var beanName = entry.getKey();
-                    var bean = entry.getValue();
-                    log.info("Registering MCP tools for @{} bean \"{}\"...", ToolService.class.getSimpleName(), beanName);
-                    var list = AnnotationMcpTool.createTools(mapper, generator, bean);
-                    list.forEach(tool -> log.info("\tRegistered MCP tool: \"{}\"", tool.name()));
-                    return list.stream();
+  @PostConstruct
+  public void initialize() {
+    var beans = context.getBeansWithAnnotation(ToolService.class);
+    tools =
+        beans.entrySet().stream()
+            .flatMap(
+                entry -> {
+                  var beanName = entry.getKey();
+                  var bean = entry.getValue();
+                  log.info(
+                      "Registering MCP tools for @{} bean \"{}\"...",
+                      ToolService.class.getSimpleName(),
+                      beanName);
+                  var list = AnnotationMcpTool.createTools(mapper, generator, bean);
+                  list.forEach(tool -> log.info("\tRegistered MCP tool: \"{}\"", tool.name()));
+                  return list.stream();
                 })
-                .toList();
-    }
-
+            .toList();
+  }
 }

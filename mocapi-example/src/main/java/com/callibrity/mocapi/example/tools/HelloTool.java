@@ -23,12 +23,10 @@ import org.springframework.stereotype.Component;
 @ToolService
 public class HelloTool {
 
-    @Tool(name = "hello", description = "Returns a greeting message")
-    public HelloResponse sayHello(String name) {
-        return new HelloResponse(String.format("Hello, %s!", name));
-    }
+  @Tool(name = "hello", description = "Returns a greeting message")
+  public HelloResponse sayHello(String name) {
+    return new HelloResponse(String.format("Hello, %s!", name));
+  }
 
-    public record HelloResponse(String message) {
-    }
-
+  public record HelloResponse(String message) {}
 }

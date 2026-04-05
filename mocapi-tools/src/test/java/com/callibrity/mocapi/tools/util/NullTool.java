@@ -19,8 +19,8 @@ import com.callibrity.mocapi.tools.annotation.Tool;
 
 public class NullTool {
 
-    @Tool(name="nay-hello")
-    public HelloResponse sayHello(String name) {
-        return null;
-    }
+  @Tool(name = "nay-hello")
+  public HelloResponse sayHello(String name) {
+    return null;
+  }
 }

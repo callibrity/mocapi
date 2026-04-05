@@ -16,13 +16,12 @@
 package com.callibrity.mocapi.prompts.annotation;
 
 import com.callibrity.mocapi.prompts.GetPromptResult;
-
 import java.time.LocalDate;
 
 public class BadParameterType {
 
-    @Prompt
-    public GetPromptResult badParameterType(String a, Integer b, LocalDate c) {
-        return null;
-    }
+  @Prompt
+  public GetPromptResult badParameterType(String a, Integer b, LocalDate c) {
+    return null;
+  }
 }

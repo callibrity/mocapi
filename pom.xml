@@ -63,29 +63,31 @@
     </modules>
 
     <properties>
-        <java.version>24</java.version>
+        <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <required.maven.version>3.6</required.maven.version>
 
         <!-- Dependency Versions -->
         <everit-json-schema.version>1.14.6</everit-json-schema.version>
-        <victools.version>4.38.0</victools.version>
-        <spring-boot.version>3.5.3</spring-boot.version>
-        <swagger-annotations.version>2.2.20</swagger-annotations.version>
+        <victools.version>5.0.0</victools.version>
+        <spring-boot.version>4.0.5</spring-boot.version>
+        <swagger-annotations.version>2.2.46</swagger-annotations.version>
 
         <!-- Plugin Versions -->
-        <central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
-        <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
+        <central-publishing-maven-plugin.version>0.10.0</central-publishing-maven-plugin.version>
+        <google-java-format.version>1.35.0</google-java-format.version>
+        <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
         <license-maven-plugin.version>5.0.0</license-maven-plugin.version>
-        <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
-        <maven-dependency-plugin.version>3.8.1</maven-dependency-plugin.version>
-        <maven-enforcer-plugin.version>3.6.0</maven-enforcer-plugin.version>
-        <maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
+        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+        <maven-dependency-plugin.version>3.10.0</maven-dependency-plugin.version>
+        <maven-enforcer-plugin.version>3.6.2</maven-enforcer-plugin.version>
+        <maven-failsafe-plugin.version>3.5.5</maven-failsafe-plugin.version>
         <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
-        <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
-        <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
-        <maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
-        <sonar-maven-plugin.version>5.1.0.4751</sonar-maven-plugin.version>
+        <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+        <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
+        <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
+        <sonar-maven-plugin.version>5.5.0.6356</sonar-maven-plugin.version>
+        <spotless-maven-plugin.version>3.4.0</spotless-maven-plugin.version>
 
         <!-- SonarQube Configuration -->
         <sonar.organization>callibrity</sonar.organization>
@@ -186,6 +188,14 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
             </plugin>
         </plugins>
 
@@ -308,6 +318,62 @@
                     <groupId>com.mycila</groupId>
                     <artifactId>license-maven-plugin</artifactId>
                     <version>${license-maven-plugin.version}</version>
+                    <configuration>
+                        <properties>
+                            <owner>${license.owner}</owner>
+                            <email>${license.email}</email>
+                        </properties>
+                        <licenseSets>
+                            <licenseSet>
+                                <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
+                                <excludes>
+                                    <exclude>**/README</exclude>
+                                    <exclude>src/test/resources/**</exclude>
+                                    <exclude>src/main/resources/**</exclude>
+                                    <exclude>.claude/**</exclude>
+                                    <exclude>**/*.txt</exclude>
+                                    <exclude>**/*.sh</exclude>
+                                    <exclude>**/*.md</exclude>
+                                    <exclude>**/*.md.example</exclude>
+                                    <exclude>specs/**</exclude>
+                                </excludes>
+                            </licenseSet>
+                        </licenseSets>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>license-check</id>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>com.diffplug.spotless</groupId>
+                    <artifactId>spotless-maven-plugin</artifactId>
+                    <version>${spotless-maven-plugin.version}</version>
+                    <configuration>
+                        <java>
+                            <includes>
+                                <include>src/main/java/**/*.java</include>
+                                <include>src/test/java/**/*.java</include>
+                            </includes>
+                            <googleJavaFormat>
+                                <version>${google-java-format.version}</version>
+                            </googleJavaFormat>
+                        </java>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>spotless-check</id>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -374,37 +440,6 @@
                             </gpgArguments>
                         </configuration>
                     </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>license</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>com.mycila</groupId>
-                        <artifactId>license-maven-plugin</artifactId>
-                        <configuration>
-                            <properties>
-                                <owner>${license.owner}</owner>
-                                <email>${license.email}</email>
-                            </properties>
-                            <licenseSets>
-                                <licenseSet>
-                                    <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
-                                    <excludes>
-                                        <exclude>**/README</exclude>
-                                        <exclude>src/test/resources/**</exclude>
-                                        <exclude>src/main/resources/**</exclude>
-                                    </excludes>
-                                </licenseSet>
-                            </licenseSets>
-                        </configuration>
-                    </plugin>
-
                 </plugins>
             </build>
         </profile>

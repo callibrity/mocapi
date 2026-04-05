@@ -15,53 +15,52 @@
  */
 package com.callibrity.mocapi.prompts;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.callibrity.mocapi.prompts.annotation.AnnotationMcpPrompt;
 import com.callibrity.mocapi.prompts.annotation.TestPrompts;
 import com.callibrity.mocapi.prompts.content.TextContent;
+import java.util.HashMap;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-
 class McpPromptsCapabilityTest {
 
-    private McpPromptsCapability capability;
+  private McpPromptsCapability capability;
 
-    @BeforeEach
-    void setUp() {
-        List<AnnotationMcpPrompt> prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
-        final McpPromptProvider provider = () -> List.copyOf(prompts);
-        this.capability = new McpPromptsCapability(List.of(provider));
-    }
+  @BeforeEach
+  void setUp() {
+    List<AnnotationMcpPrompt> prompts = AnnotationMcpPrompt.createPrompts(new TestPrompts());
+    final McpPromptProvider provider = () -> List.copyOf(prompts);
+    this.capability = new McpPromptsCapability(List.of(provider));
+  }
 
-    @Test
-    void listPromptsShouldReturnAllPrompts() {
-        var response = capability.listPrompts("foo");
-        assertThat(response.nextCursor()).isNull();
-        assertThat(response.prompts()).hasSize(5);
-    }
+  @Test
+  void listPromptsShouldReturnAllPrompts() {
+    var response = capability.listPrompts("foo");
+    assertThat(response.nextCursor()).isNull();
+    assertThat(response.prompts()).hasSize(5);
+  }
 
-    @Test
-    void nameShouldBePrompts() {
-        assertThat(capability.name()).isEqualTo("prompts");
-    }
+  @Test
+  void nameShouldBePrompts() {
+    assertThat(capability.name()).isEqualTo("prompts");
+  }
 
-    @Test
-    void shouldDescribeCapabilityCorrectly() {
-        assertThat(capability.describe()).isEqualTo(new McpPromptsCapability.PromptsCapabilityDescriptor(false));
-    }
+  @Test
+  void shouldDescribeCapabilityCorrectly() {
+    assertThat(capability.describe())
+        .isEqualTo(new McpPromptsCapability.PromptsCapabilityDescriptor(false));
+  }
 
-    @Test
-    void shouldReturnResultsFromPrompt() {
-        var result = capability.getPrompt("test-prompts.none", new HashMap<>());
-        assertThat(result.description()).isEqualTo("A test prompt");
-        assertThat(result.messages()).hasSize(1);
-        var message = result.messages().getFirst();
-        assertThat(message.role()).isEqualTo(Role.USER);
-        assertThat(message.content()).isInstanceOf(TextContent.class);
-    }
+  @Test
+  void shouldReturnResultsFromPrompt() {
+    var result = capability.getPrompt("test-prompts.none", new HashMap<>());
+    assertThat(result.description()).isEqualTo("A test prompt");
+    assertThat(result.messages()).hasSize(1);
+    var message = result.messages().getFirst();
+    assertThat(message.role()).isEqualTo(Role.USER);
+    assertThat(message.content()).isInstanceOf(TextContent.class);
+  }
 }

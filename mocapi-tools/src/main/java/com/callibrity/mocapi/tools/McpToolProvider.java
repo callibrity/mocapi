@@ -19,5 +19,5 @@ import java.util.List;
 
 @FunctionalInterface
 public interface McpToolProvider {
-    List<McpTool> getMcpTools();
+  List<McpTool> getMcpTools();
 }

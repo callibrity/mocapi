@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-05T01:36:00-04:00
-ITERATION: 2
-SPEC_COMPLETED: 002-remove-ripcurl.md
-WHAT_WAS_DONE: Removed all ripcurl dependencies from all modules, replaced ripcurl exception/invoker imports with MCP-native equivalents from spec 001, removed @JsonRpcService/@JsonRpc annotations and LazyInitializer usage from capability classes, renamed ripcurl.endpoint to mocapi.endpoint, added spring-boot-starter-web to mocapi-autoconfigure and commons-lang3 to mocapi-core (previously transitive via ripcurl-core).
-VERIFICATION: mvn test — 27+14+13+4 tests, 0 failures, BUILD SUCCESS; mvn verify -pl mocapi-example -am — BUILD SUCCESS; grep -r ripcurl — no matches; grep LazyInitializer — no matches; grep @JsonRpcService/@JsonRpc — no matches
+LAST_RUN: 2026-04-05T01:47:00-04:00
+ITERATION: 3
+SPEC_COMPLETED: 003-java25-springboot4-spotless.md
+WHAT_WAS_DONE: Upgraded project to Java 25, Spring Boot 4.0.5, Jackson 3 (tools.jackson), VicTools 5.0.0, Swagger 2.2.46, added Spotless with Google Java Format 1.35.0 bound to validate phase, moved license:check to validate phase (out of profile), renamed spring-boot-starter-web to spring-boot-starter-webmvc, replaced Jackson2ObjectMapperBuilderCustomizer with JsonMapperBuilderCustomizer, renamed TextNode to StringNode (Jackson 3), fixed JacksonAutoConfiguration import (moved to org.springframework.boot.jackson.autoconfigure), fixed AutoConfigureMockMvc import (moved to org.springframework.boot.webmvc.test.autoconfigure), added spring-boot-starter-webmvc-test dependency, added slf4j-api to mocapi-core (was transitive before), upgraded all plugin versions to latest stable.
+VERIFICATION: mvn clean verify — 27+14+24+4+3 tests across all modules, 0 failures, BUILD SUCCESS; mvn spotless:check — BUILD SUCCESS; grep for com.fasterxml.jackson.databind imports — no matches; grep for Jackson2ObjectMapperBuilderCustomizer — no matches; grep for spring-boot-starter-web (old name) — no matches
 STATUS: MORE_WORK
-NEXT_SPEC: 003-java25-springboot4-spotless.md
-NOTES: Added commons-lang3 as direct dependency to mocapi-core (was previously transitive via ripcurl-core, needed by Names and Parameters utility classes). Added spring-boot-starter-web to mocapi-autoconfigure as specified (replaces transitive dependency from ripcurl-autoconfigure).
+NEXT_SPEC: 004-critical-major-code-review-fixes.md
+NOTES: Added slf4j-api as explicit dependency to mocapi-core (previously available transitively, Spring Boot 4.0 changed transitive deps). Added spring-boot-starter-webmvc-test to mocapi-example for AutoConfigureMockMvc. License plugin moved from 'license' profile to default build with validate phase binding; added exclusions for .claude/**, *.txt, *.sh, *.md, specs/** to prevent license check failures on non-source files. The failsafe plugin in mocapi-example has no execution bindings so integration tests (ITs) are not currently running during mvn verify — this is a pre-existing issue not addressed by this spec. VicTools 5.0.0 has Jackson 3 support. Everit json-schema 1.14.6 is already at latest. jackson-annotations stays at com.fasterxml.jackson.core group ID (Jackson 3 reuses 2.x annotations).

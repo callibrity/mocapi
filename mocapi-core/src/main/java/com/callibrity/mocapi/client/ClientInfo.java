@@ -15,5 +15,4 @@
  */
 package com.callibrity.mocapi.client;
 
-public record ClientInfo(String name, String title, String version) {
-}
+public record ClientInfo(String name, String title, String version) {}

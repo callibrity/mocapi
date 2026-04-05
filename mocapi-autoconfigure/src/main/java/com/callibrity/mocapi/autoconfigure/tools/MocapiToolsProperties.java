@@ -22,5 +22,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("mocapi.tools")
 @Data
 public class MocapiToolsProperties {
-    private SchemaVersion schemaVersion;
+  private SchemaVersion schemaVersion;
 }

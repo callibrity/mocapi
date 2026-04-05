@@ -15,5 +15,4 @@
  */
 package com.callibrity.mocapi.client;
 
-public record ElicitationCapability() {
-}
+public record ElicitationCapability() {}

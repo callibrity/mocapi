@@ -15,5 +15,4 @@
  */
 package com.callibrity.mocapi.server;
 
-public record ServerInfo(String name, String title, String version) {
-}
+public record ServerInfo(String name, String title, String version) {}

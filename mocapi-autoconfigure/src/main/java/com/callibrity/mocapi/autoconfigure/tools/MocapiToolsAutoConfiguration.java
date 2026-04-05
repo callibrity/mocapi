@@ -23,8 +23,7 @@ import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.tools.annotation.DefaultAnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -33,8 +32,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
-
-import java.util.List;
+import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration
 @AutoConfigureBefore(MocapiAutoConfiguration.class)
@@ -44,32 +42,34 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MocapiToolsAutoConfiguration {
 
-// -------------------------- OTHER METHODS --------------------------
+  // -------------------------- OTHER METHODS --------------------------
 
-    private final MocapiToolsProperties props;
+  private final MocapiToolsProperties props;
 
-    @Bean
-    public McpToolsCapability mcpToolsCapability(List<McpToolProvider> toolProviders) {
-        return new McpToolsCapability(toolProviders);
-    }
+  @Bean
+  public McpToolsCapability mcpToolsCapability(List<McpToolProvider> toolProviders) {
+    return new McpToolsCapability(toolProviders);
+  }
 
-    @Bean
-    public McpToolProvider mcpToolBeansProvider(List<McpTool> beans) {
-        return () -> List.copyOf(beans);
-    }
+  @Bean
+  public McpToolProvider mcpToolBeansProvider(List<McpTool> beans) {
+    return () -> List.copyOf(beans);
+  }
 
-    @Bean
-    MethodSchemaGenerator methodSchemaGenerator(ObjectMapper mapper) {
-        return new DefaultMethodSchemaGenerator(mapper, props.getSchemaVersion());
-    }
+  @Bean
+  MethodSchemaGenerator methodSchemaGenerator(ObjectMapper mapper) {
+    return new DefaultMethodSchemaGenerator(mapper, props.getSchemaVersion());
+  }
 
-    @Bean
-    public AnnotationMcpToolProviderFactory annotationMcpToolProviderFactory(ObjectMapper mapper, MethodSchemaGenerator generator) {
-        return new DefaultAnnotationMcpToolProviderFactory(mapper, generator);
-    }
+  @Bean
+  public AnnotationMcpToolProviderFactory annotationMcpToolProviderFactory(
+      ObjectMapper mapper, MethodSchemaGenerator generator) {
+    return new DefaultAnnotationMcpToolProviderFactory(mapper, generator);
+  }
 
-    @Bean
-    public ToolServiceMcpToolProvider toolServiceMcpToolProvider(ApplicationContext context, ObjectMapper mapper, MethodSchemaGenerator generator) {
-        return new ToolServiceMcpToolProvider(context, mapper, generator);
-    }
+  @Bean
+  public ToolServiceMcpToolProvider toolServiceMcpToolProvider(
+      ApplicationContext context, ObjectMapper mapper, MethodSchemaGenerator generator) {
+    return new ToolServiceMcpToolProvider(context, mapper, generator);
+  }
 }

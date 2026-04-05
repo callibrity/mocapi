@@ -26,5 +26,4 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Documented
 @Inherited
-public @interface ToolService {
-}
+public @interface ToolService {}

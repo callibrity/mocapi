@@ -17,18 +17,17 @@ package com.callibrity.mocapi.prompts.content;
 
 public class AudioContent extends BinaryContent {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    public static final String AUDIO_TYPE = "audio";
+  public static final String AUDIO_TYPE = "audio";
 
-// --------------------------- CONSTRUCTORS ---------------------------
+  // --------------------------- CONSTRUCTORS ---------------------------
 
-    public AudioContent(byte[] data, String mimeType) {
-        super(AUDIO_TYPE, data, mimeType);
-    }
+  public AudioContent(byte[] data, String mimeType) {
+    super(AUDIO_TYPE, data, mimeType);
+  }
 
-    public AudioContent(byte[] data, String mimeType, Annotations annotations) {
-        super(AUDIO_TYPE, data, mimeType, annotations);
-    }
-
+  public AudioContent(byte[] data, String mimeType, Annotations annotations) {
+    super(AUDIO_TYPE, data, mimeType, annotations);
+  }
 }

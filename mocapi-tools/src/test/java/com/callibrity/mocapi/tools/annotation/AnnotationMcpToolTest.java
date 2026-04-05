@@ -15,72 +15,73 @@
  */
 package com.callibrity.mocapi.tools.annotation;
 
-import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
-import com.callibrity.mocapi.tools.util.HelloTool;
-import com.callibrity.mocapi.tools.util.NullTool;
-import com.callibrity.mocapi.server.exception.McpInternalErrorException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
-import com.github.victools.jsonschema.generator.SchemaVersion;
-import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.server.exception.McpInternalErrorException;
+import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
+import com.callibrity.mocapi.tools.util.HelloTool;
+import com.callibrity.mocapi.tools.util.NullTool;
+import com.github.victools.jsonschema.generator.SchemaVersion;
+import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.JsonNodeType;
+
 class AnnotationMcpToolTest {
 
-    private final ObjectMapper mapper = new ObjectMapper();
-    private final AnnotationMcpToolProviderFactory factory = new DefaultAnnotationMcpToolProviderFactory(mapper, new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7));
+  private final ObjectMapper mapper = new ObjectMapper();
+  private final AnnotationMcpToolProviderFactory factory =
+      new DefaultAnnotationMcpToolProviderFactory(
+          mapper, new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7));
 
-    @Test
-    void nonCustomizedAnnotationShouldReturnCorrectMetadata() {
-        var tools  = factory.create(new HelloTool());
-        assertThat(tools.getMcpTools()).hasSize(1);
+  @Test
+  void nonCustomizedAnnotationShouldReturnCorrectMetadata() {
+    var tools = factory.create(new HelloTool());
+    assertThat(tools.getMcpTools()).hasSize(1);
 
-        var tool = tools.getMcpTools().getFirst();
-        assertThat(tool).isNotNull();
-        assertThat(tool.name()).isEqualTo("hello-tool.say-hello");
-        assertThat(tool.title()).isEqualTo("Hello Tool - Say Hello");
-        assertThat(tool.description()).isEqualTo("Hello Tool - Say Hello");
-        assertThat(tool.inputSchema().get("type").asText()).isEqualTo("object");
-        assertThat(tool.outputSchema().get("type").asText()).isEqualTo("object");
-    }
+    var tool = tools.getMcpTools().getFirst();
+    assertThat(tool).isNotNull();
+    assertThat(tool.name()).isEqualTo("hello-tool.say-hello");
+    assertThat(tool.title()).isEqualTo("Hello Tool - Say Hello");
+    assertThat(tool.description()).isEqualTo("Hello Tool - Say Hello");
+    assertThat(tool.inputSchema().get("type").asText()).isEqualTo("object");
+    assertThat(tool.outputSchema().get("type").asText()).isEqualTo("object");
+  }
 
-    @Test
-    void customizedAnnotationShouldReturnCorrectMetadata() {
-        var tools = factory.create(new CustomizedTool());
-        assertThat(tools.getMcpTools()).hasSize(1);
+  @Test
+  void customizedAnnotationShouldReturnCorrectMetadata() {
+    var tools = factory.create(new CustomizedTool());
+    assertThat(tools.getMcpTools()).hasSize(1);
 
-        var tool = tools.getMcpTools().getFirst();
-        assertThat(tool).isNotNull();
-        assertThat(tool.name()).isEqualTo("custom name");
-        assertThat(tool.title()).isEqualTo("Custom Title");
-        assertThat(tool.description()).isEqualTo("Custom description of a tool");
-    }
+    var tool = tools.getMcpTools().getFirst();
+    assertThat(tool).isNotNull();
+    assertThat(tool.name()).isEqualTo("custom name");
+    assertThat(tool.title()).isEqualTo("Custom Title");
+    assertThat(tool.description()).isEqualTo("Custom description of a tool");
+  }
 
-    @Test
-    void shouldCallToolCorrectly() {
-        var tool  = factory.create(new HelloTool()).getMcpTools().getFirst();
-        var result = tool.call(mapper.createObjectNode().put("name", "Mocapi"));
+  @Test
+  void shouldCallToolCorrectly() {
+    var tool = factory.create(new HelloTool()).getMcpTools().getFirst();
+    var result = tool.call(mapper.createObjectNode().put("name", "Mocapi"));
 
-        assertThat(result).isNotNull();
-        assertThat(result.get("message").getNodeType()).isEqualTo(JsonNodeType.STRING);
-        assertThat(result.get("message").textValue()).isEqualTo("Hello, Mocapi!");
+    assertThat(result).isNotNull();
+    assertThat(result.get("message").getNodeType()).isEqualTo(JsonNodeType.STRING);
+    assertThat(result.get("message").textValue()).isEqualTo("Hello, Mocapi!");
+  }
 
-    }
+  @Test
+  void nullReturnShouldThrowException() {
+    var tool = factory.create(new NullTool()).getMcpTools().getFirst();
+    var parameters = mapper.createObjectNode().put("name", "Mocapi");
+    assertThatThrownBy(() -> tool.call(parameters))
+        .isExactlyInstanceOf(McpInternalErrorException.class);
+  }
 
-    @Test
-    void nullReturnShouldThrowException() {
-        var tool  = factory.create(new NullTool()).getMcpTools().getFirst();
-        var parameters = mapper.createObjectNode().put("name", "Mocapi");
-        assertThatThrownBy(() -> tool.call(parameters))
-                .isExactlyInstanceOf(McpInternalErrorException.class);
-    }
-
-    @Test
-    void invalidReturnTypeShouldThrowException() {
-        var invalidTool = new InvalidReturnTool();
-        assertThatThrownBy(() -> factory.create(invalidTool))
-                .isExactlyInstanceOf(IllegalArgumentException.class);
-    }
+  @Test
+  void invalidReturnTypeShouldThrowException() {
+    var invalidTool = new InvalidReturnTool();
+    assertThatThrownBy(() -> factory.create(invalidTool))
+        .isExactlyInstanceOf(IllegalArgumentException.class);
+  }
 }

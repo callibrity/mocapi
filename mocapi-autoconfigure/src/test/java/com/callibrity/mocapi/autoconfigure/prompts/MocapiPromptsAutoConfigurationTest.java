@@ -15,38 +15,45 @@
  */
 package com.callibrity.mocapi.autoconfigure.prompts;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration;
 import com.callibrity.mocapi.prompts.McpPromptsCapability;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class MocapiPromptsAutoConfigurationTest {
 
-    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(MocapiPromptsAutoConfiguration.class, MocapiAutoConfiguration.class, JacksonAutoConfiguration.class));
+  private final ApplicationContextRunner contextRunner =
+      new ApplicationContextRunner()
+          .withConfiguration(
+              AutoConfigurations.of(
+                  MocapiPromptsAutoConfiguration.class,
+                  MocapiAutoConfiguration.class,
+                  JacksonAutoConfiguration.class));
 
-    @Test
-    void mcpCapabilityInitializes() {
-        contextRunner.run(context -> assertThat(context).hasSingleBean(McpPromptsCapability.class));
-    }
+  @Test
+  void mcpCapabilityInitializes() {
+    contextRunner.run(context -> assertThat(context).hasSingleBean(McpPromptsCapability.class));
+  }
 
-    @Test
-    void promptServiceMcpPromptProviderInitializes() {
-        contextRunner.run(context -> {
-            assertThat(context).hasSingleBean(PromptServiceMcpPromptProvider.class);
-            PromptServiceMcpPromptProvider bean = context.getBean(PromptServiceMcpPromptProvider.class);
-            var tools = bean.getMcpPrompts();
-            assertThat(tools).isNotNull();
-            assertThat(tools).isEmpty();
+  @Test
+  void promptServiceMcpPromptProviderInitializes() {
+    contextRunner.run(
+        context -> {
+          assertThat(context).hasSingleBean(PromptServiceMcpPromptProvider.class);
+          PromptServiceMcpPromptProvider bean =
+              context.getBean(PromptServiceMcpPromptProvider.class);
+          var tools = bean.getMcpPrompts();
+          assertThat(tools).isNotNull();
+          assertThat(tools).isEmpty();
         });
-    }
+  }
 
-    @Test
-    void mcpPromptBeanProviderInitializes() {
-        contextRunner.run(context -> assertThat(context).hasBean("mcpPromptBeanProvider"));
-    }
+  @Test
+  void mcpPromptBeanProviderInitializes() {
+    contextRunner.run(context -> assertThat(context).hasBean("mcpPromptBeanProvider"));
+  }
 }

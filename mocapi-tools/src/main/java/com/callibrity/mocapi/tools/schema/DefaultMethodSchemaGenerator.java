@@ -16,9 +16,6 @@
 package com.callibrity.mocapi.tools.schema;
 
 import com.callibrity.mocapi.server.util.Parameters;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.github.victools.jsonschema.generator.OptionPreset;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
@@ -26,83 +23,91 @@ import com.github.victools.jsonschema.generator.SchemaVersion;
 import com.github.victools.jsonschema.module.jackson.JacksonModule;
 import com.github.victools.jsonschema.module.jakarta.validation.JakartaValidationModule;
 import com.github.victools.jsonschema.module.swagger2.Swagger2Module;
-import org.apache.commons.lang3.reflect.TypeUtils;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Arrays;
-
+import org.apache.commons.lang3.reflect.TypeUtils;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.StringNode;
 
 public class DefaultMethodSchemaGenerator implements MethodSchemaGenerator {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    public static final String SCHEMA_PROPERTY_NAME = "$schema";
-    private final SchemaGenerator generator;
+  public static final String SCHEMA_PROPERTY_NAME = "$schema";
+  private final SchemaGenerator generator;
 
-// --------------------------- CONSTRUCTORS ---------------------------
+  // --------------------------- CONSTRUCTORS ---------------------------
 
-    public DefaultMethodSchemaGenerator(ObjectMapper mapper, SchemaVersion schemaVersion) {
-        this.generator = new SchemaGenerator(new SchemaGeneratorConfigBuilder(schemaVersion, OptionPreset.PLAIN_JSON)
+  public DefaultMethodSchemaGenerator(ObjectMapper mapper, SchemaVersion schemaVersion) {
+    this.generator =
+        new SchemaGenerator(
+            new SchemaGeneratorConfigBuilder(schemaVersion, OptionPreset.PLAIN_JSON)
                 .withObjectMapper(mapper)
                 .with(new JacksonModule())
                 .with(new JakartaValidationModule())
                 .with(new Swagger2Module())
                 .build());
+  }
+
+  // ------------------------ INTERFACE METHODS ------------------------
+
+  // --------------------- Interface MethodSchemaGenerator ---------------------
+
+  @Override
+  public ObjectNode generateInputSchema(Object targetObject, Method method) {
+    var mapper = generator.getConfig().getObjectMapper();
+
+    var schemaNode = mapper.createObjectNode();
+    schemaNode.set(
+        SCHEMA_PROPERTY_NAME,
+        StringNode.valueOf(generator.getConfig().getSchemaVersion().getIdentifier()));
+
+    var propsNode = mapper.createObjectNode();
+    var requiredNode = mapper.createArrayNode();
+
+    var parameters = method.getParameters();
+    var assigningType = targetObject.getClass();
+    var parameterTypes =
+        Arrays.stream(method.getGenericParameterTypes())
+            .map(t -> getRawType(t, assigningType))
+            .toArray(Class[]::new);
+
+    for (int i = 0; i < parameters.length; i++) {
+      var param = parameters[i];
+      var paramSchemaNode = generator.generateSchema(parameterTypes[i]);
+      paramSchemaNode.remove(SCHEMA_PROPERTY_NAME);
+      putIfNotNull(paramSchemaNode, "title", Parameters.titleOf(param));
+      putIfNotNull(paramSchemaNode, "description", Parameters.descriptionOf(param));
+      propsNode.set(param.getName(), paramSchemaNode);
+      if (Parameters.isRequired(param)) {
+        requiredNode.add(param.getName());
+      }
     }
-
-// ------------------------ INTERFACE METHODS ------------------------
-
-// --------------------- Interface MethodSchemaGenerator ---------------------
-
-    @Override
-    public ObjectNode generateInputSchema(Object targetObject, Method method) {
-        var mapper = generator.getConfig().getObjectMapper();
-
-        var schemaNode = mapper.createObjectNode();
-        schemaNode.set(SCHEMA_PROPERTY_NAME, TextNode.valueOf(generator.getConfig().getSchemaVersion().getIdentifier()));
-
-        var propsNode = mapper.createObjectNode();
-        var requiredNode = mapper.createArrayNode();
-
-        var parameters = method.getParameters();
-        var assigningType = targetObject.getClass();
-        var parameterTypes = Arrays.stream(method.getGenericParameterTypes()).map(t -> getRawType(t, assigningType)).toArray(Class[]::new);
-
-        for (int i = 0; i < parameters.length; i++) {
-            var param = parameters[i];
-            var paramSchemaNode = generator.generateSchema(parameterTypes[i]);
-            paramSchemaNode.remove(SCHEMA_PROPERTY_NAME);
-            putIfNotNull(paramSchemaNode, "title", Parameters.titleOf(param));
-            putIfNotNull(paramSchemaNode, "description", Parameters.descriptionOf(param));
-            propsNode.set(param.getName(), paramSchemaNode);
-            if (Parameters.isRequired(param)) {
-                requiredNode.add(param.getName());
-            }
-        }
-        schemaNode.put("type", "object");
-        schemaNode.set("properties", propsNode);
-        if (!requiredNode.isEmpty()) {
-            schemaNode.set("required", requiredNode);
-        }
-        return schemaNode;
+    schemaNode.put("type", "object");
+    schemaNode.set("properties", propsNode);
+    if (!requiredNode.isEmpty()) {
+      schemaNode.set("required", requiredNode);
     }
+    return schemaNode;
+  }
 
-    private void putIfNotNull(ObjectNode node, String key, String value) {
-        if (value != null) {
-            node.put(key, value);
-        }
+  private void putIfNotNull(ObjectNode node, String key, String value) {
+    if (value != null) {
+      node.put(key, value);
     }
+  }
 
-    @Override
-    public ObjectNode generateOutputSchema(Object targetObject, Method method) {
-        return generator.generateSchema(getRawType(method.getGenericReturnType(), targetObject.getClass()));
-    }
+  @Override
+  public ObjectNode generateOutputSchema(Object targetObject, Method method) {
+    return generator.generateSchema(
+        getRawType(method.getGenericReturnType(), targetObject.getClass()));
+  }
 
-// -------------------------- OTHER METHODS --------------------------
+  // -------------------------- OTHER METHODS --------------------------
 
-    private Class<?> getRawType(Type genericType, Class<?> assigningType) {
-        return TypeUtils.getRawType(genericType, assigningType);
-    }
-
+  private Class<?> getRawType(Type genericType, Class<?> assigningType) {
+    return TypeUtils.getRawType(genericType, assigningType);
+  }
 }

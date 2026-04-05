@@ -15,95 +15,103 @@
  */
 package com.callibrity.mocapi.tools;
 
+import static java.util.Optional.ofNullable;
+
 import com.callibrity.mocapi.server.McpServerCapability;
 import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.everit.json.schema.Schema;
-import org.everit.json.schema.ValidationException;
-import org.everit.json.schema.loader.SchemaLoader;
-import org.json.JSONObject;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
-import static java.util.Optional.ofNullable;
+import org.everit.json.schema.Schema;
+import org.everit.json.schema.ValidationException;
+import org.everit.json.schema.loader.SchemaLoader;
+import org.json.JSONObject;
+import tools.jackson.databind.node.ObjectNode;
 
 public class McpToolsCapability implements McpServerCapability {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    private final Map<String, McpTool> tools;
-    private final ConcurrentHashMap<String, Schema> inputSchemas = new ConcurrentHashMap<>();
+  private final Map<String, McpTool> tools;
+  private final ConcurrentHashMap<String, Schema> inputSchemas = new ConcurrentHashMap<>();
 
-// --------------------------- CONSTRUCTORS ---------------------------
+  // --------------------------- CONSTRUCTORS ---------------------------
 
-    public McpToolsCapability(List<McpToolProvider> toolProviders) {
-        this.tools = toolProviders.stream()
-                .flatMap(provider -> provider.getMcpTools().stream())
-                .collect(Collectors.toMap(McpTool::name, t -> t));
+  public McpToolsCapability(List<McpToolProvider> toolProviders) {
+    this.tools =
+        toolProviders.stream()
+            .flatMap(provider -> provider.getMcpTools().stream())
+            .collect(Collectors.toMap(McpTool::name, t -> t));
+  }
+
+  // ------------------------ INTERFACE METHODS ------------------------
+
+  // --------------------- Interface McpServerCapability ---------------------
+
+  @Override
+  public String name() {
+    return "tools";
+  }
+
+  @Override
+  public ToolsCapabilityDescriptor describe() {
+    return new ToolsCapabilityDescriptor(false);
+  }
+
+  // -------------------------- OTHER METHODS --------------------------
+
+  public CallToolResponse callTool(String name, ObjectNode arguments) {
+    var tool = lookupTool(name);
+    validateInput(name, arguments, tool);
+    var structuredOutput = tool.call(arguments);
+    return new CallToolResponse(structuredOutput);
+  }
+
+  private McpTool lookupTool(String name) {
+    return ofNullable(tools.get(name))
+        .orElseThrow(
+            () -> new McpInvalidParamsException(String.format("Tool %s not found.", name)));
+  }
+
+  private void validateInput(String name, ObjectNode arguments, McpTool tool) {
+    try {
+      getInputSchema(name, tool).validate(new JSONObject(arguments.toString()));
+    } catch (ValidationException e) {
+      throw new McpInvalidParamsException(e.getMessage());
     }
+  }
 
-// ------------------------ INTERFACE METHODS ------------------------
+  private Schema getInputSchema(String name, McpTool tool) {
+    return inputSchemas.computeIfAbsent(
+        name, _ -> SchemaLoader.load(new JSONObject(tool.inputSchema().toString())));
+  }
 
-// --------------------- Interface McpServerCapability ---------------------
+  public ListToolsResponse listTools(String cursor) {
+    var descriptors =
+        tools.values().stream()
+            .map(
+                t ->
+                    new McpToolDescriptor(
+                        t.name(), t.title(), t.description(), t.inputSchema(), t.outputSchema()))
+            .sorted(Comparator.comparing(McpToolDescriptor::name))
+            .toList();
+    return new ListToolsResponse(descriptors, null);
+  }
 
-    @Override
-    public String name() {
-        return "tools";
-    }
+  // -------------------------- INNER CLASSES --------------------------
 
-    @Override
-    public ToolsCapabilityDescriptor describe() {
-        return new ToolsCapabilityDescriptor(false);
-    }
+  public record ToolsCapabilityDescriptor(boolean listChanged) {}
 
-// -------------------------- OTHER METHODS --------------------------
+  public record CallToolResponse(ObjectNode structuredContent) {}
 
-    public CallToolResponse callTool(String name, ObjectNode arguments) {
-        var tool = lookupTool(name);
-        validateInput(name, arguments, tool);
-        var structuredOutput = tool.call(arguments);
-        return new CallToolResponse(structuredOutput);
-    }
+  public record ListToolsResponse(List<McpToolDescriptor> tools, String nextCursor) {}
 
-    private McpTool lookupTool(String name) {
-        return ofNullable(tools.get(name)).orElseThrow(() -> new McpInvalidParamsException(String.format("Tool %s not found.", name)));
-    }
-
-    private void validateInput(String name, ObjectNode arguments, McpTool tool) {
-        try {
-            getInputSchema(name, tool).validate(new JSONObject(arguments.toString()));
-        } catch (ValidationException e) {
-            throw new McpInvalidParamsException(e.getMessage());
-        }
-    }
-
-    private Schema getInputSchema(String name, McpTool tool) {
-        return inputSchemas.computeIfAbsent(name, _ -> SchemaLoader.load(new JSONObject(tool.inputSchema().toString())));
-    }
-
-    public ListToolsResponse listTools(String cursor) {
-        var descriptors = tools.values().stream()
-                .map(t -> new McpToolDescriptor(t.name(), t.title(), t.description(), t.inputSchema(), t.outputSchema()))
-                .sorted(Comparator.comparing(McpToolDescriptor::name))
-                .toList();
-        return new ListToolsResponse(descriptors, null);
-    }
-
-// -------------------------- INNER CLASSES --------------------------
-
-    public record ToolsCapabilityDescriptor(boolean listChanged) {
-    }
-
-    public record CallToolResponse(ObjectNode structuredContent) {
-    }
-
-    public record ListToolsResponse(List<McpToolDescriptor> tools, String nextCursor) {
-    }
-
-    public record McpToolDescriptor(String name, String title, String description, ObjectNode inputSchema, ObjectNode outputSchema) {
-    }
+  public record McpToolDescriptor(
+      String name,
+      String title,
+      String description,
+      ObjectNode inputSchema,
+      ObjectNode outputSchema) {}
 }

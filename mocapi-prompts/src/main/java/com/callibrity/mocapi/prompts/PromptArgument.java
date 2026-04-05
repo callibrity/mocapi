@@ -15,5 +15,4 @@
  */
 package com.callibrity.mocapi.prompts;
 
-public record PromptArgument(String name, String description, Boolean required) {
-}
+public record PromptArgument(String name, String description, Boolean required) {}

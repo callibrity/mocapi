@@ -15,5 +15,4 @@
  */
 package com.callibrity.mocapi.client;
 
-public record SamplingCapability() {
-}
+public record SamplingCapability() {}

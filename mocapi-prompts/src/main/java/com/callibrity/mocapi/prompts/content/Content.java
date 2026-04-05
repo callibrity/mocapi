@@ -20,20 +20,19 @@ import lombok.Getter;
 @Getter
 public abstract class Content {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    private final String type;
-    private final Annotations annotations;
+  private final String type;
+  private final Annotations annotations;
 
-// --------------------------- CONSTRUCTORS ---------------------------
+  // --------------------------- CONSTRUCTORS ---------------------------
 
-    protected Content(String type) {
-        this(type, null);
-    }
+  protected Content(String type) {
+    this(type, null);
+  }
 
-    protected Content(String type, Annotations annotations) {
-        this.type = type;
-        this.annotations = annotations;
-    }
-
+  protected Content(String type, Annotations annotations) {
+    this.type = type;
+    this.annotations = annotations;
+  }
 }

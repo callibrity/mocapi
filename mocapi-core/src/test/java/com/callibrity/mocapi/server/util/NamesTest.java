@@ -15,23 +15,23 @@
  */
 package com.callibrity.mocapi.server.util;
 
-import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.Test;
 
 class NamesTest {
 
-    @Test
-    void humanReadableShouldBeCapitalizedWords() throws Exception{
-        var hello = new Hello();
-        var name = Names.humanReadableName(hello, Hello.class.getMethod("sayHello", String.class));
-        assertThat(name).isEqualTo("Hello - Say Hello");
-    }
+  @Test
+  void humanReadableShouldBeCapitalizedWords() throws Exception {
+    var hello = new Hello();
+    var name = Names.humanReadableName(hello, Hello.class.getMethod("sayHello", String.class));
+    assertThat(name).isEqualTo("Hello - Say Hello");
+  }
 
-    @Test
-    void identifierShouldBeKebabCaseDotSeparated() throws Exception{
-        var hello = new Hello();
-        var name = Names.identifier(hello, Hello.class.getMethod("sayHello", String.class));
-        assertThat(name).isEqualTo("hello.say-hello");
-    }
+  @Test
+  void identifierShouldBeKebabCaseDotSeparated() throws Exception {
+    var hello = new Hello();
+    var name = Names.identifier(hello, Hello.class.getMethod("sayHello", String.class));
+    assertThat(name).isEqualTo("hello.say-hello");
+  }
 }

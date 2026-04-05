@@ -27,6 +27,7 @@ import java.lang.annotation.Target;
 @Documented
 @Inherited
 public @interface Prompt {
-    String name() default "";
-    String description() default "";
+  String name() default "";
+
+  String description() default "";
 }

@@ -20,30 +20,29 @@ import jakarta.annotation.Nullable;
 
 public class TestPrompts {
 
-    @Prompt
-    public GetPromptResult multi(@Nullable String a, String b) {
-        return GetPromptResult.text("A test prompt", String.format("Test prompt with a=%s, b=%s", a, b));
-    }
+  @Prompt
+  public GetPromptResult multi(@Nullable String a, String b) {
+    return GetPromptResult.text(
+        "A test prompt", String.format("Test prompt with a=%s, b=%s", a, b));
+  }
 
-    @Prompt
-    public GetPromptResult single(String a) {
-        return GetPromptResult.text("A test prompt", String.format("Test prompt with a=%s", a));
-    }
+  @Prompt
+  public GetPromptResult single(String a) {
+    return GetPromptResult.text("A test prompt", String.format("Test prompt with a=%s", a));
+  }
 
-    @Prompt
-    public GetPromptResult none() {
-        return GetPromptResult.text("A test prompt", "Test prompt with no arguments");
-    }
+  @Prompt
+  public GetPromptResult none() {
+    return GetPromptResult.text("A test prompt", "Test prompt with no arguments");
+  }
 
-    @Prompt
-    public GetPromptResult badReturn() {
-        return null; // This is intentionally returning null to test error handling
-    }
+  @Prompt
+  public GetPromptResult badReturn() {
+    return null; // This is intentionally returning null to test error handling
+  }
 
-    @Prompt
-    public GetPromptResult evil() {
-        throw new RuntimeException("evil");
-    }
-
-
+  @Prompt
+  public GetPromptResult evil() {
+    throw new RuntimeException("evil");
+  }
 }

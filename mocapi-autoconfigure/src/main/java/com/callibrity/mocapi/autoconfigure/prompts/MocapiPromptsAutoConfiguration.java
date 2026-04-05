@@ -19,6 +19,7 @@ import com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration;
 import com.callibrity.mocapi.prompts.McpPrompt;
 import com.callibrity.mocapi.prompts.McpPromptProvider;
 import com.callibrity.mocapi.prompts.McpPromptsCapability;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -28,8 +29,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 
-import java.util.List;
-
 @AutoConfiguration
 @AutoConfigureBefore(MocapiAutoConfiguration.class)
 @ConditionalOnClass(McpPromptsCapability.class)
@@ -38,25 +37,24 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MocapiPromptsAutoConfiguration {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    private final MocapiPromptsProperties props;
+  private final MocapiPromptsProperties props;
 
-// -------------------------- OTHER METHODS --------------------------
+  // -------------------------- OTHER METHODS --------------------------
 
-    @Bean
-    public McpPromptProvider mcpPromptBeanProvider(List<McpPrompt> beans) {
-        return () -> List.copyOf(beans);
-    }
+  @Bean
+  public McpPromptProvider mcpPromptBeanProvider(List<McpPrompt> beans) {
+    return () -> List.copyOf(beans);
+  }
 
-    @Bean
-    public McpPromptsCapability mcpPromptsCapability(List<McpPromptProvider> providers) {
-        return new McpPromptsCapability(providers);
-    }
+  @Bean
+  public McpPromptsCapability mcpPromptsCapability(List<McpPromptProvider> providers) {
+    return new McpPromptsCapability(providers);
+  }
 
-    @Bean
-    public PromptServiceMcpPromptProvider promptServiceMcpPromptProvider(ApplicationContext context) {
-        return new PromptServiceMcpPromptProvider(context);
-    }
-
+  @Bean
+  public PromptServiceMcpPromptProvider promptServiceMcpPromptProvider(ApplicationContext context) {
+    return new PromptServiceMcpPromptProvider(context);
+  }
 }

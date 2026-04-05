@@ -15,5 +15,5 @@
  */
 package com.callibrity.mocapi.client;
 
-public record ClientCapabilities(RootsCapability roots, SamplingCapability sampling, ElicitationCapability elicitation) {
-}
+public record ClientCapabilities(
+    RootsCapability roots, SamplingCapability sampling, ElicitationCapability elicitation) {}

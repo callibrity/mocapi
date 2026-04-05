@@ -17,5 +17,4 @@ package com.callibrity.mocapi.prompts;
 
 import com.callibrity.mocapi.prompts.content.Content;
 
-public record PromptMessage(Role role, Content content) {
-}
+public record PromptMessage(Role role, Content content) {}

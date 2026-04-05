@@ -15,31 +15,33 @@
  */
 package com.callibrity.mocapi.example.prompts;
 
-import com.callibrity.mocapi.example.MocapiExampleApplication;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.hamcrest.Matchers.containsString;
+
+import com.callibrity.mocapi.example.MocapiExampleApplication;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(classes = MocapiExampleApplication.class)
 @AutoConfigureMockMvc
 class CodeReviewPromptsIT {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @Test
-    void shouldReturnCodeReviewPrompt() throws Exception{
-        mockMvc.perform(post("/mcp")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+  @Test
+  void shouldReturnCodeReviewPrompt() throws Exception {
+    mockMvc
+        .perform(
+            post("/mcp")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                     "jsonrpc": "2.0",
                                     "method": "prompts/get",
@@ -47,15 +49,22 @@ class CodeReviewPromptsIT {
                                     "id": 1
                                 }
                                 """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("1"))
-                .andExpect(jsonPath("$.jsonrpc").value("2.0"))
-                .andExpect(jsonPath("$.result.description").value("Provide a short review of the given code snippet"))
-                .andExpect(jsonPath("$.result.messages").isArray())
-                .andExpect(jsonPath("$.result.messages[0].role").value("user"))
-                .andExpect(jsonPath("$.result.messages[0].content.type").value("text"))
-                .andExpect(jsonPath("$.result.messages[0].content.text").value(containsString("Please review the following python code")))
-                .andExpect(jsonPath("$.result.messages[0].content.text").value(containsString("def hello():")))
-                .andExpect(jsonPath("$.result.messages[0].content.text").value(containsString("print('Hello, world!')")));
-    }
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value("1"))
+        .andExpect(jsonPath("$.jsonrpc").value("2.0"))
+        .andExpect(
+            jsonPath("$.result.description")
+                .value("Provide a short review of the given code snippet"))
+        .andExpect(jsonPath("$.result.messages").isArray())
+        .andExpect(jsonPath("$.result.messages[0].role").value("user"))
+        .andExpect(jsonPath("$.result.messages[0].content.type").value("text"))
+        .andExpect(
+            jsonPath("$.result.messages[0].content.text")
+                .value(containsString("Please review the following python code")))
+        .andExpect(
+            jsonPath("$.result.messages[0].content.text").value(containsString("def hello():")))
+        .andExpect(
+            jsonPath("$.result.messages[0].content.text")
+                .value(containsString("print('Hello, world!')")));
+  }
 }

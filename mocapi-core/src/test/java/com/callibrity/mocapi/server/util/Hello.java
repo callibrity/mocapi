@@ -17,7 +17,7 @@ package com.callibrity.mocapi.server.util;
 
 public class Hello {
 
-    public String sayHello(String name) {
-        return "Hello " + name;
-    }
+  public String sayHello(String name) {
+    return "Hello " + name;
+  }
 }

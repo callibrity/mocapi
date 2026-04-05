@@ -15,29 +15,27 @@
  */
 package com.callibrity.mocapi.prompts.content;
 
-import com.callibrity.mocapi.prompts.Role;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
+
+import com.callibrity.mocapi.prompts.Role;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 class TextContentTest {
 
-    @Test
-    void shouldHaveTypeText() {
-        var content = new TextContent("Hello, world!");
-        assertThat(content.getType()).isEqualTo("text");
-        assertThat(content.getText()).isEqualTo("Hello, world!");
-    }
+  @Test
+  void shouldHaveTypeText() {
+    var content = new TextContent("Hello, world!");
+    assertThat(content.getType()).isEqualTo("text");
+    assertThat(content.getText()).isEqualTo("Hello, world!");
+  }
 
-    @Test
-    void shouldHaveAnnotations() {
-        var annotations = new Annotations(List.of(Role.USER, Role.ASSISTANT), 0.5);
-        var content = new TextContent("Hello, world!", annotations);
-        assertThat(content.getType()).isEqualTo("text");
-        assertThat(content.getText()).isEqualTo("Hello, world!");
-        assertThat(content.getAnnotations()).isEqualTo(annotations);
-    }
-
+  @Test
+  void shouldHaveAnnotations() {
+    var annotations = new Annotations(List.of(Role.USER, Role.ASSISTANT), 0.5);
+    var content = new TextContent("Hello, world!", annotations);
+    assertThat(content.getType()).isEqualTo("text");
+    assertThat(content.getText()).isEqualTo("Hello, world!");
+    assertThat(content.getAnnotations()).isEqualTo(annotations);
+  }
 }

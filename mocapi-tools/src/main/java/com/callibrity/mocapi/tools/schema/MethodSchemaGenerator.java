@@ -15,12 +15,12 @@
  */
 package com.callibrity.mocapi.tools.schema;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import java.lang.reflect.Method;
+import tools.jackson.databind.node.ObjectNode;
 
 public interface MethodSchemaGenerator {
 
-    ObjectNode generateInputSchema(Object targetObject, Method method);
-    ObjectNode generateOutputSchema(Object targetObject, Method method);
+  ObjectNode generateInputSchema(Object targetObject, Method method);
+
+  ObjectNode generateOutputSchema(Object targetObject, Method method);
 }

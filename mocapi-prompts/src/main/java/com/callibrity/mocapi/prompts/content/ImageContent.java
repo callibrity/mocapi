@@ -17,18 +17,17 @@ package com.callibrity.mocapi.prompts.content;
 
 public class ImageContent extends BinaryContent {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    public static final String IMAGE_TYPE = "image";
+  public static final String IMAGE_TYPE = "image";
 
-// --------------------------- CONSTRUCTORS ---------------------------
+  // --------------------------- CONSTRUCTORS ---------------------------
 
-    public ImageContent(byte[] data, String mimeType) {
-        super(IMAGE_TYPE, data, mimeType);
-    }
+  public ImageContent(byte[] data, String mimeType) {
+    super(IMAGE_TYPE, data, mimeType);
+  }
 
-    public ImageContent(byte[] data, String mimeType, Annotations annotations) {
-        super(IMAGE_TYPE, data, mimeType, annotations);
-    }
-
+  public ImageContent(byte[] data, String mimeType, Annotations annotations) {
+    super(IMAGE_TYPE, data, mimeType, annotations);
+  }
 }

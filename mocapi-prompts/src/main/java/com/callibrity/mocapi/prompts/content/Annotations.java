@@ -16,8 +16,6 @@
 package com.callibrity.mocapi.prompts.content;
 
 import com.callibrity.mocapi.prompts.Role;
-
 import java.util.List;
 
-public record Annotations(List<Role> audience, Double priority) {
-}
+public record Annotations(List<Role> audience, Double priority) {}
