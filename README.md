@@ -1,6 +1,6 @@
 # Mocapi
 
-Mocapi is a modular framework for building [Model Context Protocol (MCP)](https://modelcontextprotocol.io/specification/2025-06-18) tools and prompts using Spring Boot. It simplifies secure, structured interactions between LLMs and services via annotated Java components.
+Mocapi is a modular framework for building [Model Context Protocol (MCP)](https://modelcontextprotocol.io/specification/2025-11-25) tools and prompts using Spring Boot. It simplifies secure, structured interactions between LLMs and services via annotated Java components.
 
 ![Maven Central Version](https://img.shields.io/maven-central/v/com.callibrity.mocapi/mocapi-parent)
 ![GitHub License](https://img.shields.io/github/license/callibrity/mocapi)

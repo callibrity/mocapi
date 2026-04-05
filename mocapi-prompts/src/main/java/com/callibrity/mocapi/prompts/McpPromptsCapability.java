@@ -16,8 +16,8 @@
 package com.callibrity.mocapi.prompts;
 
 import com.callibrity.mocapi.server.McpServerCapability;
-import com.callibrity.ripcurl.core.annotation.JsonRpc;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
+import com.callibrity.mocapi.server.jsonrpc.JsonRpc;
+import com.callibrity.mocapi.server.jsonrpc.JsonRpcService;
 import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
 import com.callibrity.ripcurl.core.util.LazyInitializer;
 

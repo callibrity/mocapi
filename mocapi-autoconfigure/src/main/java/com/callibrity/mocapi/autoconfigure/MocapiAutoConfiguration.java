@@ -15,21 +15,29 @@
  */
 package com.callibrity.mocapi.autoconfigure;
 
+import com.callibrity.mocapi.autoconfigure.sse.McpSessionManager;
+import com.callibrity.mocapi.autoconfigure.sse.McpStreamingController;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpServerCapability;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.List;
 
 @AutoConfiguration
 @EnableConfigurationProperties(MocapiProperties.class)
 @PropertySource("classpath:mocapi-defaults.properties")
+@EnableScheduling
 @RequiredArgsConstructor
 public class MocapiAutoConfiguration {
 
@@ -47,5 +55,33 @@ public class MocapiAutoConfiguration {
     @Bean
     Jackson2ObjectMapperBuilderCustomizer jacksonCustomizer() {
         return builder -> builder.serializationInclusion(JsonInclude.Include.NON_NULL);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public McpSessionManager mcpSessionManager() {
+        return new McpSessionManager();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "mcpTaskExecutor")
+    public TaskExecutor mcpTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(4);
+        executor.setMaxPoolSize(16);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("mcp-stream-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public McpStreamingController mcpStreamingController(
+            McpServer mcpServer,
+            McpSessionManager sessionManager,
+            TaskExecutor mcpTaskExecutor,
+            ObjectMapper objectMapper) {
+        return new McpStreamingController(mcpServer, sessionManager, mcpTaskExecutor, objectMapper);
     }
 }

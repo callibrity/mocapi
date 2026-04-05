@@ -18,8 +18,6 @@ package com.callibrity.mocapi.server;
 
 import com.callibrity.mocapi.client.ClientCapabilities;
 import com.callibrity.mocapi.client.ClientInfo;
-import com.callibrity.ripcurl.core.annotation.JsonRpc;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -27,12 +25,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
-@JsonRpcService
 public class McpServer {
 
 // ------------------------------ FIELDS ------------------------------
 
-    public static final String PROTOCOL_VERSION = "2025-06-18";
+    public static final String PROTOCOL_VERSION = "2025-11-25";
 
     private final ServerInfo serverInfo;
     private final String instructions;
@@ -52,12 +49,10 @@ public class McpServer {
 
 // -------------------------- OTHER METHODS --------------------------
 
-    @JsonRpc("notifications/initialized")
     public void clientInitialized() {
         // Do nothing!
     }
 
-    @JsonRpc("initialize")
     public InitializeResponse initialize(String protocolVersion,
                                          ClientCapabilities capabilities,
                                          ClientInfo clientInfo) {
@@ -76,7 +71,6 @@ public class McpServer {
     ) {
     }
 
-    @JsonRpc("ping")
     public PingResponse ping() {
         return new PingResponse();
     }

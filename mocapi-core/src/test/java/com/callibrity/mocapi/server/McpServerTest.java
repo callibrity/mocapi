@@ -49,7 +49,7 @@ class McpServerTest {
         var response = server.initialize("123", new ClientCapabilities(new RootsCapability(true), new SamplingCapability(), new ElicitationCapability()), new ClientInfo("Test Client", "A test client", "1.0.0"));
 
         assertThat(response).isNotNull();
-        assertThat(response.protocolVersion()).isEqualTo("2025-06-18");
+        assertThat(response.protocolVersion()).isEqualTo("2025-11-25");
         assertThat(response.capabilities()).isNotNull();
         assertThat(response.capabilities()).hasSize(1);
         assertThat(response.capabilities()).containsEntry("test-capability", "test describe");
