@@ -12,8 +12,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -26,7 +24,6 @@ jobs:
         distribution: 'liberica'
         cache: maven
     - name: Build with Maven
-      run: mvn -B verify
-    - name: SonarCloud Analysis
-      if: env.SONAR_TOKEN != ''
-      run: mvn -B sonar:sonar
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: mvn -B verify sonar:sonar
