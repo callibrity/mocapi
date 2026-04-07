@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -146,7 +147,7 @@ class McpStreamingControllerTest {
   class PostMethodDispatch {
 
     @Test
-    void initializeShouldCreateSessionAndSetHeader() {
+    void initializeShouldReturnJsonWithSessionHeader() {
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "initialize");
@@ -163,11 +164,12 @@ class McpStreamingControllerTest {
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getFirst("MCP-Session-Id")).isNotNull();
-      assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+      assertJsonRpcResponse(response);
     }
 
     @Test
-    void pingShouldReturnEmptyObject() {
+    void pingShouldReturnJson() {
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
@@ -176,11 +178,12 @@ class McpStreamingControllerTest {
       var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-      assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+      assertJsonRpcResponse(response);
     }
 
     @Test
-    void toolsListShouldDispatchToCapability() {
+    void toolsListShouldReturnJson() {
       when(toolsCapability.listTools(any()))
           .thenReturn(new McpToolsCapability.ListToolsResponse(List.of(), null));
 
@@ -194,11 +197,12 @@ class McpStreamingControllerTest {
           controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-      assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+      assertJsonRpcResponse(response);
     }
 
     @Test
-    void toolsCallShouldDispatchToCapability() {
+    void toolsCallShouldReturnJson() {
       when(toolsCapability.callTool(eq("test-tool"), any()))
           .thenReturn(
               new McpToolsCapability.CallToolResponse(List.of(), objectMapper.createObjectNode()));
@@ -216,10 +220,12 @@ class McpStreamingControllerTest {
           controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+      assertJsonRpcResponse(response);
     }
 
     @Test
-    void unknownMethodShouldReturnMethodNotFoundError() {
+    void unknownMethodShouldReturnJsonErrorResponse() {
       McpSession session = sessionManager.createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
@@ -230,7 +236,8 @@ class McpStreamingControllerTest {
           controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-      assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+      assertErrorCode(response, -32601);
     }
   }
 
@@ -238,7 +245,7 @@ class McpStreamingControllerTest {
   class PostErrorHandling {
 
     @Test
-    void mcpExceptionShouldPropagateErrorCode() {
+    void mcpExceptionShouldReturnJsonErrorResponse() {
       when(toolsCapability.callTool(any(), any()))
           .thenThrow(new McpInvalidParamsException("Tool not found."));
 
@@ -255,11 +262,12 @@ class McpStreamingControllerTest {
           controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-      assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+      assertErrorCode(response, -32602);
     }
 
     @Test
-    void runtimeExceptionShouldReturnInternalError() {
+    void runtimeExceptionShouldReturnJsonInternalError() {
       when(toolsCapability.callTool(any(), any())).thenThrow(new RuntimeException("unexpected"));
 
       McpSession session = sessionManager.createSession();
@@ -275,7 +283,8 @@ class McpStreamingControllerTest {
           controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-      assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+      assertErrorCode(response, -32603);
     }
   }
 
@@ -379,5 +388,12 @@ class McpStreamingControllerTest {
     JsonNode body = (JsonNode) response.getBody();
     assertThat(body.has("error")).isTrue();
     assertThat(body.get("error").get("code").asInt()).isEqualTo(expectedCode);
+  }
+
+  private static void assertJsonRpcResponse(
+      org.springframework.http.ResponseEntity<Object> response) {
+    assertThat(response.getBody()).isInstanceOf(JsonNode.class);
+    JsonNode body = (JsonNode) response.getBody();
+    assertThat(body.get("jsonrpc").asString()).isEqualTo("2.0");
   }
 }

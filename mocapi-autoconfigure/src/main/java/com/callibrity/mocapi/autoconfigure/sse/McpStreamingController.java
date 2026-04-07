@@ -20,9 +20,12 @@ import com.callibrity.mocapi.server.exception.McpException;
 import com.callibrity.mocapi.server.exception.McpInternalErrorException;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import java.net.URI;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
@@ -44,9 +47,9 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * MCP Streaming Controller implementing the MCP 2025-11-25 Streamable HTTP transport.
  *
- * <p>Handles POST (client requests), GET (server notifications), and DELETE (session termination)
- * with SSE streaming. Uses Odyssey for event storage, replay, keep-alive, and emitter lifecycle
- * management.
+ * <p>Handles POST (client requests), GET (server notifications), and DELETE (session termination).
+ * Methods that don't need streaming return {@code application/json}; methods that declare an {@link
+ * McpStreamContext} parameter return {@code text/event-stream} via SSE.
  */
 @Slf4j
 @RestController
@@ -58,13 +61,25 @@ public class McpStreamingController {
   private final OdysseyStreamRegistry registry;
   private final ObjectMapper objectMapper;
   private final List<String> allowedOrigins;
-  private final McpToolsCapability toolsCapability;
+
+  private final Map<String, McpMethodHandler> methodHandlers;
 
   private static final String ERROR_KEY = "error";
   private static final String JSONRPC_VERSION = "2.0";
   private static final String JSONRPC_FIELD = "jsonrpc";
   private static final String SESSION_NOT_FOUND = "Session not found or expired";
   private static final String INITIALIZE_METHOD = "initialize";
+
+  /**
+   * A method handler is either a simple JSON handler (no stream context needed) or a streaming
+   * handler (requires an {@link McpStreamContext} for sending intermediate messages).
+   */
+  sealed interface McpMethodHandler {
+    record Json(Function<JsonNode, Object> handler) implements McpMethodHandler {}
+
+    record Streaming(BiFunction<JsonNode, McpStreamContext, Object> handler)
+        implements McpMethodHandler {}
+  }
 
   public McpStreamingController(
       McpServer mcpServer,
@@ -78,10 +93,37 @@ public class McpStreamingController {
     this.registry = registry;
     this.objectMapper = objectMapper;
     this.allowedOrigins = allowedOrigins;
-    this.toolsCapability = toolsCapability;
+
+    this.methodHandlers = buildMethodHandlers(toolsCapability);
   }
 
-  @PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  private Map<String, McpMethodHandler> buildMethodHandlers(McpToolsCapability toolsCapability) {
+    Map<String, McpMethodHandler> handlers = new LinkedHashMap<>();
+    handlers.put(INITIALIZE_METHOD, new McpMethodHandler.Json(this::initializeServer));
+    handlers.put("ping", new McpMethodHandler.Json(_ -> mcpServer.ping()));
+    handlers.put(
+        "notifications/initialized",
+        new McpMethodHandler.Json(
+            _ -> {
+              mcpServer.clientInitialized();
+              return null;
+            }));
+
+    if (toolsCapability != null) {
+      handlers.put(
+          "tools/list",
+          new McpMethodHandler.Json(
+              params ->
+                  toolsCapability.listTools(
+                      params != null ? params.path("cursor").asString(null) : null)));
+      handlers.put(
+          "tools/call", new McpMethodHandler.Json(params -> callTool(toolsCapability, params)));
+    }
+
+    return Map.copyOf(handlers);
+  }
+
+  @PostMapping(produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE})
   public ResponseEntity<Object> handlePost(
       @RequestBody JsonNode requestBody,
       @RequestHeader(value = "MCP-Protocol-Version", required = false) String protocolVersion,
@@ -114,6 +156,7 @@ public class McpStreamingController {
     McpSession session = resolveSession(method, sessionId);
     if (session == null) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
+          .contentType(MediaType.APPLICATION_JSON)
           .body(createErrorResponse(idNode, -32600, SESSION_NOT_FOUND));
     }
 
@@ -247,11 +290,68 @@ public class McpStreamingController {
 
   private ResponseEntity<Object> processRequest(
       McpSession session, String method, JsonNode params, JsonNode idNode) {
+    McpMethodHandler handler = methodHandlers.get(method);
+    if (handler == null) {
+      log.warn("Method not found: {}", method);
+      return ResponseEntity.ok()
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(createErrorResponse(idNode, -32601, "Method not found: " + method));
+    }
+
+    return switch (handler) {
+      case McpMethodHandler.Json(var fn) -> processJsonRequest(session, method, params, idNode, fn);
+      case McpMethodHandler.Streaming(var fn) ->
+          processStreamingRequest(session, method, params, idNode, fn);
+    };
+  }
+
+  private ResponseEntity<Object> processJsonRequest(
+      McpSession session,
+      String method,
+      JsonNode params,
+      JsonNode idNode,
+      Function<JsonNode, Object> handler) {
+    try {
+      Object result = handler.apply(params);
+      ObjectNode response = buildJsonRpcResponse(idNode, result);
+
+      ResponseEntity.BodyBuilder builder =
+          ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON);
+      if (INITIALIZE_METHOD.equals(method)) {
+        builder.header("MCP-Session-Id", session.getSessionId());
+      }
+      return builder.body(response);
+    } catch (McpException e) {
+      log.warn("MCP error processing {}: {}", method, e.getMessage());
+      return ResponseEntity.ok()
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(createErrorResponse(idNode, e.getCode(), e.getMessage()));
+    } catch (IllegalArgumentException e) {
+      log.warn("Invalid argument processing {}: {}", method, e.getMessage());
+      return ResponseEntity.ok()
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(createErrorResponse(idNode, -32601, "Method not found: " + method));
+    } catch (RuntimeException e) {
+      log.error("Error processing JSON-RPC request", e);
+      return ResponseEntity.ok()
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(createErrorResponse(idNode, -32603, "Internal error"));
+    }
+  }
+
+  private ResponseEntity<Object> processStreamingRequest(
+      McpSession session,
+      String method,
+      JsonNode params,
+      JsonNode idNode,
+      BiFunction<JsonNode, McpStreamContext, Object> handler) {
     OdysseyStream stream = registry.ephemeral();
     stream.publishRaw("");
     SseEmitter emitter = stream.subscribe();
+    McpStreamContext context = new McpStreamContext(stream, objectMapper);
 
-    Thread.ofVirtual().start(() -> executeMethod(stream, method, params, idNode));
+    Thread.ofVirtual()
+        .start(() -> executeStreamingMethod(stream, context, method, params, idNode, handler));
 
     ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
     if (INITIALIZE_METHOD.equals(method)) {
@@ -260,21 +360,16 @@ public class McpStreamingController {
     return builder.body(emitter);
   }
 
-  private void executeMethod(
-      OdysseyStream stream, String method, JsonNode params, JsonNode idNode) {
+  private void executeStreamingMethod(
+      OdysseyStream stream,
+      McpStreamContext context,
+      String method,
+      JsonNode params,
+      JsonNode idNode,
+      BiFunction<JsonNode, McpStreamContext, Object> handler) {
     try {
-      Object result = invokeMethod(method, params);
-
-      ObjectNode response = objectMapper.createObjectNode();
-      response.put(JSONRPC_FIELD, JSONRPC_VERSION);
-      if (idNode != null) {
-        response.set("id", idNode);
-      }
-      if (result != null) {
-        response.set("result", objectMapper.valueToTree(result));
-      }
-
-      stream.publishJson(response);
+      Object result = handler.apply(params, context);
+      stream.publishJson(buildJsonRpcResponse(idNode, result));
       stream.close();
     } catch (McpException e) {
       log.warn("MCP error processing {}: {}", method, e.getMessage());
@@ -291,23 +386,16 @@ public class McpStreamingController {
     }
   }
 
-  private Object invokeMethod(String method, JsonNode params) {
-    return switch (method) {
-      case INITIALIZE_METHOD -> initializeServer(params);
-      case "ping" -> mcpServer.ping();
-      case "notifications/initialized" -> {
-        mcpServer.clientInitialized();
-        yield null;
-      }
-      case "tools/list" ->
-          Optional.ofNullable(toolsCapability)
-              .map(
-                  cap ->
-                      cap.listTools(params != null ? params.path("cursor").asString(null) : null))
-              .orElseThrow(() -> new IllegalArgumentException("Tools capability not available"));
-      case "tools/call" -> callTool(params);
-      default -> throw new IllegalArgumentException("Unknown method: " + method);
-    };
+  private ObjectNode buildJsonRpcResponse(JsonNode idNode, Object result) {
+    ObjectNode response = objectMapper.createObjectNode();
+    response.put(JSONRPC_FIELD, JSONRPC_VERSION);
+    if (idNode != null) {
+      response.set("id", idNode);
+    }
+    if (result != null) {
+      response.set("result", objectMapper.valueToTree(result));
+    }
+    return response;
   }
 
   private McpServer.InitializeResponse initializeServer(JsonNode params) {
@@ -323,13 +411,12 @@ public class McpStreamingController {
     }
   }
 
-  private McpToolsCapability.CallToolResponse callTool(JsonNode params) {
+  private McpToolsCapability.CallToolResponse callTool(
+      McpToolsCapability toolsCapability, JsonNode params) {
     JsonNode argsNode = params.path("arguments");
     ObjectNode arguments =
         argsNode.isObject() ? (ObjectNode) argsNode : objectMapper.createObjectNode();
-    return Optional.ofNullable(toolsCapability)
-        .map(cap -> cap.callTool(params.path("name").asString(), arguments))
-        .orElseThrow(() -> new IllegalArgumentException("Tools capability not available"));
+    return toolsCapability.callTool(params.path("name").asString(), arguments);
   }
 
   // --- Notification / response handling ---

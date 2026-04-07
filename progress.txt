@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-07T15:39:00-04:00
-ITERATION: 11
-SPEC_COMPLETED: 011-migrate-sse-to-odyssey.md
-WHAT_WAS_DONE: Replaced Mocapi's hand-rolled SSE event storage, replay, keep-alive, and emitter lifecycle management with Odyssey (odyssey-core). Deleted SseEvent, McpStreamEmitter, and their tests. Slimmed McpSession to lifecycle + OdysseyStream reference. Refactored McpStreamingController to use OdysseyStreamRegistry (ephemeral streams for POST, channel streams for GET notifications). Removed mcpTaskExecutor bean; method dispatch uses virtual threads. Updated McpSessionManager to call stream.delete() on termination.
-VERIFICATION: mvn verify — BUILD SUCCESS; all 70 tests pass; spotless and license checks pass.
+LAST_RUN: 2026-04-07T15:45:00-04:00
+ITERATION: 12
+SPEC_COMPLETED: 012-json-response-for-simple-methods.md
+WHAT_WAS_DONE: Introduced McpStreamContext class and refactored McpStreamingController to use a sealed McpMethodHandler registry (Json vs Streaming variants). Simple methods (initialize, ping, tools/list, tools/call) now return Content-Type: application/json with a synchronous JSON-RPC response body instead of SSE. Streaming handlers (future) create an ephemeral Odyssey stream and dispatch on a virtual thread. Replaced the invokeMethod switch with a Map<String, McpMethodHandler> built in the constructor. Added McpStreamContextTest (3 tests).
+VERIFICATION: mvn verify — BUILD SUCCESS; all 73 tests pass (up from 70); spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: 012-json-response-for-simple-methods.md
-NOTES: odyssey-core 1.0.0-SNAPSHOT added to mocapi-autoconfigure/pom.xml. Transitively brings in substrate-core and codec-jackson. Auto-configuration tests now include JacksonCodecAutoConfiguration, SubstrateAutoConfiguration, and OdysseyAutoConfiguration in the ApplicationContextRunner. McpSession constructor now takes (sessionId, notificationStream) — session ID is generated in McpSessionManager.createSession().
+NEXT_SPEC: 013-enforce-session-id-after-init.md
+NOTES: McpMethodHandler is a sealed interface with Json and Streaming record variants. The Streaming path is fully implemented but not yet exercised by any registered method — it will be used when a future tools/call implementation declares McpStreamContext. The @PostMapping produces annotation now includes both APPLICATION_JSON_VALUE and TEXT_EVENT_STREAM_VALUE. Error responses from JSON handlers are returned synchronously as JSON (no SSE overhead). The compliance test setUp no longer needs ephemeral stream mocks for ping-based tests since ping now takes the JSON path.
