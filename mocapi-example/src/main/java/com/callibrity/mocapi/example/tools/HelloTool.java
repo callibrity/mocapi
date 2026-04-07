@@ -17,9 +17,7 @@ package com.callibrity.mocapi.example.tools;
 
 import com.callibrity.mocapi.tools.annotation.Tool;
 import com.callibrity.mocapi.tools.annotation.ToolService;
-import org.springframework.stereotype.Component;
 
-@Component
 @ToolService
 public class HelloTool {
 

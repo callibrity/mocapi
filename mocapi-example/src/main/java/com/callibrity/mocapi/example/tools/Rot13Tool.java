@@ -18,9 +18,7 @@ package com.callibrity.mocapi.example.tools;
 import com.callibrity.mocapi.tools.annotation.Tool;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.springframework.stereotype.Component;
 
-@Component
 @ToolService
 public class Rot13Tool {
 

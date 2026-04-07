@@ -20,6 +20,7 @@ import static java.util.Optional.ofNullable;
 import com.callibrity.mocapi.server.CapabilityDescriptor;
 import com.callibrity.mocapi.server.McpServerCapability;
 import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
 import com.github.erosb.jsonsKema.SchemaLoader;
@@ -150,10 +151,13 @@ public class McpToolsCapability implements McpServerCapability {
     }
   }
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   public record CallToolResponse(List<TextContent> content, ObjectNode structuredContent) {}
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   public record ListToolsResponse(List<McpToolDescriptor> tools, String nextCursor) {}
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   public record McpToolDescriptor(
       String name,
       String title,

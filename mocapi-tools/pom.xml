@@ -69,6 +69,11 @@
             <artifactId>json-sKema</artifactId>
             <version>${json-skema.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
 </project>

@@ -20,11 +20,9 @@ import com.callibrity.mocapi.autoconfigure.sse.McpStreamingController;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpServerCapability;
 import com.callibrity.mocapi.tools.McpToolsCapability;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -33,7 +31,6 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 @AutoConfiguration
 @EnableConfigurationProperties(MocapiProperties.class)
@@ -50,14 +47,6 @@ public class MocapiAutoConfiguration {
   @Bean
   public McpServer mcpServer(List<McpServerCapability> serverCapabilities) {
     return new McpServer(serverCapabilities, props.getServerInfo(), props.getInstructions());
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(name = "mcpObjectMapper")
-  public ObjectMapper mcpObjectMapper() {
-    return JsonMapper.builder()
-        .changeDefaultPropertyInclusion(v -> v.withValueInclusion(JsonInclude.Include.NON_NULL))
-        .build();
   }
 
   @Bean(destroyMethod = "shutdown")
@@ -84,13 +73,13 @@ public class MocapiAutoConfiguration {
       McpServer mcpServer,
       McpSessionManager sessionManager,
       TaskExecutor mcpTaskExecutor,
-      @Qualifier("mcpObjectMapper") ObjectMapper mcpObjectMapper,
+      ObjectMapper objectMapper,
       @Autowired(required = false) McpToolsCapability toolsCapability) {
     return new McpStreamingController(
         mcpServer,
         sessionManager,
         mcpTaskExecutor,
-        mcpObjectMapper,
+        objectMapper,
         props.getAllowedOrigins(),
         toolsCapability);
   }

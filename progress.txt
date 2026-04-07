@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-05T03:38:00-04:00
-ITERATION: 9
-SPEC_COMPLETED: 010-improve-test-coverage.md
-WHAT_WAS_DONE: Added comprehensive unit tests to bring all 6 target source files to 90%+ line coverage (overall 98.1%). Created new test files for McpStreamEmitter, McpSession, McpSessionManager, ToolServiceMcpToolProvider, and McpStreamingController POST handler; expanded JsonMethodInvoker tests for Error rethrow and IllegalAccessException paths.
-VERIFICATION: mvn verify — BUILD SUCCESS; JaCoCo aggregate coverage 98.1% overall; JsonMethodInvoker 100%, ToolServiceMcpToolProvider 100%, McpSessionManager 100%, McpStreamingController 96.7%, McpStreamEmitter 95.7%, McpSession 96.3%; spotless and license checks pass.
-STATUS: DONE
-NEXT_SPEC: none
-NOTES: McpStreamEmitter tests use reflection to trigger SseEmitter internal callbacks (onTimeout, onError, onCompletion) and a dynamic Proxy handler to test IOException and IllegalStateException catch paths. The 4 remaining uncovered lines in McpStreamEmitter are defensive catch blocks for unexpected exceptions from emitter.complete()/completeWithError() that can only be triggered with a custom handler throwing non-ISE exceptions — not worth testing. McpStreamingController 6 missed lines are in isValidOrigin() catch and minor edge cases.
+LAST_RUN: 2026-04-07T15:26:00-04:00
+ITERATION: 10
+SPEC_COMPLETED: 008-toolservice-stereotype.md
+WHAT_WAS_DONE: Made @ToolService a Spring stereotype annotation by adding @Component as a meta-annotation. Added spring-context as an optional dependency to mocapi-tools. Removed redundant @Component from HelloTool, Rot13Tool, and README.md example.
+VERIFICATION: mvn verify — BUILD SUCCESS; all modules pass; spotless and license checks pass; integration tests pass (ToolServiceMcpToolProvider still discovers all @ToolService beans).
+STATUS: MORE_WORK
+NEXT_SPEC: 011-migrate-sse-to-odyssey.md
+NOTES: spring-context added as optional dependency to mocapi-tools/pom.xml. Test inner classes (SampleToolService, OtherToolService, EmptyToolService) in ToolServiceMcpToolProviderTest already did not have @Component, so no test changes needed.
