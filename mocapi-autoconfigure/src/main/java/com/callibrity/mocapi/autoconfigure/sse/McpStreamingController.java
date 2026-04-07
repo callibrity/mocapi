@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.autoconfigure.sse;
 
 import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.McpStreamContext;
 import com.callibrity.mocapi.server.exception.McpException;
 import com.callibrity.mocapi.server.exception.McpInternalErrorException;
 import com.callibrity.mocapi.tools.McpToolsCapability;
@@ -366,7 +367,7 @@ public class McpStreamingController {
     OdysseyStream stream = registry.ephemeral();
     stream.publishRaw("");
     SseEmitter emitter = stream.subscribe();
-    McpStreamContext context = new McpStreamContext(stream, objectMapper);
+    McpStreamContext context = new DefaultMcpStreamContext(stream, objectMapper);
 
     Thread.ofVirtual()
         .start(() -> executeStreamingMethod(stream, context, method, params, idNode, handler));

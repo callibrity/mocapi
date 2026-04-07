@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-07T15:53:00-04:00
-ITERATION: 14
-SPEC_COMPLETED: 014-origin-validation-on-all-endpoints.md
-WHAT_WAS_DONE: Added Origin header validation to GET and DELETE handlers to prevent DNS rebinding attacks per MCP spec. Extracted a shared validateOrigin() helper for GET/DELETE (returns simple JSON body); POST retains its JSON-RPC error format via validateHeaders(). Added 3 new GET origin tests and 3 new DELETE origin tests. Updated all existing GET and DELETE test call sites to include the new origin parameter.
-VERIFICATION: mvn verify — BUILD SUCCESS; all 83 tests pass (up from 77); spotless and license checks pass.
-STATUS: DONE
-NEXT_SPEC: none
-NOTES: The POST handler still uses validateHeaders() which returns a JSON-RPC error body for origin failures (with error code -32600). GET/DELETE use the new validateOrigin() which returns a simple Map body {"error": "Invalid origin"} since there's no JSON-RPC request ID to reference. This matches the pattern already used by GET/DELETE for other error responses.
+LAST_RUN: 2026-04-07T16:03:00-04:00
+ITERATION: 15
+SPEC_COMPLETED: 016-extract-mcp-stream-context-interface.md
+WHAT_WAS_DONE: Extracted McpStreamContext from a concrete class into an interface in mocapi-core (com.callibrity.mocapi.server package). Renamed the existing implementation in mocapi-autoconfigure to DefaultMcpStreamContext, which implements the new interface. Updated McpStreamingController to import the interface from mocapi-core and instantiate DefaultMcpStreamContext. Renamed McpStreamContextTest to DefaultMcpStreamContextTest to match the implementation class.
+VERIFICATION: mvn verify — BUILD SUCCESS; all 83 tests pass; spotless and license checks pass.
+STATUS: MORE_WORK
+NEXT_SPEC: 017-decompose-streaming-controller.md
+NOTES: The McpStreamContext interface lives in com.callibrity.mocapi.server alongside McpServer, so tool modules can depend on mocapi-core and reference McpStreamContext without pulling in mocapi-autoconfigure or Odyssey. The McpMethodHandler.Streaming record in the controller already references the interface type (via the import), not the implementation class. The sealed interface McpMethodHandler pattern in the controller uses McpStreamContext (the interface) for its BiFunction parameter type, which is correct.

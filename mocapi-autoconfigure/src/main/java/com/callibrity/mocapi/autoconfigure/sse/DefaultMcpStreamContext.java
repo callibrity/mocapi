@@ -15,36 +15,28 @@
  */
 package com.callibrity.mocapi.autoconfigure.sse;
 
+import com.callibrity.mocapi.server.McpStreamContext;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Handle that MCP handler methods can declare as a parameter to opt into SSE streaming. Provides
- * methods for sending intermediate messages (progress notifications, arbitrary notifications) to
- * the client during a long-running operation.
- *
- * <p>This is a Mocapi concept wrapping an {@link OdysseyStream} with MCP-specific JSON-RPC
- * notification formatting.
+ * Default implementation of {@link McpStreamContext} that wraps an {@link OdysseyStream} with
+ * MCP-specific JSON-RPC notification formatting.
  */
-public class McpStreamContext {
+public class DefaultMcpStreamContext implements McpStreamContext {
 
   private static final String JSONRPC_VERSION = "2.0";
 
   private final OdysseyStream stream;
   private final ObjectMapper objectMapper;
 
-  McpStreamContext(OdysseyStream stream, ObjectMapper objectMapper) {
+  DefaultMcpStreamContext(OdysseyStream stream, ObjectMapper objectMapper) {
     this.stream = stream;
     this.objectMapper = objectMapper;
   }
 
-  /**
-   * Sends a progress notification to the client.
-   *
-   * @param progress the current progress value
-   * @param total the total expected value
-   */
+  @Override
   public void sendProgress(long progress, long total) {
     ObjectNode notification = objectMapper.createObjectNode();
     notification.put("jsonrpc", JSONRPC_VERSION);
@@ -55,12 +47,7 @@ public class McpStreamContext {
     stream.publishJson(notification);
   }
 
-  /**
-   * Sends an arbitrary notification to the client.
-   *
-   * @param method the notification method name
-   * @param params the notification parameters (may be null)
-   */
+  @Override
   public void sendNotification(String method, Object params) {
     ObjectNode notification = objectMapper.createObjectNode();
     notification.put("jsonrpc", JSONRPC_VERSION);

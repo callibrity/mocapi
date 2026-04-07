@@ -27,17 +27,17 @@ import org.mockito.ArgumentCaptor;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-class McpStreamContextTest {
+class DefaultMcpStreamContextTest {
 
   private OdysseyStream stream;
-  private McpStreamContext context;
+  private DefaultMcpStreamContext context;
   private ObjectMapper objectMapper;
 
   @BeforeEach
   void setUp() {
     stream = mock(OdysseyStream.class);
     objectMapper = new ObjectMapper();
-    context = new McpStreamContext(stream, objectMapper);
+    context = new DefaultMcpStreamContext(stream, objectMapper);
   }
 
   @Test
