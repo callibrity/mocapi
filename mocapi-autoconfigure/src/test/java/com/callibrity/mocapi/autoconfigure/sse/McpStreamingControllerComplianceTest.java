@@ -21,6 +21,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.callibrity.mocapi.server.JsonRpcMessages;
+import com.callibrity.mocapi.server.McpMethodHandler;
+import com.callibrity.mocapi.server.McpMethodRegistry;
+import com.callibrity.mocapi.server.McpProtocol;
+import com.callibrity.mocapi.server.McpRequestValidator;
 import com.callibrity.mocapi.server.McpServer;
 import java.util.List;
 import java.util.stream.Stream;
@@ -65,9 +70,23 @@ class McpStreamingControllerComplianceTest {
 
     sessionManager = new McpSessionManager(registry);
     objectMapper = new ObjectMapper();
-    controller =
-        new McpStreamingController(
-            mcpServer, sessionManager, registry, objectMapper, List.of("localhost"), null);
+
+    McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
+    JsonRpcMessages messages = new JsonRpcMessages(objectMapper);
+    McpMethodRegistry methodRegistry =
+        McpMethodRegistry.builder()
+            .register("ping", new McpMethodHandler.Json(_ -> mcpServer.ping()))
+            .register(
+                "notifications/initialized",
+                new McpMethodHandler.Json(
+                    _ -> {
+                      mcpServer.clientInitialized();
+                      return null;
+                    }))
+            .build();
+    McpProtocol protocol = new McpProtocol(validator, methodRegistry, messages);
+
+    controller = new McpStreamingController(protocol, sessionManager, registry, objectMapper);
   }
 
   // ---- Gap 1: Notifications must return 202 Accepted ----

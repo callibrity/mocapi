@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-07T16:03:00-04:00
-ITERATION: 15
-SPEC_COMPLETED: 016-extract-mcp-stream-context-interface.md
-WHAT_WAS_DONE: Extracted McpStreamContext from a concrete class into an interface in mocapi-core (com.callibrity.mocapi.server package). Renamed the existing implementation in mocapi-autoconfigure to DefaultMcpStreamContext, which implements the new interface. Updated McpStreamingController to import the interface from mocapi-core and instantiate DefaultMcpStreamContext. Renamed McpStreamContextTest to DefaultMcpStreamContextTest to match the implementation class.
-VERIFICATION: mvn verify — BUILD SUCCESS; all 83 tests pass; spotless and license checks pass.
-STATUS: MORE_WORK
-NEXT_SPEC: 017-decompose-streaming-controller.md
-NOTES: The McpStreamContext interface lives in com.callibrity.mocapi.server alongside McpServer, so tool modules can depend on mocapi-core and reference McpStreamContext without pulling in mocapi-autoconfigure or Odyssey. The McpMethodHandler.Streaming record in the controller already references the interface type (via the import), not the implementation class. The sealed interface McpMethodHandler pattern in the controller uses McpStreamContext (the interface) for its BiFunction parameter type, which is correct.
+LAST_RUN: 2026-04-07T16:15:00-04:00
+ITERATION: 16
+SPEC_COMPLETED: 017-decompose-streaming-controller.md
+WHAT_WAS_DONE: Extracted MCP protocol logic from McpStreamingController into mocapi-core. Created four new classes: McpMethodHandler (sealed interface for Json/Streaming dispatch), JsonRpcMessages (JSON-RPC 2.0 response/error formatting), McpRequestValidator (envelope, protocol version, origin validation), McpMethodRegistry (handler lookup by method name), and McpProtocol (facade coordinating validation, dispatch, and error handling). The controller is now a thin HTTP adapter (193 functional lines) that delegates all protocol logic to McpProtocol. Handler registration moved to MocapiAutoConfiguration. Added 28 new unit tests for the protocol classes.
+VERIFICATION: mvn verify — BUILD SUCCESS; all 100 tests pass (68 core + 32 autoconfigure/tools); spotless and license checks pass.
+STATUS: DONE
+NEXT_SPEC: none
+NOTES: New classes in mocapi-core com.callibrity.mocapi.server package: McpMethodHandler, JsonRpcMessages, McpRequestValidator, McpMethodRegistry, McpProtocol. McpStreamingController constructor changed from (McpServer, McpSessionManager, OdysseyStreamRegistry, ObjectMapper, List<String>, McpToolsCapability) to (McpProtocol, McpSessionManager, OdysseyStreamRegistry, ObjectMapper). MocapiAutoConfiguration now builds McpProtocol bean with handler registration. The callTool and initializeServer helper methods moved from the controller to MocapiAutoConfiguration as static methods.

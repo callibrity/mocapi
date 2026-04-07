@@ -17,8 +17,14 @@ package com.callibrity.mocapi.autoconfigure;
 
 import com.callibrity.mocapi.autoconfigure.sse.McpSessionManager;
 import com.callibrity.mocapi.autoconfigure.sse.McpStreamingController;
+import com.callibrity.mocapi.server.JsonRpcMessages;
+import com.callibrity.mocapi.server.McpMethodHandler;
+import com.callibrity.mocapi.server.McpMethodRegistry;
+import com.callibrity.mocapi.server.McpProtocol;
+import com.callibrity.mocapi.server.McpRequestValidator;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpServerCapability;
+import com.callibrity.mocapi.server.exception.McpInternalErrorException;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +35,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 @AutoConfiguration
 @EnableConfigurationProperties(MocapiProperties.class)
@@ -56,18 +64,72 @@ public class MocapiAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpStreamingController mcpStreamingController(
+  public McpProtocol mcpProtocol(
       McpServer mcpServer,
-      McpSessionManager sessionManager,
-      OdysseyStreamRegistry registry,
       ObjectMapper objectMapper,
       @Autowired(required = false) McpToolsCapability toolsCapability) {
-    return new McpStreamingController(
-        mcpServer,
-        sessionManager,
-        registry,
-        objectMapper,
-        props.getAllowedOrigins(),
-        toolsCapability);
+    McpRequestValidator validator = new McpRequestValidator(props.getAllowedOrigins());
+    JsonRpcMessages messages = new JsonRpcMessages(objectMapper);
+    McpMethodRegistry.Builder registryBuilder =
+        McpMethodRegistry.builder()
+            .register(
+                "initialize",
+                new McpMethodHandler.Json(
+                    params -> initializeServer(mcpServer, objectMapper, params)))
+            .register("ping", new McpMethodHandler.Json(_ -> mcpServer.ping()))
+            .register(
+                "notifications/initialized",
+                new McpMethodHandler.Json(
+                    _ -> {
+                      mcpServer.clientInitialized();
+                      return null;
+                    }));
+
+    if (toolsCapability != null) {
+      registryBuilder
+          .register(
+              "tools/list",
+              new McpMethodHandler.Json(
+                  params ->
+                      toolsCapability.listTools(
+                          params != null ? params.path("cursor").asString(null) : null)))
+          .register(
+              "tools/call",
+              new McpMethodHandler.Json(params -> callTool(toolsCapability, objectMapper, params)));
+    }
+
+    return new McpProtocol(validator, registryBuilder.build(), messages);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public McpStreamingController mcpStreamingController(
+      McpProtocol mcpProtocol,
+      McpSessionManager sessionManager,
+      OdysseyStreamRegistry registry,
+      ObjectMapper objectMapper) {
+    return new McpStreamingController(mcpProtocol, sessionManager, registry, objectMapper);
+  }
+
+  private static McpServer.InitializeResponse initializeServer(
+      McpServer mcpServer, ObjectMapper objectMapper, JsonNode params) {
+    try {
+      return mcpServer.initialize(
+          params.path("protocolVersion").asString(),
+          objectMapper.treeToValue(
+              params.get("capabilities"), com.callibrity.mocapi.client.ClientCapabilities.class),
+          objectMapper.treeToValue(
+              params.get("clientInfo"), com.callibrity.mocapi.client.ClientInfo.class));
+    } catch (tools.jackson.core.JacksonException e) {
+      throw new McpInternalErrorException("Failed to deserialize initialize params", e);
+    }
+  }
+
+  private static McpToolsCapability.CallToolResponse callTool(
+      McpToolsCapability toolsCapability, ObjectMapper objectMapper, JsonNode params) {
+    JsonNode argsNode = params.path("arguments");
+    ObjectNode arguments =
+        argsNode.isObject() ? (ObjectNode) argsNode : objectMapper.createObjectNode();
+    return toolsCapability.callTool(params.path("name").asString(), arguments);
   }
 }

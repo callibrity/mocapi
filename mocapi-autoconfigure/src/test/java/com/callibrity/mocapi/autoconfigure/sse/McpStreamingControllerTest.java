@@ -22,6 +22,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.callibrity.mocapi.server.JsonRpcMessages;
+import com.callibrity.mocapi.server.McpMethodHandler;
+import com.callibrity.mocapi.server.McpMethodRegistry;
+import com.callibrity.mocapi.server.McpProtocol;
+import com.callibrity.mocapi.server.McpRequestValidator;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
 import com.callibrity.mocapi.tools.McpToolsCapability;
@@ -61,14 +66,59 @@ class McpStreamingControllerTest {
     sessionManager = new McpSessionManager(registry);
     objectMapper = new ObjectMapper();
     toolsCapability = mock(McpToolsCapability.class);
-    controller =
-        new McpStreamingController(
-            mcpServer,
-            sessionManager,
-            registry,
-            objectMapper,
-            List.of("localhost"),
-            toolsCapability);
+
+    McpProtocol protocol = buildProtocol(mcpServer, toolsCapability);
+    controller = new McpStreamingController(protocol, sessionManager, registry, objectMapper);
+  }
+
+  private McpProtocol buildProtocol(McpServer mcpServer, McpToolsCapability toolsCapability) {
+    McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
+    JsonRpcMessages messages = new JsonRpcMessages(objectMapper);
+    McpMethodRegistry.Builder registryBuilder =
+        McpMethodRegistry.builder()
+            .register(
+                "initialize",
+                new McpMethodHandler.Json(
+                    params ->
+                        mcpServer.initialize(
+                            params.path("protocolVersion").asString(),
+                            objectMapper.treeToValue(
+                                params.get("capabilities"),
+                                com.callibrity.mocapi.client.ClientCapabilities.class),
+                            objectMapper.treeToValue(
+                                params.get("clientInfo"),
+                                com.callibrity.mocapi.client.ClientInfo.class))))
+            .register("ping", new McpMethodHandler.Json(_ -> mcpServer.ping()))
+            .register(
+                "notifications/initialized",
+                new McpMethodHandler.Json(
+                    _ -> {
+                      mcpServer.clientInitialized();
+                      return null;
+                    }));
+
+    if (toolsCapability != null) {
+      registryBuilder
+          .register(
+              "tools/list",
+              new McpMethodHandler.Json(
+                  params ->
+                      toolsCapability.listTools(
+                          params != null ? params.path("cursor").asString(null) : null)))
+          .register(
+              "tools/call",
+              new McpMethodHandler.Json(
+                  params -> {
+                    JsonNode argsNode = params.path("arguments");
+                    ObjectNode arguments =
+                        argsNode.isObject()
+                            ? (ObjectNode) argsNode
+                            : objectMapper.createObjectNode();
+                    return toolsCapability.callTool(params.path("name").asString(), arguments);
+                  }));
+    }
+
+    return new McpProtocol(validator, registryBuilder.build(), messages);
   }
 
   @Nested
