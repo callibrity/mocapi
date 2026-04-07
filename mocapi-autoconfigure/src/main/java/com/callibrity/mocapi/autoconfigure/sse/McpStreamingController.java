@@ -153,6 +153,13 @@ public class McpStreamingController {
     }
 
     String method = methodNode.asString();
+
+    if (!INITIALIZE_METHOD.equals(method) && sessionId == null) {
+      return ResponseEntity.badRequest()
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(createErrorResponse(idNode, -32600, "MCP-Session-Id header is required"));
+    }
+
     McpSession session = resolveSession(method, sessionId);
     if (session == null) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -281,9 +288,8 @@ public class McpStreamingController {
       return session.orElse(null);
     }
 
-    McpSession session = sessionManager.createSession();
-    log.debug("Created anonymous session {} for request {}", session.getSessionId(), method);
-    return session;
+    log.warn("Non-initialize request without MCP-Session-Id header for method: {}", method);
+    return null;
   }
 
   // --- Request processing ---
@@ -421,13 +427,21 @@ public class McpStreamingController {
 
   // --- Notification / response handling ---
 
+  private static final String SESSION_ID_REQUIRED = "MCP-Session-Id header is required";
+
   private ResponseEntity<Object> handleNotificationOrResponse(
       JsonNode requestBody, String sessionId, boolean isNotification) {
+    if (sessionId == null) {
+      return ResponseEntity.badRequest()
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(Map.of(ERROR_KEY, SESSION_ID_REQUIRED));
+    }
+
     if (isNotification) {
       String method = requestBody.get("method").asString();
       log.debug("Received notification: {}", method);
 
-      if ("notifications/initialized".equals(method) && sessionId != null) {
+      if ("notifications/initialized".equals(method)) {
         sessionManager.getSession(sessionId).ifPresent(_ -> mcpServer.clientInitialized());
       }
     } else {

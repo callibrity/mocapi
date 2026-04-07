@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-07T15:45:00-04:00
-ITERATION: 12
-SPEC_COMPLETED: 012-json-response-for-simple-methods.md
-WHAT_WAS_DONE: Introduced McpStreamContext class and refactored McpStreamingController to use a sealed McpMethodHandler registry (Json vs Streaming variants). Simple methods (initialize, ping, tools/list, tools/call) now return Content-Type: application/json with a synchronous JSON-RPC response body instead of SSE. Streaming handlers (future) create an ephemeral Odyssey stream and dispatch on a virtual thread. Replaced the invokeMethod switch with a Map<String, McpMethodHandler> built in the constructor. Added McpStreamContextTest (3 tests).
-VERIFICATION: mvn verify — BUILD SUCCESS; all 73 tests pass (up from 70); spotless and license checks pass.
+LAST_RUN: 2026-04-07T15:49:00-04:00
+ITERATION: 13
+SPEC_COMPLETED: 013-enforce-session-id-after-init.md
+WHAT_WAS_DONE: Enforced MCP-Session-Id header requirement on all post-initialize requests per the MCP spec. Removed anonymous session creation from resolveSession(), added 400 Bad Request response for missing session ID on non-initialize POST requests and on notifications/responses. Updated handleNotificationOrResponse() to require session ID. Added 4 new tests (PostSessionIdEnforcement) and updated 10 existing tests to provide session IDs.
+VERIFICATION: mvn verify — BUILD SUCCESS; all 77 tests pass (up from 73); spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: 013-enforce-session-id-after-init.md
-NOTES: McpMethodHandler is a sealed interface with Json and Streaming record variants. The Streaming path is fully implemented but not yet exercised by any registered method — it will be used when a future tools/call implementation declares McpStreamContext. The @PostMapping produces annotation now includes both APPLICATION_JSON_VALUE and TEXT_EVENT_STREAM_VALUE. Error responses from JSON handlers are returned synchronously as JSON (no SSE overhead). The compliance test setUp no longer needs ephemeral stream mocks for ping-based tests since ping now takes the JSON path.
+NEXT_SPEC: 014-origin-validation-on-all-endpoints.md
+NOTES: The resolveSession() fallthrough that created anonymous sessions is replaced with a null return and log warning. The handlePost() method now checks for missing session ID before calling resolveSession() for non-initialize methods. handleNotificationOrResponse() now rejects requests without session ID with 400 and a Map body (not JSON-RPC error format, matching the pattern used by GET and DELETE handlers). The SESSION_ID_REQUIRED constant was added near handleNotificationOrResponse for locality.

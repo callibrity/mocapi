@@ -170,12 +170,14 @@ class McpStreamingControllerTest {
 
     @Test
     void pingShouldReturnJson() {
+      McpSession session = sessionManager.createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
+      var response =
+          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -293,13 +295,15 @@ class McpStreamingControllerTest {
 
     @Test
     void shouldAcceptAllValidProtocolVersions() {
+      McpSession session = sessionManager.createSession();
       for (String version : List.of("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")) {
         ObjectNode request = objectMapper.createObjectNode();
         request.put("jsonrpc", "2.0");
         request.put("method", "ping");
         request.put("id", 1);
 
-        var response = controller.handlePost(request, version, null, POST_ACCEPT, null);
+        var response =
+            controller.handlePost(request, version, session.getSessionId(), POST_ACCEPT, null);
         assertThat(response.getStatusCode())
             .as("Protocol version %s should be accepted", version)
             .isNotEqualTo(HttpStatus.BAD_REQUEST);
@@ -312,24 +316,28 @@ class McpStreamingControllerTest {
 
     @Test
     void shouldAcceptValidOrigin() {
+      McpSession session = sessionManager.createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.put("id", 1);
 
       var response =
-          controller.handlePost(request, null, null, POST_ACCEPT, "http://localhost:8080");
+          controller.handlePost(
+              request, null, session.getSessionId(), POST_ACCEPT, "http://localhost:8080");
       assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
     void shouldAcceptNullOrigin() {
+      McpSession session = sessionManager.createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
+      var response =
+          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.FORBIDDEN);
     }
 
@@ -350,35 +358,98 @@ class McpStreamingControllerTest {
 
     @Test
     void shouldAcceptStringId() {
+      McpSession session = sessionManager.createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.put("id", "string-id");
 
-      var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
+      var response =
+          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void shouldAcceptNumberId() {
+      McpSession session = sessionManager.createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.put("id", 42);
 
-      var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
+      var response =
+          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void shouldAcceptNullId() {
+      McpSession session = sessionManager.createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.putNull("id");
 
+      var response =
+          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+  }
+
+  @Nested
+  class PostSessionIdEnforcement {
+
+    @Test
+    void shouldReturn400WhenSessionIdMissingForNonInitializeMethod() {
+      ObjectNode request = objectMapper.createObjectNode();
+      request.put("jsonrpc", "2.0");
+      request.put("method", "ping");
+      request.put("id", 1);
+
+      var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+      assertErrorCode(response, -32600);
+      assertErrorMessage(response, "MCP-Session-Id header is required");
+    }
+
+    @Test
+    void shouldAllowInitializeWithoutSessionId() {
+      ObjectNode request = objectMapper.createObjectNode();
+      request.put("jsonrpc", "2.0");
+      request.put("method", "initialize");
+      request.put("id", 1);
+
+      ObjectNode params = request.putObject("params");
+      params.put("protocolVersion", "2025-11-25");
+      params.putObject("capabilities");
+      ObjectNode clientInfo = params.putObject("clientInfo");
+      clientInfo.put("name", "test-client");
+      clientInfo.put("version", "1.0");
+
       var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertThat(response.getHeaders().getFirst("MCP-Session-Id")).isNotNull();
+    }
+
+    @Test
+    void shouldReturn400WhenNotificationMissingSessionId() {
+      ObjectNode notification = objectMapper.createObjectNode();
+      notification.put("jsonrpc", "2.0");
+      notification.put("method", "notifications/initialized");
+
+      var response = controller.handlePost(notification, null, null, POST_ACCEPT, null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void shouldReturn400WhenJsonRpcResponseMissingSessionId() {
+      ObjectNode jsonRpcResponse = objectMapper.createObjectNode();
+      jsonRpcResponse.put("jsonrpc", "2.0");
+      jsonRpcResponse.put("id", 1);
+      jsonRpcResponse.putObject("result");
+
+      var response = controller.handlePost(jsonRpcResponse, null, null, POST_ACCEPT, null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -388,6 +459,14 @@ class McpStreamingControllerTest {
     JsonNode body = (JsonNode) response.getBody();
     assertThat(body.has("error")).isTrue();
     assertThat(body.get("error").get("code").asInt()).isEqualTo(expectedCode);
+  }
+
+  private static void assertErrorMessage(
+      org.springframework.http.ResponseEntity<Object> response, String expectedMessage) {
+    assertThat(response.getBody()).isInstanceOf(JsonNode.class);
+    JsonNode body = (JsonNode) response.getBody();
+    assertThat(body.has("error")).isTrue();
+    assertThat(body.get("error").get("message").asString()).isEqualTo(expectedMessage);
   }
 
   private static void assertJsonRpcResponse(

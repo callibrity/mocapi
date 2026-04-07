@@ -201,12 +201,13 @@ class McpStreamingControllerComplianceTest {
 
     @Test
     void shouldAcceptWildcardOnPost() {
+      McpSession session = sessionManager.createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, null, "*/*", null);
+      var response = controller.handlePost(request, null, session.getSessionId(), "*/*", null);
       assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
 
@@ -233,13 +234,15 @@ class McpStreamingControllerComplianceTest {
 
     @Test
     void shouldAcceptValidPostAcceptHeader() {
+      McpSession session = sessionManager.createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.put("id", 1);
 
       var response =
-          controller.handlePost(request, null, null, "application/json, text/event-stream", null);
+          controller.handlePost(
+              request, null, session.getSessionId(), "application/json, text/event-stream", null);
       assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
 
