@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-07T15:49:00-04:00
-ITERATION: 13
-SPEC_COMPLETED: 013-enforce-session-id-after-init.md
-WHAT_WAS_DONE: Enforced MCP-Session-Id header requirement on all post-initialize requests per the MCP spec. Removed anonymous session creation from resolveSession(), added 400 Bad Request response for missing session ID on non-initialize POST requests and on notifications/responses. Updated handleNotificationOrResponse() to require session ID. Added 4 new tests (PostSessionIdEnforcement) and updated 10 existing tests to provide session IDs.
-VERIFICATION: mvn verify — BUILD SUCCESS; all 77 tests pass (up from 73); spotless and license checks pass.
-STATUS: MORE_WORK
-NEXT_SPEC: 014-origin-validation-on-all-endpoints.md
-NOTES: The resolveSession() fallthrough that created anonymous sessions is replaced with a null return and log warning. The handlePost() method now checks for missing session ID before calling resolveSession() for non-initialize methods. handleNotificationOrResponse() now rejects requests without session ID with 400 and a Map body (not JSON-RPC error format, matching the pattern used by GET and DELETE handlers). The SESSION_ID_REQUIRED constant was added near handleNotificationOrResponse for locality.
+LAST_RUN: 2026-04-07T15:53:00-04:00
+ITERATION: 14
+SPEC_COMPLETED: 014-origin-validation-on-all-endpoints.md
+WHAT_WAS_DONE: Added Origin header validation to GET and DELETE handlers to prevent DNS rebinding attacks per MCP spec. Extracted a shared validateOrigin() helper for GET/DELETE (returns simple JSON body); POST retains its JSON-RPC error format via validateHeaders(). Added 3 new GET origin tests and 3 new DELETE origin tests. Updated all existing GET and DELETE test call sites to include the new origin parameter.
+VERIFICATION: mvn verify — BUILD SUCCESS; all 83 tests pass (up from 77); spotless and license checks pass.
+STATUS: DONE
+NEXT_SPEC: none
+NOTES: The POST handler still uses validateHeaders() which returns a JSON-RPC error body for origin failures (with error code -32600). GET/DELETE use the new validateOrigin() which returns a simple Map body {"error": "Invalid origin"} since there's no JSON-RPC request ID to reference. This matches the pattern already used by GET/DELETE for other error responses.

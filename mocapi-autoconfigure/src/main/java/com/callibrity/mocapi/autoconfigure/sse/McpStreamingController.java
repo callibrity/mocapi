@@ -175,10 +175,16 @@ public class McpStreamingController {
       @RequestHeader(value = "MCP-Session-Id", required = false) String sessionId,
       @RequestHeader(value = "MCP-Protocol-Version", required = false) String protocolVersion,
       @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId,
-      @RequestHeader(value = "Accept", required = false) String acceptHeader) {
+      @RequestHeader(value = "Accept", required = false) String acceptHeader,
+      @RequestHeader(value = "Origin", required = false) String origin) {
 
     if (!isValidGetAcceptHeader(acceptHeader)) {
       return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
+    }
+
+    ResponseEntity<Object> originError = validateOrigin(origin);
+    if (originError != null) {
+      return originError;
     }
 
     if (sessionId == null) {
@@ -214,7 +220,13 @@ public class McpStreamingController {
 
   @DeleteMapping
   public ResponseEntity<Object> handleDelete(
-      @RequestHeader(value = "MCP-Session-Id", required = false) String sessionId) {
+      @RequestHeader(value = "MCP-Session-Id", required = false) String sessionId,
+      @RequestHeader(value = "Origin", required = false) String origin) {
+
+    ResponseEntity<Object> originError = validateOrigin(origin);
+    if (originError != null) {
+      return originError;
+    }
 
     if (sessionId == null) {
       return ResponseEntity.badRequest()
@@ -452,6 +464,14 @@ public class McpStreamingController {
   }
 
   // --- Validation helpers ---
+
+  private ResponseEntity<Object> validateOrigin(String origin) {
+    if (origin != null && !isValidOrigin(origin)) {
+      log.warn("Invalid origin: {}", origin);
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(ERROR_KEY, "Invalid origin"));
+    }
+    return null;
+  }
 
   private ObjectNode createErrorResponse(JsonNode id, int code, String message) {
     ObjectNode response = objectMapper.createObjectNode();

@@ -63,13 +63,13 @@ class McpStreamingControllerGetTest {
 
   @Test
   void shouldReturn400WhenSessionIdMissing() {
-    var response = controller.handleGet(null, null, null, SSE_ACCEPT);
+    var response = controller.handleGet(null, null, null, SSE_ACCEPT, null);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
   }
 
   @Test
   void shouldReturn404WhenSessionNotFound() {
-    var response = controller.handleGet("nonexistent-session", null, null, SSE_ACCEPT);
+    var response = controller.handleGet("nonexistent-session", null, null, SSE_ACCEPT, null);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
   }
 
@@ -77,14 +77,14 @@ class McpStreamingControllerGetTest {
   void shouldReturn400ForInvalidProtocolVersion() {
     McpSession session = sessionManager.createSession();
     var response =
-        controller.handleGet(session.getSessionId(), "invalid-version", null, SSE_ACCEPT);
+        controller.handleGet(session.getSessionId(), "invalid-version", null, SSE_ACCEPT, null);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
   }
 
   @Test
   void shouldReturnSseEmitterForValidSession() {
     McpSession session = sessionManager.createSession();
-    var response = controller.handleGet(session.getSessionId(), null, null, SSE_ACCEPT);
+    var response = controller.handleGet(session.getSessionId(), null, null, SSE_ACCEPT, null);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
@@ -93,7 +93,7 @@ class McpStreamingControllerGetTest {
   @Test
   void shouldPublishPrimingEventAndSubscribeWithoutLastEventId() {
     McpSession session = sessionManager.createSession();
-    controller.handleGet(session.getSessionId(), null, null, SSE_ACCEPT);
+    controller.handleGet(session.getSessionId(), null, null, SSE_ACCEPT, null);
 
     verify(notificationStream).publishRaw("");
     verify(notificationStream).subscribe();
@@ -103,7 +103,7 @@ class McpStreamingControllerGetTest {
   void shouldResumeAfterLastEventId() {
     McpSession session = sessionManager.createSession();
     String lastEventId = "some-event-id";
-    controller.handleGet(session.getSessionId(), null, lastEventId, SSE_ACCEPT);
+    controller.handleGet(session.getSessionId(), null, lastEventId, SSE_ACCEPT, null);
 
     verify(notificationStream).resumeAfter(lastEventId);
   }
@@ -112,9 +112,35 @@ class McpStreamingControllerGetTest {
   void shouldAcceptValidProtocolVersion() {
     McpSession session = sessionManager.createSession();
     var response =
-        controller.handleGet(session.getSessionId(), McpServer.PROTOCOL_VERSION, null, SSE_ACCEPT);
+        controller.handleGet(
+            session.getSessionId(), McpServer.PROTOCOL_VERSION, null, SSE_ACCEPT, null);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
+  }
+
+  @Test
+  void shouldReturn403ForInvalidOrigin() {
+    McpSession session = sessionManager.createSession();
+    var response =
+        controller.handleGet(
+            session.getSessionId(), null, null, SSE_ACCEPT, "http://evil.example.com");
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+  }
+
+  @Test
+  void shouldAcceptValidOrigin() {
+    McpSession session = sessionManager.createSession();
+    var response =
+        controller.handleGet(
+            session.getSessionId(), null, null, SSE_ACCEPT, "http://localhost:8080");
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+  }
+
+  @Test
+  void shouldAcceptNullOrigin() {
+    McpSession session = sessionManager.createSession();
+    var response = controller.handleGet(session.getSessionId(), null, null, SSE_ACCEPT, null);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
   }
 }

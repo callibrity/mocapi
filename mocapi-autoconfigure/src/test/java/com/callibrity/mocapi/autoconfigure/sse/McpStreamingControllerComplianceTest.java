@@ -147,7 +147,7 @@ class McpStreamingControllerComplianceTest {
     @Test
     void shouldReturn204ForValidSessionTermination() {
       McpSession session = sessionManager.createSession();
-      var response = controller.handleDelete(session.getSessionId());
+      var response = controller.handleDelete(session.getSessionId(), null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
       assertThat(sessionManager.getSession(session.getSessionId())).isEmpty();
@@ -159,21 +159,42 @@ class McpStreamingControllerComplianceTest {
       when(registry.channel(anyString())).thenReturn(stream);
       McpSession session = sessionManager.createSession();
 
-      controller.handleDelete(session.getSessionId());
+      controller.handleDelete(session.getSessionId(), null);
 
       verify(stream).delete();
     }
 
     @Test
     void shouldReturn400WhenSessionIdMissing() {
-      var response = controller.handleDelete(null);
+      var response = controller.handleDelete(null, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
     void shouldReturn404WhenSessionNotFound() {
-      var response = controller.handleDelete("nonexistent-session");
+      var response = controller.handleDelete("nonexistent-session", null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void shouldReturn403ForInvalidOrigin() {
+      McpSession session = sessionManager.createSession();
+      var response = controller.handleDelete(session.getSessionId(), "http://evil.example.com");
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void shouldAcceptValidOrigin() {
+      McpSession session = sessionManager.createSession();
+      var response = controller.handleDelete(session.getSessionId(), "http://localhost:8080");
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    }
+
+    @Test
+    void shouldAcceptNullOrigin() {
+      McpSession session = sessionManager.createSession();
+      var response = controller.handleDelete(session.getSessionId(), null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
   }
 
@@ -214,21 +235,22 @@ class McpStreamingControllerComplianceTest {
     @Test
     void shouldReturn406WhenGetMissingAcceptHeader() {
       McpSession session = sessionManager.createSession();
-      var response = controller.handleGet(session.getSessionId(), null, null, null);
+      var response = controller.handleGet(session.getSessionId(), null, null, null, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
 
     @Test
     void shouldReturn406WhenGetAcceptMissesSse() {
       McpSession session = sessionManager.createSession();
-      var response = controller.handleGet(session.getSessionId(), null, null, "application/json");
+      var response =
+          controller.handleGet(session.getSessionId(), null, null, "application/json", null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
 
     @Test
     void shouldAcceptWildcardOnGet() {
       McpSession session = sessionManager.createSession();
-      var response = controller.handleGet(session.getSessionId(), null, null, "*/*");
+      var response = controller.handleGet(session.getSessionId(), null, null, "*/*", null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
@@ -249,7 +271,8 @@ class McpStreamingControllerComplianceTest {
     @Test
     void shouldAcceptValidGetAcceptHeader() {
       McpSession session = sessionManager.createSession();
-      var response = controller.handleGet(session.getSessionId(), null, null, "text/event-stream");
+      var response =
+          controller.handleGet(session.getSessionId(), null, null, "text/event-stream", null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
   }
