@@ -24,7 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.task.TaskExecutor;
+import org.jwcarman.odyssey.core.OdysseyStream;
+import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -43,8 +45,8 @@ import tools.jackson.databind.node.ObjectNode;
  * MCP Streaming Controller implementing the MCP 2025-11-25 Streamable HTTP transport.
  *
  * <p>Handles POST (client requests), GET (server notifications), and DELETE (session termination)
- * with SSE streaming. Implements session management, event ID tracking, and stream resumability per
- * the MCP spec.
+ * with SSE streaming. Uses Odyssey for event storage, replay, keep-alive, and emitter lifecycle
+ * management.
  */
 @Slf4j
 @RestController
@@ -53,7 +55,7 @@ public class McpStreamingController {
 
   private final McpServer mcpServer;
   private final McpSessionManager sessionManager;
-  private final TaskExecutor taskExecutor;
+  private final OdysseyStreamRegistry registry;
   private final ObjectMapper objectMapper;
   private final List<String> allowedOrigins;
   private final McpToolsCapability toolsCapability;
@@ -67,13 +69,13 @@ public class McpStreamingController {
   public McpStreamingController(
       McpServer mcpServer,
       McpSessionManager sessionManager,
-      TaskExecutor taskExecutor,
+      OdysseyStreamRegistry registry,
       ObjectMapper objectMapper,
       List<String> allowedOrigins,
       McpToolsCapability toolsCapability) {
     this.mcpServer = mcpServer;
     this.sessionManager = sessionManager;
-    this.taskExecutor = taskExecutor;
+    this.registry = registry;
     this.objectMapper = objectMapper;
     this.allowedOrigins = allowedOrigins;
     this.toolsCapability = toolsCapability;
@@ -148,17 +150,16 @@ public class McpStreamingController {
           .body(Map.of(ERROR_KEY, "Invalid MCP-Protocol-Version: " + version));
     }
 
-    McpStreamEmitter streamEmitter = new McpStreamEmitter(session);
-    streamEmitter.sendPrimingEvent();
-
+    OdysseyStream stream = session.getNotificationStream();
+    SseEmitter emitter;
     if (lastEventId != null) {
-      for (SseEvent event : session.getEventsAfter(lastEventId)) {
-        streamEmitter.send(event.data());
-      }
+      emitter = stream.resumeAfter(lastEventId);
+    } else {
+      stream.publishRaw("");
+      emitter = stream.subscribe();
     }
 
-    session.registerNotificationEmitter(streamEmitter);
-    return ResponseEntity.ok().body(streamEmitter.getEmitter());
+    return ResponseEntity.ok().body(emitter);
   }
 
   @DeleteMapping
@@ -246,20 +247,21 @@ public class McpStreamingController {
 
   private ResponseEntity<Object> processRequest(
       McpSession session, String method, JsonNode params, JsonNode idNode) {
-    McpStreamEmitter streamEmitter = new McpStreamEmitter(session);
-    streamEmitter.sendPrimingEvent();
+    OdysseyStream stream = registry.ephemeral();
+    stream.publishRaw("");
+    SseEmitter emitter = stream.subscribe();
 
-    taskExecutor.execute(() -> executeMethod(streamEmitter, method, params, idNode));
+    Thread.ofVirtual().start(() -> executeMethod(stream, method, params, idNode));
 
     ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
     if (INITIALIZE_METHOD.equals(method)) {
       builder.header("MCP-Session-Id", session.getSessionId());
     }
-    return builder.body(streamEmitter.getEmitter());
+    return builder.body(emitter);
   }
 
   private void executeMethod(
-      McpStreamEmitter streamEmitter, String method, JsonNode params, JsonNode idNode) {
+      OdysseyStream stream, String method, JsonNode params, JsonNode idNode) {
     try {
       Object result = invokeMethod(method, params);
 
@@ -272,17 +274,20 @@ public class McpStreamingController {
         response.set("result", objectMapper.valueToTree(result));
       }
 
-      streamEmitter.sendAndComplete(response);
+      stream.publishJson(response);
+      stream.close();
     } catch (McpException e) {
       log.warn("MCP error processing {}: {}", method, e.getMessage());
-      streamEmitter.sendAndComplete(createErrorResponse(idNode, e.getCode(), e.getMessage()));
+      stream.publishJson(createErrorResponse(idNode, e.getCode(), e.getMessage()));
+      stream.close();
     } catch (IllegalArgumentException _) {
       log.warn("Method not found: {}", method);
-      streamEmitter.sendAndComplete(
-          createErrorResponse(idNode, -32601, "Method not found: " + method));
+      stream.publishJson(createErrorResponse(idNode, -32601, "Method not found: " + method));
+      stream.close();
     } catch (RuntimeException e) {
       log.error("Error processing JSON-RPC request", e);
-      streamEmitter.sendAndComplete(createErrorResponse(idNode, -32603, "Internal error"));
+      stream.publishJson(createErrorResponse(idNode, -32603, "Internal error"));
+      stream.close();
     }
   }
 

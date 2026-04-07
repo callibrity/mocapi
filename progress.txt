@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-07T15:26:00-04:00
-ITERATION: 10
-SPEC_COMPLETED: 008-toolservice-stereotype.md
-WHAT_WAS_DONE: Made @ToolService a Spring stereotype annotation by adding @Component as a meta-annotation. Added spring-context as an optional dependency to mocapi-tools. Removed redundant @Component from HelloTool, Rot13Tool, and README.md example.
-VERIFICATION: mvn verify — BUILD SUCCESS; all modules pass; spotless and license checks pass; integration tests pass (ToolServiceMcpToolProvider still discovers all @ToolService beans).
+LAST_RUN: 2026-04-07T15:39:00-04:00
+ITERATION: 11
+SPEC_COMPLETED: 011-migrate-sse-to-odyssey.md
+WHAT_WAS_DONE: Replaced Mocapi's hand-rolled SSE event storage, replay, keep-alive, and emitter lifecycle management with Odyssey (odyssey-core). Deleted SseEvent, McpStreamEmitter, and their tests. Slimmed McpSession to lifecycle + OdysseyStream reference. Refactored McpStreamingController to use OdysseyStreamRegistry (ephemeral streams for POST, channel streams for GET notifications). Removed mcpTaskExecutor bean; method dispatch uses virtual threads. Updated McpSessionManager to call stream.delete() on termination.
+VERIFICATION: mvn verify — BUILD SUCCESS; all 70 tests pass; spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: 011-migrate-sse-to-odyssey.md
-NOTES: spring-context added as optional dependency to mocapi-tools/pom.xml. Test inner classes (SampleToolService, OtherToolService, EmptyToolService) in ToolServiceMcpToolProviderTest already did not have @Component, so no test changes needed.
+NEXT_SPEC: 012-json-response-for-simple-methods.md
+NOTES: odyssey-core 1.0.0-SNAPSHOT added to mocapi-autoconfigure/pom.xml. Transitively brings in substrate-core and codec-jackson. Auto-configuration tests now include JacksonCodecAutoConfiguration, SubstrateAutoConfiguration, and OdysseyAutoConfiguration in the ApplicationContextRunner. McpSession constructor now takes (sessionId, notificationStream) — session ID is generated in McpSessionManager.createSession().

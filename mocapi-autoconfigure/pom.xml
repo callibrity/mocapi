@@ -60,6 +60,11 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <groupId>org.jwcarman.odyssey</groupId>
+            <artifactId>odyssey-core</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>

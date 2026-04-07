@@ -22,14 +22,13 @@ import com.callibrity.mocapi.server.McpServerCapability;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.core.task.TaskExecutor;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration
@@ -51,20 +50,8 @@ public class MocapiAutoConfiguration {
 
   @Bean(destroyMethod = "shutdown")
   @ConditionalOnMissingBean
-  public McpSessionManager mcpSessionManager() {
-    return new McpSessionManager();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(name = "mcpTaskExecutor")
-  public TaskExecutor mcpTaskExecutor() {
-    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-    executor.setCorePoolSize(4);
-    executor.setMaxPoolSize(16);
-    executor.setQueueCapacity(100);
-    executor.setThreadNamePrefix("mcp-stream-");
-    executor.initialize();
-    return executor;
+  public McpSessionManager mcpSessionManager(OdysseyStreamRegistry registry) {
+    return new McpSessionManager(registry);
   }
 
   @Bean
@@ -72,13 +59,13 @@ public class MocapiAutoConfiguration {
   public McpStreamingController mcpStreamingController(
       McpServer mcpServer,
       McpSessionManager sessionManager,
-      TaskExecutor mcpTaskExecutor,
+      OdysseyStreamRegistry registry,
       ObjectMapper objectMapper,
       @Autowired(required = false) McpToolsCapability toolsCapability) {
     return new McpStreamingController(
         mcpServer,
         sessionManager,
-        mcpTaskExecutor,
+        registry,
         objectMapper,
         props.getAllowedOrigins(),
         toolsCapability);

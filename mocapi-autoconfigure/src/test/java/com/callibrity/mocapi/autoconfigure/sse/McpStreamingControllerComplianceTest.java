@@ -16,6 +16,10 @@
 package com.callibrity.mocapi.autoconfigure.sse;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.server.McpServer;
 import java.util.List;
@@ -26,15 +30,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
-import org.springframework.core.task.SyncTaskExecutor;
+import org.jwcarman.odyssey.core.OdysseyStream;
+import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Tests for MCP Streamable HTTP transport compliance gaps (spec 009). Covers: Gap 1 (notification
- * 202), Gap 2 (DELETE endpoint), Gap 3 (no Last-Event-ID on POST), Gap 4 (stream identity in event
- * IDs), Gap 5 (Accept header validation).
+ * 202), Gap 2 (DELETE endpoint), Gap 5 (Accept header validation).
  */
 class McpStreamingControllerComplianceTest {
 
@@ -43,20 +48,26 @@ class McpStreamingControllerComplianceTest {
   private McpStreamingController controller;
   private McpSessionManager sessionManager;
   private ObjectMapper objectMapper;
+  private OdysseyStreamRegistry registry;
 
   @BeforeEach
   void setUp() {
     McpServer mcpServer = new McpServer(List.of(), null, null);
-    sessionManager = new McpSessionManager();
+    registry = mock(OdysseyStreamRegistry.class);
+
+    OdysseyStream notificationStream = mock(OdysseyStream.class);
+    when(notificationStream.subscribe()).thenReturn(new SseEmitter());
+    when(registry.channel(anyString())).thenReturn(notificationStream);
+
+    OdysseyStream ephemeralStream = mock(OdysseyStream.class);
+    when(ephemeralStream.subscribe()).thenReturn(new SseEmitter());
+    when(registry.ephemeral()).thenReturn(ephemeralStream);
+
+    sessionManager = new McpSessionManager(registry);
     objectMapper = new ObjectMapper();
     controller =
         new McpStreamingController(
-            mcpServer,
-            sessionManager,
-            new SyncTaskExecutor(),
-            objectMapper,
-            List.of("localhost"),
-            null);
+            mcpServer, sessionManager, registry, objectMapper, List.of("localhost"), null);
   }
 
   // ---- Gap 1: Notifications must return 202 Accepted ----
@@ -115,9 +126,6 @@ class McpStreamingControllerComplianceTest {
 
     @Test
     void shouldInvokeClientInitializedForNotification() {
-      // This test verifies the notification is processed (not just acknowledged).
-      // The mcpServer.clientInitialized() is a no-op that doesn't throw,
-      // so a successful 202 indicates it was invoked.
       McpSession session = sessionManager.createSession();
 
       ObjectNode notification = objectMapper.createObjectNode();
@@ -146,6 +154,17 @@ class McpStreamingControllerComplianceTest {
     }
 
     @Test
+    void shouldDeleteNotificationStreamOnTermination() {
+      OdysseyStream stream = mock(OdysseyStream.class);
+      when(registry.channel(anyString())).thenReturn(stream);
+      McpSession session = sessionManager.createSession();
+
+      controller.handleDelete(session.getSessionId());
+
+      verify(stream).delete();
+    }
+
+    @Test
     void shouldReturn400WhenSessionIdMissing() {
       var response = controller.handleDelete(null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -155,74 +174,6 @@ class McpStreamingControllerComplianceTest {
     void shouldReturn404WhenSessionNotFound() {
       var response = controller.handleDelete("nonexistent-session");
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-    }
-  }
-
-  // ---- Gap 4: Event IDs must encode stream identity ----
-
-  @Nested
-  class EventIdStreamIdentity {
-
-    @Test
-    void shouldEncodeStreamIdInEventId() {
-      McpSession session = new McpSession();
-      String streamId = "test-stream-id";
-      String eventId = session.nextEventId(streamId);
-
-      assertThat(eventId).startsWith(streamId + ":");
-    }
-
-    @Test
-    void shouldExtractStreamIdFromEventId() {
-      String streamId = "abc-123-def";
-      String eventId = streamId + ":42";
-
-      assertThat(McpSession.extractStreamId(eventId)).isEqualTo(streamId);
-    }
-
-    @Test
-    void shouldReturnNullForInvalidEventId() {
-      assertThat(McpSession.extractStreamId(null)).isNull();
-      assertThat(McpSession.extractStreamId("no-colon")).isNull();
-    }
-
-    @Test
-    void shouldReplayEventsFromOriginalStream() {
-      McpSession session = new McpSession();
-      String stream1 = "stream-1";
-      String stream2 = "stream-2";
-
-      // Store events on stream 1
-      String eventId1 = session.nextEventId(stream1);
-      session.storeEvent(stream1, new SseEvent(eventId1, "data-1"));
-      String eventId2 = session.nextEventId(stream1);
-      session.storeEvent(stream1, new SseEvent(eventId2, "data-2"));
-
-      // Store events on stream 2
-      String eventId3 = session.nextEventId(stream2);
-      session.storeEvent(stream2, new SseEvent(eventId3, "data-3"));
-
-      // Resumption should only replay from stream 1 after eventId1
-      var replayed = session.getEventsAfter(eventId1);
-      assertThat(replayed).hasSize(1);
-      assertThat(replayed.iterator().next().data()).isEqualTo("data-2");
-    }
-
-    @Test
-    void shouldNotReplayEventsFromDifferentStream() {
-      McpSession session = new McpSession();
-      String stream1 = "stream-1";
-      String stream2 = "stream-2";
-
-      String eventId1 = session.nextEventId(stream1);
-      session.storeEvent(stream1, new SseEvent(eventId1, "data-1"));
-
-      String eventId2 = session.nextEventId(stream2);
-      session.storeEvent(stream2, new SseEvent(eventId2, "data-2"));
-
-      // Asking for events after stream1's event should not return stream2's events
-      var replayed = session.getEventsAfter(eventId1);
-      assertThat(replayed).isNotNull().isEmpty();
     }
   }
 
@@ -256,7 +207,6 @@ class McpStreamingControllerComplianceTest {
       request.put("id", 1);
 
       var response = controller.handlePost(request, null, null, "*/*", null);
-      // Should not be 406
       assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
 
@@ -290,7 +240,6 @@ class McpStreamingControllerComplianceTest {
 
       var response =
           controller.handlePost(request, null, null, "application/json, text/event-stream", null);
-      // Should not be 406
       assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
 

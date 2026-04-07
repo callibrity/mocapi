@@ -21,6 +21,9 @@ import com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.codec.jackson.JacksonCodecAutoConfiguration;
+import org.jwcarman.odyssey.autoconfigure.OdysseyAutoConfiguration;
+import org.jwcarman.substrate.autoconfigure.SubstrateAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -33,7 +36,10 @@ class MocapiToolsAutoConfigurationTest {
               AutoConfigurations.of(
                   MocapiToolsAutoConfiguration.class,
                   MocapiAutoConfiguration.class,
-                  JacksonAutoConfiguration.class));
+                  JacksonAutoConfiguration.class,
+                  JacksonCodecAutoConfiguration.class,
+                  SubstrateAutoConfiguration.class,
+                  OdysseyAutoConfiguration.class));
 
   @Test
   void mcpCapabilityInitializes() {

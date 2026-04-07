@@ -16,13 +16,27 @@
 package com.callibrity.mocapi.autoconfigure.sse;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.odyssey.core.OdysseyStream;
+import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 
 class McpSessionManagerTest {
 
   private McpSessionManager manager;
+  private OdysseyStreamRegistry registry;
+
+  @BeforeEach
+  void setUp() {
+    registry = mock(OdysseyStreamRegistry.class);
+    when(registry.channel(anyString())).thenReturn(mock(OdysseyStream.class));
+  }
 
   @AfterEach
   void tearDown() {
@@ -33,7 +47,7 @@ class McpSessionManagerTest {
 
   @Test
   void createSessionShouldReturnUniqueSessions() {
-    manager = new McpSessionManager();
+    manager = new McpSessionManager(registry);
     var session1 = manager.createSession();
     var session2 = manager.createSession();
 
@@ -43,7 +57,7 @@ class McpSessionManagerTest {
 
   @Test
   void getSessionShouldReturnSessionById() {
-    manager = new McpSessionManager();
+    manager = new McpSessionManager(registry);
     var session = manager.createSession();
 
     var retrieved = manager.getSession(session.getSessionId());
@@ -52,19 +66,19 @@ class McpSessionManagerTest {
 
   @Test
   void getSessionShouldReturnEmptyForUnknownId() {
-    manager = new McpSessionManager();
+    manager = new McpSessionManager(registry);
     assertThat(manager.getSession("nonexistent")).isEmpty();
   }
 
   @Test
   void getSessionShouldReturnEmptyForNullId() {
-    manager = new McpSessionManager();
+    manager = new McpSessionManager(registry);
     assertThat(manager.getSession(null)).isEmpty();
   }
 
   @Test
   void getSessionShouldReturnEmptyForExpiredSession() {
-    manager = new McpSessionManager(0);
+    manager = new McpSessionManager(registry, 0);
     var session = manager.createSession();
 
     assertThat(manager.getSession(session.getSessionId())).isEmpty();
@@ -72,7 +86,7 @@ class McpSessionManagerTest {
 
   @Test
   void terminateSessionShouldRemoveSession() {
-    manager = new McpSessionManager();
+    manager = new McpSessionManager(registry);
     var session = manager.createSession();
 
     assertThat(manager.terminateSession(session.getSessionId())).isTrue();
@@ -81,14 +95,26 @@ class McpSessionManagerTest {
   }
 
   @Test
+  void terminateSessionShouldDeleteNotificationStream() {
+    OdysseyStream stream = mock(OdysseyStream.class);
+    when(registry.channel(anyString())).thenReturn(stream);
+    manager = new McpSessionManager(registry);
+    var session = manager.createSession();
+
+    manager.terminateSession(session.getSessionId());
+
+    verify(stream).delete();
+  }
+
+  @Test
   void terminateSessionShouldReturnFalseForUnknownId() {
-    manager = new McpSessionManager();
+    manager = new McpSessionManager(registry);
     assertThat(manager.terminateSession("nonexistent")).isFalse();
   }
 
   @Test
   void cleanupInactiveSessionsShouldRemoveExpiredSessions() {
-    manager = new McpSessionManager(0);
+    manager = new McpSessionManager(registry, 0);
     manager.createSession();
     manager.createSession();
 
@@ -99,7 +125,7 @@ class McpSessionManagerTest {
 
   @Test
   void cleanupInactiveSessionsShouldKeepActiveSessions() {
-    manager = new McpSessionManager(3600);
+    manager = new McpSessionManager(registry, 3600);
     manager.createSession();
 
     manager.cleanupInactiveSessions();
@@ -109,7 +135,7 @@ class McpSessionManagerTest {
 
   @Test
   void getSessionCountShouldReturnCorrectCount() {
-    manager = new McpSessionManager();
+    manager = new McpSessionManager(registry);
     assertThat(manager.getSessionCount()).isZero();
 
     manager.createSession();

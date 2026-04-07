@@ -16,155 +16,54 @@
 package com.callibrity.mocapi.autoconfigure.sse;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import org.junit.jupiter.api.Test;
+import org.jwcarman.odyssey.core.OdysseyStream;
 
 class McpSessionTest {
 
-  @Test
-  void nextEventIdShouldContainStreamIdAndIncrement() {
-    var session = new McpSession();
-    String id1 = session.nextEventId("stream-A");
-    String id2 = session.nextEventId("stream-A");
-
-    assertThat(id1).startsWith("stream-A:");
-    assertThat(id2).startsWith("stream-A:");
-    assertThat(id1).isNotEqualTo(id2);
+  private static McpSession createSession() {
+    return new McpSession("test-session-id", mock(OdysseyStream.class));
   }
 
   @Test
-  void storeEventAndGetEventsAfterShouldRoundTrip() {
-    var session = new McpSession();
-    String streamId = "s1";
-
-    String eventId1 = session.nextEventId(streamId);
-    session.storeEvent(streamId, new SseEvent(eventId1, "data-1"));
-    String eventId2 = session.nextEventId(streamId);
-    session.storeEvent(streamId, new SseEvent(eventId2, "data-2"));
-    String eventId3 = session.nextEventId(streamId);
-    session.storeEvent(streamId, new SseEvent(eventId3, "data-3"));
-
-    var replayed = session.getEventsAfter(eventId1);
-    assertThat(replayed).hasSize(2);
-    var iterator = replayed.iterator();
-    assertThat(iterator.next().data()).isEqualTo("data-2");
-    assertThat(iterator.next().data()).isEqualTo("data-3");
+  void sessionShouldHaveProvidedId() {
+    OdysseyStream stream = mock(OdysseyStream.class);
+    var session = new McpSession("my-session-id", stream);
+    assertThat(session.getSessionId()).isEqualTo("my-session-id");
   }
 
   @Test
-  void getEventsAfterShouldReturnEmptyForUnknownStream() {
-    var session = new McpSession();
-    var replayed = session.getEventsAfter("nonexistent-stream:1");
-    assertThat(replayed).isEmpty();
+  void sessionShouldTrackCreatedAt() {
+    var session = createSession();
+    assertThat(session.getCreatedAt()).isNotNull();
   }
 
   @Test
-  void getEventsAfterShouldReturnEmptyForNullStreamIdExtraction() {
-    var session = new McpSession();
-    assertThat(session.getEventsAfter("no-colon")).isEmpty();
-  }
-
-  @Test
-  void getEventsAfterShouldReturnEmptyForNullEventId() {
-    var session = new McpSession();
-    assertThat(session.getEventsAfter(null)).isEmpty();
-  }
-
-  @Test
-  void getEventsAfterLastEventShouldReturnEmpty() {
-    var session = new McpSession();
-    String streamId = "s1";
-    String eventId = session.nextEventId(streamId);
-    session.storeEvent(streamId, new SseEvent(eventId, "data"));
-
-    var replayed = session.getEventsAfter(eventId);
-    assertThat(replayed).isEmpty();
-  }
-
-  @Test
-  void clearStreamShouldRemoveEvents() {
-    var session = new McpSession();
-    String streamId = "s1";
-    String eventId = session.nextEventId(streamId);
-    session.storeEvent(streamId, new SseEvent(eventId, "data"));
-
-    session.clearStream(streamId);
-
-    assertThat(session.getStreamEvents()).doesNotContainKey(streamId);
+  void sessionShouldHoldNotificationStream() {
+    OdysseyStream stream = mock(OdysseyStream.class);
+    var session = new McpSession("id", stream);
+    assertThat(session.getNotificationStream()).isSameAs(stream);
   }
 
   @Test
   void isInactiveShouldReturnFalseForActiveSession() {
-    var session = new McpSession();
+    var session = createSession();
     assertThat(session.isInactive(3600)).isFalse();
   }
 
   @Test
   void isInactiveShouldReturnTrueForExpiredSession() {
-    var session = new McpSession();
+    var session = createSession();
     assertThat(session.isInactive(0)).isTrue();
   }
 
   @Test
-  void sendNotificationShouldDeliverToEmitters() {
-    var session = new McpSession();
-    var emitter1 = new McpStreamEmitter(session);
-    var emitter2 = new McpStreamEmitter(session);
-
-    session.registerNotificationEmitter(emitter1);
-    session.registerNotificationEmitter(emitter2);
-
-    session.sendNotification("hello");
-
-    assertThat(session.getNotificationEmitterCount()).isEqualTo(2);
-  }
-
-  @Test
-  void sendNotificationShouldRemoveFailedEmitters() {
-    var session = new McpSession();
-    var emitter = new McpStreamEmitter(session);
-
-    session.registerNotificationEmitter(emitter);
-    assertThat(session.getNotificationEmitterCount()).isEqualTo(1);
-
-    // Complete the underlying SseEmitter to make send() fail
-    emitter.getEmitter().complete();
-    session.sendNotification("hello");
-
-    assertThat(session.getNotificationEmitterCount()).isZero();
-  }
-
-  @Test
-  void extractStreamIdShouldParseCorrectly() {
-    assertThat(McpSession.extractStreamId("abc-123:42")).isEqualTo("abc-123");
-    assertThat(McpSession.extractStreamId("stream:with:colons:5")).isEqualTo("stream:with:colons");
-    assertThat(McpSession.extractStreamId(null)).isNull();
-    assertThat(McpSession.extractStreamId("nocolon")).isNull();
-    assertThat(McpSession.extractStreamId(":1")).isNull();
-  }
-
-  @Test
-  void sessionShouldHaveUniqueId() {
-    var session1 = new McpSession();
-    var session2 = new McpSession();
-    assertThat(session1.getSessionId()).isNotEqualTo(session2.getSessionId());
-  }
-
-  @Test
-  void sessionShouldTrackCreatedAt() {
-    var session = new McpSession();
-    assertThat(session.getCreatedAt()).isNotNull();
-  }
-
-  @Test
-  void registerNotificationEmitterShouldAutoRemoveOnClose() {
-    var session = new McpSession();
-    var emitter = new McpStreamEmitter(session);
-
-    session.registerNotificationEmitter(emitter);
-    assertThat(session.getNotificationEmitterCount()).isEqualTo(1);
-
-    emitter.complete();
-    assertThat(session.getNotificationEmitterCount()).isZero();
+  void updateActivityShouldRefreshLastActivity() {
+    var session = createSession();
+    var before = session.getLastActivity();
+    session.updateActivity();
+    assertThat(session.getLastActivity()).isAfterOrEqualTo(before);
   }
 }

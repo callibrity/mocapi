@@ -16,12 +16,17 @@
 package com.callibrity.mocapi.autoconfigure.sse;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.server.McpServer;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.task.SyncTaskExecutor;
+import org.jwcarman.odyssey.core.OdysseyStream;
+import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.ObjectMapper;
@@ -32,20 +37,28 @@ class McpStreamingControllerGetTest {
 
   private McpStreamingController controller;
   private McpSessionManager sessionManager;
+  private OdysseyStreamRegistry registry;
+  private OdysseyStream notificationStream;
 
   @BeforeEach
   void setUp() {
     McpServer mcpServer = new McpServer(List.of(), null, null);
-    sessionManager = new McpSessionManager();
+    registry = mock(OdysseyStreamRegistry.class);
+
+    notificationStream = mock(OdysseyStream.class);
+    when(notificationStream.subscribe()).thenReturn(new SseEmitter());
+    when(notificationStream.resumeAfter(anyString())).thenReturn(new SseEmitter());
+    when(registry.channel(anyString())).thenReturn(notificationStream);
+
+    OdysseyStream ephemeralStream = mock(OdysseyStream.class);
+    when(ephemeralStream.subscribe()).thenReturn(new SseEmitter());
+    when(registry.ephemeral()).thenReturn(ephemeralStream);
+
+    sessionManager = new McpSessionManager(registry);
     ObjectMapper objectMapper = new ObjectMapper();
     controller =
         new McpStreamingController(
-            mcpServer,
-            sessionManager,
-            new SyncTaskExecutor(),
-            objectMapper,
-            List.of("localhost"),
-            null);
+            mcpServer, sessionManager, registry, objectMapper, List.of("localhost"), null);
   }
 
   @Test
@@ -78,11 +91,21 @@ class McpStreamingControllerGetTest {
   }
 
   @Test
-  void shouldRegisterNotificationEmitter() {
+  void shouldPublishPrimingEventAndSubscribeWithoutLastEventId() {
     McpSession session = sessionManager.createSession();
     controller.handleGet(session.getSessionId(), null, null, SSE_ACCEPT);
 
-    assertThat(session.getNotificationEmitterCount()).isEqualTo(1);
+    verify(notificationStream).publishRaw("");
+    verify(notificationStream).subscribe();
+  }
+
+  @Test
+  void shouldResumeAfterLastEventId() {
+    McpSession session = sessionManager.createSession();
+    String lastEventId = "some-event-id";
+    controller.handleGet(session.getSessionId(), null, lastEventId, SSE_ACCEPT);
+
+    verify(notificationStream).resumeAfter(lastEventId);
   }
 
   @Test
@@ -93,39 +116,5 @@ class McpStreamingControllerGetTest {
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
-  }
-
-  @Test
-  void shouldHandleLastEventIdWithNoStoredEvents() {
-    McpSession session = sessionManager.createSession();
-    var response =
-        controller.handleGet(session.getSessionId(), null, "some-previous-event-id", SSE_ACCEPT);
-
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
-  }
-
-  @Test
-  void shouldReplayStoredEventsAfterLastEventId() {
-    McpSession session = sessionManager.createSession();
-    String streamId = "original-stream";
-
-    // Simulate events stored from a previous POST stream
-    String eventId1 = session.nextEventId(streamId);
-    session.storeEvent(streamId, new SseEvent(eventId1, "data-1"));
-    String eventId2 = session.nextEventId(streamId);
-    session.storeEvent(streamId, new SseEvent(eventId2, "data-2"));
-    String eventId3 = session.nextEventId(streamId);
-    session.storeEvent(streamId, new SseEvent(eventId3, "data-3"));
-
-    // Client reconnects via GET with Last-Event-ID pointing to first event
-    var response = controller.handleGet(session.getSessionId(), null, eventId1, SSE_ACCEPT);
-
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
-
-    // Verify the replay happened by checking events after eventId1 were consumed
-    var remaining = session.getEventsAfter(eventId1);
-    assertThat(remaining).hasSize(2);
   }
 }

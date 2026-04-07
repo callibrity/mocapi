@@ -17,6 +17,7 @@ package com.callibrity.mocapi.autoconfigure.sse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -28,7 +29,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.task.SyncTaskExecutor;
+import org.jwcarman.odyssey.core.OdysseyStream;
+import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.JsonNode;
@@ -43,18 +45,26 @@ class McpStreamingControllerTest {
   private McpSessionManager sessionManager;
   private ObjectMapper objectMapper;
   private McpToolsCapability toolsCapability;
+  private OdysseyStreamRegistry registry;
 
   @BeforeEach
   void setUp() {
     McpServer mcpServer = new McpServer(List.of(), null, null);
-    sessionManager = new McpSessionManager();
+    registry = mock(OdysseyStreamRegistry.class);
+    when(registry.channel(anyString())).thenReturn(mock(OdysseyStream.class));
+
+    OdysseyStream ephemeralStream = mock(OdysseyStream.class);
+    when(ephemeralStream.subscribe()).thenReturn(new SseEmitter());
+    when(registry.ephemeral()).thenReturn(ephemeralStream);
+
+    sessionManager = new McpSessionManager(registry);
     objectMapper = new ObjectMapper();
     toolsCapability = mock(McpToolsCapability.class);
     controller =
         new McpStreamingController(
             mcpServer,
             sessionManager,
-            new SyncTaskExecutor(),
+            registry,
             objectMapper,
             List.of("localhost"),
             toolsCapability);
@@ -220,7 +230,6 @@ class McpStreamingControllerTest {
           controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-      // The response body is an SseEmitter (the error is sent as an SSE event)
       assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
     }
   }

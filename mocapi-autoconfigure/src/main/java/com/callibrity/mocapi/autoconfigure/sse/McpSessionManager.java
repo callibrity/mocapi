@@ -22,6 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 
 /**
  * Manages MCP sessions for SSE streaming support.
@@ -49,20 +50,27 @@ public class McpSessionManager {
   private final Map<String, McpSession> sessions = new ConcurrentHashMap<>();
   private final long sessionTimeoutSeconds;
   private final ScheduledExecutorService cleanupExecutor;
+  private final OdysseyStreamRegistry registry;
 
   // --------------------------- CONSTRUCTORS ---------------------------
 
-  /** Creates a session manager with the default timeout. */
-  public McpSessionManager() {
-    this(DEFAULT_SESSION_TIMEOUT_SECONDS);
+  /**
+   * Creates a session manager with the default timeout.
+   *
+   * @param registry the Odyssey stream registry for creating notification streams
+   */
+  public McpSessionManager(OdysseyStreamRegistry registry) {
+    this(registry, DEFAULT_SESSION_TIMEOUT_SECONDS);
   }
 
   /**
    * Creates a session manager with a custom timeout.
    *
+   * @param registry the Odyssey stream registry for creating notification streams
    * @param sessionTimeoutSeconds the session timeout in seconds
    */
-  public McpSessionManager(long sessionTimeoutSeconds) {
+  public McpSessionManager(OdysseyStreamRegistry registry, long sessionTimeoutSeconds) {
+    this.registry = registry;
     this.sessionTimeoutSeconds = sessionTimeoutSeconds;
     this.cleanupExecutor =
         Executors.newSingleThreadScheduledExecutor(
@@ -86,7 +94,8 @@ public class McpSessionManager {
    * @return the newly created session
    */
   public McpSession createSession() {
-    McpSession session = new McpSession();
+    String sessionId = java.util.UUID.randomUUID().toString();
+    McpSession session = new McpSession(sessionId, registry.channel(sessionId));
     sessions.put(session.getSessionId(), session);
     log.debug("Created new MCP session: {}", session.getSessionId());
     return session;
@@ -127,6 +136,7 @@ public class McpSessionManager {
   public boolean terminateSession(String sessionId) {
     McpSession removed = sessions.remove(sessionId);
     if (removed != null) {
+      removed.getNotificationStream().delete();
       log.debug("Terminated MCP session: {}", sessionId);
       return true;
     }
