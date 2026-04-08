@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-07T23:22:44-04:00
-ITERATION: 21
-SPEC_COMPLETED: 022-progress-and-logging-on-stream-context.md
-WHAT_WAS_DONE: Added progress token and logging support to McpStreamContext. sendProgress() now includes the progressToken from request _meta (no-op if absent). Added log(level, logger, data) and log(level, message) methods that emit notifications/message JSON-RPC notifications. Restructured McpStreamingController.dispatch() to create the DefaultMcpStreamContext with a live OdysseyStream before dispatch, so tools can send progress/log notifications during execution.
+LAST_RUN: 2026-04-07T23:29:21-04:00
+ITERATION: 22
+SPEC_COMPLETED: 023-mcp-event-id-codec.md
+WHAT_WAS_DONE: Implemented McpEventIdCodec in mocapi-core — a stateless, thread-safe utility that produces opaque, tamper-proof, session-bound IDs using AES-256-GCM with HMAC-SHA256 key derivation. Added McpEventIdCodecException for decode failures. Added eventId.masterKey configuration property to MocapiProperties and wired McpEventIdCodec as a conditional bean in MocapiAutoConfiguration (enabled when mocapi.event-id.master-key is set). Comprehensive unit tests cover round-trip encode/decode, wrong-session rejection, tampered ciphertext rejection, nonce uniqueness, malformed input, key validation, and real-world plaintext formats (SSE event IDs, elicitation mailbox keys).
 VERIFICATION: mvn verify — BUILD SUCCESS; all tests pass (core + tools + autoconfigure + example); spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: 023-mcp-event-id-codec.md
-NOTES: DefaultMcpStreamContext now takes a 3-arg constructor (stream, objectMapper, progressToken). The controller always creates an ephemeral stream before dispatch and closes it if the method doesn't use streaming. sendProgress is a no-op when no progressToken was provided in the request _meta. The log() convenience method defaults logger to "mcp".
+NEXT_SPEC: 024-mcp-elicitation-via-substrate-mailbox.md
+NOTES: Controller integration for SSE event ID encryption (SseEventMapper) requires Odyssey to support a subscriber builder with custom event mapping — current OdysseyStream API only exposes subscribe()/resumeAfter() without interception points. The codec is fully implemented and ready for use. Last-Event-ID decryption and elicitation request/response ID encryption will be wired when Odyssey adds mapper support (SSE side) and spec 024 is implemented (elicitation side). The codec bean is conditional on mocapi.event-id.master-key being set, so existing apps are unaffected.

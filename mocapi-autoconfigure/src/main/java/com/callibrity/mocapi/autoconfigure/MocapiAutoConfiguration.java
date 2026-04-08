@@ -23,14 +23,17 @@ import com.callibrity.mocapi.server.McpRequestValidator;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpServerCapability;
 import com.callibrity.mocapi.server.McpSessionStore;
+import com.callibrity.mocapi.server.util.McpEventIdCodec;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import java.util.Base64;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
@@ -79,6 +82,15 @@ public class MocapiAutoConfiguration {
   public McpToolMethods mcpToolMethods(
       McpToolsCapability toolsCapability, ObjectMapper objectMapper) {
     return new McpToolMethods(toolsCapability, objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnProperty("mocapi.event-id.master-key")
+  public McpEventIdCodec mcpEventIdCodec() {
+    String masterKeyBase64 = props.getEventId().getMasterKey();
+    byte[] masterKeyBytes = Base64.getDecoder().decode(masterKeyBase64);
+    return new McpEventIdCodec(masterKeyBytes);
   }
 
   @Bean
