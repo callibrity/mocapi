@@ -37,4 +37,21 @@ public interface McpStreamContext {
    * @param params the notification parameters (may be null)
    */
   void sendNotification(String method, Object params);
+
+  /**
+   * Sends a log notification ({@code notifications/message}) to the client.
+   *
+   * @param level the log level (e.g. "debug", "info", "warning", "error")
+   * @param logger the logger name (typically the tool name)
+   * @param data the log data (message string or structured object)
+   */
+  void log(String level, String logger, Object data);
+
+  /**
+   * Sends a log notification ({@code notifications/message}) to the client using a default logger.
+   *
+   * @param level the log level (e.g. "debug", "info", "warning", "error")
+   * @param message the log message
+   */
+  void log(String level, String message);
 }

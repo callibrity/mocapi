@@ -30,18 +30,24 @@ public class DefaultMcpStreamContext implements McpStreamContext {
 
   private final OdysseyStream stream;
   private final ObjectMapper objectMapper;
+  private final String progressToken;
 
-  DefaultMcpStreamContext(OdysseyStream stream, ObjectMapper objectMapper) {
+  DefaultMcpStreamContext(OdysseyStream stream, ObjectMapper objectMapper, String progressToken) {
     this.stream = stream;
     this.objectMapper = objectMapper;
+    this.progressToken = progressToken;
   }
 
   @Override
   public void sendProgress(long progress, long total) {
+    if (progressToken == null) {
+      return;
+    }
     ObjectNode notification = objectMapper.createObjectNode();
     notification.put("jsonrpc", JSONRPC_VERSION);
     notification.put("method", "notifications/progress");
     ObjectNode params = notification.putObject("params");
+    params.put("progressToken", progressToken);
     params.put("progress", progress);
     params.put("total", total);
     stream.publishJson(notification);
@@ -56,5 +62,26 @@ public class DefaultMcpStreamContext implements McpStreamContext {
       notification.set("params", objectMapper.valueToTree(params));
     }
     stream.publishJson(notification);
+  }
+
+  @Override
+  public void log(String level, String logger, Object data) {
+    ObjectNode notification = objectMapper.createObjectNode();
+    notification.put("jsonrpc", JSONRPC_VERSION);
+    notification.put("method", "notifications/message");
+    ObjectNode params = notification.putObject("params");
+    params.put("level", level);
+    params.put("logger", logger);
+    if (data instanceof String s) {
+      params.put("data", s);
+    } else {
+      params.set("data", objectMapper.valueToTree(data));
+    }
+    stream.publishJson(notification);
+  }
+
+  @Override
+  public void log(String level, String message) {
+    log(level, "mcp", message);
   }
 }

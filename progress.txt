@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-07T23:17:00-04:00
-ITERATION: 20
-SPEC_COMPLETED: 021-tool-content-types-and-error-responses.md
-WHAT_WAS_DONE: Replaced TextContent record with a polymorphic Content sealed interface (TextContent, ImageContent, AudioContent, ResourceContent) using Jackson @JsonTypeInfo/@JsonSubTypes for type discriminator serialization. Added EmbeddedResource record for resource content. Updated CallToolResponse to use List<Content> and added optional Boolean isError field. Updated all usages in McpToolsCapability and McpStreamingControllerTest.
+LAST_RUN: 2026-04-07T23:22:44-04:00
+ITERATION: 21
+SPEC_COMPLETED: 022-progress-and-logging-on-stream-context.md
+WHAT_WAS_DONE: Added progress token and logging support to McpStreamContext. sendProgress() now includes the progressToken from request _meta (no-op if absent). Added log(level, logger, data) and log(level, message) methods that emit notifications/message JSON-RPC notifications. Restructured McpStreamingController.dispatch() to create the DefaultMcpStreamContext with a live OdysseyStream before dispatch, so tools can send progress/log notifications during execution.
 VERIFICATION: mvn verify — BUILD SUCCESS; all tests pass (core + tools + autoconfigure + example); spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: 022-progress-and-logging-on-stream-context.md
-NOTES: Content types are inner classes of McpToolsCapability, matching the existing pattern. The @JsonTypeInfo annotation uses NAME strategy with "type" property as discriminator. TextContent no longer has an explicit "type" field — Jackson handles it via the annotation. EmbeddedResource has both text and blob fields (both @JsonInclude NON_NULL).
+NEXT_SPEC: 023-mcp-event-id-codec.md
+NOTES: DefaultMcpStreamContext now takes a 3-arg constructor (stream, objectMapper, progressToken). The controller always creates an ephemeral stream before dispatch and closes it if the method doesn't use streaming. sendProgress is a no-op when no progressToken was provided in the request _meta. The log() convenience method defaults logger to "mcp".

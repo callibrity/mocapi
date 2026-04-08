@@ -192,20 +192,34 @@ public class McpStreamingController {
   private ResponseEntity<Object> dispatch(
       boolean isInitialize, String method, JsonNode params, JsonNode id) {
     JsonRpcRequest request = new JsonRpcRequest("2.0", method, params, id);
+    OdysseyStream stream = registry.ephemeral();
+    String progressToken = extractProgressToken(params);
+    DefaultMcpStreamContext streamContext =
+        new DefaultMcpStreamContext(stream, objectMapper, progressToken);
     try {
-      streamContextResolver.set(null);
+      streamContextResolver.set(streamContext);
       JsonRpcResponse response = dispatcher.dispatch(request);
 
       if (streamContextResolver.wasResolved()) {
-        return dispatchStreaming(isInitialize, response, params);
+        stream.publishJson(Map.of());
+        SseEmitter emitter = stream.subscribe();
+        stream.publishJson(successResponse(response));
+        stream.close();
+        var builder = ResponseEntity.ok();
+        if (isInitialize) {
+          builder.header("MCP-Session-Id", createSessionFromParams(params));
+        }
+        return builder.body(emitter);
       }
 
+      stream.close();
       var builder = ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON);
       if (isInitialize) {
         builder.header("MCP-Session-Id", createSessionFromParams(params));
       }
       return builder.body(successResponse(response));
     } catch (JsonRpcException e) {
+      stream.close();
       log.warn("JSON-RPC error processing {}: {}", method, e.getMessage());
       return ResponseEntity.ok()
           .contentType(MediaType.APPLICATION_JSON)
@@ -215,18 +229,19 @@ public class McpStreamingController {
     }
   }
 
-  private ResponseEntity<Object> dispatchStreaming(
-      boolean isInitialize, JsonRpcResponse response, JsonNode params) {
-    OdysseyStream stream = registry.ephemeral();
-    stream.publishJson(Map.of());
-    SseEmitter emitter = stream.subscribe();
-    stream.publishJson(successResponse(response));
-    stream.close();
-    var builder = ResponseEntity.ok();
-    if (isInitialize) {
-      builder.header("MCP-Session-Id", createSessionFromParams(params));
+  private static String extractProgressToken(JsonNode params) {
+    if (params == null) {
+      return null;
     }
-    return builder.body(emitter);
+    JsonNode meta = params.get("_meta");
+    if (meta == null) {
+      return null;
+    }
+    JsonNode token = meta.get("progressToken");
+    if (token == null || token.isMissingNode()) {
+      return null;
+    }
+    return token.asString();
   }
 
   private String createSessionFromParams(JsonNode params) {
