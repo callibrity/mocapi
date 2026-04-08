@@ -30,6 +30,7 @@ import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -127,7 +128,7 @@ class McpStreamingControllerGetTest {
     String sessionId = createSession();
     controller.handleGet(sessionId, null, null, SSE_ACCEPT, null);
 
-    verify(notificationStream).publishRaw("");
+    verify(notificationStream).publishJson(Map.of());
     verify(notificationStream).subscribe();
   }
 

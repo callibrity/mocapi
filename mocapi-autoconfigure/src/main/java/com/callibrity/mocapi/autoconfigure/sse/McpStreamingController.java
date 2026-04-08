@@ -164,7 +164,7 @@ public class McpStreamingController {
     if (lastEventId != null) {
       return ResponseEntity.ok().body(stream.resumeAfter(lastEventId));
     }
-    stream.publishRaw("");
+    stream.publishJson(Map.of());
     return ResponseEntity.ok().body(stream.subscribe());
   }
 
@@ -218,7 +218,7 @@ public class McpStreamingController {
   private ResponseEntity<Object> dispatchStreaming(
       boolean isInitialize, JsonRpcResponse response, JsonNode params) {
     OdysseyStream stream = registry.ephemeral();
-    stream.publishRaw("");
+    stream.publishJson(Map.of());
     SseEmitter emitter = stream.subscribe();
     stream.publishJson(successResponse(response));
     stream.close();

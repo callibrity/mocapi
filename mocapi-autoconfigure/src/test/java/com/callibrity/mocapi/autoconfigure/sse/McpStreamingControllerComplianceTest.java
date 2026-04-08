@@ -236,6 +236,51 @@ class McpStreamingControllerComplianceTest {
     }
   }
 
+  // ---- Multiple concurrent POST streams ----
+
+  @Nested
+  class MultipleConcurrentPostStreams {
+
+    @Test
+    void shouldHandleMultiplePostRequestsIndependently() {
+      String sessionId = createSession();
+
+      for (int i = 1; i <= 3; i++) {
+        ObjectNode request = objectMapper.createObjectNode();
+        request.put("jsonrpc", "2.0");
+        request.put("method", "ping");
+        request.put("id", i);
+
+        var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+        assertThat(response.getStatusCode())
+            .as("POST request %d should succeed", i)
+            .isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+      }
+    }
+
+    @Test
+    void shouldCreateIndependentEphemeralStreamsForConcurrentInitialize() {
+      OdysseyStream ephemeralStream = mock(OdysseyStream.class);
+      when(ephemeralStream.subscribe()).thenReturn(new SseEmitter());
+      when(registry.ephemeral()).thenReturn(ephemeralStream);
+
+      for (int i = 1; i <= 3; i++) {
+        ObjectNode request = objectMapper.createObjectNode();
+        request.put("jsonrpc", "2.0");
+        request.put("method", "ping");
+        request.put("id", i);
+
+        String sessionId = createSession();
+        var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+
+        assertThat(response.getStatusCode())
+            .as("Concurrent request %d should succeed independently", i)
+            .isEqualTo(HttpStatus.OK);
+      }
+    }
+  }
+
   // ---- Gap 5: Accept header validation ----
 
   @Nested
