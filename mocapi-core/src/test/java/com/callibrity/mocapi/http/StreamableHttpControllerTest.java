@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.http;
 
+import static com.callibrity.mocapi.JsonRpcProtocol.VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -165,7 +166,7 @@ class StreamableHttpControllerTest {
     @Test
     void shouldReturn400ForInvalidProtocolVersion() {
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "ping");
       request.put("id", 1);
 
@@ -176,7 +177,7 @@ class StreamableHttpControllerTest {
     @Test
     void shouldReturn403ForInvalidOrigin() {
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "ping");
       request.put("id", 1);
 
@@ -188,7 +189,7 @@ class StreamableHttpControllerTest {
     @Test
     void shouldReturn404WhenSessionNotFound() {
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "tools/list");
       request.put("id", 1);
 
@@ -203,7 +204,7 @@ class StreamableHttpControllerTest {
     @Test
     void initializeShouldReturnJsonWithSessionHeader() {
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "initialize");
       request.put("id", 1);
 
@@ -225,7 +226,7 @@ class StreamableHttpControllerTest {
     @Test
     void initializeShouldStoreClientData() {
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "initialize");
       request.put("id", 1);
 
@@ -249,7 +250,7 @@ class StreamableHttpControllerTest {
     void pingShouldReturnJson() {
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "ping");
       request.put("id", 1);
 
@@ -267,7 +268,7 @@ class StreamableHttpControllerTest {
 
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "tools/list");
       request.put("id", 1);
 
@@ -286,7 +287,7 @@ class StreamableHttpControllerTest {
 
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "tools/call");
       request.put("id", 1);
       ObjectNode params = request.putObject("params");
@@ -304,7 +305,7 @@ class StreamableHttpControllerTest {
     void unknownMethodShouldReturnJsonErrorResponse() {
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "unknown/method");
       request.put("id", 1);
 
@@ -326,7 +327,7 @@ class StreamableHttpControllerTest {
 
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "tools/call");
       request.put("id", 1);
       ObjectNode params = request.putObject("params");
@@ -346,7 +347,7 @@ class StreamableHttpControllerTest {
 
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "tools/call");
       request.put("id", 1);
       ObjectNode params = request.putObject("params");
@@ -369,7 +370,7 @@ class StreamableHttpControllerTest {
       String sessionId = createSession();
       for (String version : List.of("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")) {
         ObjectNode request = objectMapper.createObjectNode();
-        request.put("jsonrpc", "2.0");
+        request.put("jsonrpc", VERSION);
         request.put("method", "ping");
         request.put("id", 1);
 
@@ -388,7 +389,7 @@ class StreamableHttpControllerTest {
     void shouldAcceptValidOrigin() {
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "ping");
       request.put("id", 1);
 
@@ -401,7 +402,7 @@ class StreamableHttpControllerTest {
     void shouldAcceptNullOrigin() {
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "ping");
       request.put("id", 1);
 
@@ -412,7 +413,7 @@ class StreamableHttpControllerTest {
     @Test
     void shouldRejectInvalidOriginUri() {
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "ping");
       request.put("id", 1);
 
@@ -428,7 +429,7 @@ class StreamableHttpControllerTest {
     void shouldAcceptStringId() {
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "ping");
       request.put("id", "string-id");
 
@@ -440,7 +441,7 @@ class StreamableHttpControllerTest {
     void shouldAcceptNumberId() {
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "ping");
       request.put("id", 42);
 
@@ -452,7 +453,7 @@ class StreamableHttpControllerTest {
     void shouldAcceptNullId() {
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "ping");
       request.putNull("id");
 
@@ -467,7 +468,7 @@ class StreamableHttpControllerTest {
     @Test
     void shouldReturn400WhenSessionIdMissingForNonInitializeMethod() {
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "ping");
       request.put("id", 1);
 
@@ -480,7 +481,7 @@ class StreamableHttpControllerTest {
     @Test
     void shouldAllowInitializeWithoutSessionId() {
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "initialize");
       request.put("id", 1);
 
@@ -499,7 +500,7 @@ class StreamableHttpControllerTest {
     @Test
     void shouldReturn400WhenNotificationMissingSessionId() {
       ObjectNode notification = objectMapper.createObjectNode();
-      notification.put("jsonrpc", "2.0");
+      notification.put("jsonrpc", VERSION);
       notification.put("method", "notifications/initialized");
 
       var response = controller.handlePost(notification, null, null, POST_ACCEPT, null);
@@ -509,7 +510,7 @@ class StreamableHttpControllerTest {
     @Test
     void shouldReturn400WhenJsonRpcResponseMissingSessionId() {
       ObjectNode jsonRpcResponse = objectMapper.createObjectNode();
-      jsonRpcResponse.put("jsonrpc", "2.0");
+      jsonRpcResponse.put("jsonrpc", VERSION);
       jsonRpcResponse.put("id", 1);
       jsonRpcResponse.putObject("result");
 
@@ -538,6 +539,6 @@ class StreamableHttpControllerTest {
       org.springframework.http.ResponseEntity<Object> response) {
     assertThat(response.getBody()).isInstanceOf(JsonRpcResponse.class);
     JsonRpcResponse body = (JsonRpcResponse) response.getBody();
-    assertThat(body.jsonrpc()).isEqualTo("2.0");
+    assertThat(body.jsonrpc()).isEqualTo(VERSION);
   }
 }

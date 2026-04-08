@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.stream;
 
+import static com.callibrity.mocapi.JsonRpcProtocol.VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -103,7 +104,7 @@ class DefaultMcpStreamContextTest {
     verify(stream).publishJson(captor.capture());
 
     JsonNode notification = captor.getValue();
-    assertThat(notification.get("jsonrpc").asString()).isEqualTo("2.0");
+    assertThat(notification.get("jsonrpc").asString()).isEqualTo(VERSION);
     assertThat(notification.get("method").asString()).isEqualTo("notifications/progress");
     assertThat(notification.get("params").get("progressToken").asString()).isEqualTo("tok-123");
     assertThat(notification.get("params").get("progress").asLong()).isEqualTo(5);
@@ -127,7 +128,7 @@ class DefaultMcpStreamContextTest {
     verify(stream).publishJson(captor.capture());
 
     JsonNode notification = captor.getValue();
-    assertThat(notification.get("jsonrpc").asString()).isEqualTo("2.0");
+    assertThat(notification.get("jsonrpc").asString()).isEqualTo(VERSION);
     assertThat(notification.get("method").asString()).isEqualTo("custom/event");
     assertThat(notification.get("params").get("key").asString()).isEqualTo("value");
   }
@@ -154,7 +155,7 @@ class DefaultMcpStreamContextTest {
     verify(stream).publishJson(captor.capture());
 
     JsonNode notification = captor.getValue();
-    assertThat(notification.get("jsonrpc").asString()).isEqualTo("2.0");
+    assertThat(notification.get("jsonrpc").asString()).isEqualTo(VERSION);
     assertThat(notification.get("method").asString()).isEqualTo("notifications/message");
     assertThat(notification.get("params").get("level").asString()).isEqualTo("info");
     assertThat(notification.get("params").get("logger").asString()).isEqualTo("my-tool");
@@ -330,7 +331,7 @@ class DefaultMcpStreamContextTest {
     ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
     verify(stream).publishJson(captor.capture());
     JsonNode request = captor.getValue();
-    assertThat(request.get("jsonrpc").asString()).isEqualTo("2.0");
+    assertThat(request.get("jsonrpc").asString()).isEqualTo(VERSION);
     assertThat(request.get("method").asString()).isEqualTo("elicitation/create");
     assertThat(request.get("id")).isNotNull();
     assertThat(request.get("params").get("mode").asString()).isEqualTo("form");

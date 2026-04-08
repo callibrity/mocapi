@@ -15,10 +15,13 @@
  */
 package com.callibrity.mocapi.tools;
 
+import static com.callibrity.mocapi.JsonRpcProtocol.VERSION;
+
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.stream.DefaultMcpStreamContext;
 import com.callibrity.mocapi.stream.McpStreamContext;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import java.time.Duration;
@@ -123,8 +126,9 @@ public class ToolMethodInvoker {
       String name, ObjectNode arguments, JsonNode requestId, OdysseyStream stream) {
     try {
       ToolsRegistry.CallToolResponse result = toolsRegistry.callTool(name, arguments);
-      ObjectNode response = buildJsonRpcResponse(requestId, objectMapper.valueToTree(result));
-      stream.publishJson(response);
+      JsonRpcResponse response =
+          new JsonRpcResponse(VERSION, objectMapper.valueToTree(result), requestId);
+      stream.publishJson(objectMapper.valueToTree(response));
     } catch (JsonRpcException e) {
       stream.publishJson(buildJsonRpcError(requestId, e.getCode(), e.getMessage()));
     } catch (Exception e) {
@@ -136,19 +140,9 @@ public class ToolMethodInvoker {
     }
   }
 
-  private ObjectNode buildJsonRpcResponse(JsonNode id, JsonNode result) {
-    ObjectNode node = objectMapper.createObjectNode();
-    node.put("jsonrpc", "2.0");
-    node.set("result", result);
-    if (id != null) {
-      node.set("id", id);
-    }
-    return node;
-  }
-
   private ObjectNode buildJsonRpcError(JsonNode id, int code, String message) {
     ObjectNode node = objectMapper.createObjectNode();
-    node.put("jsonrpc", "2.0");
+    node.put("jsonrpc", VERSION);
     if (id != null) {
       node.set("id", id);
     }

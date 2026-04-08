@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.http;
 
+import static com.callibrity.mocapi.JsonRpcProtocol.VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -136,7 +137,7 @@ class StreamableHttpControllerComplianceTest {
       String sessionId = createSession();
 
       ObjectNode notification = objectMapper.createObjectNode();
-      notification.put("jsonrpc", "2.0");
+      notification.put("jsonrpc", VERSION);
       notification.put("method", "notifications/initialized");
 
       var response = controller.handlePost(notification, null, sessionId, POST_ACCEPT, null);
@@ -150,7 +151,7 @@ class StreamableHttpControllerComplianceTest {
       String sessionId = createSession();
 
       ObjectNode jsonRpcResponse = objectMapper.createObjectNode();
-      jsonRpcResponse.put("jsonrpc", "2.0");
+      jsonRpcResponse.put("jsonrpc", VERSION);
       jsonRpcResponse.put("id", 1);
       jsonRpcResponse.putObject("result");
 
@@ -165,7 +166,7 @@ class StreamableHttpControllerComplianceTest {
       String sessionId = createSession();
 
       ObjectNode errorResponse = objectMapper.createObjectNode();
-      errorResponse.put("jsonrpc", "2.0");
+      errorResponse.put("jsonrpc", VERSION);
       errorResponse.put("id", 1);
       ObjectNode error = errorResponse.putObject("error");
       error.put("code", -32600);
@@ -182,7 +183,7 @@ class StreamableHttpControllerComplianceTest {
       String sessionId = createSession();
 
       ObjectNode notification = objectMapper.createObjectNode();
-      notification.put("jsonrpc", "2.0");
+      notification.put("jsonrpc", VERSION);
       notification.put("method", "notifications/initialized");
 
       var response = controller.handlePost(notification, null, sessionId, POST_ACCEPT, null);
@@ -261,7 +262,7 @@ class StreamableHttpControllerComplianceTest {
 
       for (int i = 1; i <= 3; i++) {
         ObjectNode request = objectMapper.createObjectNode();
-        request.put("jsonrpc", "2.0");
+        request.put("jsonrpc", VERSION);
         request.put("method", "ping");
         request.put("id", i);
 
@@ -281,7 +282,7 @@ class StreamableHttpControllerComplianceTest {
 
       for (int i = 1; i <= 3; i++) {
         ObjectNode request = objectMapper.createObjectNode();
-        request.put("jsonrpc", "2.0");
+        request.put("jsonrpc", VERSION);
         request.put("method", "ping");
         request.put("id", i);
 
@@ -309,7 +310,7 @@ class StreamableHttpControllerComplianceTest {
     @MethodSource("invalidPostAcceptHeaders")
     void shouldReturn406WhenPostAcceptHeaderIsInvalid(String acceptHeader) {
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "ping");
       request.put("id", 1);
 
@@ -321,7 +322,7 @@ class StreamableHttpControllerComplianceTest {
     void shouldAcceptWildcardOnPost() {
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "ping");
       request.put("id", 1);
 
@@ -354,7 +355,7 @@ class StreamableHttpControllerComplianceTest {
     void shouldAcceptValidPostAcceptHeader() {
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
+      request.put("jsonrpc", VERSION);
       request.put("method", "ping");
       request.put("id", 1);
 

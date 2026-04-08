@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.http;
 
+import static com.callibrity.mocapi.JsonRpcProtocol.VERSION;
+
 import com.callibrity.mocapi.server.InitializeResponse;
 import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ClientInfo;
@@ -82,7 +84,7 @@ public class StreamableHttpController {
     }
 
     // Validate jsonrpc version
-    if (!"2.0".equals(body.path("jsonrpc").asString(null))) {
+    if (!VERSION.equals(body.path("jsonrpc").asString(null))) {
       return ResponseEntity.badRequest()
           .body(errorResponse(body.get("id"), -32600, "jsonrpc must be \"2.0\""));
     }
@@ -196,7 +198,7 @@ public class StreamableHttpController {
       boolean isInitialize, String method, JsonNode body, McpSession session, String sessionId) {
     JsonNode params = body.get("params");
     JsonNode id = body.get("id");
-    JsonRpcRequest request = new JsonRpcRequest("2.0", method, params, id);
+    JsonRpcRequest request = new JsonRpcRequest(VERSION, method, params, id);
 
     var emitterRef = new AtomicReference<SseEmitter>();
     try {
@@ -246,7 +248,7 @@ public class StreamableHttpController {
     if ("notifications/initialized".equals(method)) {
       sessionService
           .find(sessionId)
-          .ifPresent(_ -> dispatcher.dispatch(new JsonRpcRequest("2.0", method, null, null)));
+          .ifPresent(_ -> dispatcher.dispatch(new JsonRpcRequest(VERSION, method, null, null)));
     }
     return ResponseEntity.accepted().build();
   }
@@ -287,7 +289,7 @@ public class StreamableHttpController {
 
   private ObjectNode errorResponse(JsonNode id, int code, String message) {
     ObjectNode node = objectMapper.createObjectNode();
-    node.put("jsonrpc", "2.0");
+    node.put("jsonrpc", VERSION);
     if (id != null) {
       node.set("id", id);
     }

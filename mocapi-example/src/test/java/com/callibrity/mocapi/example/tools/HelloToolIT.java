@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.example.tools;
 
+import static com.callibrity.mocapi.JsonRpcProtocol.VERSION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -51,7 +52,7 @@ class HelloToolIT {
                                 """))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value("1"))
-        .andExpect(jsonPath("$.jsonrpc").value("2.0"))
+        .andExpect(jsonPath("$.jsonrpc").value(VERSION))
         .andExpect(jsonPath("$.result.structuredContent.message").value("Hello, John!"));
   }
 }

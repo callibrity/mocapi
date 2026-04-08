@@ -15,9 +15,12 @@
  */
 package com.callibrity.mocapi.stream;
 
+import static com.callibrity.mocapi.JsonRpcProtocol.VERSION;
+
 import com.callibrity.mocapi.session.LogLevel;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
+import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
 import com.github.erosb.jsonsKema.SchemaLoader;
@@ -40,8 +43,6 @@ import tools.jackson.databind.node.ObjectNode;
  * MCP-specific JSON-RPC notification formatting and elicitation support via Substrate Mailbox.
  */
 public class DefaultMcpStreamContext implements McpStreamContext {
-
-  private static final String JSONRPC_VERSION = "2.0";
 
   private final OdysseyStream stream;
   private final ObjectMapper objectMapper;
@@ -76,25 +77,17 @@ public class DefaultMcpStreamContext implements McpStreamContext {
     if (progressToken == null) {
       return;
     }
-    ObjectNode notification = objectMapper.createObjectNode();
-    notification.put("jsonrpc", JSONRPC_VERSION);
-    notification.put("method", "notifications/progress");
-    ObjectNode params = notification.putObject("params");
+    ObjectNode params = objectMapper.createObjectNode();
     params.put("progressToken", progressToken);
     params.put("progress", progress);
     params.put("total", total);
-    stream.publishJson(notification);
+    publishNotification("notifications/progress", params);
   }
 
   @Override
   public void sendNotification(String method, Object params) {
-    ObjectNode notification = objectMapper.createObjectNode();
-    notification.put("jsonrpc", JSONRPC_VERSION);
-    notification.put("method", method);
-    if (params != null) {
-      notification.set("params", objectMapper.valueToTree(params));
-    }
-    stream.publishJson(notification);
+    JsonNode paramsNode = params != null ? objectMapper.valueToTree(params) : null;
+    publishNotification(method, paramsNode);
   }
 
   @Override
@@ -103,14 +96,11 @@ public class DefaultMcpStreamContext implements McpStreamContext {
     if (level.ordinal() < threshold.ordinal()) {
       return;
     }
-    ObjectNode notification = objectMapper.createObjectNode();
-    notification.put("jsonrpc", JSONRPC_VERSION);
-    notification.put("method", "notifications/message");
-    ObjectNode params = notification.putObject("params");
+    ObjectNode params = objectMapper.createObjectNode();
     params.put("level", level.toJson());
     params.put("logger", logger);
     params.set("data", objectMapper.valueToTree(data));
-    stream.publishJson(notification);
+    publishNotification("notifications/message", params);
   }
 
   @Override
@@ -131,6 +121,17 @@ public class DefaultMcpStreamContext implements McpStreamContext {
     Class<?> rawType = objectMapper.constructType(type).getRawClass();
     ObjectNode schemaNode = generateSchema(rawType);
     return doElicit(message, schemaNode, type);
+  }
+
+  private void publishNotification(String method, JsonNode params) {
+    JsonRpcRequest notification = new JsonRpcRequest(VERSION, method, params, null);
+    stream.publishJson(toJsonTree(notification));
+  }
+
+  private ObjectNode toJsonTree(Object value) {
+    ObjectNode node = (ObjectNode) objectMapper.valueToTree(value);
+    node.properties().removeIf(e -> e.getValue().isNull());
+    return node;
   }
 
   private LogLevel currentLogLevel() {
@@ -179,18 +180,18 @@ public class DefaultMcpStreamContext implements McpStreamContext {
   private JsonNode sendElicitationAndWait(String message, ObjectNode schemaNode) {
     String jsonRpcId = UUID.randomUUID().toString();
 
-    ObjectNode request = objectMapper.createObjectNode();
-    request.put("jsonrpc", JSONRPC_VERSION);
-    request.put("method", "elicitation/create");
-    request.put("id", jsonRpcId);
-    ObjectNode params = request.putObject("params");
+    ObjectNode params = objectMapper.createObjectNode();
     params.put("mode", "form");
     params.put("message", message);
     params.set("requestedSchema", schemaNode);
 
+    JsonRpcRequest request =
+        new JsonRpcRequest(
+            VERSION, "elicitation/create", params, objectMapper.valueToTree(jsonRpcId));
+
     Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + jsonRpcId, JsonNode.class);
     try {
-      stream.publishJson(request);
+      stream.publishJson(toJsonTree(request));
 
       Optional<JsonNode> raw = mailbox.poll(elicitationTimeout);
       if (raw.isEmpty()) {

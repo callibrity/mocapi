@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-08T10:06:00-04:00
-ITERATION: 33
-SPEC_COMPLETED: 034-streamable-tool-calls-via-response-metadata.md
-WHAT_WAS_DONE: Implemented streamable tool call infrastructure via ScopedValues, ToolMethodInvoker, and isStreamable() on McpTool. Non-streamable tools return JSON synchronously; streamable tools dispatch on a virtual thread with ScopedValue context and return an SseEmitter via a ScopedValue holder. Deleted ThreadLocal-based resolvers (McpStreamContextParamResolver, McpSessionIdParamResolver, @McpSessionId annotation) and replaced with ScopedValue-based injection.
-VERIFICATION: mvn verify — BUILD SUCCESS; all 181 tests pass; spotless and license checks pass.
-STATUS: MORE_WORK
-NEXT_SPEC: none (no more specs in specs/)
-NOTES: RipCurl's JsonRpcResponse (v0.2.0) has no metadata support, so the spec's literal response.getMetadata("sseEmitter") approach was replaced with ScopedValue<AtomicReference<SseEmitter>> as the emitter carrier between handler and controller. This achieves the same architectural goal (handler decides streaming, controller is a dumb pipe) without requiring RipCurl changes. Key new files: ToolMethodInvoker.java (streaming orchestration), McpStreamContextScopedValueResolver.java (ScopedValue-based resolver for @Tool methods). McpLoggingMethods now reads session ID from McpSession.CURRENT_ID ScopedValue instead of @McpSessionId parameter.
+LAST_RUN: 2026-04-08T10:16:00-04:00
+ITERATION: 34
+SPEC_COMPLETED: 035-remove-manual-jsonrpc-response-building.md
+WHAT_WAS_DONE: Replaced all manual JSON-RPC ObjectNode construction with RipCurl typed records (JsonRpcResponse, JsonRpcRequest). Created JsonRpcProtocol.VERSION constant to eliminate hardcoded "2.0" strings. Deleted buildJsonRpcResponse() helper from ToolMethodInvoker. Kept minimal error helpers (buildJsonRpcError, errorResponse) since RipCurl has no error response type. Refactored DefaultMcpStreamContext notifications to use JsonRpcRequest with a toJsonTree() helper that strips null fields for JSON-RPC 2.0 compliance.
+VERIFICATION: mvn verify — BUILD SUCCESS; all 183 tests pass; spotless and license checks pass.
+STATUS: DONE
+NEXT_SPEC: none
+NOTES: RipCurl 0.2.0 (current version) has no JsonRpcProtocol class, no static factory methods on JsonRpcRequest (notification/request), and no error response type. The spec assumed RipCurl 0.7.0 features that don't exist yet. Adapted by: (1) creating JsonRpcProtocol.VERSION in Mocapi, (2) using JsonRpcRequest constructor directly for notifications/requests, (3) keeping minimal ObjectNode-based error helpers. Two "2.0" references remain in integration test JSON text block literals (HelloToolIT, Rot13ToolIT) which cannot use Java constants inside string templates.

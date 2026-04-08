@@ -135,7 +135,10 @@ public class AnnotationMcpTool implements McpTool {
 
   @Override
   public ObjectNode call(ObjectNode parameters) {
-    var result = invoker.invoke(parameters);
+    var request =
+        com.callibrity.ripcurl.core.JsonRpcRequest.request("tools/call", parameters, null);
+    var response = invoker.invoke(request);
+    var result = response.result();
     if (result.isObject()) {
       return (ObjectNode) result;
     }
