@@ -15,5 +15,13 @@
  */
 package com.callibrity.mocapi.client;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import tools.jackson.databind.JsonNode;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record ClientCapabilities(
-    RootsCapability roots, SamplingCapability sampling, ElicitationCapability elicitation) {}
+    RootsCapability roots,
+    SamplingCapability sampling,
+    ElicitationCapability elicitation,
+    TasksCapability tasks,
+    JsonNode experimental) {}

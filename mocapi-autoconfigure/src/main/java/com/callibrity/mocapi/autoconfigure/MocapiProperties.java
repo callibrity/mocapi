@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.autoconfigure;
 
 import com.callibrity.mocapi.server.ServerInfo;
+import java.time.Duration;
 import java.util.List;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -27,6 +28,7 @@ public class MocapiProperties {
   private ServerInfo serverInfo;
   private String instructions;
   private List<String> allowedOrigins = List.of("localhost", "127.0.0.1", "[::1]");
+  private Duration sessionTimeout = Duration.ofHours(1);
 
   private Pagination pagination = new Pagination();
 

@@ -47,15 +47,19 @@ class McpServerTest {
     var server =
         new McpServer(
             List.of(capability),
-            new ServerInfo("Test Server", "The Test Server", "1.0.0"),
+            new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
             "Testing instructions");
 
     var response =
         server.initialize(
             "123",
             new ClientCapabilities(
-                new RootsCapability(true), new SamplingCapability(), new ElicitationCapability()),
-            new ClientInfo("Test Client", "A test client", "1.0.0"));
+                new RootsCapability(true),
+                new SamplingCapability(),
+                new ElicitationCapability(null, null),
+                null,
+                null),
+            new ClientInfo("Test Client", "A test client", "1.0.0", null, null, null));
 
     assertThat(response).isNotNull();
     assertThat(response.protocolVersion()).isEqualTo(McpServer.PROTOCOL_VERSION);
@@ -78,7 +82,7 @@ class McpServerTest {
     var server =
         new McpServer(
             List.of(capability),
-            new ServerInfo("Test Server", "The Test Server", "1.0.0"),
+            new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
             "Testing instructions");
     var response = server.ping();
     assertThat(response).isNotNull();
@@ -94,7 +98,7 @@ class McpServerTest {
     var server =
         new McpServer(
             List.of(capability),
-            new ServerInfo("Test Server", "The Test Server", "1.0.0"),
+            new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
             "Testing instructions");
     assertThatNoException().isThrownBy(server::clientInitialized);
   }

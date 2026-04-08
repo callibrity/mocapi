@@ -15,4 +15,14 @@
  */
 package com.callibrity.mocapi.client;
 
-public record ClientInfo(String name, String title, String version) {}
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record ClientInfo(
+    String name,
+    String title,
+    String version,
+    String description,
+    List<Icon> icons,
+    String websiteUrl) {}

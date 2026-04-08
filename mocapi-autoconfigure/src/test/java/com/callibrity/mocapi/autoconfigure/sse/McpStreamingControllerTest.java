@@ -22,15 +22,20 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.callibrity.mocapi.client.ClientCapabilities;
+import com.callibrity.mocapi.client.ClientInfo;
 import com.callibrity.mocapi.server.JsonRpcMessages;
 import com.callibrity.mocapi.server.McpMethodHandler;
 import com.callibrity.mocapi.server.McpMethodRegistry;
 import com.callibrity.mocapi.server.McpProtocol;
 import com.callibrity.mocapi.server.McpRequestValidator;
 import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.McpSession;
 import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
 import com.callibrity.mocapi.tools.McpToolsCapability;
+import java.time.Duration;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -46,9 +51,10 @@ import tools.jackson.databind.node.ObjectNode;
 class McpStreamingControllerTest {
 
   private static final String POST_ACCEPT = "application/json, text/event-stream";
+  private static final Duration SESSION_TIMEOUT = Duration.ofHours(1);
 
   private McpStreamingController controller;
-  private McpSessionManager sessionManager;
+  private InMemoryMcpSessionStore sessionStore;
   private ObjectMapper objectMapper;
   private McpToolsCapability toolsCapability;
   private OdysseyStreamRegistry registry;
@@ -63,12 +69,18 @@ class McpStreamingControllerTest {
     when(ephemeralStream.subscribe()).thenReturn(new SseEmitter());
     when(registry.ephemeral()).thenReturn(ephemeralStream);
 
-    sessionManager = new McpSessionManager(registry);
+    sessionStore = new InMemoryMcpSessionStore();
     objectMapper = new ObjectMapper();
     toolsCapability = mock(McpToolsCapability.class);
 
     McpProtocol protocol = buildProtocol(mcpServer, toolsCapability);
-    controller = new McpStreamingController(protocol, sessionManager, registry, objectMapper);
+    controller =
+        new McpStreamingController(protocol, sessionStore, registry, objectMapper, SESSION_TIMEOUT);
+  }
+
+  @AfterEach
+  void tearDown() {
+    sessionStore.shutdown();
   }
 
   private McpProtocol buildProtocol(McpServer mcpServer, McpToolsCapability toolsCapability) {
@@ -119,6 +131,15 @@ class McpStreamingControllerTest {
     }
 
     return new McpProtocol(validator, registryBuilder.build(), messages);
+  }
+
+  private String createSession() {
+    return sessionStore.save(
+        new McpSession(
+            "2025-11-25",
+            new ClientCapabilities(null, null, null, null, null),
+            new ClientInfo("test", null, "1.0", null, null, null)),
+        SESSION_TIMEOUT);
   }
 
   @Nested
@@ -219,15 +240,37 @@ class McpStreamingControllerTest {
     }
 
     @Test
+    void initializeShouldStoreClientData() {
+      ObjectNode request = objectMapper.createObjectNode();
+      request.put("jsonrpc", "2.0");
+      request.put("method", "initialize");
+      request.put("id", 1);
+
+      ObjectNode params = request.putObject("params");
+      params.put("protocolVersion", "2025-11-25");
+      params.putObject("capabilities");
+      ObjectNode clientInfo = params.putObject("clientInfo");
+      clientInfo.put("name", "test-client");
+      clientInfo.put("version", "1.0");
+
+      var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
+      String sessionId = response.getHeaders().getFirst("MCP-Session-Id");
+
+      var session = sessionStore.find(sessionId);
+      assertThat(session).isPresent();
+      assertThat(session.get().protocolVersion()).isEqualTo("2025-11-25");
+      assertThat(session.get().clientInfo().name()).isEqualTo("test-client");
+    }
+
+    @Test
     void pingShouldReturnJson() {
-      McpSession session = sessionManager.createSession();
+      String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response =
-          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
+      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -239,14 +282,13 @@ class McpStreamingControllerTest {
       when(toolsCapability.listTools(any()))
           .thenReturn(new McpToolsCapability.ListToolsResponse(List.of(), null));
 
-      McpSession session = sessionManager.createSession();
+      String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "tools/list");
       request.put("id", 1);
 
-      var response =
-          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
+      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -259,7 +301,7 @@ class McpStreamingControllerTest {
           .thenReturn(
               new McpToolsCapability.CallToolResponse(List.of(), objectMapper.createObjectNode()));
 
-      McpSession session = sessionManager.createSession();
+      String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "tools/call");
@@ -268,8 +310,7 @@ class McpStreamingControllerTest {
       params.put("name", "test-tool");
       params.putObject("arguments");
 
-      var response =
-          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
+      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -278,14 +319,13 @@ class McpStreamingControllerTest {
 
     @Test
     void unknownMethodShouldReturnJsonErrorResponse() {
-      McpSession session = sessionManager.createSession();
+      String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "unknown/method");
       request.put("id", 1);
 
-      var response =
-          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
+      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -301,7 +341,7 @@ class McpStreamingControllerTest {
       when(toolsCapability.callTool(any(), any()))
           .thenThrow(new McpInvalidParamsException("Tool not found."));
 
-      McpSession session = sessionManager.createSession();
+      String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "tools/call");
@@ -310,8 +350,7 @@ class McpStreamingControllerTest {
       params.put("name", "nonexistent");
       params.putObject("arguments");
 
-      var response =
-          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
+      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -322,7 +361,7 @@ class McpStreamingControllerTest {
     void runtimeExceptionShouldReturnJsonInternalError() {
       when(toolsCapability.callTool(any(), any())).thenThrow(new RuntimeException("unexpected"));
 
-      McpSession session = sessionManager.createSession();
+      String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "tools/call");
@@ -331,8 +370,7 @@ class McpStreamingControllerTest {
       params.put("name", "broken");
       params.putObject("arguments");
 
-      var response =
-          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
+      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -345,15 +383,14 @@ class McpStreamingControllerTest {
 
     @Test
     void shouldAcceptAllValidProtocolVersions() {
-      McpSession session = sessionManager.createSession();
+      String sessionId = createSession();
       for (String version : List.of("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")) {
         ObjectNode request = objectMapper.createObjectNode();
         request.put("jsonrpc", "2.0");
         request.put("method", "ping");
         request.put("id", 1);
 
-        var response =
-            controller.handlePost(request, version, session.getSessionId(), POST_ACCEPT, null);
+        var response = controller.handlePost(request, version, sessionId, POST_ACCEPT, null);
         assertThat(response.getStatusCode())
             .as("Protocol version %s should be accepted", version)
             .isNotEqualTo(HttpStatus.BAD_REQUEST);
@@ -366,28 +403,26 @@ class McpStreamingControllerTest {
 
     @Test
     void shouldAcceptValidOrigin() {
-      McpSession session = sessionManager.createSession();
+      String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.put("id", 1);
 
       var response =
-          controller.handlePost(
-              request, null, session.getSessionId(), POST_ACCEPT, "http://localhost:8080");
+          controller.handlePost(request, null, sessionId, POST_ACCEPT, "http://localhost:8080");
       assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
     void shouldAcceptNullOrigin() {
-      McpSession session = sessionManager.createSession();
+      String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response =
-          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
+      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.FORBIDDEN);
     }
 
@@ -408,40 +443,37 @@ class McpStreamingControllerTest {
 
     @Test
     void shouldAcceptStringId() {
-      McpSession session = sessionManager.createSession();
+      String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.put("id", "string-id");
 
-      var response =
-          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
+      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void shouldAcceptNumberId() {
-      McpSession session = sessionManager.createSession();
+      String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.put("id", 42);
 
-      var response =
-          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
+      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void shouldAcceptNullId() {
-      McpSession session = sessionManager.createSession();
+      String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "2.0");
       request.put("method", "ping");
       request.putNull("id");
 
-      var response =
-          controller.handlePost(request, null, session.getSessionId(), POST_ACCEPT, null);
+      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
   }

@@ -15,4 +15,11 @@
  */
 package com.callibrity.mocapi.client;
 
-public record ElicitationCapability() {}
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record ElicitationCapability(FormCapability form, UrlCapability url) {
+  public record FormCapability() {}
+
+  public record UrlCapability() {}
+}

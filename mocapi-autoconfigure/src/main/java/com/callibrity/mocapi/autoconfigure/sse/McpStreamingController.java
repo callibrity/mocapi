@@ -15,10 +15,15 @@
  */
 package com.callibrity.mocapi.autoconfigure.sse;
 
+import com.callibrity.mocapi.client.ClientCapabilities;
+import com.callibrity.mocapi.client.ClientInfo;
 import com.callibrity.mocapi.server.McpProtocol;
 import com.callibrity.mocapi.server.McpRequestValidator;
 import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.McpSession;
+import com.callibrity.mocapi.server.McpSessionStore;
 import com.callibrity.mocapi.server.McpStreamContext;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -54,19 +59,22 @@ public class McpStreamingController {
   private static final String SESSION_REQUIRED = "MCP-Session-Id header is required";
 
   private final McpProtocol protocol;
-  private final McpSessionManager sessionManager;
+  private final McpSessionStore sessionStore;
   private final OdysseyStreamRegistry registry;
   private final ObjectMapper objectMapper;
+  private final Duration sessionTimeout;
 
   public McpStreamingController(
       McpProtocol protocol,
-      McpSessionManager sessionManager,
+      McpSessionStore sessionStore,
       OdysseyStreamRegistry registry,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      Duration sessionTimeout) {
     this.protocol = protocol;
-    this.sessionManager = sessionManager;
+    this.sessionStore = sessionStore;
     this.registry = registry;
     this.objectMapper = objectMapper;
+    this.sessionTimeout = sessionTimeout;
   }
 
   @PostMapping(produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE})
@@ -106,16 +114,20 @@ public class McpStreamingController {
     }
 
     String method = body.get("method").asString();
-    if (!INITIALIZE.equals(method) && sessionId == null) {
+    boolean isInitialize = INITIALIZE.equals(method);
+
+    if (!isInitialize && sessionId == null) {
       return badRequest(protocol.messages().errorResponse(idNode, -32600, SESSION_REQUIRED));
     }
 
-    McpSession session = resolveSession(method, sessionId);
-    if (session == null) {
-      return notFound(protocol.messages().errorResponse(idNode, -32600, NO_SESSION));
+    if (!isInitialize) {
+      if (sessionStore.find(sessionId).isEmpty()) {
+        return notFound(protocol.messages().errorResponse(idNode, -32600, NO_SESSION));
+      }
+      sessionStore.touch(sessionId, sessionTimeout);
     }
 
-    return dispatch(session, method, body.get("params"), idNode);
+    return dispatch(isInitialize, sessionId, method, body.get("params"), idNode);
   }
 
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -135,8 +147,7 @@ public class McpStreamingController {
     if (sessionId == null) {
       return ResponseEntity.badRequest().body(Map.of(ERR, SESSION_REQUIRED));
     }
-    McpSession session = sessionManager.getSession(sessionId).orElse(null);
-    if (session == null) {
+    if (sessionStore.find(sessionId).isEmpty()) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(ERR, NO_SESSION));
     }
     String version = protocolVersion != null ? protocolVersion : McpServer.PROTOCOL_VERSION;
@@ -145,7 +156,8 @@ public class McpStreamingController {
           .body(Map.of(ERR, "Invalid MCP-Protocol-Version: " + version));
     }
 
-    OdysseyStream stream = session.getNotificationStream();
+    sessionStore.touch(sessionId, sessionTimeout);
+    OdysseyStream stream = registry.channel(sessionId);
     if (lastEventId != null) {
       return ResponseEntity.ok().body(stream.resumeAfter(lastEventId));
     }
@@ -164,21 +176,24 @@ public class McpStreamingController {
     if (sessionId == null) {
       return ResponseEntity.badRequest().body(Map.of(ERR, SESSION_REQUIRED));
     }
-    if (!sessionManager.terminateSession(sessionId)) {
+    if (sessionStore.find(sessionId).isEmpty()) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(ERR, NO_SESSION));
     }
+    sessionStore.delete(sessionId);
+    registry.channel(sessionId).delete();
     return ResponseEntity.noContent().build();
   }
 
   // --- Transport helpers ---
 
   private ResponseEntity<Object> dispatch(
-      McpSession session, String method, JsonNode params, JsonNode id) {
+      boolean isInitialize, String sessionId, String method, JsonNode params, JsonNode id) {
     return switch (protocol.dispatch(method, params, id)) {
       case McpProtocol.DispatchResult.JsonResult(var response) -> {
         var builder = ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON);
-        if (INITIALIZE.equals(method)) {
-          builder.header("MCP-Session-Id", session.getSessionId());
+        if (isInitialize) {
+          String newSessionId = createSessionFromParams(params);
+          builder.header("MCP-Session-Id", newSessionId);
         }
         yield builder.body(response);
       }
@@ -196,21 +211,24 @@ public class McpStreamingController {
                   stream.close();
                 });
         var builder = ResponseEntity.ok();
-        if (INITIALIZE.equals(method)) {
-          builder.header("MCP-Session-Id", session.getSessionId());
+        if (isInitialize) {
+          String newSessionId = createSessionFromParams(params);
+          builder.header("MCP-Session-Id", newSessionId);
         }
         yield builder.body(emitter);
       }
     };
   }
 
-  private McpSession resolveSession(String method, String sessionId) {
-    if (INITIALIZE.equals(method)) {
-      McpSession session = sessionManager.createSession();
-      log.info("Created new session {} for initialize request", session.getSessionId());
-      return session;
-    }
-    return sessionId != null ? sessionManager.getSession(sessionId).orElse(null) : null;
+  private String createSessionFromParams(JsonNode params) {
+    String protocolVersion = params.path("protocolVersion").asString();
+    ClientCapabilities capabilities =
+        objectMapper.treeToValue(params.get("capabilities"), ClientCapabilities.class);
+    ClientInfo clientInfo = objectMapper.treeToValue(params.get("clientInfo"), ClientInfo.class);
+    McpSession session = new McpSession(protocolVersion, capabilities, clientInfo);
+    String newSessionId = sessionStore.save(session, sessionTimeout);
+    log.info("Created new session {} for initialize request", newSessionId);
+    return newSessionId;
   }
 
   private ResponseEntity<Object> handleNotificationOrResponse(JsonNode body, String sessionId) {
@@ -223,7 +241,7 @@ public class McpStreamingController {
     if (methodNode != null) {
       String method = methodNode.asString();
       if ("notifications/initialized".equals(method)) {
-        sessionManager.getSession(sessionId).ifPresent(_ -> protocol.dispatch(method, null, null));
+        sessionStore.find(sessionId).ifPresent(_ -> protocol.dispatch(method, null, null));
       }
     }
     return ResponseEntity.accepted().build();

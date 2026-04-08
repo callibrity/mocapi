@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.autoconfigure;
 
-import com.callibrity.mocapi.autoconfigure.sse.McpSessionManager;
+import com.callibrity.mocapi.autoconfigure.sse.InMemoryMcpSessionStore;
 import com.callibrity.mocapi.autoconfigure.sse.McpStreamingController;
 import com.callibrity.mocapi.server.JsonRpcMessages;
 import com.callibrity.mocapi.server.McpMethodHandler;
@@ -24,6 +24,7 @@ import com.callibrity.mocapi.server.McpProtocol;
 import com.callibrity.mocapi.server.McpRequestValidator;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpServerCapability;
+import com.callibrity.mocapi.server.McpSessionStore;
 import com.callibrity.mocapi.server.exception.McpInternalErrorException;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import java.util.List;
@@ -57,9 +58,9 @@ public class MocapiAutoConfiguration {
   }
 
   @Bean(destroyMethod = "shutdown")
-  @ConditionalOnMissingBean
-  public McpSessionManager mcpSessionManager(OdysseyStreamRegistry registry) {
-    return new McpSessionManager(registry);
+  @ConditionalOnMissingBean(McpSessionStore.class)
+  public InMemoryMcpSessionStore mcpSessionStore() {
+    return new InMemoryMcpSessionStore();
   }
 
   @Bean
@@ -105,10 +106,11 @@ public class MocapiAutoConfiguration {
   @ConditionalOnMissingBean
   public McpStreamingController mcpStreamingController(
       McpProtocol mcpProtocol,
-      McpSessionManager sessionManager,
+      McpSessionStore sessionStore,
       OdysseyStreamRegistry registry,
       ObjectMapper objectMapper) {
-    return new McpStreamingController(mcpProtocol, sessionManager, registry, objectMapper);
+    return new McpStreamingController(
+        mcpProtocol, sessionStore, registry, objectMapper, props.getSessionTimeout());
   }
 
   private static McpServer.InitializeResponse initializeServer(

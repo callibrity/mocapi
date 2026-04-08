@@ -21,12 +21,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.callibrity.mocapi.client.ClientCapabilities;
+import com.callibrity.mocapi.client.ClientInfo;
 import com.callibrity.mocapi.server.JsonRpcMessages;
 import com.callibrity.mocapi.server.McpMethodRegistry;
 import com.callibrity.mocapi.server.McpProtocol;
 import com.callibrity.mocapi.server.McpRequestValidator;
 import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.McpSession;
+import java.time.Duration;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.odyssey.core.OdysseyStream;
@@ -38,9 +43,10 @@ import tools.jackson.databind.ObjectMapper;
 class McpStreamingControllerGetTest {
 
   private static final String SSE_ACCEPT = "text/event-stream";
+  private static final Duration SESSION_TIMEOUT = Duration.ofHours(1);
 
   private McpStreamingController controller;
-  private McpSessionManager sessionManager;
+  private InMemoryMcpSessionStore sessionStore;
   private OdysseyStreamRegistry registry;
   private OdysseyStream notificationStream;
 
@@ -57,7 +63,7 @@ class McpStreamingControllerGetTest {
     when(ephemeralStream.subscribe()).thenReturn(new SseEmitter());
     when(registry.ephemeral()).thenReturn(ephemeralStream);
 
-    sessionManager = new McpSessionManager(registry);
+    sessionStore = new InMemoryMcpSessionStore();
     ObjectMapper objectMapper = new ObjectMapper();
 
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
@@ -65,7 +71,22 @@ class McpStreamingControllerGetTest {
     McpMethodRegistry methodRegistry = McpMethodRegistry.builder().build();
     McpProtocol protocol = new McpProtocol(validator, methodRegistry, messages);
 
-    controller = new McpStreamingController(protocol, sessionManager, registry, objectMapper);
+    controller =
+        new McpStreamingController(protocol, sessionStore, registry, objectMapper, SESSION_TIMEOUT);
+  }
+
+  @AfterEach
+  void tearDown() {
+    sessionStore.shutdown();
+  }
+
+  private String createSession() {
+    return sessionStore.save(
+        new McpSession(
+            "2025-11-25",
+            new ClientCapabilities(null, null, null, null, null),
+            new ClientInfo("test", null, "1.0", null, null, null)),
+        SESSION_TIMEOUT);
   }
 
   @Test
@@ -82,16 +103,15 @@ class McpStreamingControllerGetTest {
 
   @Test
   void shouldReturn400ForInvalidProtocolVersion() {
-    McpSession session = sessionManager.createSession();
-    var response =
-        controller.handleGet(session.getSessionId(), "invalid-version", null, SSE_ACCEPT, null);
+    String sessionId = createSession();
+    var response = controller.handleGet(sessionId, "invalid-version", null, SSE_ACCEPT, null);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
   }
 
   @Test
   void shouldReturnSseEmitterForValidSession() {
-    McpSession session = sessionManager.createSession();
-    var response = controller.handleGet(session.getSessionId(), null, null, SSE_ACCEPT, null);
+    String sessionId = createSession();
+    var response = controller.handleGet(sessionId, null, null, SSE_ACCEPT, null);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
@@ -99,8 +119,8 @@ class McpStreamingControllerGetTest {
 
   @Test
   void shouldPublishPrimingEventAndSubscribeWithoutLastEventId() {
-    McpSession session = sessionManager.createSession();
-    controller.handleGet(session.getSessionId(), null, null, SSE_ACCEPT, null);
+    String sessionId = createSession();
+    controller.handleGet(sessionId, null, null, SSE_ACCEPT, null);
 
     verify(notificationStream).publishRaw("");
     verify(notificationStream).subscribe();
@@ -108,19 +128,18 @@ class McpStreamingControllerGetTest {
 
   @Test
   void shouldResumeAfterLastEventId() {
-    McpSession session = sessionManager.createSession();
+    String sessionId = createSession();
     String lastEventId = "some-event-id";
-    controller.handleGet(session.getSessionId(), null, lastEventId, SSE_ACCEPT, null);
+    controller.handleGet(sessionId, null, lastEventId, SSE_ACCEPT, null);
 
     verify(notificationStream).resumeAfter(lastEventId);
   }
 
   @Test
   void shouldAcceptValidProtocolVersion() {
-    McpSession session = sessionManager.createSession();
+    String sessionId = createSession();
     var response =
-        controller.handleGet(
-            session.getSessionId(), McpServer.PROTOCOL_VERSION, null, SSE_ACCEPT, null);
+        controller.handleGet(sessionId, McpServer.PROTOCOL_VERSION, null, SSE_ACCEPT, null);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
@@ -128,26 +147,23 @@ class McpStreamingControllerGetTest {
 
   @Test
   void shouldReturn403ForInvalidOrigin() {
-    McpSession session = sessionManager.createSession();
+    String sessionId = createSession();
     var response =
-        controller.handleGet(
-            session.getSessionId(), null, null, SSE_ACCEPT, "http://evil.example.com");
+        controller.handleGet(sessionId, null, null, SSE_ACCEPT, "http://evil.example.com");
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
   }
 
   @Test
   void shouldAcceptValidOrigin() {
-    McpSession session = sessionManager.createSession();
-    var response =
-        controller.handleGet(
-            session.getSessionId(), null, null, SSE_ACCEPT, "http://localhost:8080");
+    String sessionId = createSession();
+    var response = controller.handleGet(sessionId, null, null, SSE_ACCEPT, "http://localhost:8080");
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
   }
 
   @Test
   void shouldAcceptNullOrigin() {
-    McpSession session = sessionManager.createSession();
-    var response = controller.handleGet(session.getSessionId(), null, null, SSE_ACCEPT, null);
+    String sessionId = createSession();
+    var response = controller.handleGet(sessionId, null, null, SSE_ACCEPT, null);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
   }
 }
