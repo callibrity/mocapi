@@ -21,6 +21,7 @@ import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Single public API for all session concerns — lifecycle, encryption, and lookup. The controller
@@ -39,9 +40,11 @@ public class McpSessionService {
     this.ttl = ttl;
   }
 
-  /** Saves the session to the store and returns the generated session ID. */
+  /** Generates a session ID, saves the session to the store, and returns the ID. */
   public String create(McpSession session) {
-    return store.save(session, ttl);
+    String sessionId = UUID.randomUUID().toString();
+    store.save(session.withSessionId(sessionId), ttl);
+    return sessionId;
   }
 
   /**

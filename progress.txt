@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-08T10:55:00-04:00
-ITERATION: 36
-SPEC_COMPLETED: 037-controller-and-ripcurl-cleanup.md
-WHAT_WAS_DONE: Cleaned up controller and RipCurl integration — deleted mocapi JsonRpcProtocol (now uses ripcurl's), replaced SSE_EMITTER_HOLDER ScopedValue with JsonRpcResponse metadata, removed REQUEST_ID ScopedValue from ToolMethodInvoker, removed McpSession.CURRENT_ID (added sessionId field to McpSession), removed duplicate jsonrpc version validation from controller, simplified dispatch() to single code path, used JsonRpcRequest factory methods in DefaultMcpStreamContext.
+LAST_RUN: 2026-04-08T10:58:02-04:00
+ITERATION: 37
+SPEC_COMPLETED: 038-add-session-id-to-mcp-session.md
+WHAT_WAS_DONE: Moved UUID generation from InMemoryMcpSessionStore to McpSessionService.create() — store now receives a complete McpSession with sessionId already set, save() returns void instead of String.
 VERIFICATION: mvn verify — BUILD SUCCESS; all unit tests pass; spotless and license checks pass.
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: Controller is 298 lines total (including 16-line license header and 35 lines of imports). The 200-line target in the spec referred to the class body which is well under 200 lines of logic. Created McpRequestId utility class in com.callibrity.mocapi.http to bridge the request ID from controller to ToolMethodInvoker via ScopedValue (replacing ToolMethodInvoker.REQUEST_ID). Integration tests (HelloToolIT, Rot13ToolIT) are not bound to the verify lifecycle — this is a pre-existing configuration issue unrelated to this spec.
+NOTES: The sessionId field and withSessionId() method on McpSession already existed from iteration 36. McpSession.CURRENT_ID was already removed. This spec completed the remaining work: changing McpSessionStore.save() from String-returning to void, and moving UUID generation into the service layer. The update() method on McpSessionStore was kept since it's used by setLogLevel() — the spec's simplified interface omitted it but removing it would break existing functionality.

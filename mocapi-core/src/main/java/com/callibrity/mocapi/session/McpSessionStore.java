@@ -22,13 +22,12 @@ import java.util.Optional;
 public interface McpSessionStore {
 
   /**
-   * Saves a session and returns its generated ID.
+   * Saves a session using its {@link McpSession#sessionId()} as the key.
    *
-   * @param session the session data to persist
+   * @param session the session data to persist (must already have a session ID)
    * @param ttl how long the session should live before expiring
-   * @return the generated session ID
    */
-  String save(McpSession session, Duration ttl);
+  void save(McpSession session, Duration ttl);
 
   /**
    * Replaces the session data for an existing session, preserving the current TTL.

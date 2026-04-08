@@ -53,14 +53,13 @@ class McpSessionServiceTest {
   }
 
   @Test
-  void createDelegatesToStore() {
+  void createGeneratesIdAndDelegatesToStore() {
     McpSession session = new McpSession("2025-11-25", null, null);
-    when(store.save(session, TTL)).thenReturn("sess-123");
 
     String id = service.create(session);
 
-    assertThat(id).isEqualTo("sess-123");
-    verify(store).save(session, TTL);
+    assertThat(id).isNotNull().isNotEmpty();
+    verify(store).save(any(McpSession.class), eq(TTL));
   }
 
   @Test

@@ -19,7 +19,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -50,11 +49,9 @@ public class InMemoryMcpSessionStore implements McpSessionStore {
   }
 
   @Override
-  public String save(McpSession session, Duration ttl) {
-    String sessionId = UUID.randomUUID().toString();
-    sessions.put(sessionId, new Entry(session, Instant.now().plus(ttl)));
-    log.debug("Saved MCP session: {}", sessionId);
-    return sessionId;
+  public void save(McpSession session, Duration ttl) {
+    sessions.put(session.sessionId(), new Entry(session, Instant.now().plus(ttl)));
+    log.debug("Saved MCP session: {}", session.sessionId());
   }
 
   @Override

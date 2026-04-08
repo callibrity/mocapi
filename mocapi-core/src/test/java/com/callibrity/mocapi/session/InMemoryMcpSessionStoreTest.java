@@ -18,6 +18,7 @@ package com.callibrity.mocapi.session;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,11 +27,13 @@ class InMemoryMcpSessionStoreTest {
 
   private InMemoryMcpSessionStore store;
 
-  private static final McpSession SESSION =
-      new McpSession(
-          "2025-11-25",
-          new ClientCapabilities(null, null, null, null, null),
-          new ClientInfo("test-client", null, "1.0", null, null, null));
+  private static McpSession sessionWithId() {
+    return new McpSession(
+            "2025-11-25",
+            new ClientCapabilities(null, null, null, null, null),
+            new ClientInfo("test-client", null, "1.0", null, null, null))
+        .withSessionId(UUID.randomUUID().toString());
+  }
 
   @BeforeEach
   void setUp() {
@@ -43,17 +46,18 @@ class InMemoryMcpSessionStoreTest {
   }
 
   @Test
-  void saveShouldReturnUniqueIds() {
-    String id1 = store.save(SESSION, Duration.ofHours(1));
-    String id2 = store.save(SESSION, Duration.ofHours(1));
-    assertThat(id1).isNotEqualTo(id2);
+  void saveShouldStoreSessionById() {
+    McpSession session = sessionWithId();
+    store.save(session, Duration.ofHours(1));
+    assertThat(store.find(session.sessionId())).isPresent();
   }
 
   @Test
   void findShouldReturnSavedSession() {
-    String id = store.save(SESSION, Duration.ofHours(1));
-    var found = store.find(id);
-    assertThat(found).isPresent().hasValue(SESSION);
+    McpSession session = sessionWithId();
+    store.save(session, Duration.ofHours(1));
+    var found = store.find(session.sessionId());
+    assertThat(found).isPresent().hasValue(session);
   }
 
   @Test
@@ -68,35 +72,38 @@ class InMemoryMcpSessionStoreTest {
 
   @Test
   void findShouldReturnEmptyForExpiredSession() {
-    String id = store.save(SESSION, Duration.ZERO);
-    assertThat(store.find(id)).isEmpty();
+    McpSession session = sessionWithId();
+    store.save(session, Duration.ZERO);
+    assertThat(store.find(session.sessionId())).isEmpty();
   }
 
   @Test
   void touchShouldRefreshTtl() {
-    String id = store.save(SESSION, Duration.ofMillis(1));
-    store.touch(id, Duration.ofHours(1));
-    assertThat(store.find(id)).isPresent();
+    McpSession session = sessionWithId();
+    store.save(session, Duration.ofMillis(1));
+    store.touch(session.sessionId(), Duration.ofHours(1));
+    assertThat(store.find(session.sessionId())).isPresent();
   }
 
   @Test
   void deleteShouldRemoveSession() {
-    String id = store.save(SESSION, Duration.ofHours(1));
-    store.delete(id);
-    assertThat(store.find(id)).isEmpty();
+    McpSession session = sessionWithId();
+    store.save(session, Duration.ofHours(1));
+    store.delete(session.sessionId());
+    assertThat(store.find(session.sessionId())).isEmpty();
   }
 
   @Test
   void cleanupExpiredShouldRemoveExpiredSessions() {
-    store.save(SESSION, Duration.ZERO);
-    store.save(SESSION, Duration.ZERO);
+    store.save(sessionWithId(), Duration.ZERO);
+    store.save(sessionWithId(), Duration.ZERO);
     store.cleanupExpired();
     assertThat(store.getSessionCount()).isZero();
   }
 
   @Test
   void cleanupExpiredShouldKeepActiveSessions() {
-    store.save(SESSION, Duration.ofHours(1));
+    store.save(sessionWithId(), Duration.ofHours(1));
     store.cleanupExpired();
     assertThat(store.getSessionCount()).isEqualTo(1);
   }
@@ -104,9 +111,9 @@ class InMemoryMcpSessionStoreTest {
   @Test
   void getSessionCountShouldReturnCorrectCount() {
     assertThat(store.getSessionCount()).isZero();
-    store.save(SESSION, Duration.ofHours(1));
+    store.save(sessionWithId(), Duration.ofHours(1));
     assertThat(store.getSessionCount()).isEqualTo(1);
-    store.save(SESSION, Duration.ofHours(1));
+    store.save(sessionWithId(), Duration.ofHours(1));
     assertThat(store.getSessionCount()).isEqualTo(2);
   }
 }
