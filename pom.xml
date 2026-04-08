@@ -54,7 +54,6 @@
 
     <modules>
         <module>mocapi-core</module>
-        <module>mocapi-autoconfigure</module>
         <module>mocapi-spring-boot-starter</module>
         <module>mocapi-example</module>
         <module>mocapi-coverage</module>
