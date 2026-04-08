@@ -19,7 +19,7 @@ import com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration;
 import com.callibrity.mocapi.autoconfigure.MocapiProperties;
 import com.callibrity.mocapi.tools.McpTool;
 import com.callibrity.mocapi.tools.McpToolProvider;
-import com.callibrity.mocapi.tools.McpToolsCapability;
+import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.tools.annotation.DefaultAnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
@@ -38,7 +38,7 @@ import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration
 @AutoConfigureBefore(MocapiAutoConfiguration.class)
-@ConditionalOnClass(McpToolsCapability.class)
+@ConditionalOnClass(ToolsRegistry.class)
 @EnableConfigurationProperties({MocapiToolsProperties.class, MocapiProperties.class})
 @PropertySource("classpath:mocapi-tools-defaults.properties")
 @RequiredArgsConstructor
@@ -50,8 +50,8 @@ public class MocapiToolsAutoConfiguration {
   private final MocapiProperties mocapiProperties;
 
   @Bean
-  public McpToolsCapability mcpToolsCapability(List<McpToolProvider> toolProviders) {
-    return new McpToolsCapability(toolProviders, mocapiProperties.getPagination().getPageSize());
+  public ToolsRegistry toolsRegistry(List<McpToolProvider> toolProviders) {
+    return new ToolsRegistry(toolProviders, mocapiProperties.getPagination().getPageSize());
   }
 
   @Bean

@@ -18,7 +18,7 @@ package com.callibrity.mocapi.autoconfigure.tools;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration;
-import com.callibrity.mocapi.tools.McpToolsCapability;
+import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
 import com.callibrity.ripcurl.autoconfigure.RipCurlAutoConfiguration;
 import org.junit.jupiter.api.Test;
@@ -45,7 +45,7 @@ class MocapiToolsAutoConfigurationTest {
 
   @Test
   void mcpCapabilityInitializes() {
-    contextRunner.run(context -> assertThat(context).hasSingleBean(McpToolsCapability.class));
+    contextRunner.run(context -> assertThat(context).hasSingleBean(ToolsRegistry.class));
   }
 
   @Test

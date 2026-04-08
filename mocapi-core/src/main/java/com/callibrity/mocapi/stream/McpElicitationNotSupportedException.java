@@ -13,17 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server;
+package com.callibrity.mocapi.stream;
 
-import com.callibrity.mocapi.session.Icon;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.List;
+/** Thrown when elicitForm() is called but the client did not declare elicitation support. */
+public class McpElicitationNotSupportedException extends RuntimeException {
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record ServerInfo(
-    String name,
-    String title,
-    String version,
-    String description,
-    List<Icon> icons,
-    String websiteUrl) {}
+  public McpElicitationNotSupportedException(String message) {
+    super(message);
+  }
+}

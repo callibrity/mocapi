@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server;
+package com.callibrity.mocapi.session;
 
-import com.callibrity.mocapi.session.Icon;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.List;
+import tools.jackson.databind.JsonNode;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ServerInfo(
-    String name,
-    String title,
-    String version,
-    String description,
-    List<Icon> icons,
-    String websiteUrl) {}
+public record ClientCapabilities(
+    RootsCapability roots,
+    SamplingCapability sampling,
+    ElicitationCapability elicitation,
+    TasksCapability tasks,
+    JsonNode experimental) {}

@@ -17,36 +17,25 @@ package com.callibrity.mocapi.server;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.client.ClientCapabilities;
-import com.callibrity.mocapi.client.ClientInfo;
-import com.callibrity.mocapi.client.ElicitationCapability;
-import com.callibrity.mocapi.client.RootsCapability;
-import com.callibrity.mocapi.client.SamplingCapability;
+import com.callibrity.mocapi.session.ClientCapabilities;
+import com.callibrity.mocapi.session.ClientInfo;
+import com.callibrity.mocapi.session.ElicitationCapability;
+import com.callibrity.mocapi.session.RootsCapability;
+import com.callibrity.mocapi.session.SamplingCapability;
+import com.callibrity.mocapi.tools.ToolsRegistry;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 class McpServerTest {
 
-  @Mock private McpServerCapability capability;
-
-  private record TestCapabilityDescriptor(String value) implements CapabilityDescriptor {}
-
   @Test
-  void constructorShouldInitializeServer() {
-    var descriptor = new TestCapabilityDescriptor("test describe");
-
-    when(capability.name()).thenReturn("test-capability");
-    when(capability.describe()).thenReturn(descriptor);
+  void constructorShouldInitializeServerWithTools() {
+    var toolsRegistry = new ToolsRegistry(List.of(), 50);
 
     var server =
         new McpServer(
-            List.of(capability),
+            toolsRegistry,
             new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
             "Testing instructions");
 
@@ -64,9 +53,9 @@ class McpServerTest {
     assertThat(response).isNotNull();
     assertThat(response.protocolVersion()).isEqualTo(McpServer.PROTOCOL_VERSION);
     assertThat(response.capabilities()).isNotNull();
-    // test-capability + elicitation (client declared empty elicitation = form support)
+    // tools + elicitation (client declared empty elicitation = form support)
     assertThat(response.capabilities()).hasSize(2);
-    assertThat(response.capabilities()).containsEntry("test-capability", descriptor);
+    assertThat(response.capabilities()).containsKey("tools");
     assertThat(response.capabilities()).containsKey("elicitation");
     assertThat(response.serverInfo()).isNotNull();
     assertThat(response.serverInfo().name()).isEqualTo("Test Server");
@@ -75,15 +64,27 @@ class McpServerTest {
   }
 
   @Test
-  void pingShouldReturnResponse() {
-    var descriptor = new TestCapabilityDescriptor("test describe");
-
-    when(capability.name()).thenReturn("test-capability");
-    when(capability.describe()).thenReturn(descriptor);
-
+  void constructorShouldInitializeServerWithoutTools() {
     var server =
         new McpServer(
-            List.of(capability),
+            null,
+            new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
+            "Testing instructions");
+
+    var response =
+        server.initialize(
+            "123",
+            new ClientCapabilities(null, null, null, null, null),
+            new ClientInfo("Test Client", "A test client", "1.0.0", null, null, null));
+
+    assertThat(response.capabilities()).isEmpty();
+  }
+
+  @Test
+  void pingShouldReturnResponse() {
+    var server =
+        new McpServer(
+            null,
             new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
             "Testing instructions");
     var response = server.ping();
@@ -92,14 +93,11 @@ class McpServerTest {
 
   @Test
   void initializeShouldNotIncludeElicitationWhenClientDoesNotSupport() {
-    var descriptor = new TestCapabilityDescriptor("test describe");
-
-    when(capability.name()).thenReturn("test-capability");
-    when(capability.describe()).thenReturn(descriptor);
+    var toolsRegistry = new ToolsRegistry(List.of(), 50);
 
     var server =
         new McpServer(
-            List.of(capability),
+            toolsRegistry,
             new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
             "Testing instructions");
 
@@ -110,20 +108,15 @@ class McpServerTest {
             new ClientInfo("Test Client", "A test client", "1.0.0", null, null, null));
 
     assertThat(response.capabilities()).hasSize(1);
-    assertThat(response.capabilities()).containsEntry("test-capability", descriptor);
+    assertThat(response.capabilities()).containsKey("tools");
     assertThat(response.capabilities()).doesNotContainKey("elicitation");
   }
 
   @Test
   void clientInitializedShouldDoNothing() {
-    var descriptor = new TestCapabilityDescriptor("test describe");
-
-    when(capability.name()).thenReturn("test-capability");
-    when(capability.describe()).thenReturn(descriptor);
-
     var server =
         new McpServer(
-            List.of(capability),
+            null,
             new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
             "Testing instructions");
     assertThatNoException().isThrownBy(server::clientInitialized);

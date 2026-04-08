@@ -22,14 +22,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.autoconfigure.McpServerMethods;
+import com.callibrity.mocapi.autoconfigure.session.InMemoryMcpSessionStore;
+import com.callibrity.mocapi.autoconfigure.session.McpSessionMethods;
+import com.callibrity.mocapi.autoconfigure.stream.McpStreamContextParamResolver;
 import com.callibrity.mocapi.autoconfigure.tools.McpToolMethods;
-import com.callibrity.mocapi.client.ClientCapabilities;
-import com.callibrity.mocapi.client.ClientInfo;
-import com.callibrity.mocapi.server.McpRequestValidator;
 import com.callibrity.mocapi.server.McpServer;
-import com.callibrity.mocapi.server.McpSession;
-import com.callibrity.mocapi.tools.McpToolsCapability;
+import com.callibrity.mocapi.session.ClientCapabilities;
+import com.callibrity.mocapi.session.ClientInfo;
+import com.callibrity.mocapi.session.McpSession;
+import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
@@ -65,12 +66,12 @@ class StreamableHttpControllerTest {
   private StreamableHttpController controller;
   private InMemoryMcpSessionStore sessionStore;
   private ObjectMapper objectMapper;
-  private McpToolsCapability toolsCapability;
+  private ToolsRegistry toolsCapability;
   private OdysseyStreamRegistry registry;
 
   @BeforeEach
   void setUp() {
-    McpServer mcpServer = new McpServer(List.of(), null, null);
+    McpServer mcpServer = new McpServer(null, null, null);
     registry = mock(OdysseyStreamRegistry.class);
     when(registry.channel(anyString())).thenReturn(mock(OdysseyStream.class));
 
@@ -80,9 +81,9 @@ class StreamableHttpControllerTest {
 
     sessionStore = new InMemoryMcpSessionStore();
     objectMapper = new ObjectMapper();
-    toolsCapability = mock(McpToolsCapability.class);
+    toolsCapability = mock(ToolsRegistry.class);
 
-    McpServerMethods serverMethods = new McpServerMethods(mcpServer);
+    McpSessionMethods serverMethods = new McpSessionMethods(mcpServer);
     McpToolMethods toolMethods = new McpToolMethods(toolsCapability, objectMapper);
 
     JsonRpcMethodProvider serverProvider =
@@ -260,7 +261,7 @@ class StreamableHttpControllerTest {
     @Test
     void toolsListShouldReturnJson() {
       when(toolsCapability.listTools(any()))
-          .thenReturn(new McpToolsCapability.ListToolsResponse(List.of(), null));
+          .thenReturn(new ToolsRegistry.ListToolsResponse(List.of(), null));
 
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
@@ -279,8 +280,7 @@ class StreamableHttpControllerTest {
     void toolsCallShouldReturnJson() {
       when(toolsCapability.callTool(eq("test-tool"), any()))
           .thenReturn(
-              new McpToolsCapability.CallToolResponse(
-                  List.of(), null, objectMapper.createObjectNode()));
+              new ToolsRegistry.CallToolResponse(List.of(), null, objectMapper.createObjectNode()));
 
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();

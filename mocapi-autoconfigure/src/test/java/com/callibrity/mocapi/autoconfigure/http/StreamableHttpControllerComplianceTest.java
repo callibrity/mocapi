@@ -22,12 +22,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.autoconfigure.McpServerMethods;
-import com.callibrity.mocapi.client.ClientCapabilities;
-import com.callibrity.mocapi.client.ClientInfo;
-import com.callibrity.mocapi.server.McpRequestValidator;
+import com.callibrity.mocapi.autoconfigure.session.InMemoryMcpSessionStore;
+import com.callibrity.mocapi.autoconfigure.session.McpSessionMethods;
+import com.callibrity.mocapi.autoconfigure.stream.McpStreamContextParamResolver;
 import com.callibrity.mocapi.server.McpServer;
-import com.callibrity.mocapi.server.McpSession;
+import com.callibrity.mocapi.session.ClientCapabilities;
+import com.callibrity.mocapi.session.ClientInfo;
+import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
@@ -72,7 +73,7 @@ class StreamableHttpControllerComplianceTest {
 
   @BeforeEach
   void setUp() {
-    McpServer mcpServer = new McpServer(List.of(), null, null);
+    McpServer mcpServer = new McpServer(null, null, null);
     registry = mock(OdysseyStreamRegistry.class);
 
     OdysseyStream notificationStream = mock(OdysseyStream.class);
@@ -86,7 +87,7 @@ class StreamableHttpControllerComplianceTest {
     sessionStore = new InMemoryMcpSessionStore();
     objectMapper = new ObjectMapper();
 
-    McpServerMethods serverMethods = new McpServerMethods(mcpServer);
+    McpSessionMethods serverMethods = new McpSessionMethods(mcpServer);
     JsonRpcMethodProvider serverProvider =
         () ->
             List.copyOf(

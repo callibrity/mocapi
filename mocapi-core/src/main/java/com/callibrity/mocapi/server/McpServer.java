@@ -15,13 +15,13 @@
  */
 package com.callibrity.mocapi.server;
 
-import com.callibrity.mocapi.client.ClientCapabilities;
-import com.callibrity.mocapi.client.ClientInfo;
+import com.callibrity.mocapi.session.ClientCapabilities;
+import com.callibrity.mocapi.session.ClientInfo;
+import com.callibrity.mocapi.session.McpSession;
+import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -37,11 +37,11 @@ public class McpServer {
 
   // --------------------------- CONSTRUCTORS ---------------------------
 
-  public McpServer(
-      List<McpServerCapability> serverCapabilities, ServerInfo serverInfo, String instructions) {
-    this.serverCapabilities =
-        serverCapabilities.stream()
-            .collect(Collectors.toMap(McpServerCapability::name, McpServerCapability::describe));
+  public McpServer(ToolsRegistry toolsRegistry, ServerInfo serverInfo, String instructions) {
+    this.serverCapabilities = new HashMap<>();
+    if (toolsRegistry != null) {
+      serverCapabilities.put("tools", new ToolsCapabilityDescriptor(false));
+    }
     this.serverInfo = serverInfo;
     this.instructions = instructions;
   }
@@ -69,6 +69,9 @@ public class McpServer {
 
   /** Server-side elicitation capability descriptor. */
   public record ElicitationCapabilityDescriptor() implements CapabilityDescriptor {}
+
+  /** Tools capability descriptor. */
+  public record ToolsCapabilityDescriptor(boolean listChanged) implements CapabilityDescriptor {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record InitializeResponse(

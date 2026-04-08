@@ -13,30 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.autoconfigure.tools;
+package com.callibrity.mocapi.autoconfigure.session;
 
-import com.callibrity.mocapi.tools.ToolsRegistry;
+import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.session.ClientCapabilities;
+import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.ripcurl.core.annotation.JsonRpc;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import lombok.RequiredArgsConstructor;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 @JsonRpcService
 @RequiredArgsConstructor
-public class McpToolMethods {
+public class McpSessionMethods {
 
-  private final ToolsRegistry toolsRegistry;
-  private final ObjectMapper objectMapper;
+  private final McpServer mcpServer;
 
-  @JsonRpc("tools/list")
-  public ToolsRegistry.ListToolsResponse listTools(String cursor) {
-    return toolsRegistry.listTools(cursor);
+  @JsonRpc("initialize")
+  public McpServer.InitializeResponse initialize(
+      String protocolVersion, ClientCapabilities capabilities, ClientInfo clientInfo) {
+    return mcpServer.initialize(protocolVersion, capabilities, clientInfo);
   }
 
-  @JsonRpc("tools/call")
-  public ToolsRegistry.CallToolResponse callTool(String name, ObjectNode arguments) {
-    return toolsRegistry.callTool(
-        name, arguments != null ? arguments : objectMapper.createObjectNode());
+  @JsonRpc("ping")
+  public McpServer.PingResponse ping() {
+    return mcpServer.ping();
+  }
+
+  @JsonRpc("notifications/initialized")
+  public void initialized() {
+    mcpServer.clientInitialized();
   }
 }

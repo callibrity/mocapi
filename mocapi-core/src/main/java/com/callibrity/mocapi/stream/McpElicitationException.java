@@ -13,17 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server;
+package com.callibrity.mocapi.stream;
 
-import com.callibrity.mocapi.session.Icon;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.List;
+/** Thrown when an elicitation response fails validation or cannot be processed. */
+public class McpElicitationException extends RuntimeException {
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record ServerInfo(
-    String name,
-    String title,
-    String version,
-    String description,
-    List<Icon> icons,
-    String websiteUrl) {}
+  public McpElicitationException(String message) {
+    super(message);
+  }
+
+  public McpElicitationException(String message, Throwable cause) {
+    super(message, cause);
+  }
+}

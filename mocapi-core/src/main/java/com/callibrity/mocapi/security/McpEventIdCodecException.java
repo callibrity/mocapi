@@ -13,17 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server;
+package com.callibrity.mocapi.security;
 
-import com.callibrity.mocapi.session.Icon;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.List;
+/**
+ * Thrown when an event ID cannot be decoded — wrong session, tampered ciphertext, or malformed
+ * input.
+ */
+public class McpEventIdCodecException extends RuntimeException {
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record ServerInfo(
-    String name,
-    String title,
-    String version,
-    String description,
-    List<Icon> icons,
-    String websiteUrl) {}
+  public McpEventIdCodecException(String message) {
+    super(message);
+  }
+
+  public McpEventIdCodecException(String message, Throwable cause) {
+    super(message, cause);
+  }
+}

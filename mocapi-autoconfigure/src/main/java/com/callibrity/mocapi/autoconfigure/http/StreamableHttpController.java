@@ -15,12 +15,13 @@
  */
 package com.callibrity.mocapi.autoconfigure.http;
 
-import com.callibrity.mocapi.client.ClientCapabilities;
-import com.callibrity.mocapi.client.ClientInfo;
-import com.callibrity.mocapi.server.McpRequestValidator;
+import com.callibrity.mocapi.autoconfigure.stream.DefaultMcpStreamContext;
+import com.callibrity.mocapi.autoconfigure.stream.McpStreamContextParamResolver;
 import com.callibrity.mocapi.server.McpServer;
-import com.callibrity.mocapi.server.McpSession;
-import com.callibrity.mocapi.server.McpSessionStore;
+import com.callibrity.mocapi.session.ClientCapabilities;
+import com.callibrity.mocapi.session.ClientInfo;
+import com.callibrity.mocapi.session.McpSession;
+import com.callibrity.mocapi.session.McpSessionStore;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;

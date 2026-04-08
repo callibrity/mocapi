@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-08T07:15:04-04:00
-ITERATION: 26
-SPEC_COMPLETED: 027-rename-elicit-to-elicit-form.md
-WHAT_WAS_DONE: Renamed elicit() to elicitForm() on McpStreamContext interface and DefaultMcpStreamContext implementation, updated all test call sites, and fixed Javadoc reference in McpElicitationNotSupportedException.
+LAST_RUN: 2026-04-08T07:58:41-04:00
+ITERATION: 27
+SPEC_COMPLETED: 028-reorganize-by-domain.md
+WHAT_WAS_DONE: Reorganized mocapi package structure from technical layers to domain-oriented subpackages. Created session/, stream/, security/ packages in core; created ToolsRegistry replacing McpToolsCapability; moved Names/Parameters to their domain packages; replaced mocapi-core's JsonMethodInvoker with RipCurl's; renamed McpServerMethods to McpSessionMethods; reorganized autoconfigure into session/, stream/, http/ subpackages; deleted dead code (McpServerCapability, CapabilityDescriptor marker interface retained).
 VERIFICATION: mvn verify — BUILD SUCCESS; all tests pass; spotless and license checks pass.
 STATUS: MORE_WORK
 NEXT_SPEC: none (specs/ directory empty except template and backlog)
-NOTES: Simple rename, no behavior changes. Leaves room for future elicitUrl() method.
+NOTES: Major package reorganization touching ~60 files. CapabilityDescriptor kept in server package as McpServer still uses it for capability descriptors. McpRequestValidator moved to autoconfigure/http since it's transport-level validation. DefaultMcpStreamContext constructor changed to public since it's now accessed cross-package.

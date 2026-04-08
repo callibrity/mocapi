@@ -15,14 +15,14 @@
  */
 package com.callibrity.mocapi.tools.annotation;
 
-import static com.callibrity.mocapi.server.util.Names.humanReadableName;
-import static com.callibrity.mocapi.server.util.Names.identifier;
+import static com.callibrity.mocapi.tools.annotation.Names.humanReadableName;
+import static com.callibrity.mocapi.tools.annotation.Names.identifier;
 import static java.util.Optional.ofNullable;
 
-import com.callibrity.mocapi.server.invoke.JsonMethodInvoker;
 import com.callibrity.mocapi.tools.McpTool;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
+import com.callibrity.ripcurl.core.invoke.JsonMethodInvoker;
 import java.lang.reflect.Method;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;

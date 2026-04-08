@@ -15,16 +15,16 @@
  */
 package com.callibrity.mocapi.autoconfigure;
 
-import com.callibrity.mocapi.autoconfigure.http.InMemoryMcpSessionStore;
-import com.callibrity.mocapi.autoconfigure.http.McpStreamContextParamResolver;
+import com.callibrity.mocapi.autoconfigure.http.McpRequestValidator;
 import com.callibrity.mocapi.autoconfigure.http.StreamableHttpController;
+import com.callibrity.mocapi.autoconfigure.session.InMemoryMcpSessionStore;
+import com.callibrity.mocapi.autoconfigure.session.McpSessionMethods;
+import com.callibrity.mocapi.autoconfigure.stream.McpStreamContextParamResolver;
 import com.callibrity.mocapi.autoconfigure.tools.McpToolMethods;
-import com.callibrity.mocapi.server.McpRequestValidator;
+import com.callibrity.mocapi.security.McpEventIdCodec;
 import com.callibrity.mocapi.server.McpServer;
-import com.callibrity.mocapi.server.McpServerCapability;
-import com.callibrity.mocapi.server.McpSessionStore;
-import com.callibrity.mocapi.server.util.McpEventIdCodec;
-import com.callibrity.mocapi.tools.McpToolsCapability;
+import com.callibrity.mocapi.session.McpSessionStore;
+import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.github.victools.jsonschema.generator.OptionPreset;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
@@ -33,7 +33,6 @@ import com.github.victools.jsonschema.generator.SchemaVersion;
 import com.github.victools.jsonschema.module.jackson.JacksonSchemaModule;
 import com.github.victools.jsonschema.module.jakarta.validation.JakartaValidationModule;
 import java.util.Base64;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.jwcarman.substrate.core.MailboxFactory;
@@ -44,6 +43,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.lang.Nullable;
 import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration
@@ -55,8 +55,8 @@ public class MocapiAutoConfiguration {
   private final MocapiProperties props;
 
   @Bean
-  public McpServer mcpServer(List<McpServerCapability> serverCapabilities) {
-    return new McpServer(serverCapabilities, props.getServerInfo(), props.getInstructions());
+  public McpServer mcpServer(@Nullable ToolsRegistry toolsRegistry) {
+    return new McpServer(toolsRegistry, props.getServerInfo(), props.getInstructions());
   }
 
   @Bean(destroyMethod = "shutdown")
@@ -79,16 +79,15 @@ public class MocapiAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpServerMethods mcpServerMethods(McpServer mcpServer) {
-    return new McpServerMethods(mcpServer);
+  public McpSessionMethods mcpSessionMethods(McpServer mcpServer) {
+    return new McpSessionMethods(mcpServer);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  @ConditionalOnBean(McpToolsCapability.class)
-  public McpToolMethods mcpToolMethods(
-      McpToolsCapability toolsCapability, ObjectMapper objectMapper) {
-    return new McpToolMethods(toolsCapability, objectMapper);
+  @ConditionalOnBean(ToolsRegistry.class)
+  public McpToolMethods mcpToolMethods(ToolsRegistry toolsRegistry, ObjectMapper objectMapper) {
+    return new McpToolMethods(toolsRegistry, objectMapper);
   }
 
   @Bean
