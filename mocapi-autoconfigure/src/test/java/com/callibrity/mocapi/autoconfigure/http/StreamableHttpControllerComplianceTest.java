@@ -32,6 +32,7 @@ import com.callibrity.mocapi.server.ServerInfo;
 import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.mocapi.session.McpSession;
+import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
@@ -40,6 +41,7 @@ import com.github.victools.jsonschema.generator.OptionPreset;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
 import com.github.victools.jsonschema.generator.SchemaVersion;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Stream;
@@ -70,6 +72,7 @@ class StreamableHttpControllerComplianceTest {
 
   private StreamableHttpController controller;
   private InMemoryMcpSessionStore sessionStore;
+  private McpSessionService sessionService;
   private ObjectMapper objectMapper;
   private OdysseyStreamRegistry registry;
   private MailboxFactory mailboxFactory;
@@ -95,6 +98,10 @@ class StreamableHttpControllerComplianceTest {
     sessionStore = new InMemoryMcpSessionStore();
     objectMapper = new ObjectMapper();
 
+    byte[] masterKey = new byte[32];
+    new SecureRandom().nextBytes(masterKey);
+    sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT);
+
     McpSessionMethods serverMethods = new McpSessionMethods(initializeResponse);
     JsonRpcMethodProvider serverProvider =
         () ->
@@ -118,12 +125,11 @@ class StreamableHttpControllerComplianceTest {
         new StreamableHttpController(
             dispatcher,
             validator,
-            sessionStore,
+            sessionService,
             registry,
             objectMapper,
             streamContextResolver,
             sessionIdResolver,
-            SESSION_TIMEOUT,
             mailboxFactory,
             schemaGenerator,
             Duration.ofMinutes(5));
@@ -135,12 +141,11 @@ class StreamableHttpControllerComplianceTest {
   }
 
   private String createSession() {
-    return sessionStore.save(
+    return sessionService.create(
         new McpSession(
             "2025-11-25",
             new ClientCapabilities(null, null, null, null, null),
-            new ClientInfo("test", null, "1.0", null, null, null)),
-        SESSION_TIMEOUT);
+            new ClientInfo("test", null, "1.0", null, null, null)));
   }
 
   // ---- Gap 1: Notifications must return 202 Accepted ----

@@ -22,7 +22,7 @@ import com.callibrity.mocapi.server.InitializeResponse;
 import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.mocapi.session.McpSession;
-import com.callibrity.mocapi.session.McpSessionStore;
+import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
@@ -67,12 +67,11 @@ public class StreamableHttpController {
 
   private final JsonRpcDispatcher dispatcher;
   private final McpRequestValidator validator;
-  private final McpSessionStore sessionStore;
+  private final McpSessionService sessionService;
   private final OdysseyStreamRegistry registry;
   private final ObjectMapper objectMapper;
   private final McpStreamContextParamResolver streamContextResolver;
   private final McpSessionIdParamResolver sessionIdResolver;
-  private final Duration sessionTimeout;
   private final MailboxFactory mailboxFactory;
   private final SchemaGenerator schemaGenerator;
   private final Duration elicitationTimeout;
@@ -132,14 +131,13 @@ public class StreamableHttpController {
       if (sessionId == null) {
         return ResponseEntity.badRequest().body(errorResponse(id, -32600, SESSION_REQUIRED));
       }
-      var sessionOpt = sessionStore.find(sessionId);
+      var sessionOpt = sessionService.find(sessionId);
       if (sessionOpt.isEmpty()) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
             .contentType(MediaType.APPLICATION_JSON)
             .body(errorResponse(id, -32600, "Session not found or expired"));
       }
       session = sessionOpt.get();
-      sessionStore.touch(sessionId, sessionTimeout);
     }
 
     return dispatch(isInitialize, method, body, session, sessionId);
@@ -162,7 +160,7 @@ public class StreamableHttpController {
     if (sessionId == null) {
       return ResponseEntity.badRequest().body(Map.of("error", SESSION_REQUIRED));
     }
-    if (sessionStore.find(sessionId).isEmpty()) {
+    if (sessionService.find(sessionId).isEmpty()) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
           .body(Map.of("error", "Session not found or expired"));
     }
@@ -173,7 +171,6 @@ public class StreamableHttpController {
           .body(Map.of("error", "Invalid MCP-Protocol-Version: " + version));
     }
 
-    sessionStore.touch(sessionId, sessionTimeout);
     OdysseyStream stream = registry.channel(sessionId);
     if (lastEventId != null) {
       return ResponseEntity.ok().body(stream.resumeAfter(lastEventId));
@@ -193,11 +190,11 @@ public class StreamableHttpController {
     if (sessionId == null) {
       return ResponseEntity.badRequest().body(Map.of("error", SESSION_REQUIRED));
     }
-    if (sessionStore.find(sessionId).isEmpty()) {
+    if (sessionService.find(sessionId).isEmpty()) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
           .body(Map.of("error", "Session not found or expired"));
     }
-    sessionStore.delete(sessionId);
+    sessionService.delete(sessionId);
     registry.channel(sessionId).delete();
     return ResponseEntity.noContent().build();
   }
@@ -216,7 +213,8 @@ public class StreamableHttpController {
             progressToken,
             mailboxFactory,
             schemaGenerator,
-            session,
+            sessionService,
+            sessionId,
             elicitationTimeout);
     try {
       streamContextResolver.set(ctx);
@@ -262,7 +260,7 @@ public class StreamableHttpController {
           .body(Map.of("error", SESSION_REQUIRED));
     }
     if ("notifications/initialized".equals(method)) {
-      sessionStore
+      sessionService
           .find(sessionId)
           .ifPresent(_ -> dispatcher.dispatch(new JsonRpcRequest("2.0", method, null, null)));
     }
@@ -306,7 +304,7 @@ public class StreamableHttpController {
         objectMapper.treeToValue(params.get("capabilities"), ClientCapabilities.class);
     ClientInfo clientInfo = objectMapper.treeToValue(params.get("clientInfo"), ClientInfo.class);
     McpSession session = new McpSession(protocolVersion, capabilities, clientInfo);
-    String newSessionId = sessionStore.save(session, sessionTimeout);
+    String newSessionId = sessionService.create(session);
     log.info("Created new session {} for initialize request", newSessionId);
     return newSessionId;
   }

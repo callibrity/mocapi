@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-08T08:19:33-04:00
-ITERATION: 29
-SPEC_COMPLETED: 030-logging-support.md
-WHAT_WAS_DONE: Implemented MCP logging support with log-level filtering, logging/setLevel JSON-RPC handler, and convenience logging methods on McpStreamContext.
+LAST_RUN: 2026-04-08T08:35:00-04:00
+ITERATION: 30
+SPEC_COMPLETED: 031-mcp-session-service.md
+WHAT_WAS_DONE: Introduced McpSessionService as the single public API for all session concerns (lifecycle, encryption, lookup) and deleted McpEventIdCodec.
 VERIFICATION: mvn verify — BUILD SUCCESS; all tests pass; spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: 031-mcp-session-service.md
-NOTES: Created LogLevel enum (8 RFC 5424 levels, ordinal-based filtering). Added logLevel field to McpSession with default WARNING and withLogLevel() copy method. Created LoggingCapabilityDescriptor and added logging field to ServerCapabilities. McpStreamContext.log() now takes LogLevel instead of String and includes 8 convenience methods (debug/info/notice/warning/error/critical/alert/emergency) as default methods. DefaultMcpStreamContext filters messages below session threshold. Added McpSessionStore.update() method for in-place session updates. Created McpSessionIdParamResolver + @McpSessionId annotation so JSON-RPC handlers can access the current session ID. McpLoggingMethods handles logging/setLevel by parsing the level string, looking up the session, and saving an updated copy with the new log level. Returns empty object per spec; invalid level returns -32602. InitializeResponse now always advertises logging capability.
+NEXT_SPEC: 032-merge-autoconfigure-into-core.md
+NOTES: Created Ciphers utility class (stateless static AES-256-GCM methods) in mocapi-core security package. Created McpSessionService in mocapi-core session package with create/find/delete/setLogLevel/encrypt/decrypt methods. find() combines lookup + touch (TTL extension). Constructor validates 32-byte master key via Ciphers.validateAesGcmKey(). Deleted McpEventIdCodec and McpEventIdCodecException — replaced by Ciphers + McpSessionService. Updated StreamableHttpController to inject McpSessionService instead of McpSessionStore + Duration sessionTimeout. Updated DefaultMcpStreamContext to use McpSessionService + sessionId instead of direct McpSession — log() now calls sessionService.find() for always-current log level. Updated McpLoggingMethods to use McpSessionService.setLogLevel(). Updated MocapiAutoConfiguration to create McpSessionService bean from Base64-decoded property. Changed property from mocapi.event-id.master-key to mocapi.session-encryption-master-key (required, not optional). Added dev key to mocapi-example application.properties. Updated all test classes (CiphersTest, McpSessionServiceTest, controller tests, context test, auto-config tests).

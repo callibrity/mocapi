@@ -17,6 +17,7 @@ package com.callibrity.mocapi.autoconfigure.stream;
 
 import com.callibrity.mocapi.session.LogLevel;
 import com.callibrity.mocapi.session.McpSession;
+import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.stream.ElicitationAction;
 import com.callibrity.mocapi.stream.ElicitationResult;
 import com.callibrity.mocapi.stream.McpElicitationException;
@@ -53,7 +54,8 @@ public class DefaultMcpStreamContext implements McpStreamContext {
   private final String progressToken;
   private final MailboxFactory mailboxFactory;
   private final SchemaGenerator schemaGenerator;
-  private final McpSession session;
+  private final McpSessionService sessionService;
+  private final String sessionId;
   private final Duration elicitationTimeout;
 
   public DefaultMcpStreamContext(
@@ -62,14 +64,16 @@ public class DefaultMcpStreamContext implements McpStreamContext {
       String progressToken,
       MailboxFactory mailboxFactory,
       SchemaGenerator schemaGenerator,
-      McpSession session,
+      McpSessionService sessionService,
+      String sessionId,
       Duration elicitationTimeout) {
     this.stream = stream;
     this.objectMapper = objectMapper;
     this.progressToken = progressToken;
     this.mailboxFactory = mailboxFactory;
     this.schemaGenerator = schemaGenerator;
-    this.session = session;
+    this.sessionService = sessionService;
+    this.sessionId = sessionId;
     this.elicitationTimeout = elicitationTimeout;
   }
 
@@ -101,7 +105,7 @@ public class DefaultMcpStreamContext implements McpStreamContext {
 
   @Override
   public void log(LogLevel level, String logger, Object data) {
-    LogLevel threshold = session != null ? session.logLevel() : LogLevel.WARNING;
+    LogLevel threshold = currentLogLevel();
     if (level.ordinal() < threshold.ordinal()) {
       return;
     }
@@ -139,7 +143,22 @@ public class DefaultMcpStreamContext implements McpStreamContext {
     return doElicit(message, schemaNode, type);
   }
 
+  private LogLevel currentLogLevel() {
+    if (sessionId == null || sessionService == null) {
+      return LogLevel.WARNING;
+    }
+    return sessionService.find(sessionId).map(McpSession::logLevel).orElse(LogLevel.WARNING);
+  }
+
+  private McpSession currentSession() {
+    if (sessionId == null || sessionService == null) {
+      return null;
+    }
+    return sessionService.find(sessionId).orElse(null);
+  }
+
   private void requireElicitationSupport() {
+    McpSession session = currentSession();
     if (session == null || !session.supportsElicitationForm()) {
       throw new McpElicitationNotSupportedException(
           "Client does not support form-based elicitation");

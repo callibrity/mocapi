@@ -28,12 +28,14 @@ import com.callibrity.mocapi.server.InitializeResponse;
 import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.mocapi.session.McpSession;
+import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import com.github.victools.jsonschema.generator.OptionPreset;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
 import com.github.victools.jsonschema.generator.SchemaVersion;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +56,7 @@ class StreamableHttpControllerGetTest {
 
   private StreamableHttpController controller;
   private InMemoryMcpSessionStore sessionStore;
+  private McpSessionService sessionService;
   private OdysseyStreamRegistry registry;
   private OdysseyStream notificationStream;
 
@@ -73,6 +76,10 @@ class StreamableHttpControllerGetTest {
     sessionStore = new InMemoryMcpSessionStore();
     ObjectMapper objectMapper = new ObjectMapper();
 
+    byte[] masterKey = new byte[32];
+    new SecureRandom().nextBytes(masterKey);
+    sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT);
+
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
     JsonRpcDispatcher dispatcher = new DefaultJsonRpcDispatcher(List.of());
     McpStreamContextParamResolver streamContextResolver = new McpStreamContextParamResolver();
@@ -89,12 +96,11 @@ class StreamableHttpControllerGetTest {
         new StreamableHttpController(
             dispatcher,
             validator,
-            sessionStore,
+            sessionService,
             registry,
             objectMapper,
             streamContextResolver,
             sessionIdResolver,
-            SESSION_TIMEOUT,
             mailboxFactory,
             schemaGenerator,
             Duration.ofMinutes(5));
@@ -106,12 +112,11 @@ class StreamableHttpControllerGetTest {
   }
 
   private String createSession() {
-    return sessionStore.save(
+    return sessionService.create(
         new McpSession(
             "2025-11-25",
             new ClientCapabilities(null, null, null, null, null),
-            new ClientInfo("test", null, "1.0", null, null, null)),
-        SESSION_TIMEOUT);
+            new ClientInfo("test", null, "1.0", null, null, null)));
   }
 
   @Test

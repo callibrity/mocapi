@@ -27,6 +27,7 @@ import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ElicitationCapability;
 import com.callibrity.mocapi.session.LogLevel;
 import com.callibrity.mocapi.session.McpSession;
+import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.stream.ElicitationResult;
 import com.callibrity.mocapi.stream.McpElicitationException;
 import com.callibrity.mocapi.stream.McpElicitationNotSupportedException;
@@ -55,12 +56,14 @@ class DefaultMcpStreamContextTest {
   private ObjectMapper objectMapper;
   private MailboxFactory mailboxFactory;
   private SchemaGenerator schemaGenerator;
+  private McpSessionService sessionService;
 
   @BeforeEach
   void setUp() {
     stream = mock(OdysseyStream.class);
     objectMapper = new ObjectMapper();
     mailboxFactory = mock(MailboxFactory.class);
+    sessionService = mock(McpSessionService.class);
     schemaGenerator =
         new SchemaGenerator(
             new SchemaGeneratorConfigBuilder(
@@ -74,15 +77,25 @@ class DefaultMcpStreamContextTest {
     return createContext(progressToken, null);
   }
 
-  private DefaultMcpStreamContext createContext(String progressToken, McpSession session) {
+  private DefaultMcpStreamContext createContext(String progressToken, String sessionId) {
     return new DefaultMcpStreamContext(
         stream,
         objectMapper,
         progressToken,
         mailboxFactory,
         schemaGenerator,
-        session,
+        sessionService,
+        sessionId,
         Duration.ofSeconds(5));
+  }
+
+  private McpSession sessionWithLogLevel(LogLevel level) {
+    return new McpSession(
+        "2025-11-25", new ClientCapabilities(null, null, null, null, null), null, level);
+  }
+
+  private void stubSessionWithLogLevel(String sessionId, LogLevel level) {
+    when(sessionService.find(sessionId)).thenReturn(Optional.of(sessionWithLogLevel(level)));
   }
 
   @Test
@@ -135,14 +148,10 @@ class DefaultMcpStreamContextTest {
     assertThat(notification.has("params")).isFalse();
   }
 
-  private McpSession sessionWithLogLevel(LogLevel level) {
-    return new McpSession(
-        "2025-11-25", new ClientCapabilities(null, null, null, null, null), null, level);
-  }
-
   @Test
   void logWithLoggerShouldPublishMessageNotification() {
-    var context = createContext(null, sessionWithLogLevel(LogLevel.DEBUG));
+    stubSessionWithLogLevel("sess-1", LogLevel.DEBUG);
+    var context = createContext(null, "sess-1");
     context.log(LogLevel.INFO, "my-tool", "Tool execution started");
 
     ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
@@ -159,7 +168,8 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void logWithoutLoggerShouldUseDefaultLogger() {
-    var context = createContext(null, sessionWithLogLevel(LogLevel.DEBUG));
+    stubSessionWithLogLevel("sess-1", LogLevel.DEBUG);
+    var context = createContext(null, "sess-1");
     context.log(LogLevel.WARNING, "Something happened");
 
     ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
@@ -173,7 +183,8 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void logWithStructuredDataShouldSerializeAsJson() {
-    var context = createContext(null, sessionWithLogLevel(LogLevel.DEBUG));
+    stubSessionWithLogLevel("sess-1", LogLevel.DEBUG);
+    var context = createContext(null, "sess-1");
     context.log(LogLevel.ERROR, "my-tool", Map.of("key", "value"));
 
     ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
@@ -185,7 +196,8 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void logBelowThresholdShouldBeDropped() {
-    var context = createContext(null, sessionWithLogLevel(LogLevel.WARNING));
+    stubSessionWithLogLevel("sess-1", LogLevel.WARNING);
+    var context = createContext(null, "sess-1");
     context.log(LogLevel.DEBUG, "my-tool", "Should be dropped");
 
     verify(stream, org.mockito.Mockito.never()).publishJson(org.mockito.ArgumentMatchers.any());
@@ -193,7 +205,8 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void logAtThresholdShouldBePublished() {
-    var context = createContext(null, sessionWithLogLevel(LogLevel.WARNING));
+    stubSessionWithLogLevel("sess-1", LogLevel.WARNING);
+    var context = createContext(null, "sess-1");
     context.log(LogLevel.WARNING, "my-tool", "At threshold");
 
     verify(stream).publishJson(org.mockito.ArgumentMatchers.any());
@@ -201,14 +214,15 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void logAboveThresholdShouldBePublished() {
-    var context = createContext(null, sessionWithLogLevel(LogLevel.WARNING));
+    stubSessionWithLogLevel("sess-1", LogLevel.WARNING);
+    var context = createContext(null, "sess-1");
     context.log(LogLevel.ERROR, "my-tool", "Above threshold");
 
     verify(stream).publishJson(org.mockito.ArgumentMatchers.any());
   }
 
   @Test
-  void logWithNullSessionShouldDefaultToWarningThreshold() {
+  void logWithNullSessionIdShouldDefaultToWarningThreshold() {
     var context = createContext(null, null);
     context.log(LogLevel.DEBUG, "my-tool", "Should be dropped");
 
@@ -217,7 +231,8 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void convenienceMethodsShouldDelegateToLog() {
-    var context = createContext(null, sessionWithLogLevel(LogLevel.DEBUG));
+    stubSessionWithLogLevel("sess-1", LogLevel.DEBUG);
+    var context = createContext(null, "sess-1");
     context.debug("my-tool", "debug msg");
     context.info("my-tool", "info msg");
     context.notice("my-tool", "notice msg");
@@ -256,13 +271,14 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void elicitShouldThrowWhenClientDoesNotSupportElicitation() {
-    var context = createContext(null, sessionWithoutElicitation());
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithoutElicitation()));
+    var context = createContext(null, "sess-1");
     assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
         .isInstanceOf(McpElicitationNotSupportedException.class);
   }
 
   @Test
-  void elicitShouldThrowWhenSessionIsNull() {
+  void elicitShouldThrowWhenSessionIdIsNull() {
     var context = createContext(null, null);
     assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
         .isInstanceOf(McpElicitationNotSupportedException.class);
@@ -270,8 +286,8 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void elicitShouldPublishJsonRpcRequestAndBlockOnMailbox() {
-    var session = sessionWithElicitation();
-    var context = createContext(null, session);
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
     Mailbox<JsonNode> mailbox = mockMailbox();
     when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
 
@@ -303,7 +319,8 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void elicitShouldReturnDeclineWithNullContent() {
-    var context = createContext(null, sessionWithElicitation());
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
     Mailbox<JsonNode> mailbox = mockMailbox();
     when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
 
@@ -319,7 +336,8 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void elicitShouldReturnCancelWithNullContent() {
-    var context = createContext(null, sessionWithElicitation());
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
     Mailbox<JsonNode> mailbox = mockMailbox();
     when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
 
@@ -335,7 +353,8 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void elicitShouldThrowOnTimeout() {
-    var context = createContext(null, sessionWithElicitation());
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
     Mailbox<JsonNode> mailbox = mockMailbox();
     when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.empty());
@@ -348,7 +367,8 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void elicitShouldThrowOnInvalidContent() {
-    var context = createContext(null, sessionWithElicitation());
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
     Mailbox<JsonNode> mailbox = mockMailbox();
     when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
 
@@ -366,7 +386,8 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void elicitShouldThrowOnJsonRpcError() {
-    var context = createContext(null, sessionWithElicitation());
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
     Mailbox<JsonNode> mailbox = mockMailbox();
     when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
 
@@ -383,7 +404,8 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void elicitShouldCleanUpMailboxEvenOnException() {
-    var context = createContext(null, sessionWithElicitation());
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
     Mailbox<JsonNode> mailbox = mockMailbox();
     when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
     when(mailbox.poll(any(Duration.class))).thenThrow(new RuntimeException("Unexpected"));

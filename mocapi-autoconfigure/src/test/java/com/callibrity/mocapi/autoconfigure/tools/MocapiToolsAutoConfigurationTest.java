@@ -33,6 +33,8 @@ class MocapiToolsAutoConfigurationTest {
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
+          .withPropertyValues(
+              "mocapi.session-encryption-master-key=dGhpcy1pcy1hLTMyLWJ5dGUtZGV2LW9ubHkta2V5ISE=")
           .withConfiguration(
               AutoConfigurations.of(
                   MocapiToolsAutoConfiguration.class,

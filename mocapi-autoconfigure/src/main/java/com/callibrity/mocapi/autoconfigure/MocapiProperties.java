@@ -19,7 +19,6 @@ import java.time.Duration;
 import java.util.List;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.lang.Nullable;
 
 @ConfigurationProperties(prefix = "mocapi")
 @Data
@@ -31,17 +30,12 @@ public class MocapiProperties {
   private List<String> allowedOrigins = List.of("localhost", "127.0.0.1", "[::1]");
   private Duration sessionTimeout = Duration.ofHours(1);
 
-  private EventId eventId = new EventId();
+  /** Base64-encoded 32-byte master key for session-bound encryption. */
+  private String sessionEncryptionMasterKey;
 
   private Elicitation elicitation = new Elicitation();
 
   private Pagination pagination = new Pagination();
-
-  @Data
-  public static class EventId {
-    /** Base64-encoded 32-byte master key for event ID encryption. */
-    @Nullable private String masterKey;
-  }
 
   @Data
   public static class Elicitation {

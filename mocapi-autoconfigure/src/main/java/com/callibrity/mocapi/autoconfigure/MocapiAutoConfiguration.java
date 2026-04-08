@@ -23,12 +23,12 @@ import com.callibrity.mocapi.autoconfigure.session.McpSessionIdParamResolver;
 import com.callibrity.mocapi.autoconfigure.session.McpSessionMethods;
 import com.callibrity.mocapi.autoconfigure.stream.McpStreamContextParamResolver;
 import com.callibrity.mocapi.autoconfigure.tools.McpToolMethods;
-import com.callibrity.mocapi.security.McpEventIdCodec;
 import com.callibrity.mocapi.server.InitializeResponse;
 import com.callibrity.mocapi.server.LoggingCapabilityDescriptor;
 import com.callibrity.mocapi.server.ServerCapabilities;
 import com.callibrity.mocapi.server.ServerInfo;
 import com.callibrity.mocapi.server.ToolsCapabilityDescriptor;
+import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStore;
 import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
@@ -45,7 +45,6 @@ import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.info.ProjectInfoAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.info.BuildProperties;
@@ -84,6 +83,13 @@ public class MocapiAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public McpSessionService mcpSessionService(McpSessionStore store) {
+    byte[] masterKey = Base64.getDecoder().decode(props.getSessionEncryptionMasterKey());
+    return new McpSessionService(store, masterKey, props.getSessionTimeout());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public McpRequestValidator mcpRequestValidator() {
     return new McpRequestValidator(props.getAllowedOrigins());
   }
@@ -108,8 +114,8 @@ public class MocapiAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpLoggingMethods mcpLoggingMethods(McpSessionStore sessionStore) {
-    return new McpLoggingMethods(sessionStore);
+  public McpLoggingMethods mcpLoggingMethods(McpSessionService sessionService) {
+    return new McpLoggingMethods(sessionService);
   }
 
   @Bean
@@ -132,19 +138,10 @@ public class MocapiAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  @ConditionalOnProperty("mocapi.event-id.master-key")
-  public McpEventIdCodec mcpEventIdCodec() {
-    String masterKeyBase64 = props.getEventId().getMasterKey();
-    byte[] masterKeyBytes = Base64.getDecoder().decode(masterKeyBase64);
-    return new McpEventIdCodec(masterKeyBytes);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
   public StreamableHttpController mcpStreamingController(
       JsonRpcDispatcher dispatcher,
       McpRequestValidator mcpRequestValidator,
-      McpSessionStore sessionStore,
+      McpSessionService sessionService,
       OdysseyStreamRegistry registry,
       ObjectMapper objectMapper,
       McpStreamContextParamResolver streamContextResolver,
@@ -154,12 +151,11 @@ public class MocapiAutoConfiguration {
     return new StreamableHttpController(
         dispatcher,
         mcpRequestValidator,
-        sessionStore,
+        sessionService,
         registry,
         objectMapper,
         streamContextResolver,
         sessionIdResolver,
-        props.getSessionTimeout(),
         mailboxFactory,
         schemaGenerator,
         props.getElicitation().getTimeout());

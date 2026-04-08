@@ -16,8 +16,7 @@
 package com.callibrity.mocapi.autoconfigure.session;
 
 import com.callibrity.mocapi.session.LogLevel;
-import com.callibrity.mocapi.session.McpSession;
-import com.callibrity.mocapi.session.McpSessionStore;
+import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.ripcurl.core.annotation.JsonRpc;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -27,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class McpLoggingMethods {
 
-  private final McpSessionStore sessionStore;
+  private final McpSessionService sessionService;
 
   @JsonRpc("logging/setLevel")
   public Object setLevel(String level, @McpSessionId String sessionId) {
@@ -37,14 +36,11 @@ public class McpLoggingMethods {
     } catch (IllegalArgumentException e) {
       throw new JsonRpcException(JsonRpcException.INVALID_PARAMS, "Invalid log level: " + level);
     }
-    McpSession session =
-        sessionStore
-            .find(sessionId)
-            .orElseThrow(
-                () ->
-                    new JsonRpcException(
-                        JsonRpcException.INVALID_PARAMS, "Session not found: " + sessionId));
-    sessionStore.update(sessionId, session.withLogLevel(logLevel));
+    try {
+      sessionService.setLogLevel(sessionId, logLevel);
+    } catch (IllegalArgumentException e) {
+      throw new JsonRpcException(JsonRpcException.INVALID_PARAMS, e.getMessage());
+    }
     return new Object() {};
   }
 }
