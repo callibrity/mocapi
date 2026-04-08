@@ -15,8 +15,9 @@
  */
 package com.callibrity.mocapi.tools;
 
-import static com.callibrity.mocapi.JsonRpcProtocol.VERSION;
+import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
 
+import com.callibrity.mocapi.http.McpRequestId;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.stream.DefaultMcpStreamContext;
@@ -25,9 +26,7 @@ import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.odyssey.core.OdysseyStream;
@@ -36,13 +35,14 @@ import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.NullNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Orchestrates tool invocation, handling both synchronous (non-streamable) and asynchronous
- * (streamable) tool calls. For streamable tools, sets up an Odyssey stream, dispatches the tool on
- * a virtual thread with {@link ScopedValue} context, and makes the {@link SseEmitter} available via
- * {@link #SSE_EMITTER_HOLDER}.
+ * (streamable) tool calls. For streamable tools, sets up an Odyssey stream and dispatches the tool
+ * on a virtual thread. The {@link SseEmitter} is returned to the controller via {@link
+ * JsonRpcResponse} metadata.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -50,20 +50,6 @@ public class ToolMethodInvoker {
 
   /** Metadata key for the SSE emitter (MCP transport concern). */
   public static final String SSE_EMITTER_KEY = "sseEmitter";
-
-  /**
-   * Carrier for passing the {@link SseEmitter} from the handler back to the controller. The
-   * controller binds an {@link AtomicReference} before dispatch; the handler sets the emitter on it
-   * for streamable tools.
-   */
-  public static final ScopedValue<AtomicReference<SseEmitter>> SSE_EMITTER_HOLDER =
-      ScopedValue.newInstance();
-
-  /**
-   * The JSON-RPC request ID, set by the controller before dispatch. Needed by the virtual thread to
-   * construct the final JSON-RPC response on the stream.
-   */
-  public static final ScopedValue<JsonNode> REQUEST_ID = ScopedValue.newInstance();
 
   private final ToolsRegistry toolsRegistry;
   private final OdysseyStreamRegistry odysseyRegistry;
@@ -74,26 +60,27 @@ public class ToolMethodInvoker {
   private final Duration elicitationTimeout;
 
   /**
-   * Invokes a tool by name. For non-streamable tools, calls synchronously and returns the result.
-   * For streamable tools, sets up an SSE stream, dispatches on a virtual thread, and returns a
-   * placeholder response (the real result is published on the stream).
+   * Invokes a tool by name. For non-streamable tools, calls synchronously and returns the result as
+   * a {@link ToolsRegistry.CallToolResponse}. For streamable tools, sets up an SSE stream,
+   * dispatches on a virtual thread, and returns a {@link JsonRpcResponse} carrying the emitter in
+   * metadata.
    *
    * @param name the tool name
    * @param arguments the tool arguments (never null)
    * @param progressToken the progress token from request metadata (may be null)
-   * @return the call tool response (placeholder for streamable tools)
+   * @return a {@link ToolsRegistry.CallToolResponse} or a {@link JsonRpcResponse} with emitter
+   *     metadata
    */
-  public ToolsRegistry.CallToolResponse invoke(
-      String name, ObjectNode arguments, String progressToken) {
+  public Object invoke(String name, ObjectNode arguments, String progressToken) {
     McpTool tool = toolsRegistry.lookup(name);
 
     if (!tool.isStreamable()) {
       return toolsRegistry.callTool(name, arguments);
     }
 
-    JsonNode requestId = REQUEST_ID.isBound() ? REQUEST_ID.get() : null;
+    JsonNode requestId = McpRequestId.CURRENT.isBound() ? McpRequestId.CURRENT.get() : null;
     McpSession session = McpSession.CURRENT.get();
-    String sessionId = McpSession.CURRENT_ID.get();
+    String sessionId = session.sessionId();
 
     OdysseyStream stream = odysseyRegistry.ephemeral();
     DefaultMcpStreamContext ctx =
@@ -109,17 +96,16 @@ public class ToolMethodInvoker {
 
     stream.publishJson(Map.of());
     SseEmitter emitter = stream.subscribe();
-    SSE_EMITTER_HOLDER.get().set(emitter);
 
     Thread.ofVirtual()
         .start(
             () ->
                 ScopedValue.where(McpSession.CURRENT, session)
-                    .where(McpSession.CURRENT_ID, sessionId)
                     .where(McpStreamContext.CURRENT, ctx)
                     .run(() -> executeStreamableTool(name, arguments, requestId, stream)));
 
-    return new ToolsRegistry.CallToolResponse(List.of(), null, objectMapper.createObjectNode());
+    return new JsonRpcResponse(NullNode.getInstance(), requestId)
+        .withMetadata(SSE_EMITTER_KEY, emitter);
   }
 
   private void executeStreamableTool(

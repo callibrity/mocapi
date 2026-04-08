@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.http;
 
-import static com.callibrity.mocapi.JsonRpcProtocol.VERSION;
+import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
 
 import com.callibrity.mocapi.server.InitializeResponse;
 import com.callibrity.mocapi.session.ClientCapabilities;
@@ -29,7 +29,6 @@ import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.odyssey.core.OdysseyStream;
@@ -83,26 +82,15 @@ public class StreamableHttpController {
       return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
     }
 
-    // Validate jsonrpc version
-    if (!VERSION.equals(body.path("jsonrpc").asString(null))) {
-      return ResponseEntity.badRequest()
-          .body(errorResponse(body.get("id"), -32600, "jsonrpc must be \"2.0\""));
-    }
-
     String method = body.path("method").asString(null);
     JsonNode id = body.get("id");
 
-    // Notification: has method, no id
     if (method != null && id == null) {
       return handleNotification(method, sessionId);
     }
-
-    // Response: no method, has result or error (elicitation answer)
     if (method == null && (body.has("result") || body.has("error"))) {
       return handleResponse(body, sessionId);
     }
-
-    // Regular request — validate MCP headers
     if (method == null) {
       return ResponseEntity.badRequest()
           .contentType(MediaType.APPLICATION_JSON)
@@ -132,10 +120,10 @@ public class StreamableHttpController {
             .contentType(MediaType.APPLICATION_JSON)
             .body(errorResponse(id, -32600, "Session not found or expired"));
       }
-      session = sessionOpt.get();
+      session = sessionOpt.get().withSessionId(sessionId);
     }
 
-    return dispatch(isInitialize, method, body, session, sessionId);
+    return dispatch(isInitialize, body, session);
   }
 
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -194,36 +182,27 @@ public class StreamableHttpController {
     return ResponseEntity.noContent().build();
   }
 
-  private ResponseEntity<Object> dispatch(
-      boolean isInitialize, String method, JsonNode body, McpSession session, String sessionId) {
+  private ResponseEntity<Object> dispatch(boolean isInitialize, JsonNode body, McpSession session) {
     JsonNode params = body.get("params");
     JsonNode id = body.get("id");
-    JsonRpcRequest request = new JsonRpcRequest(VERSION, method, params, id);
+    String jsonrpc = body.path("jsonrpc").asString(null);
+    JsonRpcRequest request =
+        new JsonRpcRequest(jsonrpc, body.path("method").asString(null), params, id);
 
-    var emitterRef = new AtomicReference<SseEmitter>();
     try {
-      JsonRpcResponse response;
-      if (!isInitialize && session != null) {
-        response =
-            ScopedValue.where(McpSession.CURRENT, session)
-                .where(McpSession.CURRENT_ID, sessionId)
-                .where(ToolMethodInvoker.SSE_EMITTER_HOLDER, emitterRef)
-                .where(ToolMethodInvoker.REQUEST_ID, id)
-                .call(() -> dispatcher.dispatch(request));
-      } else {
-        response =
-            ScopedValue.where(ToolMethodInvoker.SSE_EMITTER_HOLDER, emitterRef)
-                .where(ToolMethodInvoker.REQUEST_ID, id)
-                .call(() -> dispatcher.dispatch(request));
+      ScopedValue.Carrier carrier = ScopedValue.where(McpRequestId.CURRENT, id);
+      if (session != null) {
+        carrier = carrier.where(McpSession.CURRENT, session);
       }
+      JsonRpcResponse response = carrier.call(() -> dispatcher.dispatch(request));
 
-      SseEmitter emitter = emitterRef.get();
-      if (emitter != null) {
+      var emitter = response.getMetadata(ToolMethodInvoker.SSE_EMITTER_KEY, SseEmitter.class);
+      if (emitter.isPresent()) {
         var builder = ResponseEntity.ok();
         if (isInitialize) {
           builder.header("MCP-Session-Id", createSessionFromParams(params));
         }
-        return builder.body(emitter);
+        return builder.body(emitter.get());
       }
 
       var builder = ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON);
@@ -232,7 +211,7 @@ public class StreamableHttpController {
       }
       return builder.body(response);
     } catch (JsonRpcException e) {
-      log.warn("JSON-RPC error processing {}: {}", method, e.getMessage());
+      log.warn("JSON-RPC error processing {}: {}", request.method(), e.getMessage());
       return ResponseEntity.ok()
           .contentType(MediaType.APPLICATION_JSON)
           .body(errorResponse(id, e.getCode(), e.getMessage()));
@@ -248,7 +227,7 @@ public class StreamableHttpController {
     if ("notifications/initialized".equals(method)) {
       sessionService
           .find(sessionId)
-          .ifPresent(_ -> dispatcher.dispatch(new JsonRpcRequest(VERSION, method, null, null)));
+          .ifPresent(_ -> dispatcher.dispatch(JsonRpcRequest.notification(method, null)));
     }
     return ResponseEntity.accepted().build();
   }

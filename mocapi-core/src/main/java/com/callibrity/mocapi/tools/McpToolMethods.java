@@ -36,8 +36,7 @@ public class McpToolMethods {
   }
 
   @JsonRpc("tools/call")
-  public ToolsRegistry.CallToolResponse callTool(
-      String name, ObjectNode arguments, ObjectNode _meta) {
+  public Object callTool(String name, ObjectNode arguments, ObjectNode _meta) {
     ObjectNode args = arguments != null ? arguments : objectMapper.createObjectNode();
     String progressToken = extractProgressToken(_meta);
     return toolMethodInvoker.invoke(name, args, progressToken);

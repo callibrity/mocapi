@@ -15,8 +15,6 @@
  */
 package com.callibrity.mocapi.stream;
 
-import static com.callibrity.mocapi.JsonRpcProtocol.VERSION;
-
 import com.callibrity.mocapi.session.LogLevel;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
@@ -124,7 +122,7 @@ public class DefaultMcpStreamContext implements McpStreamContext {
   }
 
   private void publishNotification(String method, JsonNode params) {
-    JsonRpcRequest notification = new JsonRpcRequest(VERSION, method, params, null);
+    JsonRpcRequest notification = JsonRpcRequest.notification(method, params);
     stream.publishJson(toJsonTree(notification));
   }
 
@@ -186,8 +184,7 @@ public class DefaultMcpStreamContext implements McpStreamContext {
     params.set("requestedSchema", schemaNode);
 
     JsonRpcRequest request =
-        new JsonRpcRequest(
-            VERSION, "elicitation/create", params, objectMapper.valueToTree(jsonRpcId));
+        JsonRpcRequest.request("elicitation/create", params, objectMapper.valueToTree(jsonRpcId));
 
     Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + jsonRpcId, JsonNode.class);
     try {

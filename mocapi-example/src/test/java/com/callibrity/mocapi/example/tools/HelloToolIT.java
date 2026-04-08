@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.example.tools;
 
-import static com.callibrity.mocapi.JsonRpcProtocol.VERSION;
+import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;

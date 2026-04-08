@@ -20,20 +20,34 @@ public record McpSession(
     String protocolVersion,
     ClientCapabilities capabilities,
     ClientInfo clientInfo,
-    LogLevel logLevel) {
+    LogLevel logLevel,
+    String sessionId) {
 
   public static final ScopedValue<McpSession> CURRENT = ScopedValue.newInstance();
-  public static final ScopedValue<String> CURRENT_ID = ScopedValue.newInstance();
 
-  /** Creates a session with the default log level ({@link LogLevel#WARNING}). */
+  /** Creates a session with the default log level ({@link LogLevel#WARNING}) and no session ID. */
   public McpSession(
       String protocolVersion, ClientCapabilities capabilities, ClientInfo clientInfo) {
-    this(protocolVersion, capabilities, clientInfo, LogLevel.WARNING);
+    this(protocolVersion, capabilities, clientInfo, LogLevel.WARNING, null);
+  }
+
+  /** Creates a session with the given log level and no session ID. */
+  public McpSession(
+      String protocolVersion,
+      ClientCapabilities capabilities,
+      ClientInfo clientInfo,
+      LogLevel logLevel) {
+    this(protocolVersion, capabilities, clientInfo, logLevel, null);
   }
 
   /** Returns a copy of this session with the given log level. */
   public McpSession withLogLevel(LogLevel logLevel) {
-    return new McpSession(protocolVersion, capabilities, clientInfo, logLevel);
+    return new McpSession(protocolVersion, capabilities, clientInfo, logLevel, sessionId);
+  }
+
+  /** Returns a copy of this session with the given session ID. */
+  public McpSession withSessionId(String sessionId) {
+    return new McpSession(protocolVersion, capabilities, clientInfo, logLevel, sessionId);
   }
 
   /** Returns true if the client supports form-based elicitation. */

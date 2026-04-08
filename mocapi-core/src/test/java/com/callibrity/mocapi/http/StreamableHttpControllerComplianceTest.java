@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.http;
 
-import static com.callibrity.mocapi.JsonRpcProtocol.VERSION;
+import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;

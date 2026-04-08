@@ -13,12 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi;
+package com.callibrity.mocapi.http;
 
-/** Constants for the JSON-RPC 2.0 protocol. */
-public final class JsonRpcProtocol {
+import tools.jackson.databind.JsonNode;
 
-  public static final String VERSION = "2.0";
+/**
+ * Carries the JSON-RPC request ID through the dispatch chain via {@link ScopedValue}. Bound by the
+ * controller before dispatch and read by tool invokers that need the request ID for async
+ * responses.
+ */
+public final class McpRequestId {
 
-  private JsonRpcProtocol() {}
+  public static final ScopedValue<JsonNode> CURRENT = ScopedValue.newInstance();
+
+  private McpRequestId() {}
 }

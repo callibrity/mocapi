@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.http;
 
-import static com.callibrity.mocapi.JsonRpcProtocol.VERSION;
+import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -142,25 +142,28 @@ class StreamableHttpControllerTest {
   class PostRequestValidation {
 
     @Test
-    void shouldReturn400ForInvalidJsonRpcVersion() {
+    void shouldReturnJsonRpcErrorForInvalidJsonRpcVersion() {
+      String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("jsonrpc", "1.0");
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertErrorCode(response, -32600);
     }
 
     @Test
-    void shouldReturn400ForMissingJsonRpcField() {
+    void shouldReturnJsonRpcErrorForMissingJsonRpcField() {
+      String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertErrorCode(response, -32600);
     }
 
     @Test

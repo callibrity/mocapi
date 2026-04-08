@@ -34,7 +34,7 @@ public class McpLoggingMethods {
     } catch (IllegalArgumentException e) {
       throw new JsonRpcException(JsonRpcException.INVALID_PARAMS, "Invalid log level: " + level);
     }
-    String sessionId = McpSession.CURRENT_ID.get();
+    String sessionId = McpSession.CURRENT.get().sessionId();
     try {
       sessionService.setLogLevel(sessionId, logLevel);
     } catch (IllegalArgumentException e) {
