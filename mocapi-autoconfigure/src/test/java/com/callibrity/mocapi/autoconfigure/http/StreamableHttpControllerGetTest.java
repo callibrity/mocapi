@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.autoconfigure.sse;
+package com.callibrity.mocapi.autoconfigure.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -45,12 +45,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.ObjectMapper;
 
-class McpStreamingControllerGetTest {
+class StreamableHttpControllerGetTest {
 
   private static final String SSE_ACCEPT = "text/event-stream";
   private static final Duration SESSION_TIMEOUT = Duration.ofHours(1);
 
-  private McpStreamingController controller;
+  private StreamableHttpController controller;
   private InMemoryMcpSessionStore sessionStore;
   private OdysseyStreamRegistry registry;
   private OdysseyStream notificationStream;
@@ -83,7 +83,7 @@ class McpStreamingControllerGetTest {
                 .build());
 
     controller =
-        new McpStreamingController(
+        new StreamableHttpController(
             dispatcher,
             validator,
             sessionStore,

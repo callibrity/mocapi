@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-08T07:08:00-04:00
-ITERATION: 24
-SPEC_COMPLETED: 025-simplify-controller-with-ripcurl-request.md
-WHAT_WAS_DONE: Simplified McpStreamingController by removing manual envelope validation (delegated to RipCurl except jsonrpc "2.0" check which RipCurl doesn't validate), deleting successResponse() helper (JsonRpcResponse returned directly), deleting validateJsonRpcEnvelope/ValidationResult/isNotificationOrResponse from McpRequestValidator, inlining notification/response detection, removing badRequest/forbidden/notFound static helpers, and using @RequiredArgsConstructor. Controller reduced from 383 to 334 lines.
-VERIFICATION: mvn verify — BUILD SUCCESS; all 91 tests pass (core + tools + autoconfigure + example); spotless and license checks pass.
+LAST_RUN: 2026-04-08T07:14:00-04:00
+ITERATION: 25
+SPEC_COMPLETED: 026-consolidate-modules-and-rename-controller.md
+WHAT_WAS_DONE: Consolidated mocapi-tools module into mocapi-core (keeping com.callibrity.mocapi.tools package to avoid import changes), added tools dependencies to mocapi-core/pom.xml, removed mocapi-tools from parent/autoconfigure/example/coverage POMs, deleted mocapi-tools directory, renamed McpStreamingController to StreamableHttpController, moved sse package to http package, updated MocapiAutoConfiguration references.
+VERIFICATION: mvn verify — BUILD SUCCESS; all 177 tests pass (84 core + 91 autoconfigure + 2 example); spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: none (specs/ directory empty except template)
-NOTES: Kept @RequestBody JsonNode instead of @RequestBody JsonRpcRequest because JSON-RPC responses (elicitation answers) need result/error fields which JsonRpcRequest doesn't carry. Kept minimal jsonrpc "2.0" validation in controller because RipCurl's DefaultJsonRpcDispatcher does not validate the jsonrpc version field. Controller is 334 lines (not under 150 target) — the 150 target is aspirational given the controller handles POST/GET/DELETE plus dispatch, notification routing, mailbox routing, session management, and SSE streaming.
+NEXT_SPEC: 027-rename-elicit-to-elicit-form.md
+NOTES: Tools classes kept com.callibrity.mocapi.tools.* package (now in mocapi-core module) so no import changes were needed in autoconfigure or example modules. The sse package is fully deleted. InMemoryMcpSessionStore stayed in the http package since the spec said it could stay in autoconfigure root but the move was simpler as a group.

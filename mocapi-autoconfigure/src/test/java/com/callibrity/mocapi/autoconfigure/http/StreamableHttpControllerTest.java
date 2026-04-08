@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.autoconfigure.sse;
+package com.callibrity.mocapi.autoconfigure.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -57,12 +57,12 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
-class McpStreamingControllerTest {
+class StreamableHttpControllerTest {
 
   private static final String POST_ACCEPT = "application/json, text/event-stream";
   private static final Duration SESSION_TIMEOUT = Duration.ofHours(1);
 
-  private McpStreamingController controller;
+  private StreamableHttpController controller;
   private InMemoryMcpSessionStore sessionStore;
   private ObjectMapper objectMapper;
   private McpToolsCapability toolsCapability;
@@ -107,7 +107,7 @@ class McpStreamingControllerTest {
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
     McpStreamContextParamResolver streamContextResolver = new McpStreamContextParamResolver();
     controller =
-        new McpStreamingController(
+        new StreamableHttpController(
             dispatcher,
             validator,
             sessionStore,

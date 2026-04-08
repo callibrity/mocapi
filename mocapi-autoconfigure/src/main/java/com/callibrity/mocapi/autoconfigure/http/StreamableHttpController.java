@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.autoconfigure.sse;
+package com.callibrity.mocapi.autoconfigure.http;
 
 import com.callibrity.mocapi.client.ClientCapabilities;
 import com.callibrity.mocapi.client.ClientInfo;
@@ -58,7 +58,7 @@ import tools.jackson.databind.node.ObjectNode;
 @RestController
 @RequestMapping("${mocapi.endpoint:/mcp}")
 @RequiredArgsConstructor
-public class McpStreamingController {
+public class StreamableHttpController {
 
   private static final String INITIALIZE = "initialize";
   private static final String SESSION_REQUIRED = "MCP-Session-Id header is required";

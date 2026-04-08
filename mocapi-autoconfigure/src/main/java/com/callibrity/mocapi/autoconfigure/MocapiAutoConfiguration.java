@@ -15,9 +15,9 @@
  */
 package com.callibrity.mocapi.autoconfigure;
 
-import com.callibrity.mocapi.autoconfigure.sse.InMemoryMcpSessionStore;
-import com.callibrity.mocapi.autoconfigure.sse.McpStreamContextParamResolver;
-import com.callibrity.mocapi.autoconfigure.sse.McpStreamingController;
+import com.callibrity.mocapi.autoconfigure.http.InMemoryMcpSessionStore;
+import com.callibrity.mocapi.autoconfigure.http.McpStreamContextParamResolver;
+import com.callibrity.mocapi.autoconfigure.http.StreamableHttpController;
 import com.callibrity.mocapi.autoconfigure.tools.McpToolMethods;
 import com.callibrity.mocapi.server.McpRequestValidator;
 import com.callibrity.mocapi.server.McpServer;
@@ -113,7 +113,7 @@ public class MocapiAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpStreamingController mcpStreamingController(
+  public StreamableHttpController mcpStreamingController(
       JsonRpcDispatcher dispatcher,
       McpRequestValidator mcpRequestValidator,
       McpSessionStore sessionStore,
@@ -122,7 +122,7 @@ public class MocapiAutoConfiguration {
       McpStreamContextParamResolver streamContextResolver,
       MailboxFactory mailboxFactory,
       SchemaGenerator schemaGenerator) {
-    return new McpStreamingController(
+    return new StreamableHttpController(
         dispatcher,
         mcpRequestValidator,
         sessionStore,
