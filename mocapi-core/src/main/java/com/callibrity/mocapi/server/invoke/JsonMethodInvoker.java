@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.server.invoke;
 
-import com.callibrity.mocapi.server.exception.McpInternalErrorException;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -48,9 +48,12 @@ public class JsonMethodInvoker {
       if (cause instanceof Error err) {
         throw err;
       }
-      throw new McpInternalErrorException("Checked exception during method invocation", cause);
+      throw new JsonRpcException(
+          JsonRpcException.INTERNAL_ERROR,
+          "Checked exception during method invocation",
+          (Exception) cause);
     } catch (IllegalAccessException e) {
-      throw new McpInternalErrorException("Cannot access method", e);
+      throw new JsonRpcException(JsonRpcException.INTERNAL_ERROR, "Cannot access method", e);
     }
   }
 

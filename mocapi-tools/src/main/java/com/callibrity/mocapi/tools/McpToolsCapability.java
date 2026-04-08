@@ -19,7 +19,7 @@ import static java.util.Optional.ofNullable;
 
 import com.callibrity.mocapi.server.CapabilityDescriptor;
 import com.callibrity.mocapi.server.McpServerCapability;
-import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
@@ -86,7 +86,9 @@ public class McpToolsCapability implements McpServerCapability {
   private McpTool lookupTool(String name) {
     return ofNullable(tools.get(name))
         .orElseThrow(
-            () -> new McpInvalidParamsException(String.format("Tool %s not found.", name)));
+            () ->
+                new JsonRpcException(
+                    JsonRpcException.INVALID_PARAMS, String.format("Tool %s not found.", name)));
   }
 
   private void validateInput(String name, ObjectNode arguments, McpTool tool) {
@@ -94,7 +96,7 @@ public class McpToolsCapability implements McpServerCapability {
     Validator validator = Validator.forSchema(schema);
     ValidationFailure failure = validator.validate(new JsonParser(arguments.toString()).parse());
     if (failure != null) {
-      throw new McpInvalidParamsException(failure.getMessage());
+      throw new JsonRpcException(JsonRpcException.INVALID_PARAMS, failure.getMessage());
     }
   }
 
@@ -115,7 +117,7 @@ public class McpToolsCapability implements McpServerCapability {
 
     int offset = decodeCursor(cursor);
     if (offset < 0 || offset > allDescriptors.size()) {
-      throw new McpInvalidParamsException("Invalid cursor");
+      throw new JsonRpcException(JsonRpcException.INVALID_PARAMS, "Invalid cursor");
     }
 
     int end = Math.min(offset + pageSize, allDescriptors.size());

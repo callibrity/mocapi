@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.callibrity.mocapi.autoconfigure.MocapiAutoConfiguration;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
+import com.callibrity.ripcurl.autoconfigure.RipCurlAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.codec.jackson.JacksonCodecAutoConfiguration;
 import org.jwcarman.odyssey.autoconfigure.OdysseyAutoConfiguration;
@@ -36,6 +37,7 @@ class MocapiToolsAutoConfigurationTest {
               AutoConfigurations.of(
                   MocapiToolsAutoConfiguration.class,
                   MocapiAutoConfiguration.class,
+                  RipCurlAutoConfiguration.class,
                   JacksonAutoConfiguration.class,
                   JacksonCodecAutoConfiguration.class,
                   SubstrateAutoConfiguration.class,

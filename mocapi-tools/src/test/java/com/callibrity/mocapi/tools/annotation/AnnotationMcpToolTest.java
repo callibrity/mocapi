@@ -18,10 +18,10 @@ package com.callibrity.mocapi.tools.annotation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.server.exception.McpInternalErrorException;
 import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tools.util.HelloTool;
 import com.callibrity.mocapi.tools.util.NullTool;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
@@ -74,8 +74,7 @@ class AnnotationMcpToolTest {
   void nullReturnShouldThrowException() {
     var tool = factory.create(new NullTool()).getMcpTools().getFirst();
     var parameters = mapper.createObjectNode().put("name", "Mocapi");
-    assertThatThrownBy(() -> tool.call(parameters))
-        .isExactlyInstanceOf(McpInternalErrorException.class);
+    assertThatThrownBy(() -> tool.call(parameters)).isExactlyInstanceOf(JsonRpcException.class);
   }
 
   @Test

@@ -22,17 +22,19 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.callibrity.mocapi.autoconfigure.McpServerMethods;
+import com.callibrity.mocapi.autoconfigure.tools.McpToolMethods;
 import com.callibrity.mocapi.client.ClientCapabilities;
 import com.callibrity.mocapi.client.ClientInfo;
-import com.callibrity.mocapi.server.JsonRpcMessages;
-import com.callibrity.mocapi.server.McpMethodHandler;
-import com.callibrity.mocapi.server.McpMethodRegistry;
-import com.callibrity.mocapi.server.McpProtocol;
 import com.callibrity.mocapi.server.McpRequestValidator;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpSession;
-import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
 import com.callibrity.mocapi.tools.McpToolsCapability;
+import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
+import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
+import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -73,64 +75,36 @@ class McpStreamingControllerTest {
     objectMapper = new ObjectMapper();
     toolsCapability = mock(McpToolsCapability.class);
 
-    McpProtocol protocol = buildProtocol(mcpServer, toolsCapability);
+    McpServerMethods serverMethods = new McpServerMethods(mcpServer);
+    McpToolMethods toolMethods = new McpToolMethods(toolsCapability, objectMapper);
+
+    JsonRpcMethodProvider serverProvider =
+        () ->
+            List.copyOf(
+                AnnotationJsonRpcMethod.createMethods(objectMapper, serverMethods, List.of()));
+    JsonRpcMethodProvider toolProvider =
+        () ->
+            List.copyOf(
+                AnnotationJsonRpcMethod.createMethods(objectMapper, toolMethods, List.of()));
+    JsonRpcDispatcher dispatcher =
+        new DefaultJsonRpcDispatcher(List.of(serverProvider, toolProvider));
+
+    McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
+    McpStreamContextParamResolver streamContextResolver = new McpStreamContextParamResolver();
     controller =
-        new McpStreamingController(protocol, sessionStore, registry, objectMapper, SESSION_TIMEOUT);
+        new McpStreamingController(
+            dispatcher,
+            validator,
+            sessionStore,
+            registry,
+            objectMapper,
+            streamContextResolver,
+            SESSION_TIMEOUT);
   }
 
   @AfterEach
   void tearDown() {
     sessionStore.shutdown();
-  }
-
-  private McpProtocol buildProtocol(McpServer mcpServer, McpToolsCapability toolsCapability) {
-    McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
-    JsonRpcMessages messages = new JsonRpcMessages(objectMapper);
-    McpMethodRegistry.Builder registryBuilder =
-        McpMethodRegistry.builder()
-            .register(
-                "initialize",
-                new McpMethodHandler.Json(
-                    params ->
-                        mcpServer.initialize(
-                            params.path("protocolVersion").asString(),
-                            objectMapper.treeToValue(
-                                params.get("capabilities"),
-                                com.callibrity.mocapi.client.ClientCapabilities.class),
-                            objectMapper.treeToValue(
-                                params.get("clientInfo"),
-                                com.callibrity.mocapi.client.ClientInfo.class))))
-            .register("ping", new McpMethodHandler.Json(_ -> mcpServer.ping()))
-            .register(
-                "notifications/initialized",
-                new McpMethodHandler.Json(
-                    _ -> {
-                      mcpServer.clientInitialized();
-                      return null;
-                    }));
-
-    if (toolsCapability != null) {
-      registryBuilder
-          .register(
-              "tools/list",
-              new McpMethodHandler.Json(
-                  params ->
-                      toolsCapability.listTools(
-                          params != null ? params.path("cursor").asString(null) : null)))
-          .register(
-              "tools/call",
-              new McpMethodHandler.Json(
-                  params -> {
-                    JsonNode argsNode = params.path("arguments");
-                    ObjectNode arguments =
-                        argsNode.isObject()
-                            ? (ObjectNode) argsNode
-                            : objectMapper.createObjectNode();
-                    return toolsCapability.callTool(params.path("name").asString(), arguments);
-                  }));
-    }
-
-    return new McpProtocol(validator, registryBuilder.build(), messages);
   }
 
   private String createSession() {
@@ -337,9 +311,9 @@ class McpStreamingControllerTest {
   class PostErrorHandling {
 
     @Test
-    void mcpExceptionShouldReturnJsonErrorResponse() {
+    void jsonRpcExceptionShouldReturnJsonErrorResponse() {
       when(toolsCapability.callTool(any(), any()))
-          .thenThrow(new McpInvalidParamsException("Tool not found."));
+          .thenThrow(new JsonRpcException(JsonRpcException.INVALID_PARAMS, "Tool not found."));
 
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();

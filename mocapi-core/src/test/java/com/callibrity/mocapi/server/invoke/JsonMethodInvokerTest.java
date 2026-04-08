@@ -18,8 +18,7 @@ package com.callibrity.mocapi.server.invoke;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.server.exception.McpInternalErrorException;
-import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.Test;
@@ -68,12 +67,12 @@ class JsonMethodInvokerTest {
     ObjectNode args = mapper.createObjectNode();
 
     assertThatThrownBy(() -> invoker.invoke(args))
-        .isInstanceOf(McpInvalidParamsException.class)
+        .isInstanceOf(JsonRpcException.class)
         .hasMessage("bad params");
   }
 
   @Test
-  void shouldWrapCheckedExceptionInMcpInternalErrorException() throws Exception {
+  void shouldWrapCheckedExceptionInJsonRpcException() throws Exception {
     var target = new TestService();
     Method method = TestService.class.getMethod("throwChecked");
     var invoker = new JsonMethodInvoker(mapper, target, method);
@@ -81,7 +80,7 @@ class JsonMethodInvokerTest {
     ObjectNode args = mapper.createObjectNode();
 
     assertThatThrownBy(() -> invoker.invoke(args))
-        .isInstanceOf(McpInternalErrorException.class)
+        .isInstanceOf(JsonRpcException.class)
         .hasMessage("Checked exception during method invocation")
         .hasCauseInstanceOf(IOException.class)
         .hasRootCauseMessage("io failure");
@@ -101,7 +100,7 @@ class JsonMethodInvokerTest {
   }
 
   @Test
-  void shouldWrapIllegalAccessExceptionInMcpInternalErrorException() throws Exception {
+  void shouldWrapIllegalAccessExceptionInJsonRpcException() throws Exception {
     var target = new TestService();
     Method method = PrivateService.class.getDeclaredMethod("secret");
     var invoker = new JsonMethodInvoker(mapper, target, method);
@@ -109,7 +108,7 @@ class JsonMethodInvokerTest {
     ObjectNode args = mapper.createObjectNode();
 
     assertThatThrownBy(() -> invoker.invoke(args))
-        .isInstanceOf(McpInternalErrorException.class)
+        .isInstanceOf(JsonRpcException.class)
         .hasMessage("Cannot access method");
   }
 
@@ -150,7 +149,7 @@ class JsonMethodInvokerTest {
     }
 
     public Object throwRuntime() {
-      throw new McpInvalidParamsException("bad params");
+      throw new JsonRpcException(JsonRpcException.INVALID_PARAMS, "bad params");
     }
 
     public Object throwChecked() throws IOException {

@@ -49,6 +49,11 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <groupId>com.callibrity.ripcurl</groupId>
+            <artifactId>ripcurl-autoconfigure</artifactId>
+            <version>${ripcurl.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.callibrity.mocapi</groupId>
             <artifactId>mocapi-core</artifactId>
             <version>0.0.1-SNAPSHOT</version>

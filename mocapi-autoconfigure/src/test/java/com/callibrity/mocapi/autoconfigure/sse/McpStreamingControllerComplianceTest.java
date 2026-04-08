@@ -21,15 +21,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.callibrity.mocapi.autoconfigure.McpServerMethods;
 import com.callibrity.mocapi.client.ClientCapabilities;
 import com.callibrity.mocapi.client.ClientInfo;
-import com.callibrity.mocapi.server.JsonRpcMessages;
-import com.callibrity.mocapi.server.McpMethodHandler;
-import com.callibrity.mocapi.server.McpMethodRegistry;
-import com.callibrity.mocapi.server.McpProtocol;
 import com.callibrity.mocapi.server.McpRequestValidator;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpSession;
+import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
+import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
+import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Stream;
@@ -77,23 +78,24 @@ class McpStreamingControllerComplianceTest {
     sessionStore = new InMemoryMcpSessionStore();
     objectMapper = new ObjectMapper();
 
-    McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
-    JsonRpcMessages messages = new JsonRpcMessages(objectMapper);
-    McpMethodRegistry methodRegistry =
-        McpMethodRegistry.builder()
-            .register("ping", new McpMethodHandler.Json(_ -> mcpServer.ping()))
-            .register(
-                "notifications/initialized",
-                new McpMethodHandler.Json(
-                    _ -> {
-                      mcpServer.clientInitialized();
-                      return null;
-                    }))
-            .build();
-    McpProtocol protocol = new McpProtocol(validator, methodRegistry, messages);
+    McpServerMethods serverMethods = new McpServerMethods(mcpServer);
+    JsonRpcMethodProvider serverProvider =
+        () ->
+            List.copyOf(
+                AnnotationJsonRpcMethod.createMethods(objectMapper, serverMethods, List.of()));
+    JsonRpcDispatcher dispatcher = new DefaultJsonRpcDispatcher(List.of(serverProvider));
 
+    McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
+    McpStreamContextParamResolver streamContextResolver = new McpStreamContextParamResolver();
     controller =
-        new McpStreamingController(protocol, sessionStore, registry, objectMapper, SESSION_TIMEOUT);
+        new McpStreamingController(
+            dispatcher,
+            validator,
+            sessionStore,
+            registry,
+            objectMapper,
+            streamContextResolver,
+            SESSION_TIMEOUT);
   }
 
   @AfterEach

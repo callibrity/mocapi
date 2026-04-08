@@ -18,7 +18,7 @@ package com.callibrity.mocapi.tools;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.server.exception.McpInvalidParamsException;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
@@ -118,7 +118,7 @@ class McpToolsCapabilityPaginationTest {
     var capability = new McpToolsCapability(List.of(createProvider(3)), 2);
 
     assertThatThrownBy(() -> capability.listTools("not-valid-base64!!!"))
-        .isExactlyInstanceOf(McpInvalidParamsException.class)
+        .isExactlyInstanceOf(JsonRpcException.class)
         .hasMessageContaining("Invalid cursor");
   }
 
@@ -128,7 +128,7 @@ class McpToolsCapabilityPaginationTest {
     String cursor = McpToolsCapability.encodeCursor(100);
 
     assertThatThrownBy(() -> capability.listTools(cursor))
-        .isExactlyInstanceOf(McpInvalidParamsException.class)
+        .isExactlyInstanceOf(JsonRpcException.class)
         .hasMessageContaining("Invalid cursor");
   }
 
