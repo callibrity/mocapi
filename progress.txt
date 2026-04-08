@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-08T10:16:00-04:00
-ITERATION: 34
-SPEC_COMPLETED: 035-remove-manual-jsonrpc-response-building.md
-WHAT_WAS_DONE: Replaced all manual JSON-RPC ObjectNode construction with RipCurl typed records (JsonRpcResponse, JsonRpcRequest). Created JsonRpcProtocol.VERSION constant to eliminate hardcoded "2.0" strings. Deleted buildJsonRpcResponse() helper from ToolMethodInvoker. Kept minimal error helpers (buildJsonRpcError, errorResponse) since RipCurl has no error response type. Refactored DefaultMcpStreamContext notifications to use JsonRpcRequest with a toJsonTree() helper that strips null fields for JSON-RPC 2.0 compliance.
-VERIFICATION: mvn verify — BUILD SUCCESS; all 183 tests pass; spotless and license checks pass.
+LAST_RUN: 2026-04-08T10:17:00-04:00
+ITERATION: 35
+SPEC_COMPLETED: 036-bump-ripcurl-to-0.7.0.md
+WHAT_WAS_DONE: Verified RipCurl dependency was already at 0.7.0 (bumped during iteration 34). Confirmed all code compiles and all tests pass against RipCurl 0.7.0.
+VERIFICATION: mvn verify — BUILD SUCCESS; all tests pass; spotless and license checks pass.
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: RipCurl 0.2.0 (current version) has no JsonRpcProtocol class, no static factory methods on JsonRpcRequest (notification/request), and no error response type. The spec assumed RipCurl 0.7.0 features that don't exist yet. Adapted by: (1) creating JsonRpcProtocol.VERSION in Mocapi, (2) using JsonRpcRequest constructor directly for notifications/requests, (3) keeping minimal ObjectNode-based error helpers. Two "2.0" references remain in integration test JSON text block literals (HelloToolIT, Rot13ToolIT) which cannot use Java constants inside string templates.
+NOTES: The ripcurl.version property was already set to 0.7.0 in the parent pom.xml, and all code was already compatible. No code changes were needed — this spec was effectively satisfied by work done in prior iterations.
