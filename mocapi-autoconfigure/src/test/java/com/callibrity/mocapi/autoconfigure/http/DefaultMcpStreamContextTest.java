@@ -205,14 +205,14 @@ class DefaultMcpStreamContextTest {
   @Test
   void elicitShouldThrowWhenClientDoesNotSupportElicitation() {
     var context = createContext(null, sessionWithoutElicitation());
-    assertThatThrownBy(() -> context.elicit("Enter info", UserForm.class))
+    assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
         .isInstanceOf(McpElicitationNotSupportedException.class);
   }
 
   @Test
   void elicitShouldThrowWhenSessionIsNull() {
     var context = createContext(null, null);
-    assertThatThrownBy(() -> context.elicit("Enter info", UserForm.class))
+    assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
         .isInstanceOf(McpElicitationNotSupportedException.class);
   }
 
@@ -228,7 +228,7 @@ class DefaultMcpStreamContextTest {
             Map.of("action", "accept", "content", Map.of("name", "Alice", "age", 30)));
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
-    ElicitationResult<UserForm> result = context.elicit("Enter your info", UserForm.class);
+    ElicitationResult<UserForm> result = context.elicitForm("Enter your info", UserForm.class);
 
     assertThat(result.accepted()).isTrue();
     assertThat(result.content().name()).isEqualTo("Alice");
@@ -259,7 +259,7 @@ class DefaultMcpStreamContextTest {
     JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "decline"));
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
-    ElicitationResult<UserForm> result = context.elicit("Enter your info", UserForm.class);
+    ElicitationResult<UserForm> result = context.elicitForm("Enter your info", UserForm.class);
 
     assertThat(result.declined()).isTrue();
     assertThat(result.content()).isNull();
@@ -275,7 +275,7 @@ class DefaultMcpStreamContextTest {
     JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "cancel"));
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
-    ElicitationResult<UserForm> result = context.elicit("Enter your info", UserForm.class);
+    ElicitationResult<UserForm> result = context.elicitForm("Enter your info", UserForm.class);
 
     assertThat(result.cancelled()).isTrue();
     assertThat(result.content()).isNull();
@@ -289,7 +289,7 @@ class DefaultMcpStreamContextTest {
     when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> context.elicit("Enter info", UserForm.class))
+    assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
         .isInstanceOf(McpElicitationTimeoutException.class);
 
     verify(mailbox).delete();
@@ -307,7 +307,7 @@ class DefaultMcpStreamContextTest {
             Map.of("action", "accept", "content", Map.of("name", "Alice", "age", "not-a-number")));
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
-    assertThatThrownBy(() -> context.elicit("Enter info", UserForm.class))
+    assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
         .isInstanceOf(McpElicitationException.class)
         .hasMessageContaining("schema validation");
 
@@ -324,7 +324,7 @@ class DefaultMcpStreamContextTest {
         objectMapper.valueToTree(Map.of("error", Map.of("code", -32600, "message", "Bad request")));
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
-    assertThatThrownBy(() -> context.elicit("Enter info", UserForm.class))
+    assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
         .isInstanceOf(McpElicitationException.class)
         .hasMessageContaining("JSON-RPC error");
 
@@ -338,7 +338,7 @@ class DefaultMcpStreamContextTest {
     when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
     when(mailbox.poll(any(Duration.class))).thenThrow(new RuntimeException("Unexpected"));
 
-    assertThatThrownBy(() -> context.elicit("Enter info", UserForm.class))
+    assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
         .isInstanceOf(RuntimeException.class);
 
     verify(mailbox).delete();

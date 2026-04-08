@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-08T07:14:00-04:00
-ITERATION: 25
-SPEC_COMPLETED: 026-consolidate-modules-and-rename-controller.md
-WHAT_WAS_DONE: Consolidated mocapi-tools module into mocapi-core (keeping com.callibrity.mocapi.tools package to avoid import changes), added tools dependencies to mocapi-core/pom.xml, removed mocapi-tools from parent/autoconfigure/example/coverage POMs, deleted mocapi-tools directory, renamed McpStreamingController to StreamableHttpController, moved sse package to http package, updated MocapiAutoConfiguration references.
-VERIFICATION: mvn verify — BUILD SUCCESS; all 177 tests pass (84 core + 91 autoconfigure + 2 example); spotless and license checks pass.
+LAST_RUN: 2026-04-08T07:15:04-04:00
+ITERATION: 26
+SPEC_COMPLETED: 027-rename-elicit-to-elicit-form.md
+WHAT_WAS_DONE: Renamed elicit() to elicitForm() on McpStreamContext interface and DefaultMcpStreamContext implementation, updated all test call sites, and fixed Javadoc reference in McpElicitationNotSupportedException.
+VERIFICATION: mvn verify — BUILD SUCCESS; all tests pass; spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: 027-rename-elicit-to-elicit-form.md
-NOTES: Tools classes kept com.callibrity.mocapi.tools.* package (now in mocapi-core module) so no import changes were needed in autoconfigure or example modules. The sse package is fully deleted. InMemoryMcpSessionStore stayed in the http package since the spec said it could stay in autoconfigure root but the move was simpler as a group.
+NEXT_SPEC: none (specs/ directory empty except template and backlog)
+NOTES: Simple rename, no behavior changes. Leaves room for future elicitUrl() method.

@@ -69,7 +69,7 @@ public interface McpStreamContext {
    * @throws McpElicitationException if the response fails schema validation
    * @throws McpElicitationNotSupportedException if the client does not support elicitation
    */
-  <T> ElicitationResult<T> elicit(String message, Class<T> type);
+  <T> ElicitationResult<T> elicitForm(String message, Class<T> type);
 
   /**
    * Sends an elicitation request to the client, blocking until a response is received. The client
@@ -83,5 +83,5 @@ public interface McpStreamContext {
    * @throws McpElicitationException if the response fails schema validation
    * @throws McpElicitationNotSupportedException if the client does not support elicitation
    */
-  <T> ElicitationResult<T> elicit(String message, TypeReference<T> type);
+  <T> ElicitationResult<T> elicitForm(String message, TypeReference<T> type);
 }

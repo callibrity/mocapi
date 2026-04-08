@@ -120,14 +120,14 @@ public class DefaultMcpStreamContext implements McpStreamContext {
   }
 
   @Override
-  public <T> ElicitationResult<T> elicit(String message, Class<T> type) {
+  public <T> ElicitationResult<T> elicitForm(String message, Class<T> type) {
     requireElicitationSupport();
     ObjectNode schemaNode = generateSchema(type);
     return doElicit(message, schemaNode, type);
   }
 
   @Override
-  public <T> ElicitationResult<T> elicit(String message, TypeReference<T> type) {
+  public <T> ElicitationResult<T> elicitForm(String message, TypeReference<T> type) {
     requireElicitationSupport();
     Class<?> rawType = objectMapper.constructType(type).getRawClass();
     ObjectNode schemaNode = generateSchema(rawType);
