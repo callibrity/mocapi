@@ -31,6 +31,7 @@ import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpSession;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -156,18 +157,6 @@ class McpStreamingControllerTest {
 
       var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-    }
-
-    @Test
-    void shouldReturn400ForInvalidIdType() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
-      request.put("method", "ping");
-      request.putArray("id");
-
-      var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-      assertErrorCode(response, -32600);
     }
 
     @Test
@@ -545,8 +534,8 @@ class McpStreamingControllerTest {
 
   private static void assertJsonRpcResponse(
       org.springframework.http.ResponseEntity<Object> response) {
-    assertThat(response.getBody()).isInstanceOf(JsonNode.class);
-    JsonNode body = (JsonNode) response.getBody();
-    assertThat(body.get("jsonrpc").asString()).isEqualTo("2.0");
+    assertThat(response.getBody()).isInstanceOf(JsonRpcResponse.class);
+    JsonRpcResponse body = (JsonRpcResponse) response.getBody();
+    assertThat(body.jsonrpc()).isEqualTo("2.0");
   }
 }

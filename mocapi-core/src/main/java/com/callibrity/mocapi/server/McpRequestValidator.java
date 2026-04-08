@@ -18,11 +18,10 @@ package com.callibrity.mocapi.server;
 import java.net.URI;
 import java.util.List;
 import java.util.Set;
-import tools.jackson.databind.JsonNode;
 
 /**
- * Validates MCP protocol headers and JSON-RPC envelopes. Transport-agnostic — returns validation
- * results rather than HTTP responses.
+ * Validates MCP protocol headers. Transport-agnostic — returns validation results rather than HTTP
+ * responses.
  */
 public class McpRequestValidator {
 
@@ -33,20 +32,6 @@ public class McpRequestValidator {
 
   public McpRequestValidator(List<String> allowedOrigins) {
     this.allowedOrigins = allowedOrigins;
-  }
-
-  /** Validates the JSON-RPC envelope has {@code jsonrpc: "2.0"} and a valid {@code id} type. */
-  public ValidationResult validateJsonRpcEnvelope(JsonNode requestBody) {
-    if (!"2.0".equals(requestBody.path("jsonrpc").asString(null))) {
-      return ValidationResult.invalidRequest("jsonrpc must be \"2.0\"");
-    }
-
-    JsonNode idNode = requestBody.get("id");
-    if (idNode != null && !idNode.isNull() && !idNode.isString() && !idNode.isNumber()) {
-      return ValidationResult.invalidRequest("id must be a string, number, or null");
-    }
-
-    return ValidationResult.OK;
   }
 
   /** Validates the MCP-Protocol-Version header. Defaults to the current version if null. */
@@ -65,25 +50,6 @@ public class McpRequestValidator {
       return host != null && allowedOrigins.contains(host);
     } catch (IllegalArgumentException _) {
       return false;
-    }
-  }
-
-  /** Detects whether the request body is a notification (method + no id) or a response. */
-  public static boolean isNotificationOrResponse(JsonNode requestBody) {
-    JsonNode methodNode = requestBody.get("method");
-    JsonNode idNode = requestBody.get("id");
-    boolean isNotification = methodNode != null && idNode == null;
-    boolean isResponse =
-        methodNode == null && (requestBody.has("result") || requestBody.has("error"));
-    return isNotification || isResponse;
-  }
-
-  /** Result of a validation check. */
-  public record ValidationResult(boolean valid, int errorCode, String errorMessage) {
-    static final ValidationResult OK = new ValidationResult(true, 0, null);
-
-    static ValidationResult invalidRequest(String message) {
-      return new ValidationResult(false, -32600, message);
     }
   }
 }

@@ -21,97 +21,14 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 class McpRequestValidatorTest {
 
   private McpRequestValidator validator;
-  private ObjectMapper objectMapper;
 
   @BeforeEach
   void setUp() {
     validator = new McpRequestValidator(List.of("localhost", "example.com"));
-    objectMapper = new ObjectMapper();
-  }
-
-  @Nested
-  class JsonRpcEnvelope {
-
-    @Test
-    void shouldAcceptValidEnvelope() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
-      request.put("method", "ping");
-      request.put("id", 1);
-
-      var result = validator.validateJsonRpcEnvelope(request);
-      assertThat(result.valid()).isTrue();
-    }
-
-    @Test
-    void shouldRejectMissingJsonRpcField() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("method", "ping");
-
-      var result = validator.validateJsonRpcEnvelope(request);
-      assertThat(result.valid()).isFalse();
-      assertThat(result.errorCode()).isEqualTo(-32600);
-    }
-
-    @Test
-    void shouldRejectWrongJsonRpcVersion() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "1.0");
-
-      var result = validator.validateJsonRpcEnvelope(request);
-      assertThat(result.valid()).isFalse();
-    }
-
-    @Test
-    void shouldRejectArrayId() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
-      request.putArray("id");
-
-      var result = validator.validateJsonRpcEnvelope(request);
-      assertThat(result.valid()).isFalse();
-    }
-
-    @Test
-    void shouldAcceptStringId() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
-      request.put("id", "abc");
-
-      assertThat(validator.validateJsonRpcEnvelope(request).valid()).isTrue();
-    }
-
-    @Test
-    void shouldAcceptNumberId() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
-      request.put("id", 42);
-
-      assertThat(validator.validateJsonRpcEnvelope(request).valid()).isTrue();
-    }
-
-    @Test
-    void shouldAcceptNullId() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
-      request.putNull("id");
-
-      assertThat(validator.validateJsonRpcEnvelope(request).valid()).isTrue();
-    }
-
-    @Test
-    void shouldAcceptMissingId() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
-
-      assertThat(validator.validateJsonRpcEnvelope(request).valid()).isTrue();
-    }
   }
 
   @Nested
@@ -161,49 +78,6 @@ class McpRequestValidatorTest {
     @Test
     void shouldRejectMalformedOrigin() {
       assertThat(validator.isValidOrigin("not a valid uri {{{")).isFalse();
-    }
-  }
-
-  @Nested
-  class NotificationDetection {
-
-    @Test
-    void shouldDetectNotification() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
-      request.put("method", "notifications/initialized");
-
-      assertThat(McpRequestValidator.isNotificationOrResponse(request)).isTrue();
-    }
-
-    @Test
-    void shouldDetectResponse() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
-      request.put("id", 1);
-      request.putObject("result");
-
-      assertThat(McpRequestValidator.isNotificationOrResponse(request)).isTrue();
-    }
-
-    @Test
-    void shouldDetectErrorResponse() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
-      request.put("id", 1);
-      request.putObject("error");
-
-      assertThat(McpRequestValidator.isNotificationOrResponse(request)).isTrue();
-    }
-
-    @Test
-    void shouldNotDetectRequest() {
-      ObjectNode request = objectMapper.createObjectNode();
-      request.put("jsonrpc", "2.0");
-      request.put("method", "ping");
-      request.put("id", 1);
-
-      assertThat(McpRequestValidator.isNotificationOrResponse(request)).isFalse();
     }
   }
 }

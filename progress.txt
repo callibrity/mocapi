@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-07T23:49:00-04:00
-ITERATION: 23
-SPEC_COMPLETED: 024-mcp-elicitation-via-substrate-mailbox.md
-WHAT_WAS_DONE: Implemented MCP elicitation (elicitation/create) so server-side tool handlers can request structured input from clients during execution. Added elicit(String, Class<T>) and elicit(String, TypeReference<T>) to McpStreamContext, backed by Substrate Mailbox for distributed rendezvous. ElicitationResult<T> record with ElicitationAction enum (ACCEPT/DECLINE/CANCEL). Schema generation via victools SchemaGenerator, response validation via json-sKema. POST handler routes JSON-RPC responses to mailboxes. Server conditionally declares elicitation capability based on client support during initialize. Configurable timeout via mocapi.elicitation.timeout (default 5 min).
-VERIFICATION: mvn verify — BUILD SUCCESS; all 92 tests pass (core + tools + autoconfigure + example); spotless and license checks pass.
+LAST_RUN: 2026-04-08T07:08:00-04:00
+ITERATION: 24
+SPEC_COMPLETED: 025-simplify-controller-with-ripcurl-request.md
+WHAT_WAS_DONE: Simplified McpStreamingController by removing manual envelope validation (delegated to RipCurl except jsonrpc "2.0" check which RipCurl doesn't validate), deleting successResponse() helper (JsonRpcResponse returned directly), deleting validateJsonRpcEnvelope/ValidationResult/isNotificationOrResponse from McpRequestValidator, inlining notification/response detection, removing badRequest/forbidden/notFound static helpers, and using @RequiredArgsConstructor. Controller reduced from 383 to 334 lines.
+VERIFICATION: mvn verify — BUILD SUCCESS; all 91 tests pass (core + tools + autoconfigure + example); spotless and license checks pass.
 STATUS: MORE_WORK
 NEXT_SPEC: none (specs/ directory empty except template)
-NOTES: New dependencies added to mocapi-autoconfigure: victools jsonschema-generator, jsonschema-module-jackson, jsonschema-module-jakarta-validation, json-sKema, jakarta.validation-api. SchemaGenerator bean is @ConditionalOnMissingBean so tools module's custom generator takes precedence if present. The elicit() implementation blocks on a virtual thread (via Substrate Mailbox.poll), publishes JSON-RPC request on the Odyssey stream, validates response content against generated schema, and deserializes into the requested type. Mailbox is cleaned up (deleted) after each elicitation regardless of success/failure.
+NOTES: Kept @RequestBody JsonNode instead of @RequestBody JsonRpcRequest because JSON-RPC responses (elicitation answers) need result/error fields which JsonRpcRequest doesn't carry. Kept minimal jsonrpc "2.0" validation in controller because RipCurl's DefaultJsonRpcDispatcher does not validate the jsonrpc version field. Controller is 334 lines (not under 150 target) — the 150 target is aspirational given the controller handles POST/GET/DELETE plus dispatch, notification routing, mailbox routing, session management, and SSE streaming.
