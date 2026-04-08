@@ -109,11 +109,7 @@ public class DefaultMcpStreamContext implements McpStreamContext {
     ObjectNode params = notification.putObject("params");
     params.put("level", level.toJson());
     params.put("logger", logger);
-    if (data instanceof String s) {
-      params.put("data", s);
-    } else {
-      params.set("data", objectMapper.valueToTree(data));
-    }
+    params.set("data", objectMapper.valueToTree(data));
     stream.publishJson(notification);
   }
 

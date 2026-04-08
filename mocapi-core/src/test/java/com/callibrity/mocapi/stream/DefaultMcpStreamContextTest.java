@@ -191,6 +191,35 @@ class DefaultMcpStreamContextTest {
   }
 
   @Test
+  void logWithNullDataShouldSerializeAsNullNode() {
+    stubSessionWithLogLevel("sess-1", LogLevel.DEBUG);
+    var context = createContext(null, "sess-1");
+    context.log(LogLevel.INFO, "my-tool", null);
+
+    ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
+    verify(stream).publishJson(captor.capture());
+
+    JsonNode notification = captor.getValue();
+    assertThat(notification.get("params").get("data").isNull()).isTrue();
+  }
+
+  @Test
+  void logWithArrayDataShouldSerializeAsArrayNode() {
+    stubSessionWithLogLevel("sess-1", LogLevel.DEBUG);
+    var context = createContext(null, "sess-1");
+    context.log(LogLevel.INFO, "my-tool", java.util.List.of("a", "b", "c"));
+
+    ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
+    verify(stream).publishJson(captor.capture());
+
+    JsonNode notification = captor.getValue();
+    JsonNode dataNode = notification.get("params").get("data");
+    assertThat(dataNode.isArray()).isTrue();
+    assertThat(dataNode).hasSize(3);
+    assertThat(dataNode.get(0).asString()).isEqualTo("a");
+  }
+
+  @Test
   void logBelowThresholdShouldBeDropped() {
     stubSessionWithLogLevel("sess-1", LogLevel.WARNING);
     var context = createContext(null, "sess-1");

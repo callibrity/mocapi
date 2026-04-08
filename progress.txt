@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-08T08:52:00-04:00
-ITERATION: 31
-SPEC_COMPLETED: 032-merge-autoconfigure-into-core.md
-WHAT_WAS_DONE: Merged mocapi-autoconfigure module into mocapi-core — moved all classes into domain packages, moved resources, merged dependencies, updated starter/parent/coverage poms, and deleted the autoconfigure module.
+LAST_RUN: 2026-04-08T08:54:00-04:00
+ITERATION: 32
+SPEC_COMPLETED: 033-simplify-log-data-serialization.md
+WHAT_WAS_DONE: Removed unnecessary instanceof String special case in DefaultMcpStreamContext.log() — objectMapper.valueToTree(data) handles all types including strings. Added tests for null and array data serialization.
 VERIFICATION: mvn verify — BUILD SUCCESS; all tests pass; spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: 033-simplify-log-data-serialization.md
-NOTES: All autoconfigure classes moved into core domain packages: session/ (InMemoryMcpSessionStore, McpSessionMethods, McpLoggingMethods, McpSessionId, McpSessionIdParamResolver), stream/ (DefaultMcpStreamContext, McpStreamContextParamResolver), tools/ (McpToolMethods, MocapiToolsAutoConfiguration, MocapiToolsProperties, ToolServiceMcpToolProvider), http/ (StreamableHttpController, McpRequestValidator), root (MocapiAutoConfiguration, MocapiProperties). Package changed from com.callibrity.mocapi.autoconfigure.* to com.callibrity.mocapi.*. AutoConfiguration.imports updated with new FQCNs. Starter now depends only on mocapi-core. Parent pom no longer lists mocapi-autoconfigure module. Core pom gained spring-boot-autoconfigure, spring-boot-starter-webmvc, ripcurl-autoconfigure, odyssey-core, spring-boot-configuration-processor, spring-boot-starter-test dependencies. Removed optional spring-context dependency (superseded by spring-boot-starter-webmvc). Added resource filtering build config for *-defaults.properties.
+NEXT_SPEC: none (no more specs in specs/)
+NOTES: The one-line fix in DefaultMcpStreamContext replaced a 5-line if/else with a single params.set("data", objectMapper.valueToTree(data)) call. Added two new tests: logWithNullDataShouldSerializeAsNullNode and logWithArrayDataShouldSerializeAsArrayNode. Existing string and object tests continued to pass unchanged.
