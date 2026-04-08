@@ -19,18 +19,15 @@ import com.callibrity.mocapi.server.InitializeResponse;
 import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.mocapi.session.McpSession;
-import com.callibrity.mocapi.session.McpSessionIdParamResolver;
 import com.callibrity.mocapi.session.McpSessionService;
-import com.callibrity.mocapi.stream.DefaultMcpStreamContext;
-import com.callibrity.mocapi.stream.McpStreamContextParamResolver;
+import com.callibrity.mocapi.tools.ToolMethodInvoker;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
-import com.github.victools.jsonschema.generator.SchemaGenerator;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.odyssey.core.OdysseyStream;
@@ -70,11 +67,7 @@ public class StreamableHttpController {
   private final McpSessionService sessionService;
   private final OdysseyStreamRegistry registry;
   private final ObjectMapper objectMapper;
-  private final McpStreamContextParamResolver streamContextResolver;
-  private final McpSessionIdParamResolver sessionIdResolver;
   private final MailboxFactory mailboxFactory;
-  private final SchemaGenerator schemaGenerator;
-  private final Duration elicitationTimeout;
 
   @PostMapping(produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE})
   public ResponseEntity<Object> handlePost(
@@ -204,30 +197,26 @@ public class StreamableHttpController {
     JsonNode params = body.get("params");
     JsonNode id = body.get("id");
     JsonRpcRequest request = new JsonRpcRequest("2.0", method, params, id);
-    OdysseyStream stream = registry.ephemeral();
-    String progressToken = extractProgressToken(params);
-    DefaultMcpStreamContext ctx =
-        new DefaultMcpStreamContext(
-            stream,
-            objectMapper,
-            progressToken,
-            mailboxFactory,
-            schemaGenerator,
-            sessionService,
-            sessionId,
-            elicitationTimeout);
-    try {
-      streamContextResolver.set(ctx);
-      if (sessionId != null) {
-        sessionIdResolver.set(sessionId);
-      }
-      JsonRpcResponse response = dispatcher.dispatch(request);
 
-      if (streamContextResolver.wasResolved()) {
-        stream.publishJson(Map.of());
-        SseEmitter emitter = stream.subscribe();
-        stream.publishJson(response);
-        stream.close();
+    var emitterRef = new AtomicReference<SseEmitter>();
+    try {
+      JsonRpcResponse response;
+      if (!isInitialize && session != null) {
+        response =
+            ScopedValue.where(McpSession.CURRENT, session)
+                .where(McpSession.CURRENT_ID, sessionId)
+                .where(ToolMethodInvoker.SSE_EMITTER_HOLDER, emitterRef)
+                .where(ToolMethodInvoker.REQUEST_ID, id)
+                .call(() -> dispatcher.dispatch(request));
+      } else {
+        response =
+            ScopedValue.where(ToolMethodInvoker.SSE_EMITTER_HOLDER, emitterRef)
+                .where(ToolMethodInvoker.REQUEST_ID, id)
+                .call(() -> dispatcher.dispatch(request));
+      }
+
+      SseEmitter emitter = emitterRef.get();
+      if (emitter != null) {
         var builder = ResponseEntity.ok();
         if (isInitialize) {
           builder.header("MCP-Session-Id", createSessionFromParams(params));
@@ -235,21 +224,16 @@ public class StreamableHttpController {
         return builder.body(emitter);
       }
 
-      stream.close();
       var builder = ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON);
       if (isInitialize) {
         builder.header("MCP-Session-Id", createSessionFromParams(params));
       }
       return builder.body(response);
     } catch (JsonRpcException e) {
-      stream.close();
       log.warn("JSON-RPC error processing {}: {}", method, e.getMessage());
       return ResponseEntity.ok()
           .contentType(MediaType.APPLICATION_JSON)
           .body(errorResponse(id, e.getCode(), e.getMessage()));
-    } finally {
-      streamContextResolver.clear();
-      sessionIdResolver.clear();
     }
   }
 
@@ -275,10 +259,10 @@ public class StreamableHttpController {
     }
     JsonNode idNode = body.get("id");
     if (idNode != null && !idNode.isNull()) {
-      String id = idNode.asString();
+      String idStr = idNode.asString();
       JsonNode resultNode = body.get("result");
       JsonNode errorNode = body.get("error");
-      Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + id, JsonNode.class);
+      Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + idStr, JsonNode.class);
       if (errorNode != null) {
         ObjectNode errorWrapper = objectMapper.createObjectNode();
         errorWrapper.set("error", errorNode);
@@ -288,14 +272,6 @@ public class StreamableHttpController {
       }
     }
     return ResponseEntity.accepted().build();
-  }
-
-  private static String extractProgressToken(JsonNode params) {
-    if (params == null) return null;
-    JsonNode meta = params.get("_meta");
-    if (meta == null) return null;
-    JsonNode token = meta.get("progressToken");
-    return (token == null || token.isMissingNode()) ? null : token.asString();
   }
 
   private String createSessionFromParams(JsonNode params) {

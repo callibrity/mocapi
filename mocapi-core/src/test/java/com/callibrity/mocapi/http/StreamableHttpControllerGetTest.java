@@ -26,15 +26,9 @@ import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.mocapi.session.InMemoryMcpSessionStore;
 import com.callibrity.mocapi.session.McpSession;
-import com.callibrity.mocapi.session.McpSessionIdParamResolver;
 import com.callibrity.mocapi.session.McpSessionService;
-import com.callibrity.mocapi.stream.McpStreamContextParamResolver;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
-import com.github.victools.jsonschema.generator.OptionPreset;
-import com.github.victools.jsonschema.generator.SchemaGenerator;
-import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
-import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.List;
@@ -82,28 +76,11 @@ class StreamableHttpControllerGetTest {
 
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
     JsonRpcDispatcher dispatcher = new DefaultJsonRpcDispatcher(List.of());
-    McpStreamContextParamResolver streamContextResolver = new McpStreamContextParamResolver();
-    McpSessionIdParamResolver sessionIdResolver = new McpSessionIdParamResolver();
-
     MailboxFactory mailboxFactory = mock(MailboxFactory.class);
-    SchemaGenerator schemaGenerator =
-        new SchemaGenerator(
-            new SchemaGeneratorConfigBuilder(
-                    objectMapper, SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON)
-                .build());
 
     controller =
         new StreamableHttpController(
-            dispatcher,
-            validator,
-            sessionService,
-            registry,
-            objectMapper,
-            streamContextResolver,
-            sessionIdResolver,
-            mailboxFactory,
-            schemaGenerator,
-            Duration.ofMinutes(5));
+            dispatcher, validator, sessionService, registry, objectMapper, mailboxFactory);
   }
 
   @AfterEach

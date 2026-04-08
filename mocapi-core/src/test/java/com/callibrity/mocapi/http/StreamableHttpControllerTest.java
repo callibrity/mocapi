@@ -29,11 +29,10 @@ import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.mocapi.session.InMemoryMcpSessionStore;
 import com.callibrity.mocapi.session.McpSession;
-import com.callibrity.mocapi.session.McpSessionIdParamResolver;
 import com.callibrity.mocapi.session.McpSessionMethods;
 import com.callibrity.mocapi.session.McpSessionService;
-import com.callibrity.mocapi.stream.McpStreamContextParamResolver;
 import com.callibrity.mocapi.tools.McpToolMethods;
+import com.callibrity.mocapi.tools.ToolMethodInvoker;
 import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
@@ -41,11 +40,6 @@ import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
-import com.github.victools.jsonschema.generator.OptionPreset;
-import com.github.victools.jsonschema.generator.SchemaGenerator;
-import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
-import com.github.victools.jsonschema.generator.SchemaVersion;
-import com.github.victools.jsonschema.module.jackson.JacksonSchemaModule;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.List;
@@ -99,7 +93,18 @@ class StreamableHttpControllerTest {
     sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT);
 
     McpSessionMethods serverMethods = new McpSessionMethods(initializeResponse);
-    McpToolMethods toolMethods = new McpToolMethods(toolsCapability, objectMapper);
+    ToolMethodInvoker toolMethodInvoker = mock(ToolMethodInvoker.class);
+    McpToolMethods toolMethods =
+        new McpToolMethods(toolsCapability, objectMapper, toolMethodInvoker);
+
+    // Wire up the mock to delegate to toolsCapability for non-streamable tools
+    when(toolMethodInvoker.invoke(any(), any(), any()))
+        .thenAnswer(
+            invocation -> {
+              String name = invocation.getArgument(0);
+              ObjectNode args = invocation.getArgument(1);
+              return toolsCapability.callTool(name, args);
+            });
 
     JsonRpcMethodProvider serverProvider =
         () ->
@@ -113,28 +118,10 @@ class StreamableHttpControllerTest {
         new DefaultJsonRpcDispatcher(List.of(serverProvider, toolProvider));
 
     MailboxFactory mailboxFactory = mock(MailboxFactory.class);
-    SchemaGenerator schemaGenerator =
-        new SchemaGenerator(
-            new SchemaGeneratorConfigBuilder(
-                    objectMapper, SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON)
-                .with(new JacksonSchemaModule())
-                .build());
-
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
-    McpStreamContextParamResolver streamContextResolver = new McpStreamContextParamResolver();
-    McpSessionIdParamResolver sessionIdResolver = new McpSessionIdParamResolver();
     controller =
         new StreamableHttpController(
-            dispatcher,
-            validator,
-            sessionService,
-            registry,
-            objectMapper,
-            streamContextResolver,
-            sessionIdResolver,
-            mailboxFactory,
-            schemaGenerator,
-            Duration.ofMinutes(5));
+            dispatcher, validator, sessionService, registry, objectMapper, mailboxFactory);
   }
 
   @AfterEach

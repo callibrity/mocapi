@@ -19,11 +19,14 @@ import static com.callibrity.mocapi.tools.annotation.Names.humanReadableName;
 import static com.callibrity.mocapi.tools.annotation.Names.identifier;
 import static java.util.Optional.ofNullable;
 
+import com.callibrity.mocapi.stream.McpStreamContext;
+import com.callibrity.mocapi.stream.McpStreamContextScopedValueResolver;
 import com.callibrity.mocapi.tools.McpTool;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.callibrity.ripcurl.core.invoke.JsonMethodInvoker;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
@@ -34,12 +37,16 @@ public class AnnotationMcpTool implements McpTool {
 
   // ------------------------------ FIELDS ------------------------------
 
+  private static final McpStreamContextScopedValueResolver STREAM_CONTEXT_RESOLVER =
+      new McpStreamContextScopedValueResolver();
+
   private final String name;
   private final String title;
   private final String description;
   private final JsonMethodInvoker invoker;
   private final ObjectNode inputSchema;
   private final ObjectNode outputSchema;
+  private final boolean streamable;
 
   // -------------------------- STATIC METHODS --------------------------
 
@@ -58,7 +65,9 @@ public class AnnotationMcpTool implements McpTool {
     this.name = nameOf(targetObject, method, annotation);
     this.title = titleOf(targetObject, method, annotation);
     this.description = descriptionOf(targetObject, method, annotation);
-    this.invoker = new JsonMethodInvoker(mapper, targetObject, method);
+    this.streamable = hasStreamContextParam(method);
+    this.invoker =
+        new JsonMethodInvoker(mapper, targetObject, method, List.of(STREAM_CONTEXT_RESOLVER));
     this.inputSchema = generator.generateInputSchema(targetObject, method);
     this.outputSchema = generator.generateOutputSchema(targetObject, method);
     var outputSchemaType = outputSchema.get("type").asString();
@@ -83,6 +92,11 @@ public class AnnotationMcpTool implements McpTool {
   private static String descriptionOf(Object targetObject, Method method, Tool annotation) {
     return ofNullable(StringUtils.trimToNull(annotation.description()))
         .orElseGet(() -> humanReadableName(targetObject, method));
+  }
+
+  private static boolean hasStreamContextParam(Method method) {
+    return Arrays.stream(method.getParameterTypes())
+        .anyMatch(McpStreamContext.class::isAssignableFrom);
   }
 
   // ------------------------ INTERFACE METHODS ------------------------
@@ -112,6 +126,11 @@ public class AnnotationMcpTool implements McpTool {
   @Override
   public ObjectNode outputSchema() {
     return outputSchema;
+  }
+
+  @Override
+  public boolean isStreamable() {
+    return streamable;
   }
 
   @Override

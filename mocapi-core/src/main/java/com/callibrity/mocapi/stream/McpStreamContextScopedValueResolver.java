@@ -13,35 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.session;
+package com.callibrity.mocapi.stream;
 
 import com.callibrity.ripcurl.core.invoke.JsonRpcParamResolver;
 import java.lang.reflect.Parameter;
 import tools.jackson.databind.JsonNode;
 
 /**
- * Resolves {@link McpSessionId}-annotated parameters in {@code @JsonRpc} methods. The controller
- * sets the current session ID before dispatch and clears it after.
+ * Resolves {@link McpStreamContext} parameters in {@code @Tool} methods by reading from the {@link
+ * McpStreamContext#CURRENT} {@link ScopedValue}. Used by {@link
+ * com.callibrity.mocapi.tools.annotation.AnnotationMcpTool} when constructing its method invoker.
  */
-public class McpSessionIdParamResolver implements JsonRpcParamResolver {
-
-  private final ThreadLocal<String> holder = new ThreadLocal<>();
+public class McpStreamContextScopedValueResolver implements JsonRpcParamResolver {
 
   @Override
   public Object resolve(Parameter parameter, int index, JsonNode params) {
-    if (!parameter.isAnnotationPresent(McpSessionId.class)) {
+    if (!McpStreamContext.class.isAssignableFrom(parameter.getType())) {
       return null;
     }
-    return holder.get();
-  }
-
-  /** Sets the current session ID for the calling thread. */
-  public void set(String sessionId) {
-    holder.set(sessionId);
-  }
-
-  /** Clears the current session ID. Call this after dispatch completes. */
-  public void clear() {
-    holder.remove();
+    return McpStreamContext.CURRENT.isBound() ? McpStreamContext.CURRENT.get() : null;
   }
 }

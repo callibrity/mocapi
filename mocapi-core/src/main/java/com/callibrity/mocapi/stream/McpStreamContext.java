@@ -25,6 +25,8 @@ import tools.jackson.core.type.TypeReference;
  */
 public interface McpStreamContext {
 
+  ScopedValue<McpStreamContext> CURRENT = ScopedValue.newInstance();
+
   /**
    * Sends a progress notification to the client.
    *

@@ -24,12 +24,11 @@ import com.callibrity.mocapi.server.ServerInfo;
 import com.callibrity.mocapi.server.ToolsCapabilityDescriptor;
 import com.callibrity.mocapi.session.InMemoryMcpSessionStore;
 import com.callibrity.mocapi.session.McpLoggingMethods;
-import com.callibrity.mocapi.session.McpSessionIdParamResolver;
 import com.callibrity.mocapi.session.McpSessionMethods;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStore;
-import com.callibrity.mocapi.stream.McpStreamContextParamResolver;
 import com.callibrity.mocapi.tools.McpToolMethods;
+import com.callibrity.mocapi.tools.ToolMethodInvoker;
 import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.github.victools.jsonschema.generator.OptionPreset;
@@ -96,18 +95,6 @@ public class MocapiAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpStreamContextParamResolver mcpStreamContextParamResolver() {
-    return new McpStreamContextParamResolver();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public McpSessionIdParamResolver mcpSessionIdParamResolver() {
-    return new McpSessionIdParamResolver();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
   public McpSessionMethods mcpSessionMethods(InitializeResponse initializeResponse) {
     return new McpSessionMethods(initializeResponse);
   }
@@ -121,8 +108,29 @@ public class MocapiAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   @ConditionalOnBean(ToolsRegistry.class)
-  public McpToolMethods mcpToolMethods(ToolsRegistry toolsRegistry, ObjectMapper objectMapper) {
-    return new McpToolMethods(toolsRegistry, objectMapper);
+  public ToolMethodInvoker toolMethodInvoker(
+      ToolsRegistry toolsRegistry,
+      OdysseyStreamRegistry odysseyRegistry,
+      ObjectMapper objectMapper,
+      MailboxFactory mailboxFactory,
+      SchemaGenerator schemaGenerator,
+      McpSessionService sessionService) {
+    return new ToolMethodInvoker(
+        toolsRegistry,
+        odysseyRegistry,
+        objectMapper,
+        mailboxFactory,
+        schemaGenerator,
+        sessionService,
+        props.getElicitation().getTimeout());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBean(ToolsRegistry.class)
+  public McpToolMethods mcpToolMethods(
+      ToolsRegistry toolsRegistry, ObjectMapper objectMapper, ToolMethodInvoker toolMethodInvoker) {
+    return new McpToolMethods(toolsRegistry, objectMapper, toolMethodInvoker);
   }
 
   @Bean
@@ -144,20 +152,8 @@ public class MocapiAutoConfiguration {
       McpSessionService sessionService,
       OdysseyStreamRegistry registry,
       ObjectMapper objectMapper,
-      McpStreamContextParamResolver streamContextResolver,
-      McpSessionIdParamResolver sessionIdResolver,
-      MailboxFactory mailboxFactory,
-      SchemaGenerator schemaGenerator) {
+      MailboxFactory mailboxFactory) {
     return new StreamableHttpController(
-        dispatcher,
-        mcpRequestValidator,
-        sessionService,
-        registry,
-        objectMapper,
-        streamContextResolver,
-        sessionIdResolver,
-        mailboxFactory,
-        schemaGenerator,
-        props.getElicitation().getTimeout());
+        dispatcher, mcpRequestValidator, sessionService, registry, objectMapper, mailboxFactory);
   }
 }

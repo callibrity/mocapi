@@ -29,18 +29,12 @@ import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.mocapi.session.InMemoryMcpSessionStore;
 import com.callibrity.mocapi.session.McpSession;
-import com.callibrity.mocapi.session.McpSessionIdParamResolver;
 import com.callibrity.mocapi.session.McpSessionMethods;
 import com.callibrity.mocapi.session.McpSessionService;
-import com.callibrity.mocapi.stream.McpStreamContextParamResolver;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
-import com.github.victools.jsonschema.generator.OptionPreset;
-import com.github.victools.jsonschema.generator.SchemaGenerator;
-import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
-import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.List;
@@ -112,27 +106,11 @@ class StreamableHttpControllerComplianceTest {
     mailboxFactory = mock(MailboxFactory.class);
     Mailbox<?> mockMailbox = mock(Mailbox.class);
     when(mailboxFactory.create(any(String.class), any(Class.class))).thenAnswer(_ -> mockMailbox);
-    SchemaGenerator schemaGenerator =
-        new SchemaGenerator(
-            new SchemaGeneratorConfigBuilder(
-                    objectMapper, SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON)
-                .build());
 
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
-    McpStreamContextParamResolver streamContextResolver = new McpStreamContextParamResolver();
-    McpSessionIdParamResolver sessionIdResolver = new McpSessionIdParamResolver();
     controller =
         new StreamableHttpController(
-            dispatcher,
-            validator,
-            sessionService,
-            registry,
-            objectMapper,
-            streamContextResolver,
-            sessionIdResolver,
-            mailboxFactory,
-            schemaGenerator,
-            Duration.ofMinutes(5));
+            dispatcher, validator, sessionService, registry, objectMapper, mailboxFactory);
   }
 
   @AfterEach

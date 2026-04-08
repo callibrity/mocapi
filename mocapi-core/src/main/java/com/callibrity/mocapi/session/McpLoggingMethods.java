@@ -27,13 +27,14 @@ public class McpLoggingMethods {
   private final McpSessionService sessionService;
 
   @JsonRpc("logging/setLevel")
-  public Object setLevel(String level, @McpSessionId String sessionId) {
+  public Object setLevel(String level) {
     LogLevel logLevel;
     try {
       logLevel = LogLevel.fromString(level);
     } catch (IllegalArgumentException e) {
       throw new JsonRpcException(JsonRpcException.INVALID_PARAMS, "Invalid log level: " + level);
     }
+    String sessionId = McpSession.CURRENT_ID.get();
     try {
       sessionService.setLogLevel(sessionId, logLevel);
     } catch (IllegalArgumentException e) {

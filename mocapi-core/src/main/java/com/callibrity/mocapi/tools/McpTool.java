@@ -29,4 +29,8 @@ public interface McpTool {
   ObjectNode outputSchema();
 
   ObjectNode call(ObjectNode parameters);
+
+  default boolean isStreamable() {
+    return false;
+  }
 }

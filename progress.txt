@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-08T08:54:00-04:00
-ITERATION: 32
-SPEC_COMPLETED: 033-simplify-log-data-serialization.md
-WHAT_WAS_DONE: Removed unnecessary instanceof String special case in DefaultMcpStreamContext.log() — objectMapper.valueToTree(data) handles all types including strings. Added tests for null and array data serialization.
-VERIFICATION: mvn verify — BUILD SUCCESS; all tests pass; spotless and license checks pass.
+LAST_RUN: 2026-04-08T10:06:00-04:00
+ITERATION: 33
+SPEC_COMPLETED: 034-streamable-tool-calls-via-response-metadata.md
+WHAT_WAS_DONE: Implemented streamable tool call infrastructure via ScopedValues, ToolMethodInvoker, and isStreamable() on McpTool. Non-streamable tools return JSON synchronously; streamable tools dispatch on a virtual thread with ScopedValue context and return an SseEmitter via a ScopedValue holder. Deleted ThreadLocal-based resolvers (McpStreamContextParamResolver, McpSessionIdParamResolver, @McpSessionId annotation) and replaced with ScopedValue-based injection.
+VERIFICATION: mvn verify — BUILD SUCCESS; all 181 tests pass; spotless and license checks pass.
 STATUS: MORE_WORK
 NEXT_SPEC: none (no more specs in specs/)
-NOTES: The one-line fix in DefaultMcpStreamContext replaced a 5-line if/else with a single params.set("data", objectMapper.valueToTree(data)) call. Added two new tests: logWithNullDataShouldSerializeAsNullNode and logWithArrayDataShouldSerializeAsArrayNode. Existing string and object tests continued to pass unchanged.
+NOTES: RipCurl's JsonRpcResponse (v0.2.0) has no metadata support, so the spec's literal response.getMetadata("sseEmitter") approach was replaced with ScopedValue<AtomicReference<SseEmitter>> as the emitter carrier between handler and controller. This achieves the same architectural goal (handler decides streaming, controller is a dumb pipe) without requiring RipCurl changes. Key new files: ToolMethodInvoker.java (streaming orchestration), McpStreamContextScopedValueResolver.java (ScopedValue-based resolver for @Tool methods). McpLoggingMethods now reads session ID from McpSession.CURRENT_ID ScopedValue instead of @McpSessionId parameter.

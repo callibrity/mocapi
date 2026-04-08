@@ -22,6 +22,9 @@ public record McpSession(
     ClientInfo clientInfo,
     LogLevel logLevel) {
 
+  public static final ScopedValue<McpSession> CURRENT = ScopedValue.newInstance();
+  public static final ScopedValue<String> CURRENT_ID = ScopedValue.newInstance();
+
   /** Creates a session with the default log level ({@link LogLevel#WARNING}). */
   public McpSession(
       String protocolVersion, ClientCapabilities capabilities, ClientInfo clientInfo) {
