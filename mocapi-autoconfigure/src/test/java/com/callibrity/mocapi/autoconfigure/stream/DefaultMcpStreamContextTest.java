@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ElicitationCapability;
+import com.callibrity.mocapi.session.LogLevel;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.stream.ElicitationResult;
 import com.callibrity.mocapi.stream.McpElicitationException;
@@ -134,10 +135,15 @@ class DefaultMcpStreamContextTest {
     assertThat(notification.has("params")).isFalse();
   }
 
+  private McpSession sessionWithLogLevel(LogLevel level) {
+    return new McpSession(
+        "2025-11-25", new ClientCapabilities(null, null, null, null, null), null, level);
+  }
+
   @Test
   void logWithLoggerShouldPublishMessageNotification() {
-    var context = createContext(null);
-    context.log("info", "my-tool", "Tool execution started");
+    var context = createContext(null, sessionWithLogLevel(LogLevel.DEBUG));
+    context.log(LogLevel.INFO, "my-tool", "Tool execution started");
 
     ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
     verify(stream).publishJson(captor.capture());
@@ -153,8 +159,8 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void logWithoutLoggerShouldUseDefaultLogger() {
-    var context = createContext(null);
-    context.log("warning", "Something happened");
+    var context = createContext(null, sessionWithLogLevel(LogLevel.DEBUG));
+    context.log(LogLevel.WARNING, "Something happened");
 
     ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
     verify(stream).publishJson(captor.capture());
@@ -167,14 +173,61 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void logWithStructuredDataShouldSerializeAsJson() {
-    var context = createContext(null);
-    context.log("debug", "my-tool", Map.of("key", "value"));
+    var context = createContext(null, sessionWithLogLevel(LogLevel.DEBUG));
+    context.log(LogLevel.ERROR, "my-tool", Map.of("key", "value"));
 
     ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
     verify(stream).publishJson(captor.capture());
 
     JsonNode notification = captor.getValue();
     assertThat(notification.get("params").get("data").get("key").asString()).isEqualTo("value");
+  }
+
+  @Test
+  void logBelowThresholdShouldBeDropped() {
+    var context = createContext(null, sessionWithLogLevel(LogLevel.WARNING));
+    context.log(LogLevel.DEBUG, "my-tool", "Should be dropped");
+
+    verify(stream, org.mockito.Mockito.never()).publishJson(org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
+  void logAtThresholdShouldBePublished() {
+    var context = createContext(null, sessionWithLogLevel(LogLevel.WARNING));
+    context.log(LogLevel.WARNING, "my-tool", "At threshold");
+
+    verify(stream).publishJson(org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
+  void logAboveThresholdShouldBePublished() {
+    var context = createContext(null, sessionWithLogLevel(LogLevel.WARNING));
+    context.log(LogLevel.ERROR, "my-tool", "Above threshold");
+
+    verify(stream).publishJson(org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
+  void logWithNullSessionShouldDefaultToWarningThreshold() {
+    var context = createContext(null, null);
+    context.log(LogLevel.DEBUG, "my-tool", "Should be dropped");
+
+    verify(stream, org.mockito.Mockito.never()).publishJson(org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
+  void convenienceMethodsShouldDelegateToLog() {
+    var context = createContext(null, sessionWithLogLevel(LogLevel.DEBUG));
+    context.debug("my-tool", "debug msg");
+    context.info("my-tool", "info msg");
+    context.notice("my-tool", "notice msg");
+    context.warning("my-tool", "warning msg");
+    context.error("my-tool", "error msg");
+    context.critical("my-tool", "critical msg");
+    context.alert("my-tool", "alert msg");
+    context.emergency("my-tool", "emergency msg");
+
+    verify(stream, org.mockito.Mockito.times(8)).publishJson(org.mockito.ArgumentMatchers.any());
   }
 
   // --- Elicitation tests ---

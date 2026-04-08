@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.stream;
 
+import com.callibrity.mocapi.session.LogLevel;
 import tools.jackson.core.type.TypeReference;
 
 /**
@@ -41,21 +42,63 @@ public interface McpStreamContext {
   void sendNotification(String method, Object params);
 
   /**
-   * Sends a log notification ({@code notifications/message}) to the client.
+   * Sends a log notification ({@code notifications/message}) to the client. Messages below the
+   * session's current log level threshold are silently dropped.
    *
-   * @param level the log level (e.g. "debug", "info", "warning", "error")
+   * @param level the log level
    * @param logger the logger name (typically the tool name)
    * @param data the log data (message string or structured object)
    */
-  void log(String level, String logger, Object data);
+  void log(LogLevel level, String logger, Object data);
 
   /**
    * Sends a log notification ({@code notifications/message}) to the client using a default logger.
+   * Messages below the session's current log level threshold are silently dropped.
    *
-   * @param level the log level (e.g. "debug", "info", "warning", "error")
+   * @param level the log level
    * @param message the log message
    */
-  void log(String level, String message);
+  void log(LogLevel level, String message);
+
+  /** Convenience method for {@link LogLevel#DEBUG}. */
+  default void debug(String logger, Object data) {
+    log(LogLevel.DEBUG, logger, data);
+  }
+
+  /** Convenience method for {@link LogLevel#INFO}. */
+  default void info(String logger, Object data) {
+    log(LogLevel.INFO, logger, data);
+  }
+
+  /** Convenience method for {@link LogLevel#NOTICE}. */
+  default void notice(String logger, Object data) {
+    log(LogLevel.NOTICE, logger, data);
+  }
+
+  /** Convenience method for {@link LogLevel#WARNING}. */
+  default void warning(String logger, Object data) {
+    log(LogLevel.WARNING, logger, data);
+  }
+
+  /** Convenience method for {@link LogLevel#ERROR}. */
+  default void error(String logger, Object data) {
+    log(LogLevel.ERROR, logger, data);
+  }
+
+  /** Convenience method for {@link LogLevel#CRITICAL}. */
+  default void critical(String logger, Object data) {
+    log(LogLevel.CRITICAL, logger, data);
+  }
+
+  /** Convenience method for {@link LogLevel#ALERT}. */
+  default void alert(String logger, Object data) {
+    log(LogLevel.ALERT, logger, data);
+  }
+
+  /** Convenience method for {@link LogLevel#EMERGENCY}. */
+  default void emergency(String logger, Object data) {
+    log(LogLevel.EMERGENCY, logger, data);
+  }
 
   /**
    * Sends an elicitation request to the client, blocking until a response is received. The client

@@ -60,6 +60,11 @@ public class InMemoryMcpSessionStore implements McpSessionStore {
   }
 
   @Override
+  public void update(String sessionId, McpSession session) {
+    sessions.computeIfPresent(sessionId, (_, entry) -> new Entry(session, entry.expiresAt()));
+  }
+
+  @Override
   public Optional<McpSession> find(String sessionId) {
     if (sessionId == null) {
       return Optional.empty();

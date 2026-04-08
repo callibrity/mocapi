@@ -17,7 +17,21 @@ package com.callibrity.mocapi.session;
 
 /** Immutable record of the client data captured during the MCP initialize handshake. */
 public record McpSession(
-    String protocolVersion, ClientCapabilities capabilities, ClientInfo clientInfo) {
+    String protocolVersion,
+    ClientCapabilities capabilities,
+    ClientInfo clientInfo,
+    LogLevel logLevel) {
+
+  /** Creates a session with the default log level ({@link LogLevel#WARNING}). */
+  public McpSession(
+      String protocolVersion, ClientCapabilities capabilities, ClientInfo clientInfo) {
+    this(protocolVersion, capabilities, clientInfo, LogLevel.WARNING);
+  }
+
+  /** Returns a copy of this session with the given log level. */
+  public McpSession withLogLevel(LogLevel logLevel) {
+    return new McpSession(protocolVersion, capabilities, clientInfo, logLevel);
+  }
 
   /** Returns true if the client supports form-based elicitation. */
   public boolean supportsElicitationForm() {

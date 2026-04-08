@@ -13,10 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server;
+package com.callibrity.mocapi.autoconfigure.session;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record ServerCapabilities(
-    ToolsCapabilityDescriptor tools, LoggingCapabilityDescriptor logging) {}
+/**
+ * Marks a {@code @JsonRpc} method parameter to be resolved with the current MCP session ID.
+ * Resolved by {@link McpSessionIdParamResolver}.
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.PARAMETER)
+public @interface McpSessionId {}

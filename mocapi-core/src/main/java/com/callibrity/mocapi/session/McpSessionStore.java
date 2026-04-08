@@ -31,6 +31,14 @@ public interface McpSessionStore {
   String save(McpSession session, Duration ttl);
 
   /**
+   * Replaces the session data for an existing session, preserving the current TTL.
+   *
+   * @param sessionId the session ID
+   * @param session the updated session data
+   */
+  void update(String sessionId, McpSession session);
+
+  /**
    * Finds a session by ID.
    *
    * @param sessionId the session ID

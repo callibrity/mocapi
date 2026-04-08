@@ -29,7 +29,7 @@ class McpServerTest {
     var response =
         new InitializeResponse(
             InitializeResponse.PROTOCOL_VERSION,
-            new ServerCapabilities(new ToolsCapabilityDescriptor(false)),
+            new ServerCapabilities(new ToolsCapabilityDescriptor(false), null),
             new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
             "Testing instructions");
 
@@ -45,7 +45,7 @@ class McpServerTest {
     var response =
         new InitializeResponse(
             InitializeResponse.PROTOCOL_VERSION,
-            new ServerCapabilities(null),
+            new ServerCapabilities(null, null),
             new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
             null);
 
@@ -61,7 +61,7 @@ class McpServerTest {
     var response =
         new InitializeResponse(
             InitializeResponse.PROTOCOL_VERSION,
-            new ServerCapabilities(new ToolsCapabilityDescriptor(false)),
+            new ServerCapabilities(new ToolsCapabilityDescriptor(false), null),
             new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
             null);
 

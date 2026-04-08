@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.autoconfigure.session.InMemoryMcpSessionStore;
+import com.callibrity.mocapi.autoconfigure.session.McpSessionIdParamResolver;
 import com.callibrity.mocapi.autoconfigure.stream.McpStreamContextParamResolver;
 import com.callibrity.mocapi.server.InitializeResponse;
 import com.callibrity.mocapi.session.ClientCapabilities;
@@ -75,6 +76,7 @@ class StreamableHttpControllerGetTest {
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
     JsonRpcDispatcher dispatcher = new DefaultJsonRpcDispatcher(List.of());
     McpStreamContextParamResolver streamContextResolver = new McpStreamContextParamResolver();
+    McpSessionIdParamResolver sessionIdResolver = new McpSessionIdParamResolver();
 
     MailboxFactory mailboxFactory = mock(MailboxFactory.class);
     SchemaGenerator schemaGenerator =
@@ -91,6 +93,7 @@ class StreamableHttpControllerGetTest {
             registry,
             objectMapper,
             streamContextResolver,
+            sessionIdResolver,
             SESSION_TIMEOUT,
             mailboxFactory,
             schemaGenerator,

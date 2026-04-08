@@ -18,11 +18,14 @@ package com.callibrity.mocapi.autoconfigure;
 import com.callibrity.mocapi.autoconfigure.http.McpRequestValidator;
 import com.callibrity.mocapi.autoconfigure.http.StreamableHttpController;
 import com.callibrity.mocapi.autoconfigure.session.InMemoryMcpSessionStore;
+import com.callibrity.mocapi.autoconfigure.session.McpLoggingMethods;
+import com.callibrity.mocapi.autoconfigure.session.McpSessionIdParamResolver;
 import com.callibrity.mocapi.autoconfigure.session.McpSessionMethods;
 import com.callibrity.mocapi.autoconfigure.stream.McpStreamContextParamResolver;
 import com.callibrity.mocapi.autoconfigure.tools.McpToolMethods;
 import com.callibrity.mocapi.security.McpEventIdCodec;
 import com.callibrity.mocapi.server.InitializeResponse;
+import com.callibrity.mocapi.server.LoggingCapabilityDescriptor;
 import com.callibrity.mocapi.server.ServerCapabilities;
 import com.callibrity.mocapi.server.ServerInfo;
 import com.callibrity.mocapi.server.ToolsCapabilityDescriptor;
@@ -68,7 +71,7 @@ public class MocapiAutoConfiguration {
         toolsRegistry != null ? new ToolsCapabilityDescriptor(false) : null;
     return new InitializeResponse(
         InitializeResponse.PROTOCOL_VERSION,
-        new ServerCapabilities(tools),
+        new ServerCapabilities(tools, new LoggingCapabilityDescriptor()),
         new ServerInfo(props.getServerName(), props.getServerTitle(), version, null, null, null),
         props.getInstructions());
   }
@@ -93,8 +96,20 @@ public class MocapiAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public McpSessionIdParamResolver mcpSessionIdParamResolver() {
+    return new McpSessionIdParamResolver();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public McpSessionMethods mcpSessionMethods(InitializeResponse initializeResponse) {
     return new McpSessionMethods(initializeResponse);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public McpLoggingMethods mcpLoggingMethods(McpSessionStore sessionStore) {
+    return new McpLoggingMethods(sessionStore);
   }
 
   @Bean
@@ -133,6 +148,7 @@ public class MocapiAutoConfiguration {
       OdysseyStreamRegistry registry,
       ObjectMapper objectMapper,
       McpStreamContextParamResolver streamContextResolver,
+      McpSessionIdParamResolver sessionIdResolver,
       MailboxFactory mailboxFactory,
       SchemaGenerator schemaGenerator) {
     return new StreamableHttpController(
@@ -142,6 +158,7 @@ public class MocapiAutoConfiguration {
         registry,
         objectMapper,
         streamContextResolver,
+        sessionIdResolver,
         props.getSessionTimeout(),
         mailboxFactory,
         schemaGenerator,

@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-08T08:07:00-04:00
-ITERATION: 28
-SPEC_COMPLETED: 029-static-initialize-response-bean.md
-WHAT_WAS_DONE: Replaced dynamic McpServer.initialize() with a static InitializeResponse bean built once at startup. Created ToolsCapabilityDescriptor, ServerCapabilities, InitializeResponse, and PingResponse as standalone records in mocapi-core server package. Deleted McpServer class and CapabilityDescriptor interface. Simplified McpSessionMethods to return the cached InitializeResponse bean with no parameters. Updated MocapiProperties to use flat serverName/serverTitle properties instead of nested ServerInfo. Server version now comes from BuildProperties when available (falls back to "unknown"). Added build-info goal to mocapi-example pom.xml.
+LAST_RUN: 2026-04-08T08:19:33-04:00
+ITERATION: 29
+SPEC_COMPLETED: 030-logging-support.md
+WHAT_WAS_DONE: Implemented MCP logging support with log-level filtering, logging/setLevel JSON-RPC handler, and convenience logging methods on McpStreamContext.
 VERIFICATION: mvn verify — BUILD SUCCESS; all tests pass; spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: 030-logging-support.md
-NOTES: McpServer deleted entirely — its only remaining methods (ping, clientInitialized) were trivial and inlined into McpSessionMethods/PingResponse. PROTOCOL_VERSION constant moved to InitializeResponse. CapabilityDescriptor marker interface deleted (no longer referenced). Properties changed from mocapi.server-info.name/title/version to mocapi.server-name/server-title (version now from BuildProperties). ElicitationCapabilityDescriptor removed — elicitation support will need a different approach if re-added later. ServerCapabilities uses @JsonInclude(NON_NULL) so null tools/future capabilities are omitted from JSON.
+NEXT_SPEC: 031-mcp-session-service.md
+NOTES: Created LogLevel enum (8 RFC 5424 levels, ordinal-based filtering). Added logLevel field to McpSession with default WARNING and withLogLevel() copy method. Created LoggingCapabilityDescriptor and added logging field to ServerCapabilities. McpStreamContext.log() now takes LogLevel instead of String and includes 8 convenience methods (debug/info/notice/warning/error/critical/alert/emergency) as default methods. DefaultMcpStreamContext filters messages below session threshold. Added McpSessionStore.update() method for in-place session updates. Created McpSessionIdParamResolver + @McpSessionId annotation so JSON-RPC handlers can access the current session ID. McpLoggingMethods handles logging/setLevel by parsing the level string, looking up the session, and saving an updated copy with the new log level. Returns empty object per spec; invalid level returns -32602. InitializeResponse now always advertises logging capability.

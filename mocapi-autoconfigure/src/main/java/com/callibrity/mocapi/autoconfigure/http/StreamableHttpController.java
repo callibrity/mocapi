@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.autoconfigure.http;
 
+import com.callibrity.mocapi.autoconfigure.session.McpSessionIdParamResolver;
 import com.callibrity.mocapi.autoconfigure.stream.DefaultMcpStreamContext;
 import com.callibrity.mocapi.autoconfigure.stream.McpStreamContextParamResolver;
 import com.callibrity.mocapi.server.InitializeResponse;
@@ -70,6 +71,7 @@ public class StreamableHttpController {
   private final OdysseyStreamRegistry registry;
   private final ObjectMapper objectMapper;
   private final McpStreamContextParamResolver streamContextResolver;
+  private final McpSessionIdParamResolver sessionIdResolver;
   private final Duration sessionTimeout;
   private final MailboxFactory mailboxFactory;
   private final SchemaGenerator schemaGenerator;
@@ -140,7 +142,7 @@ public class StreamableHttpController {
       sessionStore.touch(sessionId, sessionTimeout);
     }
 
-    return dispatch(isInitialize, method, body, session);
+    return dispatch(isInitialize, method, body, session, sessionId);
   }
 
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -201,7 +203,7 @@ public class StreamableHttpController {
   }
 
   private ResponseEntity<Object> dispatch(
-      boolean isInitialize, String method, JsonNode body, McpSession session) {
+      boolean isInitialize, String method, JsonNode body, McpSession session, String sessionId) {
     JsonNode params = body.get("params");
     JsonNode id = body.get("id");
     JsonRpcRequest request = new JsonRpcRequest("2.0", method, params, id);
@@ -218,6 +220,9 @@ public class StreamableHttpController {
             elicitationTimeout);
     try {
       streamContextResolver.set(ctx);
+      if (sessionId != null) {
+        sessionIdResolver.set(sessionId);
+      }
       JsonRpcResponse response = dispatcher.dispatch(request);
 
       if (streamContextResolver.wasResolved()) {
@@ -246,6 +251,7 @@ public class StreamableHttpController {
           .body(errorResponse(id, e.getCode(), e.getMessage()));
     } finally {
       streamContextResolver.clear();
+      sessionIdResolver.clear();
     }
   }
 

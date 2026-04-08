@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.autoconfigure.session.InMemoryMcpSessionStore;
+import com.callibrity.mocapi.autoconfigure.session.McpSessionIdParamResolver;
 import com.callibrity.mocapi.autoconfigure.session.McpSessionMethods;
 import com.callibrity.mocapi.autoconfigure.stream.McpStreamContextParamResolver;
 import com.callibrity.mocapi.server.InitializeResponse;
@@ -78,7 +79,7 @@ class StreamableHttpControllerComplianceTest {
     InitializeResponse initializeResponse =
         new InitializeResponse(
             InitializeResponse.PROTOCOL_VERSION,
-            new ServerCapabilities(null),
+            new ServerCapabilities(null, null),
             new ServerInfo("test", null, "1.0", null, null, null),
             null);
     registry = mock(OdysseyStreamRegistry.class);
@@ -112,6 +113,7 @@ class StreamableHttpControllerComplianceTest {
 
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
     McpStreamContextParamResolver streamContextResolver = new McpStreamContextParamResolver();
+    McpSessionIdParamResolver sessionIdResolver = new McpSessionIdParamResolver();
     controller =
         new StreamableHttpController(
             dispatcher,
@@ -120,6 +122,7 @@ class StreamableHttpControllerComplianceTest {
             registry,
             objectMapper,
             streamContextResolver,
+            sessionIdResolver,
             SESSION_TIMEOUT,
             mailboxFactory,
             schemaGenerator,

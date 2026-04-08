@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.autoconfigure.stream;
 
+import com.callibrity.mocapi.session.LogLevel;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.stream.ElicitationAction;
 import com.callibrity.mocapi.stream.ElicitationResult;
@@ -99,12 +100,16 @@ public class DefaultMcpStreamContext implements McpStreamContext {
   }
 
   @Override
-  public void log(String level, String logger, Object data) {
+  public void log(LogLevel level, String logger, Object data) {
+    LogLevel threshold = session != null ? session.logLevel() : LogLevel.WARNING;
+    if (level.ordinal() < threshold.ordinal()) {
+      return;
+    }
     ObjectNode notification = objectMapper.createObjectNode();
     notification.put("jsonrpc", JSONRPC_VERSION);
     notification.put("method", "notifications/message");
     ObjectNode params = notification.putObject("params");
-    params.put("level", level);
+    params.put("level", level.toJson());
     params.put("logger", logger);
     if (data instanceof String s) {
       params.put("data", s);
@@ -115,7 +120,7 @@ public class DefaultMcpStreamContext implements McpStreamContext {
   }
 
   @Override
-  public void log(String level, String message) {
+  public void log(LogLevel level, String message) {
     log(level, "mcp", message);
   }
 
