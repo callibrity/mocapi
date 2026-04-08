@@ -28,6 +28,10 @@ import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpSession;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
+import com.github.victools.jsonschema.generator.OptionPreset;
+import com.github.victools.jsonschema.generator.SchemaGenerator;
+import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
+import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
+import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.ObjectMapper;
@@ -70,6 +75,13 @@ class McpStreamingControllerGetTest {
     JsonRpcDispatcher dispatcher = new DefaultJsonRpcDispatcher(List.of());
     McpStreamContextParamResolver streamContextResolver = new McpStreamContextParamResolver();
 
+    MailboxFactory mailboxFactory = mock(MailboxFactory.class);
+    SchemaGenerator schemaGenerator =
+        new SchemaGenerator(
+            new SchemaGeneratorConfigBuilder(
+                    objectMapper, SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON)
+                .build());
+
     controller =
         new McpStreamingController(
             dispatcher,
@@ -78,7 +90,10 @@ class McpStreamingControllerGetTest {
             registry,
             objectMapper,
             streamContextResolver,
-            SESSION_TIMEOUT);
+            SESSION_TIMEOUT,
+            mailboxFactory,
+            schemaGenerator,
+            Duration.ofMinutes(5));
   }
 
   @AfterEach

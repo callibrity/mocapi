@@ -35,6 +35,11 @@ import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
+import com.github.victools.jsonschema.generator.OptionPreset;
+import com.github.victools.jsonschema.generator.SchemaGenerator;
+import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
+import com.github.victools.jsonschema.generator.SchemaVersion;
+import com.github.victools.jsonschema.module.jackson.JacksonSchemaModule;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -43,6 +48,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
+import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -89,6 +95,14 @@ class McpStreamingControllerTest {
     JsonRpcDispatcher dispatcher =
         new DefaultJsonRpcDispatcher(List.of(serverProvider, toolProvider));
 
+    MailboxFactory mailboxFactory = mock(MailboxFactory.class);
+    SchemaGenerator schemaGenerator =
+        new SchemaGenerator(
+            new SchemaGeneratorConfigBuilder(
+                    objectMapper, SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON)
+                .with(new JacksonSchemaModule())
+                .build());
+
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
     McpStreamContextParamResolver streamContextResolver = new McpStreamContextParamResolver();
     controller =
@@ -99,7 +113,10 @@ class McpStreamingControllerTest {
             registry,
             objectMapper,
             streamContextResolver,
-            SESSION_TIMEOUT);
+            SESSION_TIMEOUT,
+            mailboxFactory,
+            schemaGenerator,
+            Duration.ofMinutes(5));
   }
 
   @AfterEach

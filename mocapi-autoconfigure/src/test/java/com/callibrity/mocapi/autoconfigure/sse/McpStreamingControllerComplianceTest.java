@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.autoconfigure.sse;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -31,6 +32,10 @@ import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
+import com.github.victools.jsonschema.generator.OptionPreset;
+import com.github.victools.jsonschema.generator.SchemaGenerator;
+import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
+import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Stream;
@@ -43,6 +48,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
+import org.jwcarman.substrate.core.Mailbox;
+import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.ObjectMapper;
@@ -61,6 +68,7 @@ class McpStreamingControllerComplianceTest {
   private InMemoryMcpSessionStore sessionStore;
   private ObjectMapper objectMapper;
   private OdysseyStreamRegistry registry;
+  private MailboxFactory mailboxFactory;
 
   @BeforeEach
   void setUp() {
@@ -85,6 +93,15 @@ class McpStreamingControllerComplianceTest {
                 AnnotationJsonRpcMethod.createMethods(objectMapper, serverMethods, List.of()));
     JsonRpcDispatcher dispatcher = new DefaultJsonRpcDispatcher(List.of(serverProvider));
 
+    mailboxFactory = mock(MailboxFactory.class);
+    Mailbox<?> mockMailbox = mock(Mailbox.class);
+    when(mailboxFactory.create(any(String.class), any(Class.class))).thenAnswer(_ -> mockMailbox);
+    SchemaGenerator schemaGenerator =
+        new SchemaGenerator(
+            new SchemaGeneratorConfigBuilder(
+                    objectMapper, SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON)
+                .build());
+
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
     McpStreamContextParamResolver streamContextResolver = new McpStreamContextParamResolver();
     controller =
@@ -95,7 +112,10 @@ class McpStreamingControllerComplianceTest {
             registry,
             objectMapper,
             streamContextResolver,
-            SESSION_TIMEOUT);
+            SESSION_TIMEOUT,
+            mailboxFactory,
+            schemaGenerator,
+            Duration.ofMinutes(5));
   }
 
   @AfterEach

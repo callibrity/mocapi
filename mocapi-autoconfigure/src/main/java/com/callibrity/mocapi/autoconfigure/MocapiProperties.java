@@ -33,12 +33,20 @@ public class MocapiProperties {
 
   private EventId eventId = new EventId();
 
+  private Elicitation elicitation = new Elicitation();
+
   private Pagination pagination = new Pagination();
 
   @Data
   public static class EventId {
     /** Base64-encoded 32-byte master key for event ID encryption. */
     @Nullable private String masterKey;
+  }
+
+  @Data
+  public static class Elicitation {
+    /** How long to wait for the client to respond to an elicitation request. */
+    private Duration timeout = Duration.ofMinutes(5);
   }
 
   @Data

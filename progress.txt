@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-07T23:29:21-04:00
-ITERATION: 22
-SPEC_COMPLETED: 023-mcp-event-id-codec.md
-WHAT_WAS_DONE: Implemented McpEventIdCodec in mocapi-core — a stateless, thread-safe utility that produces opaque, tamper-proof, session-bound IDs using AES-256-GCM with HMAC-SHA256 key derivation. Added McpEventIdCodecException for decode failures. Added eventId.masterKey configuration property to MocapiProperties and wired McpEventIdCodec as a conditional bean in MocapiAutoConfiguration (enabled when mocapi.event-id.master-key is set). Comprehensive unit tests cover round-trip encode/decode, wrong-session rejection, tampered ciphertext rejection, nonce uniqueness, malformed input, key validation, and real-world plaintext formats (SSE event IDs, elicitation mailbox keys).
-VERIFICATION: mvn verify — BUILD SUCCESS; all tests pass (core + tools + autoconfigure + example); spotless and license checks pass.
+LAST_RUN: 2026-04-07T23:49:00-04:00
+ITERATION: 23
+SPEC_COMPLETED: 024-mcp-elicitation-via-substrate-mailbox.md
+WHAT_WAS_DONE: Implemented MCP elicitation (elicitation/create) so server-side tool handlers can request structured input from clients during execution. Added elicit(String, Class<T>) and elicit(String, TypeReference<T>) to McpStreamContext, backed by Substrate Mailbox for distributed rendezvous. ElicitationResult<T> record with ElicitationAction enum (ACCEPT/DECLINE/CANCEL). Schema generation via victools SchemaGenerator, response validation via json-sKema. POST handler routes JSON-RPC responses to mailboxes. Server conditionally declares elicitation capability based on client support during initialize. Configurable timeout via mocapi.elicitation.timeout (default 5 min).
+VERIFICATION: mvn verify — BUILD SUCCESS; all 92 tests pass (core + tools + autoconfigure + example); spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: 024-mcp-elicitation-via-substrate-mailbox.md
-NOTES: Controller integration for SSE event ID encryption (SseEventMapper) requires Odyssey to support a subscriber builder with custom event mapping — current OdysseyStream API only exposes subscribe()/resumeAfter() without interception points. The codec is fully implemented and ready for use. Last-Event-ID decryption and elicitation request/response ID encryption will be wired when Odyssey adds mapper support (SSE side) and spec 024 is implemented (elicitation side). The codec bean is conditional on mocapi.event-id.master-key being set, so existing apps are unaffected.
+NEXT_SPEC: none (specs/ directory empty except template)
+NOTES: New dependencies added to mocapi-autoconfigure: victools jsonschema-generator, jsonschema-module-jackson, jsonschema-module-jakarta-validation, json-sKema, jakarta.validation-api. SchemaGenerator bean is @ConditionalOnMissingBean so tools module's custom generator takes precedence if present. The elicit() implementation blocks on a virtual thread (via Substrate Mailbox.poll), publishes JSON-RPC request on the Odyssey stream, validates response content against generated schema, and deserializes into the requested type. Mailbox is cleaned up (deleted) after each elicitation regardless of success/failure.

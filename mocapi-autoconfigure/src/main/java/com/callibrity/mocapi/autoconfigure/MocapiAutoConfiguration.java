@@ -26,10 +26,17 @@ import com.callibrity.mocapi.server.McpSessionStore;
 import com.callibrity.mocapi.server.util.McpEventIdCodec;
 import com.callibrity.mocapi.tools.McpToolsCapability;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.github.victools.jsonschema.generator.OptionPreset;
+import com.github.victools.jsonschema.generator.SchemaGenerator;
+import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
+import com.github.victools.jsonschema.generator.SchemaVersion;
+import com.github.victools.jsonschema.module.jackson.JacksonSchemaModule;
+import com.github.victools.jsonschema.module.jakarta.validation.JakartaValidationModule;
 import java.util.Base64;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
+import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -85,6 +92,17 @@ public class MocapiAutoConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean(SchemaGenerator.class)
+  public SchemaGenerator elicitationSchemaGenerator(ObjectMapper mapper) {
+    return new SchemaGenerator(
+        new SchemaGeneratorConfigBuilder(
+                mapper, SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON)
+            .with(new JacksonSchemaModule())
+            .with(new JakartaValidationModule())
+            .build());
+  }
+
+  @Bean
   @ConditionalOnMissingBean
   @ConditionalOnProperty("mocapi.event-id.master-key")
   public McpEventIdCodec mcpEventIdCodec() {
@@ -101,7 +119,9 @@ public class MocapiAutoConfiguration {
       McpSessionStore sessionStore,
       OdysseyStreamRegistry registry,
       ObjectMapper objectMapper,
-      McpStreamContextParamResolver streamContextResolver) {
+      McpStreamContextParamResolver streamContextResolver,
+      MailboxFactory mailboxFactory,
+      SchemaGenerator schemaGenerator) {
     return new McpStreamingController(
         dispatcher,
         mcpRequestValidator,
@@ -109,6 +129,9 @@ public class MocapiAutoConfiguration {
         registry,
         objectMapper,
         streamContextResolver,
-        props.getSessionTimeout());
+        props.getSessionTimeout(),
+        mailboxFactory,
+        schemaGenerator,
+        props.getElicitation().getTimeout());
   }
 }

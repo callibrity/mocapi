@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server;
 import com.callibrity.mocapi.client.ClientCapabilities;
 import com.callibrity.mocapi.client.ClientInfo;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -58,8 +59,16 @@ public class McpServer {
         clientInfo,
         protocolVersion,
         capabilities);
-    return new InitializeResponse(PROTOCOL_VERSION, serverCapabilities, serverInfo, instructions);
+    Map<String, CapabilityDescriptor> responseCapabilities = new HashMap<>(serverCapabilities);
+    McpSession session = new McpSession(protocolVersion, capabilities, clientInfo);
+    if (session.supportsElicitationForm()) {
+      responseCapabilities.put("elicitation", new ElicitationCapabilityDescriptor());
+    }
+    return new InitializeResponse(PROTOCOL_VERSION, responseCapabilities, serverInfo, instructions);
   }
+
+  /** Server-side elicitation capability descriptor. */
+  public record ElicitationCapabilityDescriptor() implements CapabilityDescriptor {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record InitializeResponse(

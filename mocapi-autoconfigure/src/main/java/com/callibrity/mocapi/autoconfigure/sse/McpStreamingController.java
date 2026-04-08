@@ -25,12 +25,15 @@ import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
+import com.github.victools.jsonschema.generator.SchemaGenerator;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
+import org.jwcarman.substrate.core.Mailbox;
+import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -67,6 +70,9 @@ public class McpStreamingController {
   private final ObjectMapper objectMapper;
   private final McpStreamContextParamResolver streamContextResolver;
   private final Duration sessionTimeout;
+  private final MailboxFactory mailboxFactory;
+  private final SchemaGenerator schemaGenerator;
+  private final Duration elicitationTimeout;
 
   public McpStreamingController(
       JsonRpcDispatcher dispatcher,
@@ -75,7 +81,10 @@ public class McpStreamingController {
       OdysseyStreamRegistry registry,
       ObjectMapper objectMapper,
       McpStreamContextParamResolver streamContextResolver,
-      Duration sessionTimeout) {
+      Duration sessionTimeout,
+      MailboxFactory mailboxFactory,
+      SchemaGenerator schemaGenerator,
+      Duration elicitationTimeout) {
     this.dispatcher = dispatcher;
     this.validator = validator;
     this.sessionStore = sessionStore;
@@ -83,6 +92,9 @@ public class McpStreamingController {
     this.objectMapper = objectMapper;
     this.streamContextResolver = streamContextResolver;
     this.sessionTimeout = sessionTimeout;
+    this.mailboxFactory = mailboxFactory;
+    this.schemaGenerator = schemaGenerator;
+    this.elicitationTimeout = elicitationTimeout;
   }
 
   @PostMapping(produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE})
@@ -123,14 +135,17 @@ public class McpStreamingController {
       return badRequest(errorResponse(idNode, -32600, SESSION_REQUIRED));
     }
 
+    McpSession session = null;
     if (!isInitialize) {
-      if (sessionStore.find(sessionId).isEmpty()) {
+      var sessionOpt = sessionStore.find(sessionId);
+      if (sessionOpt.isEmpty()) {
         return notFound(errorResponse(idNode, -32600, NO_SESSION));
       }
+      session = sessionOpt.get();
       sessionStore.touch(sessionId, sessionTimeout);
     }
 
-    return dispatch(isInitialize, method, body.get("params"), idNode);
+    return dispatch(isInitialize, method, body.get("params"), idNode, session);
   }
 
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -190,12 +205,19 @@ public class McpStreamingController {
   // --- Transport helpers ---
 
   private ResponseEntity<Object> dispatch(
-      boolean isInitialize, String method, JsonNode params, JsonNode id) {
+      boolean isInitialize, String method, JsonNode params, JsonNode id, McpSession session) {
     JsonRpcRequest request = new JsonRpcRequest("2.0", method, params, id);
     OdysseyStream stream = registry.ephemeral();
     String progressToken = extractProgressToken(params);
     DefaultMcpStreamContext streamContext =
-        new DefaultMcpStreamContext(stream, objectMapper, progressToken);
+        new DefaultMcpStreamContext(
+            stream,
+            objectMapper,
+            progressToken,
+            mailboxFactory,
+            schemaGenerator,
+            session,
+            elicitationTimeout);
     try {
       streamContextResolver.set(streamContext);
       JsonRpcResponse response = dispatcher.dispatch(request);
@@ -263,6 +285,7 @@ public class McpStreamingController {
     }
     JsonNode methodNode = body.get("method");
     if (methodNode != null) {
+      // This is a notification
       String method = methodNode.asString();
       if ("notifications/initialized".equals(method)) {
         sessionStore
@@ -273,8 +296,29 @@ public class McpStreamingController {
                   dispatcher.dispatch(request);
                 });
       }
+    } else {
+      // This is a JSON-RPC response — route to the corresponding mailbox
+      routeResponseToMailbox(body);
     }
     return ResponseEntity.accepted().build();
+  }
+
+  private void routeResponseToMailbox(JsonNode body) {
+    JsonNode idNode = body.get("id");
+    if (idNode == null || idNode.isNull()) {
+      return;
+    }
+    String id = idNode.asString();
+    JsonNode resultNode = body.get("result");
+    JsonNode errorNode = body.get("error");
+    Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + id, JsonNode.class);
+    if (errorNode != null) {
+      ObjectNode errorWrapper = objectMapper.createObjectNode();
+      errorWrapper.set("error", errorNode);
+      mailbox.deliver(errorWrapper);
+    } else if (resultNode != null) {
+      mailbox.deliver(resultNode);
+    }
   }
 
   // --- Response formatting ---

@@ -15,10 +15,12 @@
  */
 package com.callibrity.mocapi.server;
 
+import tools.jackson.core.type.TypeReference;
+
 /**
  * Handle that MCP handler methods can declare as a parameter to opt into SSE streaming. Provides
  * methods for sending intermediate messages (progress notifications, arbitrary notifications) to
- * the client during a long-running operation.
+ * the client during a long-running operation, and for eliciting structured input from the client.
  */
 public interface McpStreamContext {
 
@@ -54,4 +56,32 @@ public interface McpStreamContext {
    * @param message the log message
    */
   void log(String level, String message);
+
+  /**
+   * Sends an elicitation request to the client, blocking until a response is received. The client
+   * is asked to fill out a form whose schema is generated from the given type.
+   *
+   * @param message the message to display to the user
+   * @param type the class to generate the form schema from
+   * @param <T> the expected response type
+   * @return the elicitation result containing the client's action and typed content
+   * @throws McpElicitationTimeoutException if the client does not respond within the timeout
+   * @throws McpElicitationException if the response fails schema validation
+   * @throws McpElicitationNotSupportedException if the client does not support elicitation
+   */
+  <T> ElicitationResult<T> elicit(String message, Class<T> type);
+
+  /**
+   * Sends an elicitation request to the client, blocking until a response is received. The client
+   * is asked to fill out a form whose schema is generated from the given type reference.
+   *
+   * @param message the message to display to the user
+   * @param type the type reference to generate the form schema from
+   * @param <T> the expected response type
+   * @return the elicitation result containing the client's action and typed content
+   * @throws McpElicitationTimeoutException if the client does not respond within the timeout
+   * @throws McpElicitationException if the response fails schema validation
+   * @throws McpElicitationNotSupportedException if the client does not support elicitation
+   */
+  <T> ElicitationResult<T> elicit(String message, TypeReference<T> type);
 }

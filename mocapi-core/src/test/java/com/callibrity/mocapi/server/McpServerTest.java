@@ -64,8 +64,10 @@ class McpServerTest {
     assertThat(response).isNotNull();
     assertThat(response.protocolVersion()).isEqualTo(McpServer.PROTOCOL_VERSION);
     assertThat(response.capabilities()).isNotNull();
-    assertThat(response.capabilities()).hasSize(1);
+    // test-capability + elicitation (client declared empty elicitation = form support)
+    assertThat(response.capabilities()).hasSize(2);
     assertThat(response.capabilities()).containsEntry("test-capability", descriptor);
+    assertThat(response.capabilities()).containsKey("elicitation");
     assertThat(response.serverInfo()).isNotNull();
     assertThat(response.serverInfo().name()).isEqualTo("Test Server");
     assertThat(response.serverInfo().title()).isEqualTo("The Test Server");
@@ -86,6 +88,30 @@ class McpServerTest {
             "Testing instructions");
     var response = server.ping();
     assertThat(response).isNotNull();
+  }
+
+  @Test
+  void initializeShouldNotIncludeElicitationWhenClientDoesNotSupport() {
+    var descriptor = new TestCapabilityDescriptor("test describe");
+
+    when(capability.name()).thenReturn("test-capability");
+    when(capability.describe()).thenReturn(descriptor);
+
+    var server =
+        new McpServer(
+            List.of(capability),
+            new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
+            "Testing instructions");
+
+    var response =
+        server.initialize(
+            "123",
+            new ClientCapabilities(null, null, null, null, null),
+            new ClientInfo("Test Client", "A test client", "1.0.0", null, null, null));
+
+    assertThat(response.capabilities()).hasSize(1);
+    assertThat(response.capabilities()).containsEntry("test-capability", descriptor);
+    assertThat(response.capabilities()).doesNotContainKey("elicitation");
   }
 
   @Test
