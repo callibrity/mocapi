@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.autoconfigure.session.InMemoryMcpSessionStore;
 import com.callibrity.mocapi.autoconfigure.stream.McpStreamContextParamResolver;
-import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.InitializeResponse;
 import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.mocapi.session.McpSession;
@@ -161,7 +161,8 @@ class StreamableHttpControllerGetTest {
   void shouldAcceptValidProtocolVersion() {
     String sessionId = createSession();
     var response =
-        controller.handleGet(sessionId, McpServer.PROTOCOL_VERSION, null, SSE_ACCEPT, null);
+        controller.handleGet(
+            sessionId, InitializeResponse.PROTOCOL_VERSION, null, SSE_ACCEPT, null);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isInstanceOf(SseEmitter.class);

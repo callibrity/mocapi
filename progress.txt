@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-08T07:58:41-04:00
-ITERATION: 27
-SPEC_COMPLETED: 028-reorganize-by-domain.md
-WHAT_WAS_DONE: Reorganized mocapi package structure from technical layers to domain-oriented subpackages. Created session/, stream/, security/ packages in core; created ToolsRegistry replacing McpToolsCapability; moved Names/Parameters to their domain packages; replaced mocapi-core's JsonMethodInvoker with RipCurl's; renamed McpServerMethods to McpSessionMethods; reorganized autoconfigure into session/, stream/, http/ subpackages; deleted dead code (McpServerCapability, CapabilityDescriptor marker interface retained).
+LAST_RUN: 2026-04-08T08:07:00-04:00
+ITERATION: 28
+SPEC_COMPLETED: 029-static-initialize-response-bean.md
+WHAT_WAS_DONE: Replaced dynamic McpServer.initialize() with a static InitializeResponse bean built once at startup. Created ToolsCapabilityDescriptor, ServerCapabilities, InitializeResponse, and PingResponse as standalone records in mocapi-core server package. Deleted McpServer class and CapabilityDescriptor interface. Simplified McpSessionMethods to return the cached InitializeResponse bean with no parameters. Updated MocapiProperties to use flat serverName/serverTitle properties instead of nested ServerInfo. Server version now comes from BuildProperties when available (falls back to "unknown"). Added build-info goal to mocapi-example pom.xml.
 VERIFICATION: mvn verify — BUILD SUCCESS; all tests pass; spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: none (specs/ directory empty except template and backlog)
-NOTES: Major package reorganization touching ~60 files. CapabilityDescriptor kept in server package as McpServer still uses it for capability descriptors. McpRequestValidator moved to autoconfigure/http since it's transport-level validation. DefaultMcpStreamContext constructor changed to public since it's now accessed cross-package.
+NEXT_SPEC: 030-logging-support.md
+NOTES: McpServer deleted entirely — its only remaining methods (ping, clientInitialized) were trivial and inlined into McpSessionMethods/PingResponse. PROTOCOL_VERSION constant moved to InitializeResponse. CapabilityDescriptor marker interface deleted (no longer referenced). Properties changed from mocapi.server-info.name/title/version to mocapi.server-name/server-title (version now from BuildProperties). ElicitationCapabilityDescriptor removed — elicitation support will need a different approach if re-added later. ServerCapabilities uses @JsonInclude(NON_NULL) so null tools/future capabilities are omitted from JSON.

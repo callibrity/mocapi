@@ -22,7 +22,10 @@ import com.callibrity.mocapi.autoconfigure.session.McpSessionMethods;
 import com.callibrity.mocapi.autoconfigure.stream.McpStreamContextParamResolver;
 import com.callibrity.mocapi.autoconfigure.tools.McpToolMethods;
 import com.callibrity.mocapi.security.McpEventIdCodec;
-import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.InitializeResponse;
+import com.callibrity.mocapi.server.ServerCapabilities;
+import com.callibrity.mocapi.server.ServerInfo;
+import com.callibrity.mocapi.server.ToolsCapabilityDescriptor;
 import com.callibrity.mocapi.session.McpSessionStore;
 import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
@@ -40,13 +43,15 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.info.ProjectInfoAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.lang.Nullable;
 import tools.jackson.databind.ObjectMapper;
 
-@AutoConfiguration
+@AutoConfiguration(after = ProjectInfoAutoConfiguration.class)
 @EnableConfigurationProperties(MocapiProperties.class)
 @PropertySource("classpath:mocapi-defaults.properties")
 @RequiredArgsConstructor
@@ -55,8 +60,17 @@ public class MocapiAutoConfiguration {
   private final MocapiProperties props;
 
   @Bean
-  public McpServer mcpServer(@Nullable ToolsRegistry toolsRegistry) {
-    return new McpServer(toolsRegistry, props.getServerInfo(), props.getInstructions());
+  @ConditionalOnMissingBean
+  public InitializeResponse initializeResponse(
+      @Nullable ToolsRegistry toolsRegistry, @Nullable BuildProperties buildProperties) {
+    String version = buildProperties != null ? buildProperties.getVersion() : "unknown";
+    ToolsCapabilityDescriptor tools =
+        toolsRegistry != null ? new ToolsCapabilityDescriptor(false) : null;
+    return new InitializeResponse(
+        InitializeResponse.PROTOCOL_VERSION,
+        new ServerCapabilities(tools),
+        new ServerInfo(props.getServerName(), props.getServerTitle(), version, null, null, null),
+        props.getInstructions());
   }
 
   @Bean(destroyMethod = "shutdown")
@@ -79,8 +93,8 @@ public class MocapiAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpSessionMethods mcpSessionMethods(McpServer mcpServer) {
-    return new McpSessionMethods(mcpServer);
+  public McpSessionMethods mcpSessionMethods(InitializeResponse initializeResponse) {
+    return new McpSessionMethods(initializeResponse);
   }
 
   @Bean

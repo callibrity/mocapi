@@ -15,9 +15,8 @@
  */
 package com.callibrity.mocapi.autoconfigure.session;
 
-import com.callibrity.mocapi.server.McpServer;
-import com.callibrity.mocapi.session.ClientCapabilities;
-import com.callibrity.mocapi.session.ClientInfo;
+import com.callibrity.mocapi.server.InitializeResponse;
+import com.callibrity.mocapi.server.PingResponse;
 import com.callibrity.ripcurl.core.annotation.JsonRpc;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import lombok.RequiredArgsConstructor;
@@ -26,21 +25,20 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class McpSessionMethods {
 
-  private final McpServer mcpServer;
+  private final InitializeResponse initializeResponse;
 
   @JsonRpc("initialize")
-  public McpServer.InitializeResponse initialize(
-      String protocolVersion, ClientCapabilities capabilities, ClientInfo clientInfo) {
-    return mcpServer.initialize(protocolVersion, capabilities, clientInfo);
+  public InitializeResponse initialize() {
+    return initializeResponse;
   }
 
   @JsonRpc("ping")
-  public McpServer.PingResponse ping() {
-    return mcpServer.ping();
+  public PingResponse ping() {
+    return new PingResponse();
   }
 
   @JsonRpc("notifications/initialized")
   public void initialized() {
-    mcpServer.clientInitialized();
+    // No-op — session was already created by the controller.
   }
 }

@@ -15,7 +15,6 @@
  */
 package com.callibrity.mocapi.autoconfigure;
 
-import com.callibrity.mocapi.server.ServerInfo;
 import java.time.Duration;
 import java.util.List;
 import lombok.Data;
@@ -26,7 +25,8 @@ import org.springframework.lang.Nullable;
 @Data
 public class MocapiProperties {
 
-  private ServerInfo serverInfo;
+  private String serverName;
+  private String serverTitle;
   private String instructions;
   private List<String> allowedOrigins = List.of("localhost", "127.0.0.1", "[::1]");
   private Duration sessionTimeout = Duration.ofHours(1);

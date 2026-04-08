@@ -16,109 +16,63 @@
 package com.callibrity.mocapi.server;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
 
-import com.callibrity.mocapi.session.ClientCapabilities;
-import com.callibrity.mocapi.session.ClientInfo;
-import com.callibrity.mocapi.session.ElicitationCapability;
-import com.callibrity.mocapi.session.RootsCapability;
-import com.callibrity.mocapi.session.SamplingCapability;
-import com.callibrity.mocapi.tools.ToolsRegistry;
-import java.util.List;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 class McpServerTest {
 
-  @Test
-  void constructorShouldInitializeServerWithTools() {
-    var toolsRegistry = new ToolsRegistry(List.of(), 50);
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
-    var server =
-        new McpServer(
-            toolsRegistry,
+  @Test
+  void initializeResponseShouldSerializeWithNonNullCapabilities() throws Exception {
+    var response =
+        new InitializeResponse(
+            InitializeResponse.PROTOCOL_VERSION,
+            new ServerCapabilities(new ToolsCapabilityDescriptor(false)),
             new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
             "Testing instructions");
 
-    var response =
-        server.initialize(
-            "123",
-            new ClientCapabilities(
-                new RootsCapability(true),
-                new SamplingCapability(),
-                new ElicitationCapability(null, null),
-                null,
-                null),
-            new ClientInfo("Test Client", "A test client", "1.0.0", null, null, null));
-
-    assertThat(response).isNotNull();
-    assertThat(response.protocolVersion()).isEqualTo(McpServer.PROTOCOL_VERSION);
-    assertThat(response.capabilities()).isNotNull();
-    // tools + elicitation (client declared empty elicitation = form support)
-    assertThat(response.capabilities()).hasSize(2);
-    assertThat(response.capabilities()).containsKey("tools");
-    assertThat(response.capabilities()).containsKey("elicitation");
-    assertThat(response.serverInfo()).isNotNull();
+    assertThat(response.protocolVersion()).isEqualTo("2025-11-25");
+    assertThat(response.capabilities().tools()).isNotNull();
+    assertThat(response.capabilities().tools().listChanged()).isFalse();
     assertThat(response.serverInfo().name()).isEqualTo("Test Server");
-    assertThat(response.serverInfo().title()).isEqualTo("The Test Server");
-    assertThat(response.serverInfo().version()).isEqualTo("1.0.0");
+    assertThat(response.instructions()).isEqualTo("Testing instructions");
   }
 
   @Test
-  void constructorShouldInitializeServerWithoutTools() {
-    var server =
-        new McpServer(
-            null,
-            new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
-            "Testing instructions");
-
+  void initializeResponseShouldOmitNullCapabilities() throws Exception {
     var response =
-        server.initialize(
-            "123",
-            new ClientCapabilities(null, null, null, null, null),
-            new ClientInfo("Test Client", "A test client", "1.0.0", null, null, null));
+        new InitializeResponse(
+            InitializeResponse.PROTOCOL_VERSION,
+            new ServerCapabilities(null),
+            new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
+            null);
 
-    assertThat(response.capabilities()).isEmpty();
+    String json = objectMapper.writeValueAsString(response);
+    assertThat(json).doesNotContain("\"tools\"");
+    assertThat(json).doesNotContain("\"instructions\"");
+    assertThat(json).contains("\"protocolVersion\"");
+    assertThat(json).contains("\"serverInfo\"");
   }
 
   @Test
-  void pingShouldReturnResponse() {
-    var server =
-        new McpServer(
-            null,
+  void initializeResponseShouldSerializeToolsCapability() throws Exception {
+    var response =
+        new InitializeResponse(
+            InitializeResponse.PROTOCOL_VERSION,
+            new ServerCapabilities(new ToolsCapabilityDescriptor(false)),
             new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
-            "Testing instructions");
-    var response = server.ping();
+            null);
+
+    String json = objectMapper.writeValueAsString(response);
+    assertThat(json).contains("\"tools\"");
+    assertThat(json).contains("\"listChanged\"");
+  }
+
+  @Test
+  void pingResponseShouldBeEmpty() {
+    var response = new PingResponse();
     assertThat(response).isNotNull();
-  }
-
-  @Test
-  void initializeShouldNotIncludeElicitationWhenClientDoesNotSupport() {
-    var toolsRegistry = new ToolsRegistry(List.of(), 50);
-
-    var server =
-        new McpServer(
-            toolsRegistry,
-            new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
-            "Testing instructions");
-
-    var response =
-        server.initialize(
-            "123",
-            new ClientCapabilities(null, null, null, null, null),
-            new ClientInfo("Test Client", "A test client", "1.0.0", null, null, null));
-
-    assertThat(response.capabilities()).hasSize(1);
-    assertThat(response.capabilities()).containsKey("tools");
-    assertThat(response.capabilities()).doesNotContainKey("elicitation");
-  }
-
-  @Test
-  void clientInitializedShouldDoNothing() {
-    var server =
-        new McpServer(
-            null,
-            new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
-            "Testing instructions");
-    assertThatNoException().isThrownBy(server::clientInitialized);
   }
 }

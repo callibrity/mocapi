@@ -17,7 +17,7 @@ package com.callibrity.mocapi.autoconfigure.http;
 
 import com.callibrity.mocapi.autoconfigure.stream.DefaultMcpStreamContext;
 import com.callibrity.mocapi.autoconfigure.stream.McpStreamContextParamResolver;
-import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.InitializeResponse;
 import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.mocapi.session.McpSession;
@@ -113,7 +113,8 @@ public class StreamableHttpController {
           .body(errorResponse(id, -32600, "Missing method field"));
     }
 
-    String version = protocolVersion != null ? protocolVersion : McpServer.PROTOCOL_VERSION;
+    String version =
+        protocolVersion != null ? protocolVersion : InitializeResponse.PROTOCOL_VERSION;
     if (!validator.isValidProtocolVersion(version)) {
       return ResponseEntity.badRequest()
           .body(errorResponse(id, -32600, "Invalid MCP-Protocol-Version: " + version));
@@ -163,7 +164,8 @@ public class StreamableHttpController {
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
           .body(Map.of("error", "Session not found or expired"));
     }
-    String version = protocolVersion != null ? protocolVersion : McpServer.PROTOCOL_VERSION;
+    String version =
+        protocolVersion != null ? protocolVersion : InitializeResponse.PROTOCOL_VERSION;
     if (!validator.isValidProtocolVersion(version)) {
       return ResponseEntity.badRequest()
           .body(Map.of("error", "Invalid MCP-Protocol-Version: " + version));

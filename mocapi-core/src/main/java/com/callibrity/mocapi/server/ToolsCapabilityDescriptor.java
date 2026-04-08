@@ -15,5 +15,7 @@
  */
 package com.callibrity.mocapi.server;
 
-/** Marker interface for MCP server capability descriptors. */
-public interface CapabilityDescriptor {}
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record ToolsCapabilityDescriptor(boolean listChanged) {}

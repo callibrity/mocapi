@@ -26,7 +26,9 @@ import com.callibrity.mocapi.autoconfigure.session.InMemoryMcpSessionStore;
 import com.callibrity.mocapi.autoconfigure.session.McpSessionMethods;
 import com.callibrity.mocapi.autoconfigure.stream.McpStreamContextParamResolver;
 import com.callibrity.mocapi.autoconfigure.tools.McpToolMethods;
-import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.InitializeResponse;
+import com.callibrity.mocapi.server.ServerCapabilities;
+import com.callibrity.mocapi.server.ServerInfo;
 import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.mocapi.session.McpSession;
@@ -71,7 +73,12 @@ class StreamableHttpControllerTest {
 
   @BeforeEach
   void setUp() {
-    McpServer mcpServer = new McpServer(null, null, null);
+    InitializeResponse initializeResponse =
+        new InitializeResponse(
+            InitializeResponse.PROTOCOL_VERSION,
+            new ServerCapabilities(null),
+            new ServerInfo("test", null, "1.0", null, null, null),
+            null);
     registry = mock(OdysseyStreamRegistry.class);
     when(registry.channel(anyString())).thenReturn(mock(OdysseyStream.class));
 
@@ -83,7 +90,7 @@ class StreamableHttpControllerTest {
     objectMapper = new ObjectMapper();
     toolsCapability = mock(ToolsRegistry.class);
 
-    McpSessionMethods serverMethods = new McpSessionMethods(mcpServer);
+    McpSessionMethods serverMethods = new McpSessionMethods(initializeResponse);
     McpToolMethods toolMethods = new McpToolMethods(toolsCapability, objectMapper);
 
     JsonRpcMethodProvider serverProvider =
