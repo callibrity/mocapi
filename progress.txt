@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-07T23:13:22-04:00
-ITERATION: 19
-SPEC_COMPLETED: 020-fix-priming-event-and-sse-retry.md
-WHAT_WAS_DONE: Fixed priming event format from empty string to empty JSON object. Replaced stream.publishRaw("") with stream.publishJson(Map.of()) in both the GET handler (fresh notification stream) and POST handler (ephemeral stream) in McpStreamingController. Updated McpStreamingControllerGetTest to verify publishJson(Map.of()) instead of publishRaw(""). Added MultipleConcurrentPostStreams test nest in McpStreamingControllerComplianceTest verifying 3 independent POST requests succeed. SSE retry field is a SHOULD (not MUST) per spec and is deferred — documented in spec notes.
+LAST_RUN: 2026-04-07T23:17:00-04:00
+ITERATION: 20
+SPEC_COMPLETED: 021-tool-content-types-and-error-responses.md
+WHAT_WAS_DONE: Replaced TextContent record with a polymorphic Content sealed interface (TextContent, ImageContent, AudioContent, ResourceContent) using Jackson @JsonTypeInfo/@JsonSubTypes for type discriminator serialization. Added EmbeddedResource record for resource content. Updated CallToolResponse to use List<Content> and added optional Boolean isError field. Updated all usages in McpToolsCapability and McpStreamingControllerTest.
 VERIFICATION: mvn verify — BUILD SUCCESS; all tests pass (core + tools + autoconfigure + example); spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: 021-tool-content-types-and-error-responses.md
-NOTES: Priming events now produce `data: {}\n\n` instead of `data: \n\n`. The SSE retry field (retry:) was not implemented — it's a SHOULD per MCP spec and can be addressed when Odyssey exposes retry configuration. No changes to Odyssey were needed for this spec.
+NEXT_SPEC: 022-progress-and-logging-on-stream-context.md
+NOTES: Content types are inner classes of McpToolsCapability, matching the existing pattern. The @JsonTypeInfo annotation uses NAME strategy with "type" property as discriminator. TextContent no longer has an explicit "type" field — Jackson handles it via the annotation. EmbeddedResource has both text and blob fields (both @JsonInclude NON_NULL).

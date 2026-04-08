@@ -21,6 +21,8 @@ import com.callibrity.mocapi.server.CapabilityDescriptor;
 import com.callibrity.mocapi.server.McpServerCapability;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
 import com.github.erosb.jsonsKema.SchemaLoader;
@@ -80,7 +82,7 @@ public class McpToolsCapability implements McpServerCapability {
     validateInput(name, arguments, tool);
     var structuredOutput = tool.call(arguments);
     var textContent = new TextContent(structuredOutput.toString());
-    return new CallToolResponse(List.of(textContent), structuredOutput);
+    return new CallToolResponse(List.of(textContent), null, structuredOutput);
   }
 
   private McpTool lookupTool(String name) {
@@ -147,14 +149,30 @@ public class McpToolsCapability implements McpServerCapability {
 
   public record ToolsCapabilityDescriptor(boolean listChanged) implements CapabilityDescriptor {}
 
-  public record TextContent(String type, String text) {
-    public TextContent(String text) {
-      this("text", text);
-    }
-  }
+  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+  @JsonSubTypes({
+    @JsonSubTypes.Type(value = TextContent.class, name = "text"),
+    @JsonSubTypes.Type(value = ImageContent.class, name = "image"),
+    @JsonSubTypes.Type(value = AudioContent.class, name = "audio"),
+    @JsonSubTypes.Type(value = ResourceContent.class, name = "resource")
+  })
+  public sealed interface Content
+      permits TextContent, ImageContent, AudioContent, ResourceContent {}
+
+  public record TextContent(String text) implements Content {}
+
+  public record ImageContent(String data, String mimeType) implements Content {}
+
+  public record AudioContent(String data, String mimeType) implements Content {}
+
+  public record ResourceContent(EmbeddedResource resource) implements Content {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record CallToolResponse(List<TextContent> content, ObjectNode structuredContent) {}
+  public record EmbeddedResource(String uri, String mimeType, String text, String blob) {}
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record CallToolResponse(
+      List<Content> content, Boolean isError, ObjectNode structuredContent) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record ListToolsResponse(List<McpToolDescriptor> tools, String nextCursor) {}

@@ -273,7 +273,8 @@ class McpStreamingControllerTest {
     void toolsCallShouldReturnJson() {
       when(toolsCapability.callTool(eq("test-tool"), any()))
           .thenReturn(
-              new McpToolsCapability.CallToolResponse(List.of(), objectMapper.createObjectNode()));
+              new McpToolsCapability.CallToolResponse(
+                  List.of(), null, objectMapper.createObjectNode()));
 
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
