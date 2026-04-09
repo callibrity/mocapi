@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T16:29:00-04:00
-ITERATION: 56
-SPEC_COMPLETED: 056-fix-get-handler-error-responses.md
-WHAT_WAS_DONE: Renamed subscribe() to notificationStream() returning McpSessionStream; moved priming event publish from service into controller.
-VERIFICATION: mvn verify — BUILD SUCCESS, 58/58 compat tests pass, 0 failures
-STATUS: DONE
-NEXT_SPEC: none
-NOTES: GET handler error responses (400/403/404) were already working from prior iteration. The produces=TEXT_EVENT_STREAM_VALUE constraint works fine with empty-body error responses.
+LAST_RUN: 2026-04-09T16:54:00-04:00
+ITERATION: 57
+SPEC_COMPLETED: 057-elicitation-schema-builder.md
+WHAT_WAS_DONE: Added ElicitationSchema builder with all MCP-spec property types (string, integer, number, boolean, enum, titled enum, multi-select, titled multi-select), TitledValue record, and new elicit(message, Consumer<Builder>) method on McpStreamContext.
+VERIFICATION: mvn verify — BUILD SUCCESS, 58/58 compat tests pass, 0 failures, all unit tests pass including new ElicitationSchemaTest and builder-based elicit tests in DefaultMcpStreamContextTest
+STATUS: MORE_WORK
+NEXT_SPEC: 058-conformance-elicitation-sampling-tools.md
+NOTES: ElicitationSchema.Builder uses its own ObjectMapper for node creation during building; the final toObjectNode() accepts the caller's ObjectMapper. The new elicit() method reuses sendElicitationAndWait and adds parseRawResponse for JsonNode results without typed deserialization.

@@ -79,6 +79,9 @@ public class ToolsRegistry {
     var tool = lookup(name);
     validateInput(name, arguments, tool);
     var result = tool.call(arguments);
+    if (result instanceof CallToolResponse response) {
+      return response;
+    }
     JsonNode jsonResult = result != null ? objectMapper.valueToTree(result) : null;
     ObjectNode structuredContent =
         jsonResult != null && jsonResult.isObject() ? (ObjectNode) jsonResult : null;

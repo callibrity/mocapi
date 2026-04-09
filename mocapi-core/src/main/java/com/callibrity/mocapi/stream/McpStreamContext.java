@@ -16,7 +16,9 @@
 package com.callibrity.mocapi.stream;
 
 import com.callibrity.mocapi.session.LogLevel;
+import java.util.function.Consumer;
 import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Handle that MCP handler methods can declare as a parameter to opt into SSE streaming. Provides
@@ -137,4 +139,17 @@ public interface McpStreamContext<O> {
    * @throws McpElicitationNotSupportedException if the client does not support elicitation
    */
   <T> ElicitationResult<T> elicitForm(String message, TypeReference<T> type);
+
+  /**
+   * Sends an elicitation request to the client using a builder-constructed schema, blocking until a
+   * response is received. The caller configures the schema inline via the consumer.
+   *
+   * @param message the message to display to the user
+   * @param schema a consumer that configures the {@link ElicitationSchema.Builder}
+   * @return the elicitation result containing the client's action and raw JSON content
+   * @throws McpElicitationTimeoutException if the client does not respond within the timeout
+   * @throws McpElicitationException if the response fails schema validation
+   * @throws McpElicitationNotSupportedException if the client does not support elicitation
+   */
+  ElicitationResult<JsonNode> elicit(String message, Consumer<ElicitationSchema.Builder> schema);
 }

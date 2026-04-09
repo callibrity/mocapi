@@ -29,7 +29,6 @@ import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import java.time.Duration;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.Named;
@@ -85,7 +84,6 @@ public class McpToolMethods {
             elicitationTimeout,
             requestId);
 
-    stream.publishJson(Map.of());
     SseEmitter emitter = stream.subscribe();
 
     Thread.ofVirtual()

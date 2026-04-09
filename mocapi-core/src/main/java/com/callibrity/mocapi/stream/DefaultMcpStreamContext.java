@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import org.jwcarman.substrate.core.Mailbox;
 import org.jwcarman.substrate.core.MailboxFactory;
 import tools.jackson.core.type.TypeReference;
@@ -143,6 +144,17 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
     return doElicit(message, schemaNode, type);
   }
 
+  @Override
+  public ElicitationResult<JsonNode> elicit(
+      String message, Consumer<ElicitationSchema.Builder> schema) {
+    requireElicitationSupport();
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    schema.accept(builder);
+    ObjectNode schemaNode = builder.build().toObjectNode(objectMapper);
+    JsonNode rawResponse = sendElicitationAndWait(message, schemaNode);
+    return parseRawResponse(rawResponse, schemaNode);
+  }
+
   private void publishNotification(String method, JsonNode params) {
     JsonRpcNotification notification = JsonRpcNotification.of(method, params);
     stream.publishJson(toJsonTree(notification));
@@ -245,6 +257,17 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
     validateContent(content, schemaNode);
     T typed = objectMapper.treeToValue(content, type);
     return new ElicitationResult<>(action, typed);
+  }
+
+  private ElicitationResult<JsonNode> parseRawResponse(
+      JsonNode rawResponse, ObjectNode schemaNode) {
+    ElicitationAction action = extractAction(rawResponse);
+    if (action != ElicitationAction.ACCEPT) {
+      return new ElicitationResult<>(action, null);
+    }
+    JsonNode content = extractContent(rawResponse);
+    validateContent(content, schemaNode);
+    return new ElicitationResult<>(action, content);
   }
 
   private ElicitationAction extractAction(JsonNode rawResponse) {

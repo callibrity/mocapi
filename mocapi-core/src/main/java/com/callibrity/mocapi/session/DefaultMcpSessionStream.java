@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.session;
 
+import java.util.Map;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.SseEventMapper;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -42,6 +43,7 @@ class DefaultMcpSessionStream implements McpSessionStream {
 
   @Override
   public SseEmitter subscribe() {
+    stream.publishJson(Map.of());
     return stream.subscriber().mapper(mapper).subscribe();
   }
 

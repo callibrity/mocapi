@@ -132,7 +132,6 @@ public class StreamableHttpController {
         return ResponseEntity.ok().body(sessionService.reconnectStream(sessionId, lastEventId));
       }
       McpSessionStream channel = sessionService.notificationStream(sessionId);
-      channel.publishJson(Map.of());
       return ResponseEntity.ok().body(channel.subscribe());
     } catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().build();
