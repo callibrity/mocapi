@@ -20,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.util.Base64;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.jwcarman.odyssey.core.OdysseyStream;
@@ -79,18 +78,11 @@ public class McpSessionService {
    * @param sessionId the session that owns the stream
    * @return a new ephemeral stream with encrypted event IDs
    */
-  public OdysseyStream createStream(String sessionId) {
-    return streamRegistry.ephemeral();
+  public McpSessionStream createStream(String sessionId) {
+    return new DefaultMcpSessionStream(streamRegistry.ephemeral(), encryptingMapper(sessionId));
   }
 
-  /**
-   * Returns an encrypting {@link SseEventMapper} bound to the given session. The mapper encrypts
-   * each event's ID as {@code streamKey:eventId} using the session's encryption key.
-   *
-   * @param sessionId the session ID used for key derivation
-   * @return an event mapper that encrypts event IDs
-   */
-  public SseEventMapper encryptingMapper(String sessionId) {
+  private SseEventMapper encryptingMapper(String sessionId) {
     return event -> {
       String plaintext = event.streamKey() + ":" + event.id();
       String encryptedId = encrypt(sessionId, plaintext);
@@ -124,15 +116,15 @@ public class McpSessionService {
   }
 
   /**
-   * Opens a new subscription on the session's notification channel. Event IDs are encrypted.
+   * Returns the session's notification channel as an {@link McpSessionStream}. The caller is
+   * responsible for publishing the priming event and subscribing.
    *
-   * @param sessionId the session whose channel to subscribe to
-   * @return an SSE emitter delivering notification events with encrypted IDs
+   * @param sessionId the session whose notification channel to return
+   * @return the notification channel wrapped as an {@link McpSessionStream}
    */
-  public SseEmitter subscribe(String sessionId) {
-    OdysseyStream channel = streamRegistry.channel(sessionId);
-    channel.publishJson(Map.of());
-    return channel.subscriber().mapper(encryptingMapper(sessionId)).subscribe();
+  public McpSessionStream notificationStream(String sessionId) {
+    return new DefaultMcpSessionStream(
+        streamRegistry.channel(sessionId), encryptingMapper(sessionId));
   }
 
   /** Updates the log level for the given session. */

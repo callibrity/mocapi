@@ -165,28 +165,21 @@ class McpSessionServiceTest {
     OdysseyStream ephemeral = mock(OdysseyStream.class);
     when(streamRegistry.ephemeral()).thenReturn(ephemeral);
 
-    OdysseyStream result = service.createStream("sess-123");
+    McpSessionStream result = service.createStream("sess-123");
 
-    assertThat(result).isSameAs(ephemeral);
+    assertThat(result).isNotNull();
     verify(streamRegistry).ephemeral();
   }
 
   @Test
-  void subscribeCreatesChannelAndReturnsEmitter() {
+  void notificationStreamReturnsSessionStream() {
     OdysseyStream channel = mock(OdysseyStream.class);
-    StreamSubscriberBuilder builder = mock(StreamSubscriberBuilder.class);
-    when(builder.mapper(any())).thenReturn(builder);
-    when(builder.subscribe())
-        .thenReturn(new org.springframework.web.servlet.mvc.method.annotation.SseEmitter());
-    when(channel.subscriber()).thenReturn(builder);
     when(streamRegistry.channel("sess-123")).thenReturn(channel);
 
-    var emitter = service.subscribe("sess-123");
+    McpSessionStream result = service.notificationStream("sess-123");
 
-    assertThat(emitter).isNotNull();
-    verify(channel).publishJson(any());
-    verify(builder).mapper(any());
-    verify(builder).subscribe();
+    assertThat(result).isNotNull();
+    verify(streamRegistry).channel("sess-123");
   }
 
   @Test
@@ -223,21 +216,5 @@ class McpSessionServiceTest {
 
     assertThatThrownBy(() -> service.reconnectStream("sess-B", encrypted))
         .isInstanceOf(IllegalArgumentException.class);
-  }
-
-  @Test
-  void encryptingMapperEncryptsEventId() {
-    String sessionId = "sess-123";
-    var mapper = service.encryptingMapper(sessionId);
-
-    var event =
-        org.jwcarman.odyssey.core.OdysseyEvent.builder()
-            .id("raw-id")
-            .streamKey("my-stream")
-            .payload("{}")
-            .build();
-
-    var sseEvent = mapper.map(event);
-    assertThat(sseEvent).isNotNull();
   }
 }

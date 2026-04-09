@@ -29,6 +29,7 @@ import com.callibrity.mocapi.session.ElicitationCapability;
 import com.callibrity.mocapi.session.LogLevel;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
+import com.callibrity.mocapi.session.McpSessionStream;
 import com.github.victools.jsonschema.generator.OptionPreset;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
@@ -40,7 +41,6 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.substrate.core.Mailbox;
 import org.jwcarman.substrate.core.MailboxFactory;
 import org.mockito.ArgumentCaptor;
@@ -49,7 +49,7 @@ import tools.jackson.databind.ObjectMapper;
 
 class DefaultMcpStreamContextTest {
 
-  private OdysseyStream stream;
+  private McpSessionStream stream;
   private ObjectMapper objectMapper;
   private MailboxFactory mailboxFactory;
   private SchemaGenerator schemaGenerator;
@@ -57,7 +57,7 @@ class DefaultMcpStreamContextTest {
 
   @BeforeEach
   void setUp() {
-    stream = mock(OdysseyStream.class);
+    stream = mock(McpSessionStream.class);
     objectMapper = new ObjectMapper();
     mailboxFactory = mock(MailboxFactory.class);
     sessionService = mock(McpSessionService.class);

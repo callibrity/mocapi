@@ -22,6 +22,7 @@ import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
+import com.callibrity.mocapi.session.McpSessionStream;
 import com.callibrity.mocapi.tools.McpToolMethods;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
@@ -130,7 +131,9 @@ public class StreamableHttpController {
       if (lastEventId != null) {
         return ResponseEntity.ok().body(sessionService.reconnectStream(sessionId, lastEventId));
       }
-      return ResponseEntity.ok().body(sessionService.subscribe(sessionId));
+      McpSessionStream channel = sessionService.notificationStream(sessionId);
+      channel.publishJson(Map.of());
+      return ResponseEntity.ok().body(channel.subscribe());
     } catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().build();
     }

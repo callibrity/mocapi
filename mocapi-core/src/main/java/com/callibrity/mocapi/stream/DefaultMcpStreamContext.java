@@ -18,6 +18,7 @@ package com.callibrity.mocapi.stream;
 import com.callibrity.mocapi.session.LogLevel;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
+import com.callibrity.mocapi.session.McpSessionStream;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
@@ -31,7 +32,6 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.substrate.core.Mailbox;
 import org.jwcarman.substrate.core.MailboxFactory;
 import tools.jackson.core.type.TypeReference;
@@ -40,12 +40,12 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Default implementation of {@link McpStreamContext} that wraps an {@link OdysseyStream} with
+ * Default implementation of {@link McpStreamContext} that wraps an {@link McpSessionStream} with
  * MCP-specific JSON-RPC notification formatting and elicitation support via Substrate Mailbox.
  */
 public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
 
-  private final OdysseyStream stream;
+  private final McpSessionStream stream;
   private final ObjectMapper objectMapper;
   private final String progressToken;
   private final MailboxFactory mailboxFactory;
@@ -57,7 +57,7 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
   private final AtomicBoolean responseSent = new AtomicBoolean(false);
 
   public DefaultMcpStreamContext(
-      OdysseyStream stream,
+      McpSessionStream stream,
       ObjectMapper objectMapper,
       String progressToken,
       MailboxFactory mailboxFactory,

@@ -18,6 +18,7 @@ package com.callibrity.mocapi.tools;
 import com.callibrity.mocapi.http.McpRequestId;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
+import com.callibrity.mocapi.session.McpSessionStream;
 import com.callibrity.mocapi.stream.DefaultMcpStreamContext;
 import com.callibrity.mocapi.stream.McpStreamContext;
 import com.callibrity.ripcurl.core.JsonRpcError;
@@ -32,7 +33,6 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.Named;
-import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.JsonNode;
@@ -72,7 +72,7 @@ public class McpToolMethods {
     McpSession session = McpSession.CURRENT.get();
     String sessionId = session.sessionId();
 
-    OdysseyStream stream = sessionService.createStream(sessionId);
+    McpSessionStream stream = sessionService.createStream(sessionId);
     DefaultMcpStreamContext<?> ctx =
         new DefaultMcpStreamContext<>(
             stream,
@@ -86,8 +86,7 @@ public class McpToolMethods {
             requestId);
 
     stream.publishJson(Map.of());
-    SseEmitter emitter =
-        stream.subscriber().mapper(sessionService.encryptingMapper(sessionId)).subscribe();
+    SseEmitter emitter = stream.subscribe();
 
     Thread.ofVirtual()
         .start(
@@ -104,7 +103,7 @@ public class McpToolMethods {
       String name,
       JsonNode arguments,
       JsonNode requestId,
-      OdysseyStream stream,
+      McpSessionStream stream,
       DefaultMcpStreamContext<?> ctx) {
     try {
       ToolsRegistry.CallToolResponse result = toolsRegistry.callTool(name, arguments);

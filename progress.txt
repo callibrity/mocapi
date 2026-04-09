@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T16:15:11-04:00
-ITERATION: 54
-SPEC_COMPLETED: 054-encrypt-sse-event-ids.md
-WHAT_WAS_DONE: Moved all stream interactions behind McpSessionService with encrypted SSE event IDs. Added createStream, reconnectStream, subscribe, and encryptingMapper methods. Controller and McpToolMethods no longer reference OdysseyStreamRegistry. Session delete cleans up streams. Tampered Last-Event-ID returns 400.
-VERIFICATION: mvn verify — BUILD SUCCESS (188 unit tests, 58 integration tests, all 5 modules green)
+LAST_RUN: 2026-04-09T16:29:00-04:00
+ITERATION: 56
+SPEC_COMPLETED: 056-fix-get-handler-error-responses.md
+WHAT_WAS_DONE: Renamed subscribe() to notificationStream() returning McpSessionStream; moved priming event publish from service into controller.
+VERIFICATION: mvn verify — BUILD SUCCESS, 58/58 compat tests pass, 0 failures
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: Updated Odyssey library to include SseEventMapper and StreamSubscriberBuilder APIs (local build installed). Event IDs are encrypted as Base64(AES-GCM(sessionId, "streamKey:eventId")) — uses lastIndexOf(':') to split since stream keys contain colons. Compat test for Last-Event-ID replay was replaced with tampered-ID-returns-400 test since valid encrypted IDs require real Odyssey event flow.
+NOTES: GET handler error responses (400/403/404) were already working from prior iteration. The produces=TEXT_EVENT_STREAM_VALUE constraint works fine with empty-body error responses.
