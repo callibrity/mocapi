@@ -101,7 +101,7 @@ class ElicitationSep1034DefaultsIT {
     content.put("name", "John Doe");
     content.put("age", 30);
     content.put("score", 95.5);
-    content.put("status", "ACTIVE");
+    content.put("status", "active");
     content.put("verified", true);
 
     Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + jsonRpcId, JsonNode.class);

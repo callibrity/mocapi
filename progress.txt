@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T18:42:07-04:00
-ITERATION: 68
-SPEC_COMPLETED: 068-prompts-support.md
-WHAT_WAS_DONE: Added MCP prompts support following the tools/resources pattern: model records (McpPrompt, PromptArgument, PromptMessage, PromptContent sealed interface with TextPromptContent/ImagePromptContent/ResourcePromptContent, EmbeddedPromptResource, GetPromptResponse, ListPromptsResponse), McpPromptProvider interface, PromptsRegistry with pagination and name lookup, McpPromptMethods JSON-RPC service (prompts/list, prompts/get), PromptsCapabilityDescriptor, MocapiPromptsAutoConfiguration, updated ServerCapabilities and MocapiAutoConfiguration to wire prompts capability, and added ConformancePrompts in mocapi-compat with integration tests for all five conformance scenarios.
+LAST_RUN: 2026-04-09T19:40:01-04:00
+ITERATION: 69
+SPEC_COMPLETED: 069-fix-elicitation-conformance-enums.md
+WHAT_WAS_DONE: Fixed elicitation conformance enum values by changing ConformanceTools inner enums (DefaultsStatus, UntitledOption, TitledOption) to use lowercase constant names so Enum::name returns lowercase values matching the MCP spec examples and conformance suite expectations. Updated integration test mock responses to use lowercase values accordingly.
 VERIFICATION: mvn verify — BUILD SUCCESS, all 92 tests pass (unit + integration tests, spotless, license checks), 0 failures
-STATUS: MORE_WORK
+STATUS: DONE
 NEXT_SPEC: none
-NOTES: Prompts auto-configuration uses @ConditionalOnBean(McpPromptProvider.class) so it only activates when a provider bean exists. PromptsCapabilityDescriptor has listChanged=false matching the tools pattern. The PromptContent sealed interface uses Jackson polymorphic serialization with @JsonTypeInfo/@JsonSubTypes for text/image/resource content types.
+NOTES: The fix uses lowercase Java enum constant names (e.g., `active` instead of `ACTIVE`). This is unconventional but correct for these conformance-only enums since the MCP spec uses lowercase values. The ElicitationSchema builder continues to use Enum::name for const values, which now naturally produces lowercase output for these enums. No builder API changes were needed.

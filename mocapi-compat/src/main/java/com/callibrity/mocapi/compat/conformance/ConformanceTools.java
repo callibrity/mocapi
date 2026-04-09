@@ -364,9 +364,9 @@ public class ConformanceTools {
   }
 
   enum DefaultsStatus {
-    ACTIVE,
-    INACTIVE,
-    PENDING
+    active,
+    inactive,
+    pending
   }
 
   /**
@@ -387,7 +387,7 @@ public class ConformanceTools {
               schema.string("name", "Name", "John Doe");
               schema.integer("age", "Age", 30);
               schema.number("score", "Score", 95.5);
-              schema.choose("status", DefaultsStatus.class, DefaultsStatus.ACTIVE);
+              schema.choose("status", DefaultsStatus.class, DefaultsStatus.active);
               schema.bool("verified", "Verified", true);
             });
     return new CallToolResponse(
@@ -397,15 +397,15 @@ public class ConformanceTools {
   }
 
   enum UntitledOption {
-    OPTION1,
-    OPTION2,
-    OPTION3
+    option1,
+    option2,
+    option3
   }
 
   enum TitledOption {
-    VALUE1("First Option"),
-    VALUE2("Second Option"),
-    VALUE3("Third Option");
+    value1("First Option"),
+    value2("Second Option"),
+    value3("Third Option");
 
     private final String title;
 
