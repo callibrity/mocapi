@@ -17,7 +17,7 @@ package com.callibrity.mocapi.session;
 
 import com.callibrity.mocapi.server.InitializeResponse;
 import com.callibrity.mocapi.server.PingResponse;
-import com.callibrity.ripcurl.core.annotation.JsonRpc;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import lombok.RequiredArgsConstructor;
 
@@ -27,17 +27,17 @@ public class McpSessionMethods {
 
   private final InitializeResponse initializeResponse;
 
-  @JsonRpc("initialize")
+  @JsonRpcMethod("initialize")
   public InitializeResponse initialize() {
     return initializeResponse;
   }
 
-  @JsonRpc("ping")
+  @JsonRpcMethod("ping")
   public PingResponse ping() {
     return new PingResponse();
   }
 
-  @JsonRpc("notifications/initialized")
+  @JsonRpcMethod("notifications/initialized")
   public void initialized() {
     // No-op — session was already created by the controller.
   }

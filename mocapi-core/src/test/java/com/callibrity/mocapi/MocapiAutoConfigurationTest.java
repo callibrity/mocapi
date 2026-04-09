@@ -21,6 +21,7 @@ import com.callibrity.mocapi.server.InitializeResponse;
 import com.callibrity.ripcurl.autoconfigure.RipCurlAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.codec.jackson.JacksonCodecAutoConfiguration;
+import org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration;
 import org.jwcarman.odyssey.autoconfigure.OdysseyAutoConfiguration;
 import org.jwcarman.substrate.autoconfigure.SubstrateAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -37,6 +38,7 @@ class MocapiAutoConfigurationTest {
               AutoConfigurations.of(
                   MocapiAutoConfiguration.class,
                   RipCurlAutoConfiguration.class,
+                  MethodicalAutoConfiguration.class,
                   JacksonAutoConfiguration.class,
                   JacksonCodecAutoConfiguration.class,
                   SubstrateAutoConfiguration.class,

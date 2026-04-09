@@ -17,6 +17,7 @@ package com.callibrity.mocapi.tools;
 
 import static java.util.Optional.ofNullable;
 
+import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -66,7 +67,7 @@ public class ToolsRegistry {
         .orElseThrow(
             () ->
                 new JsonRpcException(
-                    JsonRpcException.INVALID_PARAMS, String.format("Tool %s not found.", name)));
+                    JsonRpcProtocol.INVALID_PARAMS, String.format("Tool %s not found.", name)));
   }
 
   public CallToolResponse callTool(String name, ObjectNode arguments) {
@@ -82,7 +83,7 @@ public class ToolsRegistry {
     Validator validator = Validator.forSchema(schema);
     ValidationFailure failure = validator.validate(new JsonParser(arguments.toString()).parse());
     if (failure != null) {
-      throw new JsonRpcException(JsonRpcException.INVALID_PARAMS, failure.getMessage());
+      throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, failure.getMessage());
     }
   }
 
@@ -103,7 +104,7 @@ public class ToolsRegistry {
 
     int offset = decodeCursor(cursor);
     if (offset < 0 || offset > allDescriptors.size()) {
-      throw new JsonRpcException(JsonRpcException.INVALID_PARAMS, "Invalid cursor");
+      throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "Invalid cursor");
     }
 
     int end = Math.min(offset + pageSize, allDescriptors.size());

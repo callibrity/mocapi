@@ -15,7 +15,8 @@
  */
 package com.callibrity.mocapi.session;
 
-import com.callibrity.ripcurl.core.annotation.JsonRpc;
+import com.callibrity.ripcurl.core.JsonRpcProtocol;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import lombok.RequiredArgsConstructor;
@@ -26,19 +27,19 @@ public class McpLoggingMethods {
 
   private final McpSessionService sessionService;
 
-  @JsonRpc("logging/setLevel")
+  @JsonRpcMethod("logging/setLevel")
   public Object setLevel(String level) {
     LogLevel logLevel;
     try {
       logLevel = LogLevel.fromString(level);
     } catch (IllegalArgumentException e) {
-      throw new JsonRpcException(JsonRpcException.INVALID_PARAMS, "Invalid log level: " + level);
+      throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "Invalid log level: " + level);
     }
     String sessionId = McpSession.CURRENT.get().sessionId();
     try {
       sessionService.setLogLevel(sessionId, logLevel);
     } catch (IllegalArgumentException e) {
-      throw new JsonRpcException(JsonRpcException.INVALID_PARAMS, e.getMessage());
+      throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, e.getMessage());
     }
     return new Object() {};
   }

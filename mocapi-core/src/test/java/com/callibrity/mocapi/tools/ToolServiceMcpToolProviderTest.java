@@ -19,12 +19,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.callibrity.mocapi.stream.McpStreamContextScopedValueResolver;
 import com.callibrity.mocapi.tools.annotation.Tool;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
+import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import org.springframework.context.ApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -32,6 +37,10 @@ import tools.jackson.databind.node.ObjectNode;
 class ToolServiceMcpToolProviderTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
+  private final MethodInvokerFactory invokerFactory =
+      new DefaultMethodInvokerFactory(
+          List.of(
+              new Jackson3ParameterResolver(mapper), new McpStreamContextScopedValueResolver()));
 
   private ObjectNode objectSchema() {
     ObjectNode schema = mapper.createObjectNode();
@@ -59,7 +68,8 @@ class ToolServiceMcpToolProviderTest {
     when(context.getBeansWithAnnotation(ToolService.class))
         .thenReturn(Map.of("sampleTools", new SampleToolService()));
 
-    var provider = new ToolServiceMcpToolProvider(context, mapper, createSchemaGenerator());
+    var provider =
+        new ToolServiceMcpToolProvider(context, mapper, createSchemaGenerator(), invokerFactory);
     provider.initialize();
 
     assertThat(provider.getMcpTools()).hasSize(1);
@@ -72,7 +82,8 @@ class ToolServiceMcpToolProviderTest {
     when(context.getBeansWithAnnotation(ToolService.class))
         .thenReturn(Map.of("sampleTools", new SampleToolService()));
 
-    var provider = new ToolServiceMcpToolProvider(context, mapper, createSchemaGenerator());
+    var provider =
+        new ToolServiceMcpToolProvider(context, mapper, createSchemaGenerator(), invokerFactory);
     provider.initialize();
 
     var tools = provider.getMcpTools();
@@ -88,7 +99,8 @@ class ToolServiceMcpToolProviderTest {
                 "sampleTools", new SampleToolService(),
                 "otherTools", new OtherToolService()));
 
-    var provider = new ToolServiceMcpToolProvider(context, mapper, createSchemaGenerator());
+    var provider =
+        new ToolServiceMcpToolProvider(context, mapper, createSchemaGenerator(), invokerFactory);
     provider.initialize();
 
     assertThat(provider.getMcpTools()).hasSize(2);
@@ -100,7 +112,8 @@ class ToolServiceMcpToolProviderTest {
     when(context.getBeansWithAnnotation(ToolService.class))
         .thenReturn(Map.of("empty", new EmptyToolService()));
 
-    var provider = new ToolServiceMcpToolProvider(context, mapper, createSchemaGenerator());
+    var provider =
+        new ToolServiceMcpToolProvider(context, mapper, createSchemaGenerator(), invokerFactory);
     provider.initialize();
 
     assertThat(provider.getMcpTools()).isEmpty();

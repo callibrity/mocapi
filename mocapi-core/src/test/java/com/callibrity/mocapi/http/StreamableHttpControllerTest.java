@@ -36,6 +36,8 @@ import com.callibrity.mocapi.tools.McpToolMethods;
 import com.callibrity.mocapi.tools.ToolMethodInvoker;
 import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.callibrity.ripcurl.core.JsonRpcError;
+import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
@@ -48,6 +50,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
+import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.jwcarman.substrate.core.MailboxFactory;
@@ -107,14 +112,16 @@ class StreamableHttpControllerTest {
               return toolsCapability.callTool(name, args);
             });
 
+    MethodInvokerFactory invokerFactory =
+        new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(objectMapper)));
     JsonRpcMethodProvider serverProvider =
         () ->
             List.copyOf(
-                AnnotationJsonRpcMethod.createMethods(objectMapper, serverMethods, List.of()));
+                AnnotationJsonRpcMethod.createMethods(objectMapper, serverMethods, invokerFactory));
     JsonRpcMethodProvider toolProvider =
         () ->
             List.copyOf(
-                AnnotationJsonRpcMethod.createMethods(objectMapper, toolMethods, List.of()));
+                AnnotationJsonRpcMethod.createMethods(objectMapper, toolMethods, invokerFactory));
     JsonRpcDispatcher dispatcher =
         new DefaultJsonRpcDispatcher(List.of(serverProvider, toolProvider));
 
@@ -326,7 +333,7 @@ class StreamableHttpControllerTest {
     @Test
     void jsonRpcExceptionShouldReturnJsonErrorResponse() {
       when(toolsCapability.callTool(any(), any()))
-          .thenThrow(new JsonRpcException(JsonRpcException.INVALID_PARAMS, "Tool not found."));
+          .thenThrow(new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "Tool not found."));
 
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
@@ -524,18 +531,28 @@ class StreamableHttpControllerTest {
 
   private static void assertErrorCode(
       org.springframework.http.ResponseEntity<Object> response, int expectedCode) {
-    assertThat(response.getBody()).isInstanceOf(JsonNode.class);
-    JsonNode body = (JsonNode) response.getBody();
-    assertThat(body.has("error")).isTrue();
-    assertThat(body.get("error").get("code").asInt()).isEqualTo(expectedCode);
+    Object body = response.getBody();
+    if (body instanceof JsonRpcError error) {
+      assertThat(error.error().code()).isEqualTo(expectedCode);
+    } else {
+      assertThat(body).isInstanceOf(JsonNode.class);
+      JsonNode node = (JsonNode) body;
+      assertThat(node.has("error")).isTrue();
+      assertThat(node.get("error").get("code").asInt()).isEqualTo(expectedCode);
+    }
   }
 
   private static void assertErrorMessage(
       org.springframework.http.ResponseEntity<Object> response, String expectedMessage) {
-    assertThat(response.getBody()).isInstanceOf(JsonNode.class);
-    JsonNode body = (JsonNode) response.getBody();
-    assertThat(body.has("error")).isTrue();
-    assertThat(body.get("error").get("message").asString()).isEqualTo(expectedMessage);
+    Object body = response.getBody();
+    if (body instanceof JsonRpcError error) {
+      assertThat(error.error().message()).isEqualTo(expectedMessage);
+    } else {
+      assertThat(body).isInstanceOf(JsonNode.class);
+      JsonNode node = (JsonNode) body;
+      assertThat(node.has("error")).isTrue();
+      assertThat(node.get("error").get("message").asString()).isEqualTo(expectedMessage);
+    }
   }
 
   private static void assertJsonRpcResponse(

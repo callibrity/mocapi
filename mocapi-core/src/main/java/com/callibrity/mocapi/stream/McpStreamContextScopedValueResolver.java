@@ -15,22 +15,24 @@
  */
 package com.callibrity.mocapi.stream;
 
-import com.callibrity.ripcurl.core.invoke.JsonRpcParamResolver;
-import java.lang.reflect.Parameter;
+import org.jwcarman.methodical.param.ParameterInfo;
+import org.jwcarman.methodical.param.ParameterResolver;
 import tools.jackson.databind.JsonNode;
 
 /**
  * Resolves {@link McpStreamContext} parameters in {@code @Tool} methods by reading from the {@link
- * McpStreamContext#CURRENT} {@link ScopedValue}. Used by {@link
- * com.callibrity.mocapi.tools.annotation.AnnotationMcpTool} when constructing its method invoker.
+ * McpStreamContext#CURRENT} {@link ScopedValue}. Registered as a {@link ParameterResolver} bean so
+ * that Methodical's {@link org.jwcarman.methodical.MethodInvokerFactory} can inject it.
  */
-public class McpStreamContextScopedValueResolver implements JsonRpcParamResolver {
+public class McpStreamContextScopedValueResolver implements ParameterResolver<JsonNode> {
 
   @Override
-  public Object resolve(Parameter parameter, int index, JsonNode params) {
-    if (!McpStreamContext.class.isAssignableFrom(parameter.getType())) {
-      return null;
-    }
+  public boolean supports(ParameterInfo info) {
+    return McpStreamContext.class.isAssignableFrom(info.resolvedType());
+  }
+
+  @Override
+  public Object resolve(ParameterInfo info, JsonNode params) {
     return McpStreamContext.CURRENT.isBound() ? McpStreamContext.CURRENT.get() : null;
   }
 }

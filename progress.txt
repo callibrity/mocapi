@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-08T10:58:02-04:00
-ITERATION: 37
-SPEC_COMPLETED: 038-add-session-id-to-mcp-session.md
-WHAT_WAS_DONE: Moved UUID generation from InMemoryMcpSessionStore to McpSessionService.create() — store now receives a complete McpSession with sessionId already set, save() returns void instead of String.
-VERIFICATION: mvn verify — BUILD SUCCESS; all unit tests pass; spotless and license checks pass.
+LAST_RUN: 2026-04-09T12:28:32-04:00
+ITERATION: 38
+SPEC_COMPLETED: 039-upgrade-ripcurl-to-1.0.0.md
+WHAT_WAS_DONE: Upgraded RipCurl from 0.7.0 to 1.0.0-SNAPSHOT — renamed @JsonRpc to @JsonRpcMethod, replaced JsonRpcResponse constructor calls with JsonRpcResult, made controller pattern-match on sealed JsonRpcResult/JsonRpcError (removing try/catch for JsonRpcException around dispatch), replaced buildJsonRpcError() helper with JsonRpcError constructor, migrated error code constants from JsonRpcException to JsonRpcProtocol, replaced JsonMethodInvoker/JsonRpcParamResolver with Methodical's MethodInvokerFactory/MethodInvoker/ParameterResolver, and updated all tests.
+VERIFICATION: mvn verify — BUILD SUCCESS; all 181 unit tests pass; 2 integration tests pass; spotless and license checks pass.
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: The sessionId field and withSessionId() method on McpSession already existed from iteration 36. McpSession.CURRENT_ID was already removed. This spec completed the remaining work: changing McpSessionStore.save() from String-returning to void, and moving UUID generation into the service layer. The update() method on McpSessionStore was kept since it's used by setLogLevel() — the spec's simplified interface omitted it but removing it would break existing functionality.
+NOTES: Used 1.0.0-SNAPSHOT (not released 1.0.0) since that's the version in the local RipCurl repo. Had to rebuild RipCurl locally first. The spec said error codes stay on JsonRpcException in 1.0.0, but they actually moved to JsonRpcProtocol — updated all references. The JsonMethodInvoker/JsonRpcParamResolver classes were removed from RipCurl and replaced by Methodical's MethodInvokerFactory/ParameterResolver — required threading MethodInvokerFactory through AnnotationMcpTool, DefaultAnnotationMcpToolProviderFactory, ToolServiceMcpToolProvider, and MocapiToolsAutoConfiguration. McpStreamContextScopedValueResolver now implements Methodical's ParameterResolver<JsonNode> and is registered as a Spring bean. The errorResponse() helper in StreamableHttpController was kept for MCP transport errors (pre-dispatch HTTP errors).

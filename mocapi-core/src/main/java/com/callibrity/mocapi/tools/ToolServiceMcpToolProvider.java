@@ -22,6 +22,7 @@ import jakarta.annotation.PostConstruct;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jwcarman.methodical.MethodInvokerFactory;
 import org.springframework.context.ApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
@@ -34,6 +35,7 @@ public class ToolServiceMcpToolProvider implements McpToolProvider {
   private final ApplicationContext context;
   private final ObjectMapper mapper;
   private final MethodSchemaGenerator generator;
+  private final MethodInvokerFactory invokerFactory;
   private List<AnnotationMcpTool> tools;
 
   // ------------------------ INTERFACE METHODS ------------------------
@@ -60,7 +62,7 @@ public class ToolServiceMcpToolProvider implements McpToolProvider {
                       "Registering MCP tools for @{} bean \"{}\"...",
                       ToolService.class.getSimpleName(),
                       beanName);
-                  var list = AnnotationMcpTool.createTools(mapper, generator, bean);
+                  var list = AnnotationMcpTool.createTools(mapper, generator, invokerFactory, bean);
                   list.forEach(tool -> log.info("\tRegistered MCP tool: \"{}\"", tool.name()));
                   return list.stream();
                 })

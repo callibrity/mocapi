@@ -18,21 +18,30 @@ package com.callibrity.mocapi.tools.annotation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.stream.McpStreamContextScopedValueResolver;
 import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tools.util.HelloTool;
 import com.callibrity.mocapi.tools.util.NullTool;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaVersion;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
+import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeType;
 
 class AnnotationMcpToolTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
+  private final MethodInvokerFactory invokerFactory =
+      new DefaultMethodInvokerFactory(
+          List.of(
+              new Jackson3ParameterResolver(mapper), new McpStreamContextScopedValueResolver()));
   private final AnnotationMcpToolProviderFactory factory =
       new DefaultAnnotationMcpToolProviderFactory(
-          mapper, new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7));
+          mapper, new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7), invokerFactory);
 
   @Test
   void nonCustomizedAnnotationShouldReturnCorrectMetadata() {

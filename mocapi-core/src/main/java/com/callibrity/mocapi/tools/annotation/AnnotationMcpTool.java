@@ -20,16 +20,18 @@ import static com.callibrity.mocapi.tools.annotation.Names.identifier;
 import static java.util.Optional.ofNullable;
 
 import com.callibrity.mocapi.stream.McpStreamContext;
-import com.callibrity.mocapi.stream.McpStreamContextScopedValueResolver;
 import com.callibrity.mocapi.tools.McpTool;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
+import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
-import com.callibrity.ripcurl.core.invoke.JsonMethodInvoker;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
+import org.jwcarman.methodical.MethodInvoker;
+import org.jwcarman.methodical.MethodInvokerFactory;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -37,13 +39,11 @@ public class AnnotationMcpTool implements McpTool {
 
   // ------------------------------ FIELDS ------------------------------
 
-  private static final McpStreamContextScopedValueResolver STREAM_CONTEXT_RESOLVER =
-      new McpStreamContextScopedValueResolver();
-
   private final String name;
   private final String title;
   private final String description;
-  private final JsonMethodInvoker invoker;
+  private final MethodInvoker<JsonNode> invoker;
+  private final ObjectMapper mapper;
   private final ObjectNode inputSchema;
   private final ObjectNode outputSchema;
   private final boolean streamable;
@@ -51,23 +51,30 @@ public class AnnotationMcpTool implements McpTool {
   // -------------------------- STATIC METHODS --------------------------
 
   public static List<AnnotationMcpTool> createTools(
-      ObjectMapper mapper, MethodSchemaGenerator generator, Object targetObject) {
+      ObjectMapper mapper,
+      MethodSchemaGenerator generator,
+      MethodInvokerFactory invokerFactory,
+      Object targetObject) {
     return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), Tool.class).stream()
-        .map(m -> new AnnotationMcpTool(mapper, generator, targetObject, m))
+        .map(m -> new AnnotationMcpTool(mapper, generator, invokerFactory, targetObject, m))
         .toList();
   }
 
   // --------------------------- CONSTRUCTORS ---------------------------
 
   AnnotationMcpTool(
-      ObjectMapper mapper, MethodSchemaGenerator generator, Object targetObject, Method method) {
+      ObjectMapper mapper,
+      MethodSchemaGenerator generator,
+      MethodInvokerFactory invokerFactory,
+      Object targetObject,
+      Method method) {
     var annotation = method.getAnnotation(Tool.class);
     this.name = nameOf(targetObject, method, annotation);
     this.title = titleOf(targetObject, method, annotation);
     this.description = descriptionOf(targetObject, method, annotation);
     this.streamable = hasStreamContextParam(method);
-    this.invoker =
-        new JsonMethodInvoker(mapper, targetObject, method, List.of(STREAM_CONTEXT_RESOLVER));
+    this.mapper = mapper;
+    this.invoker = invokerFactory.create(method, targetObject, JsonNode.class);
     this.inputSchema = generator.generateInputSchema(targetObject, method);
     this.outputSchema = generator.generateOutputSchema(targetObject, method);
     var outputSchemaType = outputSchema.get("type").asString();
@@ -135,15 +142,13 @@ public class AnnotationMcpTool implements McpTool {
 
   @Override
   public ObjectNode call(ObjectNode parameters) {
-    var request =
-        com.callibrity.ripcurl.core.JsonRpcRequest.request("tools/call", parameters, null);
-    var response = invoker.invoke(request);
-    var result = response.result();
+    var rawResult = invoker.invoke(parameters);
+    JsonNode result = mapper.valueToTree(rawResult);
     if (result.isObject()) {
       return (ObjectNode) result;
     }
     throw new JsonRpcException(
-        JsonRpcException.INTERNAL_ERROR,
+        JsonRpcProtocol.INTERNAL_ERROR,
         String.format("McpTool %s returned non-object (%s) result.", name, result.getNodeType()));
   }
 }

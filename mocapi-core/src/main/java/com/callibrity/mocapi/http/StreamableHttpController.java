@@ -24,9 +24,10 @@ import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.tools.ToolMethodInvoker;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
-import com.callibrity.ripcurl.core.exception.JsonRpcException;
+import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -189,33 +190,36 @@ public class StreamableHttpController {
     JsonRpcRequest request =
         new JsonRpcRequest(jsonrpc, body.path("method").asString(null), params, id);
 
-    try {
-      ScopedValue.Carrier carrier = ScopedValue.where(McpRequestId.CURRENT, id);
-      if (session != null) {
-        carrier = carrier.where(McpSession.CURRENT, session);
-      }
-      JsonRpcResponse response = carrier.call(() -> dispatcher.dispatch(request));
+    ScopedValue.Carrier carrier = ScopedValue.where(McpRequestId.CURRENT, id);
+    if (session != null) {
+      carrier = carrier.where(McpSession.CURRENT, session);
+    }
+    JsonRpcResponse response = carrier.call(() -> dispatcher.dispatch(request));
 
-      var emitter = response.getMetadata(ToolMethodInvoker.SSE_EMITTER_KEY, SseEmitter.class);
-      if (emitter.isPresent()) {
-        var builder = ResponseEntity.ok();
-        if (isInitialize) {
-          builder.header("MCP-Session-Id", createSessionFromParams(params));
-        }
-        return builder.body(emitter.get());
-      }
+    return switch (response) {
+      case null -> ResponseEntity.accepted().build();
+      case JsonRpcResult result -> handleResult(result, isInitialize, params);
+      case JsonRpcError error ->
+          ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(error);
+    };
+  }
 
-      var builder = ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON);
+  private ResponseEntity<Object> handleResult(
+      JsonRpcResult result, boolean isInitialize, JsonNode params) {
+    var emitter = result.getMetadata(ToolMethodInvoker.SSE_EMITTER_KEY, SseEmitter.class);
+    if (emitter.isPresent()) {
+      var builder = ResponseEntity.ok();
       if (isInitialize) {
         builder.header("MCP-Session-Id", createSessionFromParams(params));
       }
-      return builder.body(response);
-    } catch (JsonRpcException e) {
-      log.warn("JSON-RPC error processing {}: {}", request.method(), e.getMessage());
-      return ResponseEntity.ok()
-          .contentType(MediaType.APPLICATION_JSON)
-          .body(errorResponse(id, e.getCode(), e.getMessage()));
+      return builder.body(emitter.get());
     }
+
+    var builder = ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON);
+    if (isInitialize) {
+      builder.header("MCP-Session-Id", createSessionFromParams(params));
+    }
+    return builder.body(result);
   }
 
   private ResponseEntity<Object> handleNotification(String method, String sessionId) {

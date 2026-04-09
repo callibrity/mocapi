@@ -15,14 +15,14 @@
  */
 package com.callibrity.mocapi.tools;
 
-import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
-
 import com.callibrity.mocapi.http.McpRequestId;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.stream.DefaultMcpStreamContext;
 import com.callibrity.mocapi.stream.McpStreamContext;
-import com.callibrity.ripcurl.core.JsonRpcResponse;
+import com.callibrity.ripcurl.core.JsonRpcError;
+import com.callibrity.ripcurl.core.JsonRpcProtocol;
+import com.callibrity.ripcurl.core.JsonRpcResult;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import java.time.Duration;
@@ -42,7 +42,7 @@ import tools.jackson.databind.node.ObjectNode;
  * Orchestrates tool invocation, handling both synchronous (non-streamable) and asynchronous
  * (streamable) tool calls. For streamable tools, sets up an Odyssey stream and dispatches the tool
  * on a virtual thread. The {@link SseEmitter} is returned to the controller via {@link
- * JsonRpcResponse} metadata.
+ * JsonRpcResult} metadata.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -68,7 +68,7 @@ public class ToolMethodInvoker {
    * @param name the tool name
    * @param arguments the tool arguments (never null)
    * @param progressToken the progress token from request metadata (may be null)
-   * @return a {@link ToolsRegistry.CallToolResponse} or a {@link JsonRpcResponse} with emitter
+   * @return a {@link ToolsRegistry.CallToolResponse} or a {@link JsonRpcResult} with emitter
    *     metadata
    */
   public Object invoke(String name, ObjectNode arguments, String progressToken) {
@@ -104,7 +104,7 @@ public class ToolMethodInvoker {
                     .where(McpStreamContext.CURRENT, ctx)
                     .run(() -> executeStreamableTool(name, arguments, requestId, stream)));
 
-    return new JsonRpcResponse(NullNode.getInstance(), requestId)
+    return new JsonRpcResult(NullNode.getInstance(), requestId)
         .withMetadata(SSE_EMITTER_KEY, emitter);
   }
 
@@ -112,30 +112,18 @@ public class ToolMethodInvoker {
       String name, ObjectNode arguments, JsonNode requestId, OdysseyStream stream) {
     try {
       ToolsRegistry.CallToolResponse result = toolsRegistry.callTool(name, arguments);
-      JsonRpcResponse response =
-          new JsonRpcResponse(VERSION, objectMapper.valueToTree(result), requestId);
+      JsonRpcResult response = new JsonRpcResult(objectMapper.valueToTree(result), requestId);
       stream.publishJson(objectMapper.valueToTree(response));
     } catch (JsonRpcException e) {
-      stream.publishJson(buildJsonRpcError(requestId, e.getCode(), e.getMessage()));
+      stream.publishJson(
+          objectMapper.valueToTree(new JsonRpcError(e.getCode(), e.getMessage(), requestId)));
     } catch (Exception e) {
       log.error("Unexpected error executing streamable tool {}", name, e);
       stream.publishJson(
-          buildJsonRpcError(requestId, JsonRpcException.INTERNAL_ERROR, e.getMessage()));
+          objectMapper.valueToTree(
+              new JsonRpcError(JsonRpcProtocol.INTERNAL_ERROR, e.getMessage(), requestId)));
     } finally {
       stream.close();
     }
-  }
-
-  private ObjectNode buildJsonRpcError(JsonNode id, int code, String message) {
-    ObjectNode node = objectMapper.createObjectNode();
-    node.put("jsonrpc", VERSION);
-    if (id != null) {
-      node.set("id", id);
-    }
-    ObjectNode error = objectMapper.createObjectNode();
-    error.put("code", code);
-    error.put("message", message);
-    node.set("error", error);
-    return node;
   }
 }

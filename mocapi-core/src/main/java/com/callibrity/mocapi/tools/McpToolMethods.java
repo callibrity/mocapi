@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.tools;
 
-import com.callibrity.ripcurl.core.annotation.JsonRpc;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.JsonNode;
@@ -30,12 +30,12 @@ public class McpToolMethods {
   private final ObjectMapper objectMapper;
   private final ToolMethodInvoker toolMethodInvoker;
 
-  @JsonRpc("tools/list")
+  @JsonRpcMethod("tools/list")
   public ToolsRegistry.ListToolsResponse listTools(String cursor) {
     return toolsRegistry.listTools(cursor);
   }
 
-  @JsonRpc("tools/call")
+  @JsonRpcMethod("tools/call")
   public Object callTool(String name, ObjectNode arguments, ObjectNode _meta) {
     ObjectNode args = arguments != null ? arguments : objectMapper.createObjectNode();
     String progressToken = extractProgressToken(_meta);

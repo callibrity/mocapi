@@ -47,6 +47,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
+import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
+import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.jwcarman.substrate.core.Mailbox;
@@ -98,10 +101,12 @@ class StreamableHttpControllerComplianceTest {
     sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT);
 
     McpSessionMethods serverMethods = new McpSessionMethods(initializeResponse);
+    MethodInvokerFactory invokerFactory =
+        new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(objectMapper)));
     JsonRpcMethodProvider serverProvider =
         () ->
             List.copyOf(
-                AnnotationJsonRpcMethod.createMethods(objectMapper, serverMethods, List.of()));
+                AnnotationJsonRpcMethod.createMethods(objectMapper, serverMethods, invokerFactory));
     JsonRpcDispatcher dispatcher = new DefaultJsonRpcDispatcher(List.of(serverProvider));
 
     mailboxFactory = mock(MailboxFactory.class);
