@@ -132,6 +132,49 @@ public class McpClient {
     return mockMvc.perform(builder);
   }
 
+  public ResultActions getRaw(String accept, String sessionId) throws Exception {
+    var builder = MockMvcRequestBuilders.get(MCP_ENDPOINT);
+    if (accept != null) {
+      builder = builder.header("Accept", accept);
+    }
+    if (sessionId != null) {
+      builder = builder.header("MCP-Session-Id", sessionId);
+    }
+    builder = builder.header("MCP-Protocol-Version", PROTOCOL_VERSION);
+    return mockMvc.perform(builder);
+  }
+
+  public ResultActions postWithOrigin(String sessionId, String origin, String body)
+      throws Exception {
+    var builder =
+        MockMvcRequestBuilders.post(MCP_ENDPOINT)
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON, TEXT_EVENT_STREAM)
+            .header("MCP-Protocol-Version", PROTOCOL_VERSION)
+            .header("Origin", origin)
+            .content(body);
+    if (sessionId != null) {
+      builder = builder.header("MCP-Session-Id", sessionId);
+    }
+    return mockMvc.perform(builder);
+  }
+
+  public ResultActions getWithOrigin(String sessionId, String origin) throws Exception {
+    return mockMvc.perform(
+        MockMvcRequestBuilders.get(MCP_ENDPOINT)
+            .accept(TEXT_EVENT_STREAM)
+            .header("MCP-Protocol-Version", PROTOCOL_VERSION)
+            .header("MCP-Session-Id", sessionId)
+            .header("Origin", origin));
+  }
+
+  public ResultActions deleteWithOrigin(String sessionId, String origin) throws Exception {
+    return mockMvc.perform(
+        MockMvcRequestBuilders.delete(MCP_ENDPOINT)
+            .header("MCP-Session-Id", sessionId)
+            .header("Origin", origin));
+  }
+
   public ObjectMapper objectMapper() {
     return objectMapper;
   }

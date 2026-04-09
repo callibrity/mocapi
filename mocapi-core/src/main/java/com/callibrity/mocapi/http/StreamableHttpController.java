@@ -115,20 +115,18 @@ public class StreamableHttpController {
       return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
     }
     if (!validator.isValidOrigin(origin)) {
-      return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid origin"));
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
     if (sessionId == null) {
-      return ResponseEntity.badRequest().body(Map.of("error", SESSION_REQUIRED));
+      return ResponseEntity.badRequest().build();
     }
     if (sessionService.find(sessionId).isEmpty()) {
-      return ResponseEntity.status(HttpStatus.NOT_FOUND)
-          .body(Map.of("error", "Session not found or expired"));
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
     String version =
         protocolVersion != null ? protocolVersion : InitializeResponse.PROTOCOL_VERSION;
     if (!validator.isValidProtocolVersion(version)) {
-      return ResponseEntity.badRequest()
-          .body(Map.of("error", "Invalid MCP-Protocol-Version: " + version));
+      return ResponseEntity.badRequest().build();
     }
 
     OdysseyStream stream = registry.channel(sessionId);

@@ -45,7 +45,7 @@
         <dependency>
             <groupId>org.jwcarman.methodical</groupId>
             <artifactId>methodical-jackson3</artifactId>
-            <version>0.2.0</version>
+            <version>${methodical.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>

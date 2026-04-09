@@ -15,19 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
-import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
-import tools.jackson.databind.ObjectMapper;
 
 @SpringBootApplication
-public class CompatApplication {
-
-  // Workaround: Jackson3AutoConfiguration's @ConditionalOnBean(ObjectMapper.class) fails due to
-  // auto-configuration ordering — it runs before JacksonAutoConfiguration creates the ObjectMapper.
-  // This explicit bean registration ensures tools/call parameter extraction works correctly.
-  @Bean
-  Jackson3ParameterResolver jackson3ParameterResolver(ObjectMapper mapper) {
-    return new Jackson3ParameterResolver(mapper);
-  }
-}
+public class CompatApplication {}

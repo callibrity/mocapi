@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T15:35:00-04:00
-ITERATION: 48
-SPEC_COMPLETED: 048-compat-notifications-and-client-responses.md
-WHAT_WAS_DONE: Created NotificationIT (3 tests: notification returns 202, notification has no body, unknown method notification returns 202) and ClientResponseIT (4 tests: client result returns 202, client error returns 202, client result without session returns 400, client error without session returns 400). All tests use McpClient from spec 043.
-VERIFICATION: mvn verify — BUILD SUCCESS (all 6 modules pass)
+LAST_RUN: 2026-04-09T16:10:00-04:00
+ITERATION: 49
+SPEC_COMPLETED: 049-compat-origin-and-sse.md
+WHAT_WAS_DONE: Created OriginValidationIT (6 tests: bad origin returns 403 on POST/GET/DELETE, no origin accepted on POST/GET/DELETE) and SseStreamIT (5 tests: no SSE accept returns 406, no accept returns 406, SSE accept accepted, missing session returns 400, unknown session returns 404). Added getRaw/postWithOrigin/getWithOrigin/deleteWithOrigin methods to McpClient. Fixed GET handler error responses to use empty bodies (Map bodies couldn't be serialized as text/event-stream). Removed redundant jackson3ParameterResolver workaround from CompatApplication (now provided by methodical-autoconfigure).
+VERIFICATION: mvn verify — BUILD SUCCESS (all 6 modules pass, 50 compat integration tests green)
 STATUS: MORE_WORK
-NEXT_SPEC: 049-compat-origin-and-sse.md
-NOTES: The notify() method on McpClient was already available and works well for notification tests. Client responses (result/error) required postRaw() since they lack a "method" field. The server correctly returns 202 Accepted with no body for both notifications and client responses, and 400 for missing session IDs.
+NEXT_SPEC: 050-compat-scenarios.md
+NOTES: The GET endpoint's `produces = text/event-stream` annotation caused error responses with Map bodies to fail serialization. Fixed by removing bodies from GET error responses (status codes are sufficient for SSE endpoint errors). The CompatApplication workaround bean for jackson3ParameterResolver conflicted with methodical-autoconfigure now on the classpath — removed since auto-config handles it properly now.

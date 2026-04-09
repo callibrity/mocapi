@@ -70,6 +70,7 @@
         <victools.version>5.0.0</victools.version>
         <spring-boot.version>4.0.5</spring-boot.version>
         <ripcurl.version>2.0.0-SNAPSHOT</ripcurl.version>
+        <methodical.version>1.0.0-SNAPSHOT</methodical.version>
         <swagger-annotations.version>2.2.43</swagger-annotations.version>
 
         <!-- Plugin Versions -->
@@ -150,6 +151,13 @@
                 <groupId>com.github.victools</groupId>
                 <artifactId>jsonschema-generator-bom</artifactId>
                 <version>${victools.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.jwcarman.methodical</groupId>
+                <artifactId>methodical-bom</artifactId>
+                <version>${methodical.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
