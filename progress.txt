@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T17:12:35-04:00
-ITERATION: 59
-SPEC_COMPLETED: 059-elicitation-schema-constraints.md
-WHAT_WAS_DONE: Added constraint sub-builders (StringPropertyBuilder, NumericPropertyBuilder, BooleanPropertyBuilder, MultiSelectPropertyBuilder) returned by convenience aliases, split ElicitationResult<T> into BeanElicitationResult<B> (for elicitForm) and non-generic ElicitationResult with typed getters (getString, getInteger, getNumber, getBool, getChoice, getChoices) that throw IllegalStateException when action is not ACCEPT.
-VERIFICATION: mvn verify — BUILD SUCCESS, 58/58 compat tests pass, 0 failures, all unit tests pass
-STATUS: DONE
-NEXT_SPEC: none
-NOTES: Convenience aliases (string, integer, number, bool, chooseMany) now return sub-builders instead of Builder. Existing code that chained these methods must switch to block-style consumers or use the full-name methods (stringProperty, integerProperty, etc.) which still return Builder. ConformanceTools updated accordingly.
+LAST_RUN: 2026-04-09T17:16:29-04:00
+ITERATION: 60
+SPEC_COMPLETED: 060-validate-bean-elicitation-schema.md
+WHAT_WAS_DONE: Added ElicitationSchemaValidator that checks generated bean schemas against MCP elicitation spec constraints (no nested objects, no non-enum arrays, no $ref/$defs/allOf/not/if/then/else, only allowed string formats, only primitive types). Validation runs in DefaultMcpStreamContext.generateSchema() before sending requests. 22 unit tests for the validator plus 1 integration test in DefaultMcpStreamContextTest.
+VERIFICATION: mvn verify — BUILD SUCCESS, 58/58 compat tests pass, 51 unit tests for stream classes pass (29 context + 22 validator), 0 failures
+STATUS: MORE_WORK
+NEXT_SPEC: 061-always-use-oneOf-for-enums.md
+NOTES: ElicitationSchemaValidator is package-private in com.callibrity.mocapi.stream. It validates after $schema removal and object-type check, before sendElicitationAndWait. Multi-select arrays are accepted when items have enum or anyOf with const entries.

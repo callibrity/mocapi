@@ -276,6 +276,22 @@ class DefaultMcpStreamContextTest {
 
   record UserForm(String name, int age) {}
 
+  record NestedForm(String name, UserForm nested) {}
+
+  // --- Schema validation tests ---
+
+  @Test
+  void elicitFormShouldRejectNestedObjectProperty() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
+
+    assertThatThrownBy(() -> context.elicitForm("Enter info", NestedForm.class))
+        .isInstanceOf(McpElicitationException.class)
+        .hasMessageContaining("Property 'nested'")
+        .hasMessageContaining("type 'object'")
+        .hasMessageContaining("not allowed");
+  }
+
   private McpSession sessionWithElicitation() {
     return new McpSession(
         "2025-11-25",

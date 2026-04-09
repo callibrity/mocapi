@@ -256,6 +256,7 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
       throw new McpElicitationException(
           "Elicitation schema must be an object type, but got: " + schemaNode.path("type"));
     }
+    ElicitationSchemaValidator.validate(schemaNode);
     return schemaNode;
   }
 
