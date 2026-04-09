@@ -22,16 +22,25 @@ public record ServerCapabilities(
     ToolsCapabilityDescriptor tools,
     LoggingCapabilityDescriptor logging,
     CompletionsCapabilityDescriptor completions,
-    ResourcesCapabilityDescriptor resources) {
+    ResourcesCapabilityDescriptor resources,
+    PromptsCapabilityDescriptor prompts) {
+
+  public ServerCapabilities(
+      ToolsCapabilityDescriptor tools,
+      LoggingCapabilityDescriptor logging,
+      CompletionsCapabilityDescriptor completions,
+      ResourcesCapabilityDescriptor resources) {
+    this(tools, logging, completions, resources, null);
+  }
 
   public ServerCapabilities(
       ToolsCapabilityDescriptor tools,
       LoggingCapabilityDescriptor logging,
       CompletionsCapabilityDescriptor completions) {
-    this(tools, logging, completions, null);
+    this(tools, logging, completions, null, null);
   }
 
   public ServerCapabilities(ToolsCapabilityDescriptor tools, LoggingCapabilityDescriptor logging) {
-    this(tools, logging, null, null);
+    this(tools, logging, null, null, null);
   }
 }

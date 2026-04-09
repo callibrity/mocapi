@@ -17,12 +17,15 @@ package com.callibrity.mocapi;
 
 import com.callibrity.mocapi.http.McpRequestValidator;
 import com.callibrity.mocapi.http.StreamableHttpController;
+import com.callibrity.mocapi.prompts.McpPromptMethods;
+import com.callibrity.mocapi.prompts.PromptsRegistry;
 import com.callibrity.mocapi.resources.McpResourceMethods;
 import com.callibrity.mocapi.resources.ResourcesRegistry;
 import com.callibrity.mocapi.server.CompletionsCapabilityDescriptor;
 import com.callibrity.mocapi.server.InitializeResponse;
 import com.callibrity.mocapi.server.LoggingCapabilityDescriptor;
 import com.callibrity.mocapi.server.McpCompletionMethods;
+import com.callibrity.mocapi.server.PromptsCapabilityDescriptor;
 import com.callibrity.mocapi.server.ResourcesCapabilityDescriptor;
 import com.callibrity.mocapi.server.ServerCapabilities;
 import com.callibrity.mocapi.server.ServerInfo;
@@ -73,19 +76,23 @@ public class MocapiAutoConfiguration {
   public InitializeResponse initializeResponse(
       @Nullable ToolsRegistry toolsRegistry,
       @Nullable ResourcesRegistry resourcesRegistry,
+      @Nullable PromptsRegistry promptsRegistry,
       @Nullable BuildProperties buildProperties) {
     String version = buildProperties != null ? buildProperties.getVersion() : "unknown";
     ToolsCapabilityDescriptor tools =
         toolsRegistry != null ? new ToolsCapabilityDescriptor(false) : null;
     ResourcesCapabilityDescriptor resources =
         resourcesRegistry != null ? new ResourcesCapabilityDescriptor(true, false) : null;
+    PromptsCapabilityDescriptor prompts =
+        promptsRegistry != null ? new PromptsCapabilityDescriptor(false) : null;
     return new InitializeResponse(
         InitializeResponse.PROTOCOL_VERSION,
         new ServerCapabilities(
             tools,
             new LoggingCapabilityDescriptor(),
             new CompletionsCapabilityDescriptor(),
-            resources),
+            resources,
+            prompts),
         new ServerInfo(props.getServerName(), props.getServerTitle(), version, null, null, null),
         props.getInstructions());
   }
@@ -136,6 +143,13 @@ public class MocapiAutoConfiguration {
   @ConditionalOnBean(ResourcesRegistry.class)
   public McpResourceMethods mcpResourceMethods(ResourcesRegistry resourcesRegistry) {
     return new McpResourceMethods(resourcesRegistry);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBean(PromptsRegistry.class)
+  public McpPromptMethods mcpPromptMethods(PromptsRegistry promptsRegistry) {
+    return new McpPromptMethods(promptsRegistry);
   }
 
   @Bean

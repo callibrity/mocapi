@@ -1,0 +1,43 @@
+/*
+ * Copyright © 2025 Callibrity, Inc. (contactus@callibrity.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.callibrity.mocapi.prompts;
+
+import com.callibrity.mocapi.MocapiAutoConfiguration;
+import com.callibrity.mocapi.MocapiProperties;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+
+@AutoConfiguration
+@AutoConfigureBefore(MocapiAutoConfiguration.class)
+@ConditionalOnClass(PromptsRegistry.class)
+@ConditionalOnBean(McpPromptProvider.class)
+@EnableConfigurationProperties(MocapiProperties.class)
+@RequiredArgsConstructor
+public class MocapiPromptsAutoConfiguration {
+
+  private final MocapiProperties mocapiProperties;
+
+  @Bean
+  public PromptsRegistry promptsRegistry(List<McpPromptProvider> promptProviders) {
+    return new PromptsRegistry(promptProviders, mocapiProperties.getPagination().getPageSize());
+  }
+}

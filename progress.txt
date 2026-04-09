@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T18:34:36-04:00
-ITERATION: 67
-SPEC_COMPLETED: 067-resources-support.md
-WHAT_WAS_DONE: Added MCP resources support following the tools pattern: model records (McpResource, McpResourceTemplate, ResourceContent, ReadResourceResponse, ListResourcesResponse, ListResourceTemplatesResponse), McpResourceProvider interface, ResourcesRegistry with pagination and subscription tracking, McpResourceMethods JSON-RPC service (resources/list, resources/templates/list, resources/read, resources/subscribe, resources/unsubscribe), ResourcesCapabilityDescriptor, MocapiResourcesAutoConfiguration, updated ServerCapabilities and MocapiAutoConfiguration to wire resources capability, and added ConformanceResources in mocapi-compat with integration tests for all six conformance scenarios.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 87 tests pass (unit + integration tests, spotless, license checks), 0 failures
+LAST_RUN: 2026-04-09T18:42:07-04:00
+ITERATION: 68
+SPEC_COMPLETED: 068-prompts-support.md
+WHAT_WAS_DONE: Added MCP prompts support following the tools/resources pattern: model records (McpPrompt, PromptArgument, PromptMessage, PromptContent sealed interface with TextPromptContent/ImagePromptContent/ResourcePromptContent, EmbeddedPromptResource, GetPromptResponse, ListPromptsResponse), McpPromptProvider interface, PromptsRegistry with pagination and name lookup, McpPromptMethods JSON-RPC service (prompts/list, prompts/get), PromptsCapabilityDescriptor, MocapiPromptsAutoConfiguration, updated ServerCapabilities and MocapiAutoConfiguration to wire prompts capability, and added ConformancePrompts in mocapi-compat with integration tests for all five conformance scenarios.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 92 tests pass (unit + integration tests, spotless, license checks), 0 failures
 STATUS: MORE_WORK
-NEXT_SPEC: 068-prompts-support.md
-NOTES: Resources auto-configuration uses @ConditionalOnBean(McpResourceProvider.class) so it only activates when a provider bean exists. Subscribe capability is advertised as true in the resources capability descriptor. Subscription tracking is in-memory via ConcurrentHashMap.newKeySet() in ResourcesRegistry.
+NEXT_SPEC: none
+NOTES: Prompts auto-configuration uses @ConditionalOnBean(McpPromptProvider.class) so it only activates when a provider bean exists. PromptsCapabilityDescriptor has listChanged=false matching the tools pattern. The PromptContent sealed interface uses Jackson polymorphic serialization with @JsonTypeInfo/@JsonSubTypes for text/image/resource content types.
