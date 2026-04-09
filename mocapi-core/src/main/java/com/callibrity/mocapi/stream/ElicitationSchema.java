@@ -216,6 +216,122 @@ public final class ElicitationSchema {
       return this;
     }
 
+    // --- Convenience aliases ---
+
+    public Builder string(String name, String description) {
+      return stringProperty(name, description);
+    }
+
+    public Builder string(String name, String description, String defaultValue) {
+      return stringProperty(name, description, defaultValue);
+    }
+
+    public Builder integer(String name, String description) {
+      return integerProperty(name, description);
+    }
+
+    public Builder integer(String name, String description, int defaultValue) {
+      return integerProperty(name, description, defaultValue);
+    }
+
+    public Builder number(String name, String description) {
+      return numberProperty(name, description);
+    }
+
+    public Builder number(String name, String description, double defaultValue) {
+      return numberProperty(name, description, defaultValue);
+    }
+
+    public Builder bool(String name, String description) {
+      return booleanProperty(name, description);
+    }
+
+    public Builder bool(String name, String description, boolean defaultValue) {
+      return booleanProperty(name, description, defaultValue);
+    }
+
+    /**
+     * Adds an enum single-select property. If any enum constant's {@code toString()} differs from
+     * its {@code name()}, a titled enum (oneOf with const/title) is produced; otherwise a plain
+     * string enum is used.
+     */
+    public <E extends Enum<E>> Builder choose(String name, Class<E> enumType) {
+      E[] constants = enumType.getEnumConstants();
+      if (hasTitles(constants)) {
+        List<TitledValue> values = new ArrayList<>();
+        for (E c : constants) {
+          values.add(new TitledValue(c.name(), c.toString()));
+        }
+        return titledEnumProperty(name, values);
+      }
+      List<String> values = new ArrayList<>();
+      for (E c : constants) {
+        values.add(c.name());
+      }
+      return enumProperty(name, values);
+    }
+
+    /**
+     * Adds an enum single-select property with a default value. Uses the same titled/untitled
+     * detection as {@link #choose(String, Class)}.
+     */
+    public <E extends Enum<E>> Builder choose(String name, Class<E> enumType, E defaultValue) {
+      requireUniqueName(name);
+      E[] constants = enumType.getEnumConstants();
+      ObjectNode prop;
+      if (hasTitles(constants)) {
+        prop = objectMapper.createObjectNode();
+        ArrayNode oneOf = objectMapper.createArrayNode();
+        for (E c : constants) {
+          ObjectNode option = objectMapper.createObjectNode();
+          option.put("const", c.name());
+          option.put("title", c.toString());
+          oneOf.add(option);
+        }
+        prop.set("oneOf", oneOf);
+      } else {
+        prop = objectMapper.createObjectNode();
+        prop.put("type", "string");
+        ArrayNode enumArray = objectMapper.createArrayNode();
+        for (E c : constants) {
+          enumArray.add(c.name());
+        }
+        prop.set("enum", enumArray);
+      }
+      prop.put("default", defaultValue.name());
+      properties.put(name, prop);
+      return this;
+    }
+
+    /**
+     * Adds an enum multi-select property. Uses the same titled/untitled detection as {@link
+     * #choose(String, Class)}.
+     */
+    public <E extends Enum<E>> Builder chooseMany(String name, Class<E> enumType) {
+      E[] constants = enumType.getEnumConstants();
+      if (hasTitles(constants)) {
+        List<TitledValue> values = new ArrayList<>();
+        for (E c : constants) {
+          values.add(new TitledValue(c.name(), c.toString()));
+        }
+        return titledMultiSelectProperty(name, values);
+      }
+      List<String> values = new ArrayList<>();
+      for (E c : constants) {
+        values.add(c.name());
+      }
+      return multiSelectProperty(name, values);
+    }
+
+    private <E extends Enum<E>> boolean hasTitles(E[] constants) {
+      for (E c : constants) {
+        if (!c.toString().equals(c.name())) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     public Builder required(String... names) {
       for (String name : names) {
         if (!required.contains(name)) {

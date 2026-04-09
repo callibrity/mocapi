@@ -13,17 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server;
+package com.callibrity.mocapi.stream;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+/** Thrown when sample() is called but the client did not declare sampling support. */
+public class McpSamplingNotSupportedException extends RuntimeException {
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record ServerCapabilities(
-    ToolsCapabilityDescriptor tools,
-    LoggingCapabilityDescriptor logging,
-    CompletionsCapabilityDescriptor completions) {
-
-  public ServerCapabilities(ToolsCapabilityDescriptor tools, LoggingCapabilityDescriptor logging) {
-    this(tools, logging, null);
+  public McpSamplingNotSupportedException(String message) {
+    super(message);
   }
 }

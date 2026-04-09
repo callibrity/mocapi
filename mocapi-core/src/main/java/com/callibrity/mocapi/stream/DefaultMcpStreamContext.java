@@ -155,6 +155,41 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
     return parseRawResponse(rawResponse, schemaNode);
   }
 
+  @Override
+  public SamplingResult sample(String prompt, int maxTokens) {
+    requireSamplingSupport();
+
+    String jsonRpcId = UUID.randomUUID().toString();
+
+    ObjectNode contentNode = objectMapper.createObjectNode();
+    contentNode.put("type", "text");
+    contentNode.put("text", prompt);
+
+    ObjectNode messageNode = objectMapper.createObjectNode();
+    messageNode.put("role", "user");
+    messageNode.set("content", contentNode);
+
+    ObjectNode params = objectMapper.createObjectNode();
+    params.set("messages", objectMapper.createArrayNode().add(messageNode));
+    params.put("maxTokens", maxTokens);
+
+    JsonRpcCall request =
+        JsonRpcCall.of("sampling/createMessage", params, objectMapper.valueToTree(jsonRpcId));
+
+    Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + jsonRpcId, JsonNode.class);
+    try {
+      stream.publishJson(toJsonTree(request));
+
+      Optional<JsonNode> raw = mailbox.poll(elicitationTimeout);
+      if (raw.isEmpty()) {
+        throw new McpSamplingTimeoutException("Sampling timed out after " + elicitationTimeout);
+      }
+      return parseSamplingResponse(raw.get());
+    } finally {
+      mailbox.delete();
+    }
+  }
+
   private void publishNotification(String method, JsonNode params) {
     JsonRpcNotification notification = JsonRpcNotification.of(method, params);
     stream.publishJson(toJsonTree(notification));
@@ -178,6 +213,33 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
       return null;
     }
     return sessionService.find(sessionId).orElse(null);
+  }
+
+  private void requireSamplingSupport() {
+    McpSession session = currentSession();
+    if (session == null || !session.supportsSampling()) {
+      throw new McpSamplingNotSupportedException("Client does not support sampling");
+    }
+  }
+
+  private SamplingResult parseSamplingResponse(JsonNode rawResponse) {
+    JsonNode errorNode = rawResponse.get("error");
+    if (errorNode != null) {
+      throw new McpSamplingException("Client returned JSON-RPC error: " + errorNode);
+    }
+
+    JsonNode resultNode = rawResponse.get("result");
+    if (resultNode == null) {
+      resultNode = rawResponse;
+    }
+
+    String role = resultNode.has("role") ? resultNode.get("role").asString() : null;
+    JsonNode content = resultNode.get("content");
+    String model = resultNode.has("model") ? resultNode.get("model").asString() : null;
+    String stopReason =
+        resultNode.has("stopReason") ? resultNode.get("stopReason").asString() : null;
+
+    return new SamplingResult(role, content, model, stopReason);
   }
 
   private void requireElicitationSupport() {

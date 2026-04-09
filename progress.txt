@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T16:54:00-04:00
-ITERATION: 57
-SPEC_COMPLETED: 057-elicitation-schema-builder.md
-WHAT_WAS_DONE: Added ElicitationSchema builder with all MCP-spec property types (string, integer, number, boolean, enum, titled enum, multi-select, titled multi-select), TitledValue record, and new elicit(message, Consumer<Builder>) method on McpStreamContext.
-VERIFICATION: mvn verify — BUILD SUCCESS, 58/58 compat tests pass, 0 failures, all unit tests pass including new ElicitationSchemaTest and builder-based elicit tests in DefaultMcpStreamContextTest
+LAST_RUN: 2026-04-09T17:04:05-04:00
+ITERATION: 58
+SPEC_COMPLETED: 058-conformance-elicitation-sampling-tools.md
+WHAT_WAS_DONE: Added conformance tools (test_sampling, test_elicitation, test_elicitation_sep1034_defaults, test_elicitation_sep1330_enums), sample() method on McpStreamContext, completion/complete endpoint with CompletionsCapabilityDescriptor, and convenience aliases on ElicitationSchema.Builder (string, integer, number, bool, choose, chooseMany with enum support).
+VERIFICATION: mvn verify — BUILD SUCCESS, 58/58 compat tests pass, 0 failures, all unit tests pass
 STATUS: MORE_WORK
-NEXT_SPEC: 058-conformance-elicitation-sampling-tools.md
-NOTES: ElicitationSchema.Builder uses its own ObjectMapper for node creation during building; the final toObjectNode() accepts the caller's ObjectMapper. The new elicit() method reuses sendElicitationAndWait and adds parseRawResponse for JsonNode results without typed deserialization.
+NEXT_SPEC: none
+NOTES: Sampling reuses the same "elicit:" mailbox prefix since UUIDs ensure uniqueness — no controller changes needed. ElicitationSchema.Builder choose/chooseMany detect titled vs untitled enums by comparing toString() to name(). ServerCapabilities now has a 3-arg constructor (tools, logging, completions) with a 2-arg backward-compatible constructor.

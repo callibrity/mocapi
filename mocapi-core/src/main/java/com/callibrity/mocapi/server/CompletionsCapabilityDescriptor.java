@@ -15,15 +15,5 @@
  */
 package com.callibrity.mocapi.server;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record ServerCapabilities(
-    ToolsCapabilityDescriptor tools,
-    LoggingCapabilityDescriptor logging,
-    CompletionsCapabilityDescriptor completions) {
-
-  public ServerCapabilities(ToolsCapabilityDescriptor tools, LoggingCapabilityDescriptor logging) {
-    this(tools, logging, null);
-  }
-}
+/** Descriptor advertised in {@link ServerCapabilities} to indicate completion support. */
+public record CompletionsCapabilityDescriptor() {}

@@ -152,4 +152,17 @@ public interface McpStreamContext<O> {
    * @throws McpElicitationNotSupportedException if the client does not support elicitation
    */
   ElicitationResult<JsonNode> elicit(String message, Consumer<ElicitationSchema.Builder> schema);
+
+  /**
+   * Sends a {@code sampling/createMessage} request to the client, blocking until a response is
+   * received. The client's LLM processes the prompt and returns the result.
+   *
+   * @param prompt the user prompt text
+   * @param maxTokens the maximum number of tokens to generate
+   * @return the sampling result containing the LLM response
+   * @throws McpSamplingTimeoutException if the client does not respond within the timeout
+   * @throws McpSamplingException if the response cannot be processed
+   * @throws McpSamplingNotSupportedException if the client does not support sampling
+   */
+  SamplingResult sample(String prompt, int maxTokens);
 }

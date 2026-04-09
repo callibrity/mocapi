@@ -13,17 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server;
+package com.callibrity.mocapi.stream;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import tools.jackson.databind.JsonNode;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record ServerCapabilities(
-    ToolsCapabilityDescriptor tools,
-    LoggingCapabilityDescriptor logging,
-    CompletionsCapabilityDescriptor completions) {
+/**
+ * Result of a {@code sampling/createMessage} request to the client. Contains the raw JSON response
+ * from the LLM.
+ */
+public record SamplingResult(String role, JsonNode content, String model, String stopReason) {
 
-  public ServerCapabilities(ToolsCapabilityDescriptor tools, LoggingCapabilityDescriptor logging) {
-    this(tools, logging, null);
+  /** Extracts the text from the content node, if it is a text content block. */
+  public String text() {
+    if (content == null) {
+      return null;
+    }
+    JsonNode textNode = content.get("text");
+    return textNode != null ? textNode.asString() : null;
   }
 }
