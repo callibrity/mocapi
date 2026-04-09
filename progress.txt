@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T15:33:00-04:00
-ITERATION: 47
-SPEC_COMPLETED: 047-compat-ping-and-tools.md
-WHAT_WAS_DONE: Created PingIT (2 tests: ping returns empty result, ping echoes request id), ToolDiscoveryIT (5 tests: tools/list returns array, each tool has name, each tool has inputSchema, pagination shape, final page has null nextCursor), and ToolInvocationIT (4 tests: echo tool returns structured content, tool result has matching id, unknown tool returns JSON-RPC error, error tool returns JSON-RPC error not HTTP 500). Also registered Jackson3ParameterResolver bean in CompatApplication to work around auto-configuration ordering bug.
-VERIFICATION: mvn verify — BUILD SUCCESS (all 6 modules pass: parent, core 181 tests, starter, example 2 tests, compat 32 ITs, coverage)
+LAST_RUN: 2026-04-09T15:35:00-04:00
+ITERATION: 48
+SPEC_COMPLETED: 048-compat-notifications-and-client-responses.md
+WHAT_WAS_DONE: Created NotificationIT (3 tests: notification returns 202, notification has no body, unknown method notification returns 202) and ClientResponseIT (4 tests: client result returns 202, client error returns 202, client result without session returns 400, client error without session returns 400). All tests use McpClient from spec 043.
+VERIFICATION: mvn verify — BUILD SUCCESS (all 6 modules pass)
 STATUS: MORE_WORK
-NEXT_SPEC: 048-compat-notifications-and-client-responses.md
-NOTES: Discovered and worked around a bug in methodical-autoconfigure 0.2.0: Jackson3AutoConfiguration's @ConditionalOnBean(ObjectMapper.class) fails because it runs before Spring Boot's JacksonAutoConfiguration creates the ObjectMapper bean. This means Jackson3ParameterResolver is never registered, breaking all JSON-RPC parameter extraction (tools/call gets name=null). Fixed in CompatApplication by explicitly registering the bean. This same bug likely affects mocapi-example — HelloToolIT and Rot13ToolIT are not run by failsafe and would fail if they were. The root fix belongs in the methodical library: Jackson3AutoConfiguration needs @AutoConfiguration(after = JacksonAutoConfiguration.class).
+NEXT_SPEC: 049-compat-origin-and-sse.md
+NOTES: The notify() method on McpClient was already available and works well for notification tests. Client responses (result/error) required postRaw() since they lack a "method" field. The server correctly returns 202 Accepted with no body for both notifications and client responses, and 400 for missing session IDs.
