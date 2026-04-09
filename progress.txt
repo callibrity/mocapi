@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T14:49:37-04:00
-ITERATION: 42
-SPEC_COMPLETED: 042-use-jsonrpc-message-in-controller.md
-WHAT_WAS_DONE: Migrated to RipCurl 2.0.0-SNAPSHOT — POST handler uses JsonRpcMessage.parse() with pattern matching on JsonRpcCall/JsonRpcNotification/JsonRpcResult/JsonRpcError; eliminated all manual JsonNode field checking for message type detection; migrated JsonRpcRequest constructors to JsonRpcCall/JsonRpcNotification; outbound notifications use JsonRpcNotification.of()
-VERIFICATION: mvn verify — BUILD SUCCESS (all tests pass, spotless clean, license headers OK)
-STATUS: DONE
-NEXT_SPEC: none
-NOTES: Key changes: (1) pom.xml ripcurl.version 1.1.0 → 2.0.0-SNAPSHOT, (2) StreamableHttpController.handlePost() now parses with JsonRpcMessage.parse() and switches on 4 subtypes, (3) dispatch() accepts JsonRpcCall directly, (4) handleNotification() accepts JsonRpcNotification and passes it to dispatcher, (5) handleResponse() split into handleClientResult() and handleClientError() using typed JsonRpcResult/JsonRpcError, (6) DefaultMcpStreamContext.publishNotification() uses JsonRpcNotification.of(), (7) sendElicitationAndWait() uses JsonRpcCall.of(). IllegalArgumentException from parse() is caught and returned as 400 with -32600 error.
+LAST_RUN: 2026-04-09T15:06:12-04:00
+ITERATION: 43
+SPEC_COMPLETED: 043-compat-module-and-harness.md
+WHAT_WAS_DONE: Created mocapi-compat Maven module with deploy.skip, test application (CompatApplication), echo and error tools (CompatTools), random master key initializer, McpClient test helper with all specified methods, and a smoke integration test (SmokeIT) that verifies initialize → ping → delete end-to-end
+VERIFICATION: mvn verify — BUILD SUCCESS (all 6 modules pass: parent, core 181 tests, starter, example, compat 1 IT, coverage)
+STATUS: MORE_WORK
+NEXT_SPEC: 044-compat-post-and-content-negotiation.md
+NOTES: Module structure: all source in src/test/java (no main source). CompatTools registers "echo" and "error" tools. McpClient wraps MockMvc with MCP protocol methods. RandomMasterKeyInitializer generates a random Base64-encoded 32-byte key for mocapi.session-encryption-master-key. Substrate in-memory fallbacks auto-wire with expected warnings. Failsafe plugin requires explicit execution goals in the compat pom.
