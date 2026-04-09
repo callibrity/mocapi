@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T15:59:45-04:00
-ITERATION: 53
-SPEC_COMPLETED: 053-compat-sse-streaming-content.md
-WHAT_WAS_DONE: Added SSE streaming compat tests — streaming tool in CompatTools (uses McpStreamContext), StreamingToolIT with 5 tests verifying GET SSE content type, streaming vs non-streaming tool response types, and Last-Event-ID replay.
-VERIFICATION: mvn verify — BUILD SUCCESS (59 compat integration tests pass, all 5 modules green)
+LAST_RUN: 2026-04-09T16:15:11-04:00
+ITERATION: 54
+SPEC_COMPLETED: 054-encrypt-sse-event-ids.md
+WHAT_WAS_DONE: Moved all stream interactions behind McpSessionService with encrypted SSE event IDs. Added createStream, reconnectStream, subscribe, and encryptingMapper methods. Controller and McpToolMethods no longer reference OdysseyStreamRegistry. Session delete cleans up streams. Tampered Last-Event-ID returns 400.
+VERIFICATION: mvn verify — BUILD SUCCESS (188 unit tests, 58 integration tests, all 5 modules green)
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: The "invalid Last-Event-ID returns 400" acceptance criterion was deferred — event ID encryption is not yet implemented (spec 054-encrypt-sse-event-ids.md exists in specs/ but is not done). Without encrypted IDs, Odyssey treats unknown IDs as valid cursors. Added getWithLastEventId() helper to McpClient for future use. Pre-existing SseStreamIT failures (getWithoutSession→500, getWithUnknownSession→500) were already resolved in the codebase by the time full verify ran.
+NOTES: Updated Odyssey library to include SseEventMapper and StreamSubscriberBuilder APIs (local build installed). Event IDs are encrypted as Base64(AES-GCM(sessionId, "streamKey:eventId")) — uses lastIndexOf(':') to split since stream keys contain colons. Compat test for Last-Event-ID replay was replaced with tampered-ID-returns-400 test since valid encrypted IDs require real Odyssey event flow.

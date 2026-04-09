@@ -34,8 +34,6 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jwcarman.odyssey.core.OdysseyStream;
-import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.jwcarman.substrate.core.Mailbox;
 import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.http.HttpStatus;
@@ -69,7 +67,6 @@ public class StreamableHttpController {
   private final JsonRpcDispatcher dispatcher;
   private final McpRequestValidator validator;
   private final McpSessionService sessionService;
-  private final OdysseyStreamRegistry registry;
   private final ObjectMapper objectMapper;
   private final MailboxFactory mailboxFactory;
 
@@ -129,12 +126,14 @@ public class StreamableHttpController {
       return ResponseEntity.badRequest().build();
     }
 
-    OdysseyStream stream = registry.channel(sessionId);
-    if (lastEventId != null) {
-      return ResponseEntity.ok().body(stream.resumeAfter(lastEventId));
+    try {
+      if (lastEventId != null) {
+        return ResponseEntity.ok().body(sessionService.reconnectStream(sessionId, lastEventId));
+      }
+      return ResponseEntity.ok().body(sessionService.subscribe(sessionId));
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().build();
     }
-    stream.publishJson(Map.of());
-    return ResponseEntity.ok().body(stream.subscribe());
   }
 
   @DeleteMapping
@@ -153,7 +152,6 @@ public class StreamableHttpController {
           .body(Map.of("error", "Session not found or expired"));
     }
     sessionService.delete(sessionId);
-    registry.channel(sessionId).delete();
     return ResponseEntity.noContent().build();
   }
 

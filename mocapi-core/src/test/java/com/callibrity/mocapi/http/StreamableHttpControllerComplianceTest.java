@@ -52,6 +52,7 @@ import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
+import org.jwcarman.odyssey.core.StreamSubscriberBuilder;
 import org.jwcarman.substrate.core.Mailbox;
 import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.http.HttpStatus;
@@ -86,7 +87,10 @@ class StreamableHttpControllerComplianceTest {
     registry = mock(OdysseyStreamRegistry.class);
 
     OdysseyStream notificationStream = mock(OdysseyStream.class);
-    when(notificationStream.subscribe()).thenReturn(new SseEmitter());
+    StreamSubscriberBuilder subscriberBuilder = mock(StreamSubscriberBuilder.class);
+    when(subscriberBuilder.mapper(any())).thenReturn(subscriberBuilder);
+    when(subscriberBuilder.subscribe()).thenReturn(new SseEmitter());
+    when(notificationStream.subscriber()).thenReturn(subscriberBuilder);
     when(registry.channel(anyString())).thenReturn(notificationStream);
 
     OdysseyStream ephemeralStream = mock(OdysseyStream.class);
@@ -98,7 +102,7 @@ class StreamableHttpControllerComplianceTest {
 
     byte[] masterKey = new byte[32];
     new SecureRandom().nextBytes(masterKey);
-    sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT);
+    sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT, registry);
 
     McpSessionMethods serverMethods = new McpSessionMethods(initializeResponse);
     MethodInvokerFactory invokerFactory =
@@ -116,7 +120,7 @@ class StreamableHttpControllerComplianceTest {
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
     controller =
         new StreamableHttpController(
-            dispatcher, validator, sessionService, registry, objectMapper, mailboxFactory);
+            dispatcher, validator, sessionService, objectMapper, mailboxFactory);
   }
 
   @AfterEach

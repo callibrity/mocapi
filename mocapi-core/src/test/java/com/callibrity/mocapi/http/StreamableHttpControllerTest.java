@@ -94,14 +94,13 @@ class StreamableHttpControllerTest {
 
     byte[] masterKey = new byte[32];
     new SecureRandom().nextBytes(masterKey);
-    sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT);
+    sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT, registry);
 
     McpSessionMethods serverMethods = new McpSessionMethods(initializeResponse);
     McpToolMethods toolMethods =
         new McpToolMethods(
             toolsCapability,
             objectMapper,
-            registry,
             mock(MailboxFactory.class),
             mock(SchemaGenerator.class),
             sessionService,
@@ -124,7 +123,7 @@ class StreamableHttpControllerTest {
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
     controller =
         new StreamableHttpController(
-            dispatcher, validator, sessionService, registry, objectMapper, mailboxFactory);
+            dispatcher, validator, sessionService, objectMapper, mailboxFactory);
   }
 
   @AfterEach

@@ -85,25 +85,12 @@ class StreamingToolIT {
   }
 
   @Test
-  void lastEventIdReplayReturnsOk() throws Exception {
-    String sessionId = client.initialize();
-
-    // Open a GET stream to establish the channel and generate events
-    client.get(sessionId).andExpect(status().isOk());
-
-    // GET with a Last-Event-ID triggers the resumeAfter path and returns 200
-    client.getWithLastEventId(sessionId, "any-event-id").andExpect(status().isOk());
-  }
-
-  @Test
-  void lastEventIdReplayReturnsSseContentType() throws Exception {
+  void tamperedLastEventIdReturns400() throws Exception {
     String sessionId = client.initialize();
 
     client.get(sessionId).andExpect(status().isOk());
 
-    client
-        .getWithLastEventId(sessionId, "any-event-id")
-        .andExpect(status().isOk())
-        .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM));
+    // Tampered/unencrypted Last-Event-ID should be rejected
+    client.getWithLastEventId(sessionId, "tampered-event-id").andExpect(status().isBadRequest());
   }
 }

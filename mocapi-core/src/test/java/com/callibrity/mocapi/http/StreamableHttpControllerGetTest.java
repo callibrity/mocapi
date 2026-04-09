@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -32,12 +33,12 @@ import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
+import org.jwcarman.odyssey.core.StreamSubscriberBuilder;
 import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -59,8 +60,11 @@ class StreamableHttpControllerGetTest {
     registry = mock(OdysseyStreamRegistry.class);
 
     notificationStream = mock(OdysseyStream.class);
-    when(notificationStream.subscribe()).thenReturn(new SseEmitter());
-    when(notificationStream.resumeAfter(anyString())).thenReturn(new SseEmitter());
+    StreamSubscriberBuilder subscriberBuilder = mock(StreamSubscriberBuilder.class);
+    when(subscriberBuilder.mapper(any())).thenReturn(subscriberBuilder);
+    when(subscriberBuilder.subscribe()).thenReturn(new SseEmitter());
+    when(subscriberBuilder.resumeAfter(anyString())).thenReturn(new SseEmitter());
+    when(notificationStream.subscriber()).thenReturn(subscriberBuilder);
     when(registry.channel(anyString())).thenReturn(notificationStream);
 
     OdysseyStream ephemeralStream = mock(OdysseyStream.class);
@@ -72,7 +76,7 @@ class StreamableHttpControllerGetTest {
 
     byte[] masterKey = new byte[32];
     new SecureRandom().nextBytes(masterKey);
-    sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT);
+    sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT, registry);
 
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
     JsonRpcDispatcher dispatcher = new DefaultJsonRpcDispatcher(List.of());
@@ -80,7 +84,7 @@ class StreamableHttpControllerGetTest {
 
     controller =
         new StreamableHttpController(
-            dispatcher, validator, sessionService, registry, objectMapper, mailboxFactory);
+            dispatcher, validator, sessionService, objectMapper, mailboxFactory);
   }
 
   @AfterEach
@@ -125,21 +129,40 @@ class StreamableHttpControllerGetTest {
   }
 
   @Test
-  void shouldPublishPrimingEventAndSubscribeWithoutLastEventId() {
+  void shouldReturnSseEmitterWhenSubscribing() {
     String sessionId = createSession();
-    controller.handleGet(sessionId, null, null, SSE_ACCEPT, null);
+    var response = controller.handleGet(sessionId, null, null, SSE_ACCEPT, null);
 
-    verify(notificationStream).publishJson(Map.of());
-    verify(notificationStream).subscribe();
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
   }
 
   @Test
-  void shouldResumeAfterLastEventId() {
+  void shouldReturn400ForTamperedLastEventId() {
     String sessionId = createSession();
-    String lastEventId = "some-event-id";
-    controller.handleGet(sessionId, null, lastEventId, SSE_ACCEPT, null);
+    var response = controller.handleGet(sessionId, null, "tampered-id", SSE_ACCEPT, null);
 
-    verify(notificationStream).resumeAfter(lastEventId);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+  }
+
+  @Test
+  void shouldReconnectWithValidEncryptedLastEventId() {
+    String sessionId = createSession();
+    String streamKey = "odyssey:channel:" + sessionId;
+    String rawEventId = "raw-event-123";
+    OdysseyStream stream = mock(OdysseyStream.class);
+    StreamSubscriberBuilder builder = mock(StreamSubscriberBuilder.class);
+    when(builder.mapper(any())).thenReturn(builder);
+    when(builder.resumeAfter(rawEventId)).thenReturn(new SseEmitter());
+    when(stream.subscriber()).thenReturn(builder);
+    when(registry.stream(streamKey)).thenReturn(stream);
+
+    String encryptedId = sessionService.encrypt(sessionId, streamKey + ":" + rawEventId);
+    var response = controller.handleGet(sessionId, null, encryptedId, SSE_ACCEPT, null);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
+    verify(builder).resumeAfter(rawEventId);
   }
 
   @Test

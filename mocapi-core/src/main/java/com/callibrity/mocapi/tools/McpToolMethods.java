@@ -33,7 +33,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.Named;
 import org.jwcarman.odyssey.core.OdysseyStream;
-import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.JsonNode;
@@ -49,7 +48,6 @@ public class McpToolMethods {
 
   private final ToolsRegistry toolsRegistry;
   private final ObjectMapper objectMapper;
-  private final OdysseyStreamRegistry odysseyRegistry;
   private final MailboxFactory mailboxFactory;
   private final SchemaGenerator schemaGenerator;
   private final McpSessionService sessionService;
@@ -74,7 +72,7 @@ public class McpToolMethods {
     McpSession session = McpSession.CURRENT.get();
     String sessionId = session.sessionId();
 
-    OdysseyStream stream = odysseyRegistry.ephemeral();
+    OdysseyStream stream = sessionService.createStream(sessionId);
     DefaultMcpStreamContext<?> ctx =
         new DefaultMcpStreamContext<>(
             stream,
@@ -88,7 +86,8 @@ public class McpToolMethods {
             requestId);
 
     stream.publishJson(Map.of());
-    SseEmitter emitter = stream.subscribe();
+    SseEmitter emitter =
+        stream.subscriber().mapper(sessionService.encryptingMapper(sessionId)).subscribe();
 
     Thread.ofVirtual()
         .start(

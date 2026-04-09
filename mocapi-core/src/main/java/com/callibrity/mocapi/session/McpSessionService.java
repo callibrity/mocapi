@@ -20,24 +20,33 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.jwcarman.odyssey.core.OdysseyStream;
+import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
+import org.jwcarman.odyssey.core.SseEventMapper;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * Single public API for all session concerns — lifecycle, encryption, and lookup. The controller
- * and stream context interact with sessions through this service only.
+ * Single public API for all session concerns — lifecycle, encryption, lookup, and stream
+ * management. The controller and stream context interact with sessions and streams through this
+ * service only.
  */
 public class McpSessionService {
 
   private final McpSessionStore store;
   private final byte[] masterKey;
   private final Duration ttl;
+  private final OdysseyStreamRegistry streamRegistry;
 
-  public McpSessionService(McpSessionStore store, byte[] masterKey, Duration ttl) {
+  public McpSessionService(
+      McpSessionStore store, byte[] masterKey, Duration ttl, OdysseyStreamRegistry streamRegistry) {
     Ciphers.validateAesGcmKey(masterKey);
     this.store = store;
     this.masterKey = masterKey.clone();
     this.ttl = ttl;
+    this.streamRegistry = streamRegistry;
   }
 
   /** Generates a session ID, saves the session to the store, and returns the ID. */
@@ -57,9 +66,73 @@ public class McpSessionService {
     return result;
   }
 
-  /** Removes a session from the store. */
+  /** Removes a session and its notification channel from the store. */
   public void delete(String sessionId) {
     store.delete(sessionId);
+    streamRegistry.channel(sessionId).delete();
+  }
+
+  /**
+   * Creates a new SSE stream bound to this session. Event IDs are encrypted with session-bound
+   * keys.
+   *
+   * @param sessionId the session that owns the stream
+   * @return a new ephemeral stream with encrypted event IDs
+   */
+  public OdysseyStream createStream(String sessionId) {
+    return streamRegistry.ephemeral();
+  }
+
+  /**
+   * Returns an encrypting {@link SseEventMapper} bound to the given session. The mapper encrypts
+   * each event's ID as {@code streamKey:eventId} using the session's encryption key.
+   *
+   * @param sessionId the session ID used for key derivation
+   * @return an event mapper that encrypts event IDs
+   */
+  public SseEventMapper encryptingMapper(String sessionId) {
+    return event -> {
+      String plaintext = event.streamKey() + ":" + event.id();
+      String encryptedId = encrypt(sessionId, plaintext);
+      SseEmitter.SseEventBuilder builder = SseEmitter.event().id(encryptedId).data(event.payload());
+      if (event.eventType() != null) {
+        builder.name(event.eventType());
+      }
+      return builder;
+    };
+  }
+
+  /**
+   * Reconnects to an existing SSE stream. Decrypts {@code lastEventId} to find the stream key and
+   * resume position.
+   *
+   * @param sessionId the session ID for decryption
+   * @param lastEventId the encrypted Last-Event-ID from the client
+   * @return an SSE emitter that replays missed events then continues live
+   * @throws IllegalArgumentException if the token is tampered, from a wrong session, or malformed
+   */
+  public SseEmitter reconnectStream(String sessionId, String lastEventId) {
+    String plaintext = decrypt(sessionId, lastEventId);
+    int colonIndex = plaintext.lastIndexOf(':');
+    if (colonIndex < 0) {
+      throw new IllegalArgumentException("Invalid encrypted event ID format");
+    }
+    String streamKey = plaintext.substring(0, colonIndex);
+    String rawEventId = plaintext.substring(colonIndex + 1);
+    OdysseyStream stream = streamRegistry.stream(streamKey);
+    return stream.subscriber().mapper(encryptingMapper(sessionId)).resumeAfter(rawEventId);
+  }
+
+  /**
+   * Opens a new subscription on the session's notification channel. Event IDs are encrypted.
+   *
+   * @param sessionId the session whose channel to subscribe to
+   * @return an SSE emitter delivering notification events with encrypted IDs
+   */
+  public SseEmitter subscribe(String sessionId) {
+    OdysseyStream channel = streamRegistry.channel(sessionId);
+    channel.publishJson(Map.of());
+    return channel.subscriber().mapper(encryptingMapper(sessionId)).subscribe();
   }
 
   /** Updates the log level for the given session. */

@@ -88,9 +88,10 @@ public class MocapiAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpSessionService mcpSessionService(McpSessionStore store) {
+  public McpSessionService mcpSessionService(
+      McpSessionStore store, OdysseyStreamRegistry streamRegistry) {
     byte[] masterKey = Base64.getDecoder().decode(props.getSessionEncryptionMasterKey());
-    return new McpSessionService(store, masterKey, props.getSessionTimeout());
+    return new McpSessionService(store, masterKey, props.getSessionTimeout(), streamRegistry);
   }
 
   @Bean
@@ -117,14 +118,12 @@ public class MocapiAutoConfiguration {
   public McpToolMethods mcpToolMethods(
       ToolsRegistry toolsRegistry,
       ObjectMapper objectMapper,
-      OdysseyStreamRegistry odysseyRegistry,
       MailboxFactory mailboxFactory,
       SchemaGenerator schemaGenerator,
       McpSessionService sessionService) {
     return new McpToolMethods(
         toolsRegistry,
         objectMapper,
-        odysseyRegistry,
         mailboxFactory,
         schemaGenerator,
         sessionService,
@@ -148,10 +147,9 @@ public class MocapiAutoConfiguration {
       JsonRpcDispatcher dispatcher,
       McpRequestValidator mcpRequestValidator,
       McpSessionService sessionService,
-      OdysseyStreamRegistry registry,
       ObjectMapper objectMapper,
       MailboxFactory mailboxFactory) {
     return new StreamableHttpController(
-        dispatcher, mcpRequestValidator, sessionService, registry, objectMapper, mailboxFactory);
+        dispatcher, mcpRequestValidator, sessionService, objectMapper, mailboxFactory);
   }
 }

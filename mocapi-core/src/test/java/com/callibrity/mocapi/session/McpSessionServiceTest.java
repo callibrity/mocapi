@@ -29,6 +29,9 @@ import java.time.Duration;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.odyssey.core.OdysseyStream;
+import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
+import org.jwcarman.odyssey.core.StreamSubscriberBuilder;
 
 class McpSessionServiceTest {
 
@@ -37,18 +40,22 @@ class McpSessionServiceTest {
   private McpSessionStore store;
   private McpSessionService service;
   private byte[] masterKey;
+  private OdysseyStreamRegistry streamRegistry;
 
   @BeforeEach
   void setUp() {
     store = mock(McpSessionStore.class);
+    streamRegistry = mock(OdysseyStreamRegistry.class);
+    OdysseyStream channelStream = mock(OdysseyStream.class);
+    when(streamRegistry.channel(any())).thenReturn(channelStream);
     masterKey = new byte[32];
     new SecureRandom().nextBytes(masterKey);
-    service = new McpSessionService(store, masterKey, TTL);
+    service = new McpSessionService(store, masterKey, TTL, streamRegistry);
   }
 
   @Test
   void constructorRejectsInvalidKey() {
-    assertThatThrownBy(() -> new McpSessionService(store, new byte[16], TTL))
+    assertThatThrownBy(() -> new McpSessionService(store, new byte[16], TTL, streamRegistry))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -84,9 +91,14 @@ class McpSessionServiceTest {
   }
 
   @Test
-  void deleteDelegatesToStore() {
+  void deleteDelegatesToStoreAndCleansUpStream() {
+    OdysseyStream channelStream = mock(OdysseyStream.class);
+    when(streamRegistry.channel("sess-123")).thenReturn(channelStream);
+
     service.delete("sess-123");
+
     verify(store).delete("sess-123");
+    verify(channelStream).delete();
   }
 
   @Test
@@ -146,5 +158,86 @@ class McpSessionServiceTest {
     String encrypted1 = service.encrypt("sess-A", "same-data");
     String encrypted2 = service.encrypt("sess-B", "same-data");
     assertThat(encrypted1).isNotEqualTo(encrypted2);
+  }
+
+  @Test
+  void createStreamDelegatesToRegistry() {
+    OdysseyStream ephemeral = mock(OdysseyStream.class);
+    when(streamRegistry.ephemeral()).thenReturn(ephemeral);
+
+    OdysseyStream result = service.createStream("sess-123");
+
+    assertThat(result).isSameAs(ephemeral);
+    verify(streamRegistry).ephemeral();
+  }
+
+  @Test
+  void subscribeCreatesChannelAndReturnsEmitter() {
+    OdysseyStream channel = mock(OdysseyStream.class);
+    StreamSubscriberBuilder builder = mock(StreamSubscriberBuilder.class);
+    when(builder.mapper(any())).thenReturn(builder);
+    when(builder.subscribe())
+        .thenReturn(new org.springframework.web.servlet.mvc.method.annotation.SseEmitter());
+    when(channel.subscriber()).thenReturn(builder);
+    when(streamRegistry.channel("sess-123")).thenReturn(channel);
+
+    var emitter = service.subscribe("sess-123");
+
+    assertThat(emitter).isNotNull();
+    verify(channel).publishJson(any());
+    verify(builder).mapper(any());
+    verify(builder).subscribe();
+  }
+
+  @Test
+  void reconnectStreamDecryptsAndResumesAfter() {
+    String sessionId = "sess-123";
+    String streamKey = "odyssey:ephemeral:abc";
+    String rawEventId = "event-456";
+    String encrypted = service.encrypt(sessionId, streamKey + ":" + rawEventId);
+
+    OdysseyStream stream = mock(OdysseyStream.class);
+    StreamSubscriberBuilder builder = mock(StreamSubscriberBuilder.class);
+    when(builder.mapper(any())).thenReturn(builder);
+    when(builder.resumeAfter(rawEventId))
+        .thenReturn(new org.springframework.web.servlet.mvc.method.annotation.SseEmitter());
+    when(stream.subscriber()).thenReturn(builder);
+    when(streamRegistry.stream(streamKey)).thenReturn(stream);
+
+    var emitter = service.reconnectStream(sessionId, encrypted);
+
+    assertThat(emitter).isNotNull();
+    verify(streamRegistry).stream(streamKey);
+    verify(builder).resumeAfter(rawEventId);
+  }
+
+  @Test
+  void reconnectStreamRejectsTamperedToken() {
+    assertThatThrownBy(() -> service.reconnectStream("sess-123", "tampered-garbage"))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void reconnectStreamRejectsWrongSession() {
+    String encrypted = service.encrypt("sess-A", "key:id");
+
+    assertThatThrownBy(() -> service.reconnectStream("sess-B", encrypted))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void encryptingMapperEncryptsEventId() {
+    String sessionId = "sess-123";
+    var mapper = service.encryptingMapper(sessionId);
+
+    var event =
+        org.jwcarman.odyssey.core.OdysseyEvent.builder()
+            .id("raw-id")
+            .streamKey("my-stream")
+            .payload("{}")
+            .build();
+
+    var sseEvent = mapper.map(event);
+    assertThat(sseEvent).isNotNull();
   }
 }
