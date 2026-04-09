@@ -81,6 +81,7 @@ public class StreamableHttpController {
       @RequestHeader(value = "Accept", required = false) String accept,
       @RequestHeader(value = "Origin", required = false) String origin) {
 
+    log.debug("Received POST: {}", body);
     if (!acceptsJsonAndSse(accept)) {
       return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
     }
