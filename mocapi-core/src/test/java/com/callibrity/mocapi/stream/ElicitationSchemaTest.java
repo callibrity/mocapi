@@ -234,6 +234,136 @@ class ElicitationSchemaTest {
     assertThat(node.get("required")).hasSize(1);
   }
 
+  // --- Sub-builder constraint tests ---
+
+  @Test
+  void stringSubBuilderShouldSupportTitle() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.string("name", "Name").title("Full Name");
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("name");
+
+    assertThat(prop.get("type").asString()).isEqualTo("string");
+    assertThat(prop.get("title").asString()).isEqualTo("Full Name");
+  }
+
+  @Test
+  void stringSubBuilderShouldSupportMinAndMaxLength() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.string("code", "Zip code").minLength(5).maxLength(5);
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("code");
+
+    assertThat(prop.get("minLength").asInt()).isEqualTo(5);
+    assertThat(prop.get("maxLength").asInt()).isEqualTo(5);
+  }
+
+  @Test
+  void stringSubBuilderShouldSupportPattern() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.string("code", "Zip code").pattern("^\\d{5}$");
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("code");
+
+    assertThat(prop.get("pattern").asString()).isEqualTo("^\\d{5}$");
+  }
+
+  @Test
+  void stringSubBuilderShouldSupportFormat() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.string("email", "Email address").format("email");
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("email");
+
+    assertThat(prop.get("format").asString()).isEqualTo("email");
+  }
+
+  @Test
+  void stringSubBuilderShouldChainMultipleConstraints() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.string("code", "Zip code").pattern("^\\d{5}$").maxLength(5).title("ZIP");
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("code");
+
+    assertThat(prop.get("pattern").asString()).isEqualTo("^\\d{5}$");
+    assertThat(prop.get("maxLength").asInt()).isEqualTo(5);
+    assertThat(prop.get("title").asString()).isEqualTo("ZIP");
+  }
+
+  @Test
+  void integerSubBuilderShouldSupportTitleAndMinMax() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.integer("age", "Age").title("Your Age").minimum(0).maximum(150);
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("age");
+
+    assertThat(prop.get("type").asString()).isEqualTo("integer");
+    assertThat(prop.get("title").asString()).isEqualTo("Your Age");
+    assertThat(prop.get("minimum").asDouble()).isEqualTo(0.0);
+    assertThat(prop.get("maximum").asDouble()).isEqualTo(150.0);
+  }
+
+  @Test
+  void numberSubBuilderShouldSupportMinMax() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.number("score", "Score").minimum(0.0).maximum(100.0);
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("score");
+
+    assertThat(prop.get("type").asString()).isEqualTo("number");
+    assertThat(prop.get("minimum").asDouble()).isEqualTo(0.0);
+    assertThat(prop.get("maximum").asDouble()).isEqualTo(100.0);
+  }
+
+  @Test
+  void boolSubBuilderShouldSupportTitle() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.bool("active", "Is active").title("Active Status");
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("active");
+
+    assertThat(prop.get("type").asString()).isEqualTo("boolean");
+    assertThat(prop.get("title").asString()).isEqualTo("Active Status");
+  }
+
+  enum Tag {
+    JAVA,
+    PYTHON,
+    GO
+  }
+
+  @Test
+  void chooseManySubBuilderShouldSupportMaxItems() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.chooseMany("tags", Tag.class).maxItems(3);
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
+
+    assertThat(prop.get("type").asString()).isEqualTo("array");
+    assertThat(prop.get("maxItems").asInt()).isEqualTo(3);
+  }
+
+  @Test
+  void chooseManySubBuilderShouldSupportMinItems() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.chooseMany("tags", Tag.class).minItems(1).maxItems(3);
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
+
+    assertThat(prop.get("minItems").asInt()).isEqualTo(1);
+    assertThat(prop.get("maxItems").asInt()).isEqualTo(3);
+  }
+
   @Test
   void multiplePropertyTypesShouldCoexist() {
     ElicitationSchema schema =

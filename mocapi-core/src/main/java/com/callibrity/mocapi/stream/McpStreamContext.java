@@ -18,7 +18,6 @@ package com.callibrity.mocapi.stream;
 import com.callibrity.mocapi.session.LogLevel;
 import java.util.function.Consumer;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.JsonNode;
 
 /**
  * Handle that MCP handler methods can declare as a parameter to opt into SSE streaming. Provides
@@ -124,7 +123,7 @@ public interface McpStreamContext<O> {
    * @throws McpElicitationException if the response fails schema validation
    * @throws McpElicitationNotSupportedException if the client does not support elicitation
    */
-  <T> ElicitationResult<T> elicitForm(String message, Class<T> type);
+  <T> BeanElicitationResult<T> elicitForm(String message, Class<T> type);
 
   /**
    * Sends an elicitation request to the client, blocking until a response is received. The client
@@ -138,7 +137,7 @@ public interface McpStreamContext<O> {
    * @throws McpElicitationException if the response fails schema validation
    * @throws McpElicitationNotSupportedException if the client does not support elicitation
    */
-  <T> ElicitationResult<T> elicitForm(String message, TypeReference<T> type);
+  <T> BeanElicitationResult<T> elicitForm(String message, TypeReference<T> type);
 
   /**
    * Sends an elicitation request to the client using a builder-constructed schema, blocking until a
@@ -146,12 +145,12 @@ public interface McpStreamContext<O> {
    *
    * @param message the message to display to the user
    * @param schema a consumer that configures the {@link ElicitationSchema.Builder}
-   * @return the elicitation result containing the client's action and raw JSON content
+   * @return the elicitation result containing the client's action and typed getters for content
    * @throws McpElicitationTimeoutException if the client does not respond within the timeout
    * @throws McpElicitationException if the response fails schema validation
    * @throws McpElicitationNotSupportedException if the client does not support elicitation
    */
-  ElicitationResult<JsonNode> elicit(String message, Consumer<ElicitationSchema.Builder> schema);
+  ElicitationResult elicit(String message, Consumer<ElicitationSchema.Builder> schema);
 
   /**
    * Sends a {@code sampling/createMessage} request to the client, blocking until a response is

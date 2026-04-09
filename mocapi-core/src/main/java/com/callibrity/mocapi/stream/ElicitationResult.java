@@ -15,28 +15,80 @@
  */
 package com.callibrity.mocapi.stream;
 
+import java.util.ArrayList;
+import java.util.List;
+import tools.jackson.databind.JsonNode;
+
 /**
- * The result of an MCP elicitation request. Contains the client's action and, for accepted
- * responses, the typed content deserialized from the client's form data.
- *
- * @param action the action taken by the client
- * @param content the typed content (null for decline/cancel actions)
- * @param <T> the type of the elicitation content
+ * The result of a builder-based MCP elicitation request. Contains the client's action and provides
+ * typed getters for accessing individual fields from the response content. This is the return type
+ * of {@link McpStreamContext#elicit(String, java.util.function.Consumer)}.
  */
-public record ElicitationResult<T>(ElicitationAction action, T content) {
+public final class ElicitationResult {
+
+  private final ElicitationAction action;
+  private final JsonNode content;
+
+  public ElicitationResult(ElicitationAction action, JsonNode content) {
+    this.action = action;
+    this.content = content;
+  }
+
+  /** Returns the action taken by the client. */
+  public ElicitationAction action() {
+    return action;
+  }
 
   /** Returns true if the client accepted the elicitation and provided content. */
-  public boolean accepted() {
+  public boolean isAccepted() {
     return action == ElicitationAction.ACCEPT;
   }
 
-  /** Returns true if the client declined the elicitation. */
-  public boolean declined() {
-    return action == ElicitationAction.DECLINE;
+  /** Returns the string value of the named property. */
+  public String getString(String name) {
+    requireAccepted();
+    return content.get(name).asString();
   }
 
-  /** Returns true if the client cancelled the elicitation. */
-  public boolean cancelled() {
-    return action == ElicitationAction.CANCEL;
+  /** Returns the integer value of the named property. */
+  public int getInteger(String name) {
+    requireAccepted();
+    return content.get(name).asInt();
+  }
+
+  /** Returns the double value of the named property. */
+  public double getNumber(String name) {
+    requireAccepted();
+    return content.get(name).asDouble();
+  }
+
+  /** Returns the boolean value of the named property. */
+  public boolean getBool(String name) {
+    requireAccepted();
+    return content.get(name).asBoolean();
+  }
+
+  /** Returns the enum value of the named single-select property. */
+  public <E extends Enum<E>> E getChoice(String name, Class<E> enumType) {
+    requireAccepted();
+    return Enum.valueOf(enumType, content.get(name).asString());
+  }
+
+  /** Returns the list of enum values of the named multi-select property. */
+  public <E extends Enum<E>> List<E> getChoices(String name, Class<E> enumType) {
+    requireAccepted();
+    JsonNode arrayNode = content.get(name);
+    List<E> result = new ArrayList<>();
+    for (JsonNode element : arrayNode) {
+      result.add(Enum.valueOf(enumType, element.asString()));
+    }
+    return result;
+  }
+
+  private void requireAccepted() {
+    if (action != ElicitationAction.ACCEPT) {
+      throw new IllegalStateException(
+          "Cannot access content: elicitation was not accepted (action=" + action + ")");
+    }
   }
 }

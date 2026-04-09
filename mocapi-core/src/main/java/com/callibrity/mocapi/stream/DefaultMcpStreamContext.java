@@ -130,14 +130,14 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
   }
 
   @Override
-  public <T> ElicitationResult<T> elicitForm(String message, Class<T> type) {
+  public <T> BeanElicitationResult<T> elicitForm(String message, Class<T> type) {
     requireElicitationSupport();
     ObjectNode schemaNode = generateSchema(type);
     return doElicit(message, schemaNode, type);
   }
 
   @Override
-  public <T> ElicitationResult<T> elicitForm(String message, TypeReference<T> type) {
+  public <T> BeanElicitationResult<T> elicitForm(String message, TypeReference<T> type) {
     requireElicitationSupport();
     Class<?> rawType = objectMapper.constructType(type).getRawClass();
     ObjectNode schemaNode = generateSchema(rawType);
@@ -145,8 +145,7 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
   }
 
   @Override
-  public ElicitationResult<JsonNode> elicit(
-      String message, Consumer<ElicitationSchema.Builder> schema) {
+  public ElicitationResult elicit(String message, Consumer<ElicitationSchema.Builder> schema) {
     requireElicitationSupport();
     ElicitationSchema.Builder builder = ElicitationSchema.builder();
     schema.accept(builder);
@@ -260,12 +259,13 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
     return schemaNode;
   }
 
-  private <T> ElicitationResult<T> doElicit(String message, ObjectNode schemaNode, Class<T> type) {
+  private <T> BeanElicitationResult<T> doElicit(
+      String message, ObjectNode schemaNode, Class<T> type) {
     JsonNode rawResponse = sendElicitationAndWait(message, schemaNode);
     return parseResponse(rawResponse, schemaNode, type);
   }
 
-  private <T> ElicitationResult<T> doElicit(
+  private <T> BeanElicitationResult<T> doElicit(
       String message, ObjectNode schemaNode, TypeReference<T> type) {
     JsonNode rawResponse = sendElicitationAndWait(message, schemaNode);
     return parseResponse(rawResponse, schemaNode, type);
@@ -297,39 +297,38 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
     }
   }
 
-  private <T> ElicitationResult<T> parseResponse(
+  private <T> BeanElicitationResult<T> parseResponse(
       JsonNode rawResponse, ObjectNode schemaNode, Class<T> type) {
     ElicitationAction action = extractAction(rawResponse);
     if (action != ElicitationAction.ACCEPT) {
-      return new ElicitationResult<>(action, null);
+      return new BeanElicitationResult<>(action, null);
     }
     JsonNode content = extractContent(rawResponse);
     validateContent(content, schemaNode);
     T typed = objectMapper.treeToValue(content, type);
-    return new ElicitationResult<>(action, typed);
+    return new BeanElicitationResult<>(action, typed);
   }
 
-  private <T> ElicitationResult<T> parseResponse(
+  private <T> BeanElicitationResult<T> parseResponse(
       JsonNode rawResponse, ObjectNode schemaNode, TypeReference<T> type) {
     ElicitationAction action = extractAction(rawResponse);
     if (action != ElicitationAction.ACCEPT) {
-      return new ElicitationResult<>(action, null);
+      return new BeanElicitationResult<>(action, null);
     }
     JsonNode content = extractContent(rawResponse);
     validateContent(content, schemaNode);
     T typed = objectMapper.treeToValue(content, type);
-    return new ElicitationResult<>(action, typed);
+    return new BeanElicitationResult<>(action, typed);
   }
 
-  private ElicitationResult<JsonNode> parseRawResponse(
-      JsonNode rawResponse, ObjectNode schemaNode) {
+  private ElicitationResult parseRawResponse(JsonNode rawResponse, ObjectNode schemaNode) {
     ElicitationAction action = extractAction(rawResponse);
     if (action != ElicitationAction.ACCEPT) {
-      return new ElicitationResult<>(action, null);
+      return new ElicitationResult(action, null);
     }
     JsonNode content = extractContent(rawResponse);
     validateContent(content, schemaNode);
-    return new ElicitationResult<>(action, content);
+    return new ElicitationResult(action, content);
   }
 
   private ElicitationAction extractAction(JsonNode rawResponse) {

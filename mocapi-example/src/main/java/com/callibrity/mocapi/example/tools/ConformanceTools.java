@@ -15,7 +15,6 @@
  */
 package com.callibrity.mocapi.example.tools;
 
-import com.callibrity.mocapi.stream.ElicitationResult;
 import com.callibrity.mocapi.stream.McpStreamContext;
 import com.callibrity.mocapi.stream.SamplingResult;
 import com.callibrity.mocapi.tools.ToolsRegistry.AudioContent;
@@ -28,7 +27,6 @@ import com.callibrity.mocapi.tools.annotation.Tool;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import java.util.Base64;
 import java.util.List;
-import tools.jackson.databind.JsonNode;
 
 /** Tools required by the MCP conformance test suite ({@code @modelcontextprotocol/conformance}). */
 @ToolService
@@ -270,21 +268,19 @@ public class ConformanceTools {
 
   @Tool(name = "test_elicitation", description = "Tests elicitation/create for conformance")
   public CallToolResponse testElicitation(String message, McpStreamContext<CallToolResponse> ctx) {
-    ElicitationResult<JsonNode> result =
+    var result =
         ctx.elicit(
             message,
-            schema ->
-                schema
-                    .string("username", "User's response")
-                    .string("email", "User's email address")
-                    .required("username", "email"));
+            schema -> {
+              schema.string("username", "User's response");
+              schema.string("email", "User's email address");
+              schema.required("username", "email");
+            });
+    String content = result.isAccepted() ? result.getString("username") : "n/a";
     return new CallToolResponse(
         List.of(
             new TextContent(
-                "User response: action="
-                    + result.action().getValue()
-                    + ", content="
-                    + result.content())),
+                "User response: action=" + result.action().getValue() + ", content=" + content)),
         null,
         null);
   }
@@ -299,23 +295,18 @@ public class ConformanceTools {
       name = "test_elicitation_sep1034_defaults",
       description = "Tests elicitation with default values for conformance")
   public CallToolResponse testElicitationDefaults(McpStreamContext<CallToolResponse> ctx) {
-    ElicitationResult<JsonNode> result =
+    var result =
         ctx.elicit(
             "Enter defaults test data",
-            schema ->
-                schema
-                    .string("name", "Name", "John Doe")
-                    .integer("age", "Age", 30)
-                    .number("score", "Score", 95.5)
-                    .choose("status", DefaultsStatus.class, DefaultsStatus.ACTIVE)
-                    .bool("verified", "Verified", true));
+            schema -> {
+              schema.string("name", "Name", "John Doe");
+              schema.integer("age", "Age", 30);
+              schema.number("score", "Score", 95.5);
+              schema.choose("status", DefaultsStatus.class, DefaultsStatus.ACTIVE);
+              schema.bool("verified", "Verified", true);
+            });
     return new CallToolResponse(
-        List.of(
-            new TextContent(
-                "Elicitation completed: action="
-                    + result.action().getValue()
-                    + ", content="
-                    + result.content())),
+        List.of(new TextContent("Elicitation completed: action=" + result.action().getValue())),
         null,
         null);
   }
@@ -347,22 +338,17 @@ public class ConformanceTools {
       name = "test_elicitation_sep1330_enums",
       description = "Tests elicitation with enum variants for conformance")
   public CallToolResponse testElicitationEnums(McpStreamContext<CallToolResponse> ctx) {
-    ElicitationResult<JsonNode> result =
+    var result =
         ctx.elicit(
             "Enum variants test",
-            schema ->
-                schema
-                    .choose("untitled_single", UntitledOption.class)
-                    .choose("titled_single", TitledOption.class)
-                    .chooseMany("untitled_multi", UntitledOption.class)
-                    .chooseMany("titled_multi", TitledOption.class));
+            schema -> {
+              schema.choose("untitled_single", UntitledOption.class);
+              schema.choose("titled_single", TitledOption.class);
+              schema.chooseMany("untitled_multi", UntitledOption.class);
+              schema.chooseMany("titled_multi", TitledOption.class);
+            });
     return new CallToolResponse(
-        List.of(
-            new TextContent(
-                "Elicitation completed: action="
-                    + result.action().getValue()
-                    + ", content="
-                    + result.content())),
+        List.of(new TextContent("Elicitation completed: action=" + result.action().getValue())),
         null,
         null);
   }

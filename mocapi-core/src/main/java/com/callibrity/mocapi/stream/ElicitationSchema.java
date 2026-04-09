@@ -69,6 +69,101 @@ public final class ElicitationSchema {
     return schema;
   }
 
+  /** Sub-builder for string property constraints. */
+  public static final class StringPropertyBuilder {
+
+    private final ObjectNode prop;
+
+    StringPropertyBuilder(ObjectNode prop) {
+      this.prop = prop;
+    }
+
+    public StringPropertyBuilder title(String title) {
+      prop.put("title", title);
+      return this;
+    }
+
+    public StringPropertyBuilder minLength(int minLength) {
+      prop.put("minLength", minLength);
+      return this;
+    }
+
+    public StringPropertyBuilder maxLength(int maxLength) {
+      prop.put("maxLength", maxLength);
+      return this;
+    }
+
+    public StringPropertyBuilder pattern(String pattern) {
+      prop.put("pattern", pattern);
+      return this;
+    }
+
+    public StringPropertyBuilder format(String format) {
+      prop.put("format", format);
+      return this;
+    }
+  }
+
+  /** Sub-builder for numeric (integer/number) property constraints. */
+  public static final class NumericPropertyBuilder {
+
+    private final ObjectNode prop;
+
+    NumericPropertyBuilder(ObjectNode prop) {
+      this.prop = prop;
+    }
+
+    public NumericPropertyBuilder title(String title) {
+      prop.put("title", title);
+      return this;
+    }
+
+    public NumericPropertyBuilder minimum(Number minimum) {
+      prop.put("minimum", minimum.doubleValue());
+      return this;
+    }
+
+    public NumericPropertyBuilder maximum(Number maximum) {
+      prop.put("maximum", maximum.doubleValue());
+      return this;
+    }
+  }
+
+  /** Sub-builder for boolean property constraints. */
+  public static final class BooleanPropertyBuilder {
+
+    private final ObjectNode prop;
+
+    BooleanPropertyBuilder(ObjectNode prop) {
+      this.prop = prop;
+    }
+
+    public BooleanPropertyBuilder title(String title) {
+      prop.put("title", title);
+      return this;
+    }
+  }
+
+  /** Sub-builder for multi-select (array) property constraints. */
+  public static final class MultiSelectPropertyBuilder {
+
+    private final ObjectNode prop;
+
+    MultiSelectPropertyBuilder(ObjectNode prop) {
+      this.prop = prop;
+    }
+
+    public MultiSelectPropertyBuilder minItems(int minItems) {
+      prop.put("minItems", minItems);
+      return this;
+    }
+
+    public MultiSelectPropertyBuilder maxItems(int maxItems) {
+      prop.put("maxItems", maxItems);
+      return this;
+    }
+  }
+
   /** Builder for constructing {@link ElicitationSchema} instances. */
   public static final class Builder {
 
@@ -216,38 +311,82 @@ public final class ElicitationSchema {
       return this;
     }
 
-    // --- Convenience aliases ---
+    // --- Convenience aliases that return sub-builders ---
 
-    public Builder string(String name, String description) {
-      return stringProperty(name, description);
+    public StringPropertyBuilder string(String name, String description) {
+      requireUniqueName(name);
+      ObjectNode prop = objectMapper.createObjectNode();
+      prop.put("type", "string");
+      prop.put("description", description);
+      properties.put(name, prop);
+      return new StringPropertyBuilder(prop);
     }
 
-    public Builder string(String name, String description, String defaultValue) {
-      return stringProperty(name, description, defaultValue);
+    public StringPropertyBuilder string(String name, String description, String defaultValue) {
+      requireUniqueName(name);
+      ObjectNode prop = objectMapper.createObjectNode();
+      prop.put("type", "string");
+      prop.put("description", description);
+      prop.put("default", defaultValue);
+      properties.put(name, prop);
+      return new StringPropertyBuilder(prop);
     }
 
-    public Builder integer(String name, String description) {
-      return integerProperty(name, description);
+    public NumericPropertyBuilder integer(String name, String description) {
+      requireUniqueName(name);
+      ObjectNode prop = objectMapper.createObjectNode();
+      prop.put("type", "integer");
+      prop.put("description", description);
+      properties.put(name, prop);
+      return new NumericPropertyBuilder(prop);
     }
 
-    public Builder integer(String name, String description, int defaultValue) {
-      return integerProperty(name, description, defaultValue);
+    public NumericPropertyBuilder integer(String name, String description, int defaultValue) {
+      requireUniqueName(name);
+      ObjectNode prop = objectMapper.createObjectNode();
+      prop.put("type", "integer");
+      prop.put("description", description);
+      prop.put("default", defaultValue);
+      properties.put(name, prop);
+      return new NumericPropertyBuilder(prop);
     }
 
-    public Builder number(String name, String description) {
-      return numberProperty(name, description);
+    public NumericPropertyBuilder number(String name, String description) {
+      requireUniqueName(name);
+      ObjectNode prop = objectMapper.createObjectNode();
+      prop.put("type", "number");
+      prop.put("description", description);
+      properties.put(name, prop);
+      return new NumericPropertyBuilder(prop);
     }
 
-    public Builder number(String name, String description, double defaultValue) {
-      return numberProperty(name, description, defaultValue);
+    public NumericPropertyBuilder number(String name, String description, double defaultValue) {
+      requireUniqueName(name);
+      ObjectNode prop = objectMapper.createObjectNode();
+      prop.put("type", "number");
+      prop.put("description", description);
+      prop.put("default", defaultValue);
+      properties.put(name, prop);
+      return new NumericPropertyBuilder(prop);
     }
 
-    public Builder bool(String name, String description) {
-      return booleanProperty(name, description);
+    public BooleanPropertyBuilder bool(String name, String description) {
+      requireUniqueName(name);
+      ObjectNode prop = objectMapper.createObjectNode();
+      prop.put("type", "boolean");
+      prop.put("description", description);
+      properties.put(name, prop);
+      return new BooleanPropertyBuilder(prop);
     }
 
-    public Builder bool(String name, String description, boolean defaultValue) {
-      return booleanProperty(name, description, defaultValue);
+    public BooleanPropertyBuilder bool(String name, String description, boolean defaultValue) {
+      requireUniqueName(name);
+      ObjectNode prop = objectMapper.createObjectNode();
+      prop.put("type", "boolean");
+      prop.put("description", description);
+      prop.put("default", defaultValue);
+      properties.put(name, prop);
+      return new BooleanPropertyBuilder(prop);
     }
 
     /**
@@ -307,20 +446,33 @@ public final class ElicitationSchema {
      * Adds an enum multi-select property. Uses the same titled/untitled detection as {@link
      * #choose(String, Class)}.
      */
-    public <E extends Enum<E>> Builder chooseMany(String name, Class<E> enumType) {
+    public <E extends Enum<E>> MultiSelectPropertyBuilder chooseMany(
+        String name, Class<E> enumType) {
       E[] constants = enumType.getEnumConstants();
+      requireUniqueName(name);
+      ObjectNode prop = objectMapper.createObjectNode();
+      prop.put("type", "array");
+      ObjectNode items = objectMapper.createObjectNode();
       if (hasTitles(constants)) {
-        List<TitledValue> values = new ArrayList<>();
+        ArrayNode oneOf = objectMapper.createArrayNode();
         for (E c : constants) {
-          values.add(new TitledValue(c.name(), c.toString()));
+          ObjectNode option = objectMapper.createObjectNode();
+          option.put("const", c.name());
+          option.put("title", c.toString());
+          oneOf.add(option);
         }
-        return titledMultiSelectProperty(name, values);
+        items.set("oneOf", oneOf);
+      } else {
+        items.put("type", "string");
+        ArrayNode enumArray = objectMapper.createArrayNode();
+        for (E c : constants) {
+          enumArray.add(c.name());
+        }
+        items.set("enum", enumArray);
       }
-      List<String> values = new ArrayList<>();
-      for (E c : constants) {
-        values.add(c.name());
-      }
-      return multiSelectProperty(name, values);
+      prop.set("items", items);
+      properties.put(name, prop);
+      return new MultiSelectPropertyBuilder(prop);
     }
 
     private <E extends Enum<E>> boolean hasTitles(E[] constants) {

@@ -18,13 +18,141 @@ package com.callibrity.mocapi.stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 class ElicitationResultTest {
 
+  private final ObjectMapper objectMapper = new ObjectMapper();
+
+  // --- ElicitationResult (builder-based) tests ---
+
   @Test
-  void acceptedResultShouldHaveContent() {
-    var result = new ElicitationResult<>(ElicitationAction.ACCEPT, "hello");
+  void acceptedResultShouldBeAccepted() {
+    JsonNode content = objectMapper.valueToTree(Map.of("name", "Alice"));
+    var result = new ElicitationResult(ElicitationAction.ACCEPT, content);
+    assertThat(result.isAccepted()).isTrue();
+    assertThat(result.action()).isEqualTo(ElicitationAction.ACCEPT);
+  }
+
+  @Test
+  void declinedResultShouldNotBeAccepted() {
+    var result = new ElicitationResult(ElicitationAction.DECLINE, null);
+    assertThat(result.isAccepted()).isFalse();
+    assertThat(result.action()).isEqualTo(ElicitationAction.DECLINE);
+  }
+
+  @Test
+  void cancelledResultShouldNotBeAccepted() {
+    var result = new ElicitationResult(ElicitationAction.CANCEL, null);
+    assertThat(result.isAccepted()).isFalse();
+    assertThat(result.action()).isEqualTo(ElicitationAction.CANCEL);
+  }
+
+  @Test
+  void getStringShouldReturnStringValue() {
+    JsonNode content = objectMapper.valueToTree(Map.of("name", "Alice"));
+    var result = new ElicitationResult(ElicitationAction.ACCEPT, content);
+    assertThat(result.getString("name")).isEqualTo("Alice");
+  }
+
+  @Test
+  void getIntegerShouldReturnIntValue() {
+    JsonNode content = objectMapper.valueToTree(Map.of("age", 30));
+    var result = new ElicitationResult(ElicitationAction.ACCEPT, content);
+    assertThat(result.getInteger("age")).isEqualTo(30);
+  }
+
+  @Test
+  void getNumberShouldReturnDoubleValue() {
+    JsonNode content = objectMapper.valueToTree(Map.of("score", 3.14));
+    var result = new ElicitationResult(ElicitationAction.ACCEPT, content);
+    assertThat(result.getNumber("score")).isEqualTo(3.14);
+  }
+
+  @Test
+  void getBoolShouldReturnBooleanValue() {
+    JsonNode content = objectMapper.valueToTree(Map.of("active", true));
+    var result = new ElicitationResult(ElicitationAction.ACCEPT, content);
+    assertThat(result.getBool("active")).isTrue();
+  }
+
+  enum Color {
+    RED,
+    GREEN,
+    BLUE
+  }
+
+  @Test
+  void getChoiceShouldReturnEnumValue() {
+    JsonNode content = objectMapper.valueToTree(Map.of("color", "GREEN"));
+    var result = new ElicitationResult(ElicitationAction.ACCEPT, content);
+    assertThat(result.getChoice("color", Color.class)).isEqualTo(Color.GREEN);
+  }
+
+  @Test
+  void getChoicesShouldReturnEnumList() {
+    JsonNode content = objectMapper.valueToTree(Map.of("colors", List.of("RED", "BLUE")));
+    var result = new ElicitationResult(ElicitationAction.ACCEPT, content);
+    assertThat(result.getChoices("colors", Color.class)).containsExactly(Color.RED, Color.BLUE);
+  }
+
+  @Test
+  void getStringOnDeclinedShouldThrow() {
+    var result = new ElicitationResult(ElicitationAction.DECLINE, null);
+    assertThatThrownBy(() -> result.getString("name"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("not accepted");
+  }
+
+  @Test
+  void getIntegerOnCancelledShouldThrow() {
+    var result = new ElicitationResult(ElicitationAction.CANCEL, null);
+    assertThatThrownBy(() -> result.getInteger("age"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("not accepted");
+  }
+
+  @Test
+  void getNumberOnDeclinedShouldThrow() {
+    var result = new ElicitationResult(ElicitationAction.DECLINE, null);
+    assertThatThrownBy(() -> result.getNumber("score"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("not accepted");
+  }
+
+  @Test
+  void getBoolOnDeclinedShouldThrow() {
+    var result = new ElicitationResult(ElicitationAction.DECLINE, null);
+    assertThatThrownBy(() -> result.getBool("active"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("not accepted");
+  }
+
+  @Test
+  void getChoiceOnDeclinedShouldThrow() {
+    var result = new ElicitationResult(ElicitationAction.DECLINE, null);
+    assertThatThrownBy(() -> result.getChoice("color", Color.class))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("not accepted");
+  }
+
+  @Test
+  void getChoicesOnDeclinedShouldThrow() {
+    var result = new ElicitationResult(ElicitationAction.DECLINE, null);
+    assertThatThrownBy(() -> result.getChoices("colors", Color.class))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("not accepted");
+  }
+
+  // --- BeanElicitationResult tests ---
+
+  @Test
+  void beanAcceptedResultShouldHaveContent() {
+    var result = new BeanElicitationResult<>(ElicitationAction.ACCEPT, "hello");
     assertThat(result.accepted()).isTrue();
     assertThat(result.declined()).isFalse();
     assertThat(result.cancelled()).isFalse();
@@ -32,8 +160,8 @@ class ElicitationResultTest {
   }
 
   @Test
-  void declinedResultShouldHaveNullContent() {
-    var result = new ElicitationResult<String>(ElicitationAction.DECLINE, null);
+  void beanDeclinedResultShouldHaveNullContent() {
+    var result = new BeanElicitationResult<String>(ElicitationAction.DECLINE, null);
     assertThat(result.declined()).isTrue();
     assertThat(result.accepted()).isFalse();
     assertThat(result.cancelled()).isFalse();
@@ -41,13 +169,15 @@ class ElicitationResultTest {
   }
 
   @Test
-  void cancelledResultShouldHaveNullContent() {
-    var result = new ElicitationResult<String>(ElicitationAction.CANCEL, null);
+  void beanCancelledResultShouldHaveNullContent() {
+    var result = new BeanElicitationResult<String>(ElicitationAction.CANCEL, null);
     assertThat(result.cancelled()).isTrue();
     assertThat(result.accepted()).isFalse();
     assertThat(result.declined()).isFalse();
     assertThat(result.content()).isNull();
   }
+
+  // --- ElicitationAction tests ---
 
   @Test
   void elicitationActionFromValueShouldParseCorrectly() {

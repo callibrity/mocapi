@@ -323,7 +323,7 @@ class DefaultMcpStreamContextTest {
             Map.of("action", "accept", "content", Map.of("name", "Alice", "age", 30)));
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
-    ElicitationResult<UserForm> result = context.elicitForm("Enter your info", UserForm.class);
+    BeanElicitationResult<UserForm> result = context.elicitForm("Enter your info", UserForm.class);
 
     assertThat(result.accepted()).isTrue();
     assertThat(result.content().name()).isEqualTo("Alice");
@@ -354,7 +354,7 @@ class DefaultMcpStreamContextTest {
     JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "decline"));
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
-    ElicitationResult<UserForm> result = context.elicitForm("Enter your info", UserForm.class);
+    BeanElicitationResult<UserForm> result = context.elicitForm("Enter your info", UserForm.class);
 
     assertThat(result.declined()).isTrue();
     assertThat(result.content()).isNull();
@@ -371,7 +371,7 @@ class DefaultMcpStreamContextTest {
     JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "cancel"));
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
-    ElicitationResult<UserForm> result = context.elicitForm("Enter your info", UserForm.class);
+    BeanElicitationResult<UserForm> result = context.elicitForm("Enter your info", UserForm.class);
 
     assertThat(result.cancelled()).isTrue();
     assertThat(result.content()).isNull();
@@ -457,7 +457,7 @@ class DefaultMcpStreamContextTest {
             Map.of("action", "accept", "content", Map.of("username", "Alice", "email", "a@b.com")));
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
-    ElicitationResult<JsonNode> result =
+    ElicitationResult result =
         context.elicit(
             "Enter your info",
             schema ->
@@ -466,9 +466,9 @@ class DefaultMcpStreamContextTest {
                     .stringProperty("email", "User's email")
                     .required("username", "email"));
 
-    assertThat(result.accepted()).isTrue();
-    assertThat(result.content().get("username").asString()).isEqualTo("Alice");
-    assertThat(result.content().get("email").asString()).isEqualTo("a@b.com");
+    assertThat(result.isAccepted()).isTrue();
+    assertThat(result.getString("username")).isEqualTo("Alice");
+    assertThat(result.getString("email")).isEqualTo("a@b.com");
 
     ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
     verify(stream).publishJson(captor.capture());
@@ -491,11 +491,10 @@ class DefaultMcpStreamContextTest {
     JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "decline"));
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
-    ElicitationResult<JsonNode> result =
+    ElicitationResult result =
         context.elicit("Enter info", schema -> schema.stringProperty("name", "Name"));
 
-    assertThat(result.declined()).isTrue();
-    assertThat(result.content()).isNull();
+    assertThat(result.isAccepted()).isFalse();
     verify(mailbox).delete();
   }
 

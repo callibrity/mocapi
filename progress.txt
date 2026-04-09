@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T17:04:05-04:00
-ITERATION: 58
-SPEC_COMPLETED: 058-conformance-elicitation-sampling-tools.md
-WHAT_WAS_DONE: Added conformance tools (test_sampling, test_elicitation, test_elicitation_sep1034_defaults, test_elicitation_sep1330_enums), sample() method on McpStreamContext, completion/complete endpoint with CompletionsCapabilityDescriptor, and convenience aliases on ElicitationSchema.Builder (string, integer, number, bool, choose, chooseMany with enum support).
+LAST_RUN: 2026-04-09T17:12:35-04:00
+ITERATION: 59
+SPEC_COMPLETED: 059-elicitation-schema-constraints.md
+WHAT_WAS_DONE: Added constraint sub-builders (StringPropertyBuilder, NumericPropertyBuilder, BooleanPropertyBuilder, MultiSelectPropertyBuilder) returned by convenience aliases, split ElicitationResult<T> into BeanElicitationResult<B> (for elicitForm) and non-generic ElicitationResult with typed getters (getString, getInteger, getNumber, getBool, getChoice, getChoices) that throw IllegalStateException when action is not ACCEPT.
 VERIFICATION: mvn verify — BUILD SUCCESS, 58/58 compat tests pass, 0 failures, all unit tests pass
-STATUS: MORE_WORK
+STATUS: DONE
 NEXT_SPEC: none
-NOTES: Sampling reuses the same "elicit:" mailbox prefix since UUIDs ensure uniqueness — no controller changes needed. ElicitationSchema.Builder choose/chooseMany detect titled vs untitled enums by comparing toString() to name(). ServerCapabilities now has a 3-arg constructor (tools, logging, completions) with a 2-arg backward-compatible constructor.
+NOTES: Convenience aliases (string, integer, number, bool, chooseMany) now return sub-builders instead of Builder. Existing code that chained these methods must switch to block-style consumers or use the full-name methods (stringProperty, integerProperty, etc.) which still return Builder. ConformanceTools updated accordingly.
