@@ -390,98 +390,59 @@ public final class ElicitationSchema {
     }
 
     /**
-     * Adds an enum single-select property. If any enum constant's {@code toString()} differs from
-     * its {@code name()}, a titled enum (oneOf with const/title) is produced; otherwise a plain
-     * string enum is used.
+     * Adds an enum single-select property using {@code oneOf} with {@code const}/{@code title}
+     * entries. Each constant's {@code name()} becomes the {@code const} value and its {@code
+     * toString()} becomes the {@code title}.
      */
     public <E extends Enum<E>> Builder choose(String name, Class<E> enumType) {
-      E[] constants = enumType.getEnumConstants();
-      if (hasTitles(constants)) {
-        List<TitledValue> values = new ArrayList<>();
-        for (E c : constants) {
-          values.add(new TitledValue(c.name(), c.toString()));
-        }
-        return titledEnumProperty(name, values);
+      List<TitledValue> values = new ArrayList<>();
+      for (E c : enumType.getEnumConstants()) {
+        values.add(new TitledValue(c.name(), c.toString()));
       }
-      List<String> values = new ArrayList<>();
-      for (E c : constants) {
-        values.add(c.name());
-      }
-      return enumProperty(name, values);
+      return titledEnumProperty(name, values);
     }
 
     /**
-     * Adds an enum single-select property with a default value. Uses the same titled/untitled
-     * detection as {@link #choose(String, Class)}.
+     * Adds an enum single-select property with a default value using {@code oneOf} with {@code
+     * const}/{@code title} entries.
      */
     public <E extends Enum<E>> Builder choose(String name, Class<E> enumType, E defaultValue) {
       requireUniqueName(name);
-      E[] constants = enumType.getEnumConstants();
-      ObjectNode prop;
-      if (hasTitles(constants)) {
-        prop = objectMapper.createObjectNode();
-        ArrayNode oneOf = objectMapper.createArrayNode();
-        for (E c : constants) {
-          ObjectNode option = objectMapper.createObjectNode();
-          option.put("const", c.name());
-          option.put("title", c.toString());
-          oneOf.add(option);
-        }
-        prop.set("oneOf", oneOf);
-      } else {
-        prop = objectMapper.createObjectNode();
-        prop.put("type", "string");
-        ArrayNode enumArray = objectMapper.createArrayNode();
-        for (E c : constants) {
-          enumArray.add(c.name());
-        }
-        prop.set("enum", enumArray);
+      ObjectNode prop = objectMapper.createObjectNode();
+      ArrayNode oneOf = objectMapper.createArrayNode();
+      for (E c : enumType.getEnumConstants()) {
+        ObjectNode option = objectMapper.createObjectNode();
+        option.put("const", c.name());
+        option.put("title", c.toString());
+        oneOf.add(option);
       }
+      prop.set("oneOf", oneOf);
       prop.put("default", defaultValue.name());
       properties.put(name, prop);
       return this;
     }
 
     /**
-     * Adds an enum multi-select property. Uses the same titled/untitled detection as {@link
-     * #choose(String, Class)}.
+     * Adds an enum multi-select property using an array with {@code anyOf} containing {@code
+     * const}/{@code title} entries.
      */
     public <E extends Enum<E>> MultiSelectPropertyBuilder chooseMany(
         String name, Class<E> enumType) {
-      E[] constants = enumType.getEnumConstants();
       requireUniqueName(name);
       ObjectNode prop = objectMapper.createObjectNode();
       prop.put("type", "array");
       ObjectNode items = objectMapper.createObjectNode();
-      if (hasTitles(constants)) {
-        ArrayNode oneOf = objectMapper.createArrayNode();
-        for (E c : constants) {
-          ObjectNode option = objectMapper.createObjectNode();
-          option.put("const", c.name());
-          option.put("title", c.toString());
-          oneOf.add(option);
-        }
-        items.set("oneOf", oneOf);
-      } else {
-        items.put("type", "string");
-        ArrayNode enumArray = objectMapper.createArrayNode();
-        for (E c : constants) {
-          enumArray.add(c.name());
-        }
-        items.set("enum", enumArray);
+      ArrayNode anyOf = objectMapper.createArrayNode();
+      for (E c : enumType.getEnumConstants()) {
+        ObjectNode option = objectMapper.createObjectNode();
+        option.put("const", c.name());
+        option.put("title", c.toString());
+        anyOf.add(option);
       }
+      items.set("anyOf", anyOf);
       prop.set("items", items);
       properties.put(name, prop);
       return new MultiSelectPropertyBuilder(prop);
-    }
-
-    private <E extends Enum<E>> boolean hasTitles(E[] constants) {
-      for (E c : constants) {
-        if (!c.toString().equals(c.name())) {
-          return true;
-        }
-      }
-      return false;
     }
 
     public Builder required(String... names) {

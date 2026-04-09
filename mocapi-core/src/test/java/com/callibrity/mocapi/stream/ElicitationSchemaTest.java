@@ -340,6 +340,94 @@ class ElicitationSchemaTest {
     GO
   }
 
+  enum TitledColor {
+    RED("Crimson Red"),
+    GREEN("Forest Green"),
+    BLUE("Ocean Blue");
+
+    private final String title;
+
+    TitledColor(String title) {
+      this.title = title;
+    }
+
+    @Override
+    public String toString() {
+      return title;
+    }
+  }
+
+  @Test
+  void chooseShouldAlwaysProduceOneOfWithConstTitle() {
+    ElicitationSchema schema = ElicitationSchema.builder().choose("tag", Tag.class).build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
+
+    assertThat(prop.has("type")).isFalse();
+    assertThat(prop.has("enum")).isFalse();
+    assertThat(prop.get("oneOf")).hasSize(3);
+    assertThat(prop.get("oneOf").get(0).get("const").asString()).isEqualTo("JAVA");
+    assertThat(prop.get("oneOf").get(0).get("title").asString()).isEqualTo("JAVA");
+    assertThat(prop.get("oneOf").get(1).get("const").asString()).isEqualTo("PYTHON");
+    assertThat(prop.get("oneOf").get(2).get("const").asString()).isEqualTo("GO");
+  }
+
+  @Test
+  void chooseShouldUseToStringForTitle() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder().choose("color", TitledColor.class).build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("color");
+
+    assertThat(prop.get("oneOf")).hasSize(3);
+    assertThat(prop.get("oneOf").get(0).get("const").asString()).isEqualTo("RED");
+    assertThat(prop.get("oneOf").get(0).get("title").asString()).isEqualTo("Crimson Red");
+  }
+
+  @Test
+  void chooseWithDefaultShouldProduceOneOfWithDefault() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder().choose("tag", Tag.class, Tag.JAVA).build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
+
+    assertThat(prop.has("type")).isFalse();
+    assertThat(prop.has("enum")).isFalse();
+    assertThat(prop.get("oneOf")).hasSize(3);
+    assertThat(prop.get("default").asString()).isEqualTo("JAVA");
+  }
+
+  @Test
+  void chooseManyShouldAlwaysProduceAnyOfWithConstTitle() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.chooseMany("tags", Tag.class);
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
+
+    assertThat(prop.get("type").asString()).isEqualTo("array");
+    ObjectNode items = (ObjectNode) prop.get("items");
+    assertThat(items.has("type")).isFalse();
+    assertThat(items.has("enum")).isFalse();
+    assertThat(items.get("anyOf")).hasSize(3);
+    assertThat(items.get("anyOf").get(0).get("const").asString()).isEqualTo("JAVA");
+    assertThat(items.get("anyOf").get(0).get("title").asString()).isEqualTo("JAVA");
+  }
+
+  @Test
+  void chooseManyShouldUseToStringForTitle() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.chooseMany("colors", TitledColor.class);
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("colors");
+
+    ObjectNode items = (ObjectNode) prop.get("items");
+    assertThat(items.get("anyOf")).hasSize(3);
+    assertThat(items.get("anyOf").get(0).get("const").asString()).isEqualTo("RED");
+    assertThat(items.get("anyOf").get(0).get("title").asString()).isEqualTo("Crimson Red");
+  }
+
   @Test
   void chooseManySubBuilderShouldSupportMaxItems() {
     ElicitationSchema.Builder builder = ElicitationSchema.builder();
@@ -350,6 +438,10 @@ class ElicitationSchemaTest {
 
     assertThat(prop.get("type").asString()).isEqualTo("array");
     assertThat(prop.get("maxItems").asInt()).isEqualTo(3);
+    ObjectNode items = (ObjectNode) prop.get("items");
+    assertThat(items.get("anyOf")).hasSize(3);
+    assertThat(items.get("anyOf").get(0).get("const").asString()).isEqualTo("JAVA");
+    assertThat(items.get("anyOf").get(0).get("title").asString()).isEqualTo("JAVA");
   }
 
   @Test
