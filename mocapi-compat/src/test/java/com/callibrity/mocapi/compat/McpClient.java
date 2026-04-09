@@ -104,6 +104,10 @@ public class McpClient {
         MockMvcRequestBuilders.delete(MCP_ENDPOINT).header("MCP-Session-Id", sessionId));
   }
 
+  public ResultActions deleteWithoutSession() throws Exception {
+    return mockMvc.perform(MockMvcRequestBuilders.delete(MCP_ENDPOINT));
+  }
+
   public ResultActions get(String sessionId) throws Exception {
     return mockMvc.perform(
         MockMvcRequestBuilders.get(MCP_ENDPOINT)

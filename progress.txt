@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T15:10:03-04:00
-ITERATION: 44
-SPEC_COMPLETED: 044-compat-post-and-content-negotiation.md
-WHAT_WAS_DONE: Created PostEndpointIT (5 tests: missing Accept → 406, JSON-only Accept → 406, SSE-only Accept → 406, wildcard Accept → OK, invalid jsonrpc version → JSON-RPC error -32600) and ContentNegotiationIT (2 tests: initialize response is JSON not SSE, ping response is JSON)
-VERIFICATION: mvn verify — BUILD SUCCESS (all 6 modules pass: parent, core 181 tests, starter, example, compat 8 ITs, coverage)
+LAST_RUN: 2026-04-09T15:12:40-04:00
+ITERATION: 45
+SPEC_COMPLETED: 045-compat-session-management.md
+WHAT_WAS_DONE: Created SessionManagementIT (8 tests covering full session lifecycle: initialize returns session ID, post with session succeeds, post without session returns 400, post with unknown session returns 404, delete returns 204, delete without session returns 400, delete with unknown session returns 404, post to deleted session returns 404). Added deleteWithoutSession() to McpClient.
+VERIFICATION: mvn verify — BUILD SUCCESS (all 6 modules pass: parent, core 181 tests, starter, example, compat 16 ITs, coverage)
 STATUS: MORE_WORK
-NEXT_SPEC: 045-compat-session-management.md
-NOTES: The server returns invalid jsonrpc version errors at HTTP 200 with a JSON-RPC error body (code -32600), not HTTP 400. The JsonRpcMessage.parse doesn't throw for wrong version — the validation happens in the dispatcher layer and returns a JSON-RPC error response.
+NEXT_SPEC: 046-compat-initialization.md
+NOTES: DELETE endpoint returns plain JSON {"error":"..."} not JSON-RPC error format. POST non-initialize without session returns JSON-RPC error body with code -32600. The session service delete is immediate — no grace period.
