@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T12:47:00-04:00
-ITERATION: 39
-SPEC_COMPLETED: 040-simplify-tool-invocation-with-methodical.md
-WHAT_WAS_DONE: Replaced hand-built tool invocation infrastructure with Methodical's MethodInvokerFactory — deleted ToolMethodInvoker, moved streaming orchestration into McpToolMethods handler, simplified McpTool.call() to take JsonNode and return Object, added typed McpStreamContext<O> with sendResponse(O), created McpRequestMeta record, removed output schema type restriction, and filtered McpStreamContext params from input schema generation.
+LAST_RUN: 2026-04-09T12:48:00-04:00
+ITERATION: 40
+SPEC_COMPLETED: 041-bump-ripcurl-to-1.1.0.md
+WHAT_WAS_DONE: Bumped ripcurl.version from 1.0.0-SNAPSHOT to 1.1.0 in parent pom.xml. Error code references were already using JsonRpcProtocol.CONSTANT (migrated in a prior iteration), so no source changes needed.
 VERIFICATION: mvn verify — BUILD SUCCESS; all tests pass; spotless and license checks pass.
-STATUS: DONE
-NEXT_SPEC: none
-NOTES: McpTool.call() now takes JsonNode (not ObjectNode) and returns Object (not ObjectNode). AnnotationMcpTool no longer validates output schema type — any JSON type is allowed. Streaming output schema is now derived from the type parameter O in McpStreamContext<O>. Void methods have null output schema. ToolsRegistry now requires ObjectMapper in constructor for converting raw tool results to JSON. DefaultAnnotationMcpToolProviderFactory and ToolServiceMcpToolProvider no longer take ObjectMapper — it was only needed by the old AnnotationMcpTool.call() which no longer converts results. McpRequestMeta uses Jackson 1.x annotations (com.fasterxml.jackson) since that's what McpRequestMeta needs for JSON deserialization compatibility. The SSE_EMITTER_KEY constant moved from ToolMethodInvoker to McpToolMethods.
+STATUS: MORE_WORK
+NEXT_SPEC: 042-use-jsonrpc-message-in-controller.md
+NOTES: There are two 042-prefixed specs in specs/ (042-use-jsonrpc-message-in-controller.md and 042-use-jsonrpc-request-in-controller.md). Next iteration should pick 042-use-jsonrpc-message-in-controller.md (alphabetically first among the two).
