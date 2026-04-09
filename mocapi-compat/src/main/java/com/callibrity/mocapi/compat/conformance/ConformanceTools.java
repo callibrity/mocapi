@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.example.tools;
+package com.callibrity.mocapi.compat.conformance;
 
 import com.callibrity.mocapi.stream.McpStreamContext;
 import com.callibrity.mocapi.stream.SamplingResult;

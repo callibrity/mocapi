@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T17:39:01-04:00
-ITERATION: 63
-SPEC_COMPLETED: 063-unified-choose-api.md
-WHAT_WAS_DONE: Unified all enum/select methods into consistent choose/chooseMany family. Removed enumProperty and multiSelectProperty legacy methods. Fixed buildOneOfNode bug that omitted "type":"string" (MCP SDK rejection). Added enum variants with titleFn and defaults, arbitrary objects variants with titleFn/defaults, raw string variants. Enum chooseMany uses no-args + List-based defaults (not varargs) to avoid Java overload ambiguity. All enum choose variants with titleFn require explicit Function type variable at call site due to Java lambda/generic ambiguity.
-VERIFICATION: mvn verify — BUILD SUCCESS, 58/58 compat tests pass, all unit tests pass, 0 failures
+LAST_RUN: 2026-04-09T18:07:08-04:00
+ITERATION: 64
+SPEC_COMPLETED: 064-move-conformance-to-compat.md
+WHAT_WAS_DONE: Moved ConformanceTools from mocapi-example to mocapi-compat/src/main/java. Created ConformanceApplication as runnable Spring Boot app on port 8081 with random master key. Added 19 conformance IT tests mirroring npx scenarios (ServerInitialize, LoggingSetLevel, Ping, CompletionComplete, ToolsList, ToolsCallSimpleText, ToolsCallImage, ToolsCallAudio, ToolsCallEmbeddedResource, ToolsCallMixedContent, ToolsCallWithLogging, ToolsCallError, ToolsCallWithProgress, ToolsCallSampling, ToolsCallElicitation, ElicitationSep1034Defaults, ElicitationSep1330Enums, ServerSseMultipleStreams, DnsRebindingProtection). Existing spec-section ITs preserved.
+VERIFICATION: mvn verify — BUILD SUCCESS, 80 compat tests pass (19 new conformance + 61 existing), all unit tests pass, 0 failures
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: Varargs overloads for enum chooseMany were replaced with no-arg + List-based defaults because chooseMany(name, enumType, E...) is ambiguous with chooseMany(name, enumType, Function<E,String>, E...) in Java. Similarly, choose(name, items, valueFn, T defaultValue) without titleFn was removed for arbitrary objects because it's ambiguous with choose(name, items, valueFn, titleFn). Raw string chooseMany uses varargs (String... defaults) which is unambiguous since String is concrete.
+NOTES: Sampling/elicitation ITs use @MockitoSpyBean on MailboxFactory to capture the server-generated JSON-RPC id, then deliver responses directly to the mailbox (bypassing HTTP). This avoids MockMvc threading deadlocks while still testing the full tool execution path. SSE-based tests (logging, progress) use MvcResult.getAsyncResult() to wait for the virtual thread to complete before reading SSE body content. ConformanceApplication is in com.callibrity.mocapi.compat.conformance sub-package to avoid polluting existing CompatApplication's component scan. mocapi-compat pom.xml now includes mocapi-spring-boot-starter and spring-boot-maven-plugin for `mvn spring-boot:run -pl mocapi-compat`.

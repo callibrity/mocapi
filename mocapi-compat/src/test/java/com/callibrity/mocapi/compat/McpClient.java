@@ -207,6 +207,35 @@ public class McpClient {
     return mockMvc.perform(builder);
   }
 
+  public String initializeWithCapabilities(ObjectNode capabilities) throws Exception {
+    return initializeWithCapabilitiesResult(capabilities)
+        .andReturn()
+        .getResponse()
+        .getHeader("MCP-Session-Id");
+  }
+
+  public ResultActions initializeWithCapabilitiesResult(ObjectNode capabilities) throws Exception {
+    ObjectNode params = objectMapper.createObjectNode();
+    params.put("protocolVersion", PROTOCOL_VERSION);
+    params.set("capabilities", capabilities);
+    ObjectNode clientInfo = params.putObject("clientInfo");
+    clientInfo.put("name", "compat-test-client");
+    clientInfo.put("version", "1.0.0");
+
+    ObjectNode request = objectMapper.createObjectNode();
+    request.put("jsonrpc", "2.0");
+    request.put("method", "initialize");
+    request.set("params", params);
+    request.put("id", 1);
+
+    return mockMvc.perform(
+        MockMvcRequestBuilders.post(MCP_ENDPOINT)
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON, TEXT_EVENT_STREAM)
+            .header("MCP-Protocol-Version", PROTOCOL_VERSION)
+            .content(objectMapper.writeValueAsString(request)));
+  }
+
   public ResultActions initializeWithoutProtocolVersion() throws Exception {
     ObjectNode params = objectMapper.createObjectNode();
     params.put("protocolVersion", PROTOCOL_VERSION);
