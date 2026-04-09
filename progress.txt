@@ -1,10 +1,8 @@
-LAST_RUN: 2026-04-09T13:15:00-04:00
-ITERATION: 41
-SPEC_COMPLETED: none
-WHAT_WAS_DONE: Attempted to start 042-use-jsonrpc-message-in-controller.md but RipCurl 1.2.0 is not available.
-VERIFICATION: N/A — blocked before implementation
-STATUS: NEEDS_HUMAN
-NEXT_SPEC: 042-use-jsonrpc-message-in-controller.md
-REASON: Spec requires RipCurl 1.2.0 (for JsonRpcMessage.parse() and JsonRpcNotification), but only 1.1.0 exists in the local Maven repo. The ripcurl project at ~/IdeaProjects/ripcurl has the JsonRpcMessage and JsonRpcNotification source code committed, but the project version is 1.0.0-SNAPSHOT — it has not been released as 1.2.0. Please build and install ripcurl as 1.2.0 (or adjust the spec to use the available version), then re-run.
-ATTEMPTS: Checked ~/.m2/repository for ripcurl versions (found up to 1.1.0). Checked ~/IdeaProjects/ripcurl — source has JsonRpcMessage.java and JsonRpcNotification.java but pom.xml version is 1.0.0-SNAPSHOT with no 1.2.0 tag.
-NOTES: The other spec (042-use-jsonrpc-request-in-controller.md) likely has the same dependency on a newer ripcurl version. Once ripcurl is released/installed at the required version, both 042 specs can proceed.
+LAST_RUN: 2026-04-09T14:49:37-04:00
+ITERATION: 42
+SPEC_COMPLETED: 042-use-jsonrpc-message-in-controller.md
+WHAT_WAS_DONE: Migrated to RipCurl 2.0.0-SNAPSHOT — POST handler uses JsonRpcMessage.parse() with pattern matching on JsonRpcCall/JsonRpcNotification/JsonRpcResult/JsonRpcError; eliminated all manual JsonNode field checking for message type detection; migrated JsonRpcRequest constructors to JsonRpcCall/JsonRpcNotification; outbound notifications use JsonRpcNotification.of()
+VERIFICATION: mvn verify — BUILD SUCCESS (all tests pass, spotless clean, license headers OK)
+STATUS: DONE
+NEXT_SPEC: none
+NOTES: Key changes: (1) pom.xml ripcurl.version 1.1.0 → 2.0.0-SNAPSHOT, (2) StreamableHttpController.handlePost() now parses with JsonRpcMessage.parse() and switches on 4 subtypes, (3) dispatch() accepts JsonRpcCall directly, (4) handleNotification() accepts JsonRpcNotification and passes it to dispatcher, (5) handleResponse() split into handleClientResult() and handleClientError() using typed JsonRpcResult/JsonRpcError, (6) DefaultMcpStreamContext.publishNotification() uses JsonRpcNotification.of(), (7) sendElicitationAndWait() uses JsonRpcCall.of(). IllegalArgumentException from parse() is caught and returned as 400 with -32600 error.

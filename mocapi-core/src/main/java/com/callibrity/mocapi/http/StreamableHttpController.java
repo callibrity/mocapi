@@ -23,9 +23,11 @@ import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.tools.McpToolMethods;
+import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
-import com.callibrity.ripcurl.core.JsonRpcRequest;
+import com.callibrity.ripcurl.core.JsonRpcMessage;
+import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.List;
@@ -83,48 +85,21 @@ public class StreamableHttpController {
       return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
     }
 
-    String method = body.path("method").asString(null);
-    JsonNode id = body.get("id");
-
-    if (method != null && id == null) {
-      return handleNotification(method, sessionId);
-    }
-    if (method == null && (body.has("result") || body.has("error"))) {
-      return handleResponse(body, sessionId);
-    }
-    if (method == null) {
+    JsonRpcMessage message;
+    try {
+      message = JsonRpcMessage.parse(body);
+    } catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest()
           .contentType(MediaType.APPLICATION_JSON)
-          .body(errorResponse(id, -32600, "Missing method field"));
+          .body(errorResponse(null, -32600, e.getMessage()));
     }
 
-    String version =
-        protocolVersion != null ? protocolVersion : InitializeResponse.PROTOCOL_VERSION;
-    if (!validator.isValidProtocolVersion(version)) {
-      return ResponseEntity.badRequest()
-          .body(errorResponse(id, -32600, "Invalid MCP-Protocol-Version: " + version));
-    }
-    if (!validator.isValidOrigin(origin)) {
-      return ResponseEntity.status(HttpStatus.FORBIDDEN)
-          .body(errorResponse(id, -32600, "Invalid origin"));
-    }
-
-    boolean isInitialize = INITIALIZE.equals(method);
-    McpSession session = null;
-    if (!isInitialize) {
-      if (sessionId == null) {
-        return ResponseEntity.badRequest().body(errorResponse(id, -32600, SESSION_REQUIRED));
-      }
-      var sessionOpt = sessionService.find(sessionId);
-      if (sessionOpt.isEmpty()) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(errorResponse(id, -32600, "Session not found or expired"));
-      }
-      session = sessionOpt.get().withSessionId(sessionId);
-    }
-
-    return dispatch(isInitialize, body, session);
+    return switch (message) {
+      case JsonRpcCall call -> handleCall(call, protocolVersion, sessionId, origin);
+      case JsonRpcNotification notification -> handleNotification(notification, sessionId);
+      case JsonRpcResult result -> handleClientResult(result, sessionId);
+      case JsonRpcError error -> handleClientError(error, sessionId);
+    };
   }
 
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -183,22 +158,50 @@ public class StreamableHttpController {
     return ResponseEntity.noContent().build();
   }
 
-  private ResponseEntity<Object> dispatch(boolean isInitialize, JsonNode body, McpSession session) {
-    JsonNode params = body.get("params");
-    JsonNode id = body.get("id");
-    String jsonrpc = body.path("jsonrpc").asString(null);
-    JsonRpcRequest request =
-        new JsonRpcRequest(jsonrpc, body.path("method").asString(null), params, id);
+  private ResponseEntity<Object> handleCall(
+      JsonRpcCall call, String protocolVersion, String sessionId, String origin) {
+    JsonNode id = call.id();
 
-    ScopedValue.Carrier carrier = ScopedValue.where(McpRequestId.CURRENT, id);
+    String version =
+        protocolVersion != null ? protocolVersion : InitializeResponse.PROTOCOL_VERSION;
+    if (!validator.isValidProtocolVersion(version)) {
+      return ResponseEntity.badRequest()
+          .body(errorResponse(id, -32600, "Invalid MCP-Protocol-Version: " + version));
+    }
+    if (!validator.isValidOrigin(origin)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN)
+          .body(errorResponse(id, -32600, "Invalid origin"));
+    }
+
+    boolean isInitialize = INITIALIZE.equals(call.method());
+    McpSession session = null;
+    if (!isInitialize) {
+      if (sessionId == null) {
+        return ResponseEntity.badRequest().body(errorResponse(id, -32600, SESSION_REQUIRED));
+      }
+      var sessionOpt = sessionService.find(sessionId);
+      if (sessionOpt.isEmpty()) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(errorResponse(id, -32600, "Session not found or expired"));
+      }
+      session = sessionOpt.get().withSessionId(sessionId);
+    }
+
+    return dispatch(isInitialize, call, session);
+  }
+
+  private ResponseEntity<Object> dispatch(
+      boolean isInitialize, JsonRpcCall call, McpSession session) {
+    ScopedValue.Carrier carrier = ScopedValue.where(McpRequestId.CURRENT, call.id());
     if (session != null) {
       carrier = carrier.where(McpSession.CURRENT, session);
     }
-    JsonRpcResponse response = carrier.call(() -> dispatcher.dispatch(request));
+    JsonRpcResponse response = carrier.call(() -> dispatcher.dispatch(call));
 
     return switch (response) {
       case null -> ResponseEntity.accepted().build();
-      case JsonRpcResult result -> handleResult(result, isInitialize, params);
+      case JsonRpcResult result -> handleResult(result, isInitialize, call.params());
       case JsonRpcError error ->
           ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(error);
     };
@@ -222,39 +225,47 @@ public class StreamableHttpController {
     return builder.body(result);
   }
 
-  private ResponseEntity<Object> handleNotification(String method, String sessionId) {
+  private ResponseEntity<Object> handleNotification(
+      JsonRpcNotification notification, String sessionId) {
     if (sessionId == null) {
       return ResponseEntity.badRequest()
           .contentType(MediaType.APPLICATION_JSON)
           .body(Map.of("error", SESSION_REQUIRED));
     }
-    if ("notifications/initialized".equals(method)) {
-      sessionService
-          .find(sessionId)
-          .ifPresent(_ -> dispatcher.dispatch(JsonRpcRequest.notification(method, null)));
+    if ("notifications/initialized".equals(notification.method())) {
+      sessionService.find(sessionId).ifPresent(_ -> dispatcher.dispatch(notification));
     }
     return ResponseEntity.accepted().build();
   }
 
-  private ResponseEntity<Object> handleResponse(JsonNode body, String sessionId) {
+  private ResponseEntity<Object> handleClientResult(JsonRpcResult result, String sessionId) {
     if (sessionId == null) {
       return ResponseEntity.badRequest()
           .contentType(MediaType.APPLICATION_JSON)
           .body(Map.of("error", SESSION_REQUIRED));
     }
-    JsonNode idNode = body.get("id");
+    JsonNode idNode = result.id();
     if (idNode != null && !idNode.isNull()) {
-      String idStr = idNode.asString();
-      JsonNode resultNode = body.get("result");
-      JsonNode errorNode = body.get("error");
-      Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + idStr, JsonNode.class);
-      if (errorNode != null) {
-        ObjectNode errorWrapper = objectMapper.createObjectNode();
-        errorWrapper.set("error", errorNode);
-        mailbox.deliver(errorWrapper);
-      } else if (resultNode != null) {
-        mailbox.deliver(resultNode);
-      }
+      Mailbox<JsonNode> mailbox =
+          mailboxFactory.create("elicit:" + idNode.asString(), JsonNode.class);
+      mailbox.deliver(result.result());
+    }
+    return ResponseEntity.accepted().build();
+  }
+
+  private ResponseEntity<Object> handleClientError(JsonRpcError error, String sessionId) {
+    if (sessionId == null) {
+      return ResponseEntity.badRequest()
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(Map.of("error", SESSION_REQUIRED));
+    }
+    JsonNode idNode = error.id();
+    if (idNode != null && !idNode.isNull()) {
+      ObjectNode errorWrapper = objectMapper.createObjectNode();
+      errorWrapper.set("error", objectMapper.valueToTree(error.error()));
+      Mailbox<JsonNode> mailbox =
+          mailboxFactory.create("elicit:" + idNode.asString(), JsonNode.class);
+      mailbox.deliver(errorWrapper);
     }
     return ResponseEntity.accepted().build();
   }
