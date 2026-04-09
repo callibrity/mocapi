@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T17:19:41-04:00
-ITERATION: 61
-SPEC_COMPLETED: 061-always-use-oneOf-for-enums.md
-WHAT_WAS_DONE: Simplified enum schema generation in ElicitationSchema.Builder — choose() always generates oneOf with const/title, chooseMany() always generates array with anyOf containing const/title. Removed hasTitles() conditional logic and plain enum array code path. Added 6 new tests covering both titled and untitled enums for choose/chooseMany.
+LAST_RUN: 2026-04-09T17:23:33-04:00
+ITERATION: 62
+SPEC_COMPLETED: 062-arbitrary-choice-values.md
+WHAT_WAS_DONE: Deleted TitledValue record. Added choose/chooseMany overloads accepting arbitrary objects with value/title extraction functions. Added getChoice(name) and getChoices(name) string-returning overloads to ElicitationResult. Refactored existing enum choose/chooseMany to delegate to the new generic overloads via buildOneOfNode helper.
 VERIFICATION: mvn verify — BUILD SUCCESS, 58/58 compat tests pass, all unit tests pass, 0 failures
 STATUS: MORE_WORK
 NEXT_SPEC: none (no more specs in specs/)
-NOTES: The lower-level methods (enumProperty, multiSelectProperty, titledEnumProperty, titledMultiSelectProperty) still exist for manual schema construction but are not used by choose/chooseMany. const=name(), title=toString() for every enum constant.
+NOTES: The titledEnumProperty and titledMultiSelectProperty methods were removed since they depended on TitledValue. The enumProperty and multiSelectProperty (plain string list) methods remain. The enum choose/chooseMany overloads now delegate to the generic versions internally. Unused import of Function added to test file for Function.identity() usage.

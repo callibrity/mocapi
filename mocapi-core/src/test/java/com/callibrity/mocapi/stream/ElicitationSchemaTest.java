@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -137,13 +138,11 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void titledEnumPropertyShouldProduceOneOfSchema() {
+  void chooseWithItemsAndTitleFnShouldProduceOneOfSchema() {
+    record Status(String code, String label) {}
+    List<Status> statuses = List.of(new Status("active", "Active"), new Status("inactive", "Gone"));
     ElicitationSchema schema =
-        ElicitationSchema.builder()
-            .titledEnumProperty(
-                "status",
-                List.of(new TitledValue("active", "Active"), new TitledValue("inactive", "Gone")))
-            .build();
+        ElicitationSchema.builder().choose("status", statuses, Status::code, Status::label).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("status");
 
@@ -172,21 +171,20 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void titledMultiSelectPropertyShouldProduceArrayOfOneOfSchema() {
-    ElicitationSchema schema =
-        ElicitationSchema.builder()
-            .titledMultiSelectProperty(
-                "roles",
-                List.of(new TitledValue("admin", "Administrator"), new TitledValue("user", "User")))
-            .build();
+  void chooseManyWithItemsAndTitleFnShouldProduceArrayOfAnyOfSchema() {
+    record Role(String code, String label) {}
+    List<Role> roles = List.of(new Role("admin", "Administrator"), new Role("user", "User"));
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.chooseMany("roles", roles, Role::code, Role::label);
+    ElicitationSchema schema = builder.build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("roles");
 
     assertThat(prop.get("type").asString()).isEqualTo("array");
     ObjectNode items = (ObjectNode) prop.get("items");
-    assertThat(items.get("oneOf")).hasSize(2);
-    assertThat(items.get("oneOf").get(0).get("const").asString()).isEqualTo("admin");
-    assertThat(items.get("oneOf").get(0).get("title").asString()).isEqualTo("Administrator");
+    assertThat(items.get("anyOf")).hasSize(2);
+    assertThat(items.get("anyOf").get(0).get("const").asString()).isEqualTo("admin");
+    assertThat(items.get("anyOf").get(0).get("title").asString()).isEqualTo("Administrator");
   }
 
   @Test
@@ -426,6 +424,35 @@ class ElicitationSchemaTest {
     assertThat(items.get("anyOf")).hasSize(3);
     assertThat(items.get("anyOf").get(0).get("const").asString()).isEqualTo("RED");
     assertThat(items.get("anyOf").get(0).get("title").asString()).isEqualTo("Crimson Red");
+  }
+
+  @Test
+  void chooseWithItemsAndValueFnOnlyShouldUseToStringForTitle() {
+    List<String> items = List.of("active", "inactive");
+    ElicitationSchema schema =
+        ElicitationSchema.builder().choose("status", items, Function.identity()).build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("status");
+
+    assertThat(prop.get("oneOf")).hasSize(2);
+    assertThat(prop.get("oneOf").get(0).get("const").asString()).isEqualTo("active");
+    assertThat(prop.get("oneOf").get(0).get("title").asString()).isEqualTo("active");
+  }
+
+  @Test
+  void chooseManyWithItemsAndValueFnOnlyShouldUseToStringForTitle() {
+    List<String> items = List.of("admin", "user");
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.chooseMany("roles", items, Function.identity());
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("roles");
+
+    assertThat(prop.get("type").asString()).isEqualTo("array");
+    ObjectNode itemsNode = (ObjectNode) prop.get("items");
+    assertThat(itemsNode.get("anyOf")).hasSize(2);
+    assertThat(itemsNode.get("anyOf").get(0).get("const").asString()).isEqualTo("admin");
+    assertThat(itemsNode.get("anyOf").get(0).get("title").asString()).isEqualTo("admin");
   }
 
   @Test

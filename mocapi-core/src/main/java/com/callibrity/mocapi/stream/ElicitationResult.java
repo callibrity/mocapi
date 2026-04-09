@@ -68,10 +68,27 @@ public final class ElicitationResult {
     return content.get(name).asBoolean();
   }
 
+  /** Returns the string value of the named single-select property. */
+  public String getChoice(String name) {
+    requireAccepted();
+    return content.get(name).asString();
+  }
+
   /** Returns the enum value of the named single-select property. */
   public <E extends Enum<E>> E getChoice(String name, Class<E> enumType) {
     requireAccepted();
     return Enum.valueOf(enumType, content.get(name).asString());
+  }
+
+  /** Returns the list of string values of the named multi-select property. */
+  public List<String> getChoices(String name) {
+    requireAccepted();
+    JsonNode arrayNode = content.get(name);
+    List<String> result = new ArrayList<>();
+    for (JsonNode element : arrayNode) {
+      result.add(element.asString());
+    }
+    return result;
   }
 
   /** Returns the list of enum values of the named multi-select property. */

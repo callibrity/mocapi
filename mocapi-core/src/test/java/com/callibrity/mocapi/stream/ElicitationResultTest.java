@@ -87,6 +87,36 @@ class ElicitationResultTest {
   }
 
   @Test
+  void getChoiceShouldReturnStringValue() {
+    JsonNode content = objectMapper.valueToTree(Map.of("status", "active"));
+    var result = new ElicitationResult(ElicitationAction.ACCEPT, content);
+    assertThat(result.getChoice("status")).isEqualTo("active");
+  }
+
+  @Test
+  void getChoicesShouldReturnStringList() {
+    JsonNode content = objectMapper.valueToTree(Map.of("roles", List.of("admin", "user")));
+    var result = new ElicitationResult(ElicitationAction.ACCEPT, content);
+    assertThat(result.getChoices("roles")).containsExactly("admin", "user");
+  }
+
+  @Test
+  void getChoiceOnDeclinedShouldThrowForStringOverload() {
+    var result = new ElicitationResult(ElicitationAction.DECLINE, null);
+    assertThatThrownBy(() -> result.getChoice("status"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("not accepted");
+  }
+
+  @Test
+  void getChoicesOnDeclinedShouldThrowForStringOverload() {
+    var result = new ElicitationResult(ElicitationAction.DECLINE, null);
+    assertThatThrownBy(() -> result.getChoices("roles"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("not accepted");
+  }
+
+  @Test
   void getChoiceShouldReturnEnumValue() {
     JsonNode content = objectMapper.valueToTree(Map.of("color", "GREEN"));
     var result = new ElicitationResult(ElicitationAction.ACCEPT, content);

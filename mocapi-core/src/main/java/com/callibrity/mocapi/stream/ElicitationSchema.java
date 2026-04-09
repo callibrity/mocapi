@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -262,21 +263,6 @@ public final class ElicitationSchema {
       return this;
     }
 
-    public Builder titledEnumProperty(String name, List<TitledValue> values) {
-      requireUniqueName(name);
-      ObjectNode prop = objectMapper.createObjectNode();
-      ArrayNode oneOf = objectMapper.createArrayNode();
-      for (TitledValue tv : values) {
-        ObjectNode option = objectMapper.createObjectNode();
-        option.put("const", tv.value());
-        option.put("title", tv.title());
-        oneOf.add(option);
-      }
-      prop.set("oneOf", oneOf);
-      properties.put(name, prop);
-      return this;
-    }
-
     public Builder multiSelectProperty(String name, List<String> values) {
       requireUniqueName(name);
       ObjectNode prop = objectMapper.createObjectNode();
@@ -288,24 +274,6 @@ public final class ElicitationSchema {
         enumArray.add(v);
       }
       items.set("enum", enumArray);
-      prop.set("items", items);
-      properties.put(name, prop);
-      return this;
-    }
-
-    public Builder titledMultiSelectProperty(String name, List<TitledValue> values) {
-      requireUniqueName(name);
-      ObjectNode prop = objectMapper.createObjectNode();
-      prop.put("type", "array");
-      ObjectNode items = objectMapper.createObjectNode();
-      ArrayNode oneOf = objectMapper.createArrayNode();
-      for (TitledValue tv : values) {
-        ObjectNode option = objectMapper.createObjectNode();
-        option.put("const", tv.value());
-        option.put("title", tv.title());
-        oneOf.add(option);
-      }
-      items.set("oneOf", oneOf);
       prop.set("items", items);
       properties.put(name, prop);
       return this;
@@ -395,11 +363,8 @@ public final class ElicitationSchema {
      * toString()} becomes the {@code title}.
      */
     public <E extends Enum<E>> Builder choose(String name, Class<E> enumType) {
-      List<TitledValue> values = new ArrayList<>();
-      for (E c : enumType.getEnumConstants()) {
-        values.add(new TitledValue(c.name(), c.toString()));
-      }
-      return titledEnumProperty(name, values);
+      List<E> items = List.of(enumType.getEnumConstants());
+      return choose(name, items, Enum::name, Object::toString);
     }
 
     /**
@@ -408,18 +373,31 @@ public final class ElicitationSchema {
      */
     public <E extends Enum<E>> Builder choose(String name, Class<E> enumType, E defaultValue) {
       requireUniqueName(name);
-      ObjectNode prop = objectMapper.createObjectNode();
-      ArrayNode oneOf = objectMapper.createArrayNode();
-      for (E c : enumType.getEnumConstants()) {
-        ObjectNode option = objectMapper.createObjectNode();
-        option.put("const", c.name());
-        option.put("title", c.toString());
-        oneOf.add(option);
-      }
-      prop.set("oneOf", oneOf);
+      ObjectNode prop =
+          buildOneOfNode(List.of(enumType.getEnumConstants()), Enum::name, Object::toString);
       prop.put("default", defaultValue.name());
       properties.put(name, prop);
       return this;
+    }
+
+    /**
+     * Adds a single-select property from arbitrary items using {@code oneOf} with {@code
+     * const}/{@code title} entries extracted via the provided functions.
+     */
+    public <T> Builder choose(
+        String name, List<T> items, Function<T, String> valueFn, Function<T, String> titleFn) {
+      requireUniqueName(name);
+      ObjectNode prop = buildOneOfNode(items, valueFn, titleFn);
+      properties.put(name, prop);
+      return this;
+    }
+
+    /**
+     * Adds a single-select property from arbitrary items using {@code oneOf} with {@code
+     * const}/{@code title} entries. Uses {@code toString()} for the title.
+     */
+    public <T> Builder choose(String name, List<T> items, Function<T, String> valueFn) {
+      return choose(name, items, valueFn, Object::toString);
     }
 
     /**
@@ -428,21 +406,39 @@ public final class ElicitationSchema {
      */
     public <E extends Enum<E>> MultiSelectPropertyBuilder chooseMany(
         String name, Class<E> enumType) {
+      return chooseMany(name, List.of(enumType.getEnumConstants()), Enum::name, Object::toString);
+    }
+
+    /**
+     * Adds a multi-select property from arbitrary items using an array with {@code anyOf}
+     * containing {@code const}/{@code title} entries extracted via the provided functions.
+     */
+    public <T> MultiSelectPropertyBuilder chooseMany(
+        String name, List<T> items, Function<T, String> valueFn, Function<T, String> titleFn) {
       requireUniqueName(name);
       ObjectNode prop = objectMapper.createObjectNode();
       prop.put("type", "array");
-      ObjectNode items = objectMapper.createObjectNode();
+      ObjectNode itemsNode = objectMapper.createObjectNode();
       ArrayNode anyOf = objectMapper.createArrayNode();
-      for (E c : enumType.getEnumConstants()) {
+      for (T item : items) {
         ObjectNode option = objectMapper.createObjectNode();
-        option.put("const", c.name());
-        option.put("title", c.toString());
+        option.put("const", valueFn.apply(item));
+        option.put("title", titleFn.apply(item));
         anyOf.add(option);
       }
-      items.set("anyOf", anyOf);
-      prop.set("items", items);
+      itemsNode.set("anyOf", anyOf);
+      prop.set("items", itemsNode);
       properties.put(name, prop);
       return new MultiSelectPropertyBuilder(prop);
+    }
+
+    /**
+     * Adds a multi-select property from arbitrary items using an array with {@code anyOf}
+     * containing {@code const}/{@code title} entries. Uses {@code toString()} for the title.
+     */
+    public <T> MultiSelectPropertyBuilder chooseMany(
+        String name, List<T> items, Function<T, String> valueFn) {
+      return chooseMany(name, items, valueFn, Object::toString);
     }
 
     public Builder required(String... names) {
@@ -456,6 +452,20 @@ public final class ElicitationSchema {
 
     public ElicitationSchema build() {
       return new ElicitationSchema(new LinkedHashMap<>(properties), new ArrayList<>(required));
+    }
+
+    private <T> ObjectNode buildOneOfNode(
+        List<T> items, Function<T, String> valueFn, Function<T, String> titleFn) {
+      ObjectNode prop = objectMapper.createObjectNode();
+      ArrayNode oneOf = objectMapper.createArrayNode();
+      for (T item : items) {
+        ObjectNode option = objectMapper.createObjectNode();
+        option.put("const", valueFn.apply(item));
+        option.put("title", titleFn.apply(item));
+        oneOf.add(option);
+      }
+      prop.set("oneOf", oneOf);
+      return prop;
     }
 
     private void requireUniqueName(String name) {
