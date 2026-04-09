@@ -478,8 +478,8 @@ class DefaultMcpStreamContextTest {
             "Enter your info",
             schema ->
                 schema
-                    .stringProperty("username", "User's name")
-                    .stringProperty("email", "User's email")
+                    .string("username", "User's name")
+                    .string("email", "User's email")
                     .required("username", "email"));
 
     assertThat(result.isAccepted()).isTrue();
@@ -508,7 +508,7 @@ class DefaultMcpStreamContextTest {
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
     ElicitationResult result =
-        context.elicit("Enter info", schema -> schema.stringProperty("name", "Name"));
+        context.elicit("Enter info", schema -> schema.string("name", "Name"));
 
     assertThat(result.isAccepted()).isFalse();
     verify(mailbox).delete();
@@ -519,8 +519,7 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithoutElicitation()));
     var context = createContext(null, "sess-1");
 
-    assertThatThrownBy(
-            () -> context.elicit("Enter info", schema -> schema.stringProperty("name", "Name")))
+    assertThatThrownBy(() -> context.elicit("Enter info", schema -> schema.string("name", "Name")))
         .isInstanceOf(McpElicitationNotSupportedException.class);
   }
 
@@ -532,8 +531,7 @@ class DefaultMcpStreamContextTest {
     when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.empty());
 
-    assertThatThrownBy(
-            () -> context.elicit("Enter info", schema -> schema.stringProperty("name", "Name")))
+    assertThatThrownBy(() -> context.elicit("Enter info", schema -> schema.string("name", "Name")))
         .isInstanceOf(McpElicitationTimeoutException.class);
 
     verify(mailbox).delete();
@@ -551,8 +549,7 @@ class DefaultMcpStreamContextTest {
             Map.of("action", "accept", "content", Map.of("age", "not-an-integer")));
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
-    assertThatThrownBy(
-            () -> context.elicit("Enter info", schema -> schema.integerProperty("age", "Age")))
+    assertThatThrownBy(() -> context.elicit("Enter info", schema -> schema.integer("age", "Age")))
         .isInstanceOf(McpElicitationException.class)
         .hasMessageContaining("schema validation");
 

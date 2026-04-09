@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
@@ -39,8 +40,7 @@ class ElicitationSchemaTest {
 
   @Test
   void stringPropertyShouldProduceCorrectSchema() {
-    ElicitationSchema schema =
-        ElicitationSchema.builder().stringProperty("name", "User's name").build();
+    ElicitationSchema schema = ElicitationSchema.builder().string("name", "User's name").build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("name");
 
@@ -52,7 +52,7 @@ class ElicitationSchemaTest {
   @Test
   void stringPropertyWithDefaultShouldIncludeDefault() {
     ElicitationSchema schema =
-        ElicitationSchema.builder().stringProperty("name", "User's name", "Alice").build();
+        ElicitationSchema.builder().string("name", "User's name", "Alice").build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("name");
 
@@ -62,8 +62,7 @@ class ElicitationSchemaTest {
 
   @Test
   void integerPropertyShouldProduceCorrectSchema() {
-    ElicitationSchema schema =
-        ElicitationSchema.builder().integerProperty("age", "User's age").build();
+    ElicitationSchema schema = ElicitationSchema.builder().integer("age", "User's age").build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("age");
 
@@ -73,8 +72,7 @@ class ElicitationSchemaTest {
 
   @Test
   void integerPropertyWithDefaultShouldIncludeDefault() {
-    ElicitationSchema schema =
-        ElicitationSchema.builder().integerProperty("age", "User's age", 25).build();
+    ElicitationSchema schema = ElicitationSchema.builder().integer("age", "User's age", 25).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("age");
 
@@ -83,8 +81,7 @@ class ElicitationSchemaTest {
 
   @Test
   void numberPropertyShouldProduceCorrectSchema() {
-    ElicitationSchema schema =
-        ElicitationSchema.builder().numberProperty("score", "Score value").build();
+    ElicitationSchema schema = ElicitationSchema.builder().number("score", "Score value").build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("score");
 
@@ -95,7 +92,7 @@ class ElicitationSchemaTest {
   @Test
   void numberPropertyWithDefaultShouldIncludeDefault() {
     ElicitationSchema schema =
-        ElicitationSchema.builder().numberProperty("score", "Score value", 3.14).build();
+        ElicitationSchema.builder().number("score", "Score value", 3.14).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("score");
 
@@ -104,8 +101,7 @@ class ElicitationSchemaTest {
 
   @Test
   void booleanPropertyShouldProduceCorrectSchema() {
-    ElicitationSchema schema =
-        ElicitationSchema.builder().booleanProperty("active", "Is active").build();
+    ElicitationSchema schema = ElicitationSchema.builder().bool("active", "Is active").build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("active");
 
@@ -116,7 +112,7 @@ class ElicitationSchemaTest {
   @Test
   void booleanPropertyWithDefaultShouldIncludeDefault() {
     ElicitationSchema schema =
-        ElicitationSchema.builder().booleanProperty("active", "Is active", true).build();
+        ElicitationSchema.builder().bool("active", "Is active", true).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("active");
 
@@ -139,11 +135,12 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void chooseWithItemsAndTitleFnShouldProduceOneOfSchema() {
+  void chooseWithItemsAndTitleCustomizerShouldProduceOneOfSchema() {
     record Status(String code, String label) {}
     List<Status> statuses = List.of(new Status("active", "Active"), new Status("inactive", "Gone"));
+    Consumer<ElicitationSchema.ChoiceConstraints<Status>> customizer = c -> c.title(Status::label);
     ElicitationSchema schema =
-        ElicitationSchema.builder().choose("status", statuses, Status::code, Status::label).build();
+        ElicitationSchema.builder().choose("status", statuses, Status::code, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("status");
 
@@ -157,9 +154,8 @@ class ElicitationSchemaTest {
 
   @Test
   void chooseManyWithRawStringsShouldProduceArrayOfAnyOfSchema() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.chooseMany("tags", List.of("java", "python", "go"));
-    ElicitationSchema schema = builder.build();
+    ElicitationSchema schema =
+        ElicitationSchema.builder().chooseMany("tags", List.of("java", "python", "go")).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
@@ -172,12 +168,12 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void chooseManyWithItemsAndTitleFnShouldProduceArrayOfAnyOfSchema() {
+  void chooseManyWithItemsAndTitleCustomizerShouldProduceArrayOfAnyOfSchema() {
     record Role(String code, String label) {}
     List<Role> roles = List.of(new Role("admin", "Administrator"), new Role("user", "User"));
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.chooseMany("roles", roles, Role::code, Role::label);
-    ElicitationSchema schema = builder.build();
+    Consumer<ElicitationSchema.MultiChoiceConstraints<Role>> customizer = c -> c.title(Role::label);
+    ElicitationSchema schema =
+        ElicitationSchema.builder().chooseMany("roles", roles, Role::code, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("roles");
 
@@ -192,8 +188,8 @@ class ElicitationSchemaTest {
   void requiredFieldsShouldBeIncluded() {
     ElicitationSchema schema =
         ElicitationSchema.builder()
-            .stringProperty("name", "Name")
-            .stringProperty("email", "Email")
+            .string("name", "Name")
+            .string("email", "Email")
             .required("name", "email")
             .build();
     ObjectNode node = schema.toObjectNode(objectMapper);
@@ -205,7 +201,7 @@ class ElicitationSchemaTest {
 
   @Test
   void noRequiredFieldsShouldOmitRequiredArray() {
-    ElicitationSchema schema = ElicitationSchema.builder().stringProperty("name", "Name").build();
+    ElicitationSchema schema = ElicitationSchema.builder().string("name", "Name").build();
     ObjectNode node = schema.toObjectNode(objectMapper);
 
     assertThat(node.has("required")).isFalse();
@@ -213,9 +209,9 @@ class ElicitationSchemaTest {
 
   @Test
   void duplicatePropertyNameShouldThrow() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder().stringProperty("name", "Name");
+    ElicitationSchema.Builder builder = ElicitationSchema.builder().string("name", "Name");
 
-    assertThatThrownBy(() -> builder.stringProperty("name", "Name again"))
+    assertThatThrownBy(() -> builder.string("name", "Name again"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Duplicate property name: name");
   }
@@ -224,7 +220,7 @@ class ElicitationSchemaTest {
   void requiredCalledMultipleTimesShouldNotDuplicate() {
     ElicitationSchema schema =
         ElicitationSchema.builder()
-            .stringProperty("name", "Name")
+            .string("name", "Name")
             .required("name")
             .required("name")
             .build();
@@ -233,13 +229,12 @@ class ElicitationSchemaTest {
     assertThat(node.get("required")).hasSize(1);
   }
 
-  // --- Sub-builder constraint tests ---
+  // --- Customizer constraint tests ---
 
   @Test
-  void stringSubBuilderShouldSupportTitle() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.string("name", "Name").title("Full Name");
-    ElicitationSchema schema = builder.build();
+  void stringCustomizerShouldSupportTitle() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder().string("name", "Name", s -> s.title("Full Name")).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("name");
 
@@ -248,10 +243,11 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void stringSubBuilderShouldSupportMinAndMaxLength() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.string("code", "Zip code").minLength(5).maxLength(5);
-    ElicitationSchema schema = builder.build();
+  void stringCustomizerShouldSupportMinAndMaxLength() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .string("code", "Zip code", s -> s.minLength(5).maxLength(5))
+            .build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("code");
 
@@ -260,10 +256,9 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void stringSubBuilderShouldSupportPattern() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.string("code", "Zip code").pattern("^\\d{5}$");
-    ElicitationSchema schema = builder.build();
+  void stringCustomizerShouldSupportPattern() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder().string("code", "Zip code", s -> s.pattern("^\\d{5}$")).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("code");
 
@@ -271,10 +266,9 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void stringSubBuilderShouldSupportFormat() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.string("email", "Email address").format("email");
-    ElicitationSchema schema = builder.build();
+  void stringCustomizerShouldSupportEmailShorthand() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder().string("email", "Email address", s -> s.email()).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("email");
 
@@ -282,10 +276,41 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void stringSubBuilderShouldChainMultipleConstraints() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.string("code", "Zip code").pattern("^\\d{5}$").maxLength(5).title("ZIP");
-    ElicitationSchema schema = builder.build();
+  void stringCustomizerShouldSupportUriShorthand() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder().string("url", "Website URL", s -> s.uri()).build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("url");
+
+    assertThat(prop.get("format").asString()).isEqualTo("uri");
+  }
+
+  @Test
+  void stringCustomizerShouldSupportDateShorthand() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder().string("dob", "Date of birth", s -> s.date()).build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("dob");
+
+    assertThat(prop.get("format").asString()).isEqualTo("date");
+  }
+
+  @Test
+  void stringCustomizerShouldSupportDateTimeShorthand() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder().string("ts", "Timestamp", s -> s.dateTime()).build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("ts");
+
+    assertThat(prop.get("format").asString()).isEqualTo("date-time");
+  }
+
+  @Test
+  void stringCustomizerShouldChainMultipleConstraints() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .string("code", "Zip code", s -> s.pattern("^\\d{5}$").maxLength(5).title("ZIP"))
+            .build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("code");
 
@@ -295,10 +320,24 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void integerSubBuilderShouldSupportTitleAndMinMax() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.integer("age", "Age").title("Your Age").minimum(0).maximum(150);
-    ElicitationSchema schema = builder.build();
+  void stringCustomizerShouldSupportDefaultValue() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .string("name", "Name", s -> s.defaultValue("John Doe").maxLength(100))
+            .build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("name");
+
+    assertThat(prop.get("default").asString()).isEqualTo("John Doe");
+    assertThat(prop.get("maxLength").asInt()).isEqualTo(100);
+  }
+
+  @Test
+  void integerCustomizerShouldSupportTitleAndMinMax() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .integer("age", "Age", n -> n.title("Your Age").minimum(0).maximum(150))
+            .build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("age");
 
@@ -309,10 +348,23 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void numberSubBuilderShouldSupportMinMax() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.number("score", "Score").minimum(0.0).maximum(100.0);
-    ElicitationSchema schema = builder.build();
+  void integerCustomizerShouldSupportDefaultValue() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .integer("age", "Age", n -> n.defaultValue(30).minimum(0).maximum(150))
+            .build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("age");
+
+    assertThat(prop.get("default").asInt()).isEqualTo(30);
+  }
+
+  @Test
+  void numberCustomizerShouldSupportMinMax() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .number("score", "Score", n -> n.minimum(0.0).maximum(100.0))
+            .build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("score");
 
@@ -322,15 +374,38 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void boolSubBuilderShouldSupportTitle() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.bool("active", "Is active").title("Active Status");
-    ElicitationSchema schema = builder.build();
+  void numberCustomizerShouldSupportDefaultValue() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder().number("score", "Score", n -> n.defaultValue(95.5)).build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("score");
+
+    assertThat(prop.get("default").asDouble()).isEqualTo(95.5);
+  }
+
+  @Test
+  void boolCustomizerShouldSupportTitle() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .bool("active", "Is active", b -> b.title("Active Status"))
+            .build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("active");
 
     assertThat(prop.get("type").asString()).isEqualTo("boolean");
     assertThat(prop.get("title").asString()).isEqualTo("Active Status");
+  }
+
+  @Test
+  void boolCustomizerShouldSupportDefaultValue() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .bool("verified", "Verified?", b -> b.defaultValue(true))
+            .build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("verified");
+
+    assertThat(prop.get("default").asBoolean()).isTrue();
   }
 
   enum Tag {
@@ -398,9 +473,7 @@ class ElicitationSchemaTest {
 
   @Test
   void chooseManyShouldAlwaysProduceAnyOfWithConstTitle() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.chooseMany("tags", Tag.class);
-    ElicitationSchema schema = builder.build();
+    ElicitationSchema schema = ElicitationSchema.builder().chooseMany("tags", Tag.class).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
@@ -415,9 +488,8 @@ class ElicitationSchemaTest {
 
   @Test
   void chooseManyShouldUseToStringForTitle() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.chooseMany("colors", TitledColor.class);
-    ElicitationSchema schema = builder.build();
+    ElicitationSchema schema =
+        ElicitationSchema.builder().chooseMany("colors", TitledColor.class).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("colors");
 
@@ -443,9 +515,8 @@ class ElicitationSchemaTest {
   @Test
   void chooseManyWithItemsAndValueFnOnlyShouldUseToStringForTitle() {
     List<String> items = List.of("admin", "user");
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.chooseMany("roles", items, Function.identity());
-    ElicitationSchema schema = builder.build();
+    ElicitationSchema schema =
+        ElicitationSchema.builder().chooseMany("roles", items, Function.identity()).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("roles");
 
@@ -457,10 +528,9 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void chooseManySubBuilderShouldSupportMaxItems() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.chooseMany("tags", Tag.class).maxItems(3);
-    ElicitationSchema schema = builder.build();
+  void chooseManyCustomizerShouldSupportMaxItems() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder().chooseMany("tags", Tag.class, c -> c.maxItems(3)).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
@@ -473,10 +543,11 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void chooseManySubBuilderShouldSupportMinItems() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.chooseMany("tags", Tag.class).minItems(1).maxItems(3);
-    ElicitationSchema schema = builder.build();
+  void chooseManyCustomizerShouldSupportMinItems() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .chooseMany("tags", Tag.class, c -> c.minItems(1).maxItems(3))
+            .build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
@@ -485,10 +556,11 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void chooseEnumWithTitleFnShouldUseCustomTitles() {
+  void chooseEnumWithTitleCustomizerShouldUseCustomTitles() {
     Function<Tag, String> titleFn = t -> t.name().toLowerCase();
+    Consumer<ElicitationSchema.ChoiceConstraints<Tag>> customizer = c -> c.title(titleFn);
     ElicitationSchema schema =
-        ElicitationSchema.builder().choose("tag", Tag.class, titleFn).build();
+        ElicitationSchema.builder().choose("tag", Tag.class, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
 
@@ -499,10 +571,12 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void chooseEnumWithTitleFnAndDefaultShouldWork() {
+  void chooseEnumWithTitleAndDefaultCustomizerShouldWork() {
     Function<Tag, String> titleFn = t -> t.name().toLowerCase();
+    Consumer<ElicitationSchema.ChoiceConstraints<Tag>> customizer =
+        c -> c.title(titleFn).defaultValue(Tag.PYTHON);
     ElicitationSchema schema =
-        ElicitationSchema.builder().choose("tag", Tag.class, titleFn, Tag.PYTHON).build();
+        ElicitationSchema.builder().choose("tag", Tag.class, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
 
@@ -513,10 +587,11 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void chooseManyEnumWithListDefaultsShouldIncludeDefaults() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.chooseMany("tags", Tag.class, List.of(Tag.JAVA, Tag.GO));
-    ElicitationSchema schema = builder.build();
+  void chooseManyEnumWithDefaultsCustomizerShouldIncludeDefaults() {
+    Consumer<ElicitationSchema.MultiChoiceConstraints<Tag>> customizer =
+        c -> c.defaults(List.of(Tag.JAVA, Tag.GO));
+    ElicitationSchema schema =
+        ElicitationSchema.builder().chooseMany("tags", Tag.class, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
@@ -527,11 +602,12 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void chooseManyEnumWithTitleFnAndListDefaultsShouldWork() {
+  void chooseManyEnumWithTitleAndDefaultsCustomizerShouldWork() {
     Function<Tag, String> titleFn = t -> t.name().toLowerCase();
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.chooseMany("tags", Tag.class, titleFn, List.of(Tag.PYTHON));
-    ElicitationSchema schema = builder.build();
+    Consumer<ElicitationSchema.MultiChoiceConstraints<Tag>> customizer =
+        c -> c.title(titleFn).defaults(List.of(Tag.PYTHON));
+    ElicitationSchema schema =
+        ElicitationSchema.builder().chooseMany("tags", Tag.class, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
@@ -542,11 +618,11 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void chooseManyEnumWithTitleFnShouldUseCustomTitles() {
+  void chooseManyEnumWithTitleCustomizerShouldUseCustomTitles() {
     Function<Tag, String> titleFn = t -> t.name().toLowerCase();
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.chooseMany("tags", Tag.class, titleFn);
-    ElicitationSchema schema = builder.build();
+    Consumer<ElicitationSchema.MultiChoiceConstraints<Tag>> customizer = c -> c.title(titleFn);
+    ElicitationSchema schema =
+        ElicitationSchema.builder().chooseMany("tags", Tag.class, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
@@ -560,9 +636,7 @@ class ElicitationSchemaTest {
     List<Status> statuses = List.of(new Status("active", "Active"), new Status("inactive", "Gone"));
     Status defaultStatus = statuses.get(0);
     ElicitationSchema schema =
-        ElicitationSchema.builder()
-            .choose("status", statuses, Status::code, Status::label, defaultStatus)
-            .build();
+        ElicitationSchema.builder().choose("status", statuses, Status::code, defaultStatus).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("status");
 
@@ -586,10 +660,15 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void chooseManyWithRawStringsAndVarargsDefaultsShouldWork() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.chooseMany("tags", List.of("java", "python", "go"), "java", "go");
-    ElicitationSchema schema = builder.build();
+  void chooseManyWithRawStringsAndDefaultsCustomizerShouldWork() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .chooseMany(
+                "tags",
+                List.of("java", "python", "go"),
+                Function.identity(),
+                c -> c.defaults(List.of("java", "go")))
+            .build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
@@ -600,10 +679,15 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void chooseManyWithRawStringsAndListDefaultsShouldWork() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.chooseMany("tags", List.of("java", "python", "go"), List.of("python"));
-    ElicitationSchema schema = builder.build();
+  void chooseManyWithRawStringsAndListDefaultsCustomizerShouldWork() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .chooseMany(
+                "tags",
+                List.of("java", "python", "go"),
+                Function.identity(),
+                c -> c.defaults(List.of("python")))
+            .build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
@@ -622,9 +706,7 @@ class ElicitationSchemaTest {
 
   @Test
   void chooseManyItemsShouldIncludeTypeString() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder();
-    builder.chooseMany("tags", Tag.class);
-    ElicitationSchema schema = builder.build();
+    ElicitationSchema schema = ElicitationSchema.builder().chooseMany("tags", Tag.class).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
@@ -636,10 +718,10 @@ class ElicitationSchemaTest {
   void multiplePropertyTypesShouldCoexist() {
     ElicitationSchema schema =
         ElicitationSchema.builder()
-            .stringProperty("name", "Name")
-            .integerProperty("age", "Age")
-            .numberProperty("score", "Score")
-            .booleanProperty("active", "Active")
+            .string("name", "Name")
+            .integer("age", "Age")
+            .number("score", "Score")
+            .bool("active", "Active")
             .choose("color", List.of("red", "blue"))
             .required("name", "age")
             .build();
@@ -647,5 +729,20 @@ class ElicitationSchemaTest {
 
     assertThat(node.get("properties")).hasSize(5);
     assertThat(node.get("required")).hasSize(2);
+  }
+
+  @Test
+  void chooseWithArbitraryItemsTitleAndDefaultCustomizerShouldWork() {
+    record Status(String code, String label) {}
+    List<Status> statuses = List.of(new Status("active", "Active"), new Status("inactive", "Gone"));
+    Consumer<ElicitationSchema.ChoiceConstraints<Status>> customizer =
+        c -> c.title(Status::label).defaultValue(statuses.get(0));
+    ElicitationSchema schema =
+        ElicitationSchema.builder().choose("status", statuses, Status::code, customizer).build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("status");
+
+    assertThat(prop.get("oneOf").get(0).get("title").asString()).isEqualTo("Active");
+    assertThat(prop.get("default").asString()).isEqualTo("active");
   }
 }
