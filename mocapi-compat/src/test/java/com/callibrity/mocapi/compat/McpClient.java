@@ -37,6 +37,10 @@ public class McpClient {
   }
 
   public String initialize() throws Exception {
+    return initializeResult().andReturn().getResponse().getHeader("MCP-Session-Id");
+  }
+
+  public ResultActions initializeResult() throws Exception {
     ObjectNode params = objectMapper.createObjectNode();
     params.put("protocolVersion", PROTOCOL_VERSION);
     params.putObject("capabilities");
@@ -50,15 +54,12 @@ public class McpClient {
     request.set("params", params);
     request.put("id", 1);
 
-    var result =
-        mockMvc.perform(
-            MockMvcRequestBuilders.post(MCP_ENDPOINT)
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON, TEXT_EVENT_STREAM)
-                .header("MCP-Protocol-Version", PROTOCOL_VERSION)
-                .content(objectMapper.writeValueAsString(request)));
-
-    return result.andReturn().getResponse().getHeader("MCP-Session-Id");
+    return mockMvc.perform(
+        MockMvcRequestBuilders.post(MCP_ENDPOINT)
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON, TEXT_EVENT_STREAM)
+            .header("MCP-Protocol-Version", PROTOCOL_VERSION)
+            .content(objectMapper.writeValueAsString(request)));
   }
 
   public ResultActions post(String sessionId, String method, ObjectNode params, JsonNode id)

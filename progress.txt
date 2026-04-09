@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T15:12:40-04:00
-ITERATION: 45
-SPEC_COMPLETED: 045-compat-session-management.md
-WHAT_WAS_DONE: Created SessionManagementIT (8 tests covering full session lifecycle: initialize returns session ID, post with session succeeds, post without session returns 400, post with unknown session returns 404, delete returns 204, delete without session returns 400, delete with unknown session returns 404, post to deleted session returns 404). Added deleteWithoutSession() to McpClient.
-VERIFICATION: mvn verify — BUILD SUCCESS (all 6 modules pass: parent, core 181 tests, starter, example, compat 16 ITs, coverage)
+LAST_RUN: 2026-04-09T15:15:00-04:00
+ITERATION: 46
+SPEC_COMPLETED: 046-compat-initialization.md
+WHAT_WAS_DONE: Created InitializationIT (5 tests: initialize returns protocolVersion, initialize returns capabilities, initialize returns serverInfo with name, initialize works without session ID, notifications/initialized returns 202). Added initializeResult() method to McpClient to expose full ResultActions for response inspection.
+VERIFICATION: mvn verify — BUILD SUCCESS (all 6 modules pass: parent, core 181 tests, starter, example 2 tests, compat 21 ITs, coverage)
 STATUS: MORE_WORK
-NEXT_SPEC: 046-compat-initialization.md
-NOTES: DELETE endpoint returns plain JSON {"error":"..."} not JSON-RPC error format. POST non-initialize without session returns JSON-RPC error body with code -32600. The session service delete is immediate — no grace period.
+NEXT_SPEC: 047-compat-ping-and-tools.md
+NOTES: initializeResult() returns ResultActions so tests can assert on response body shape. The initialize response contains result.protocolVersion, result.capabilities, and result.serverInfo.name as expected by MCP spec.
