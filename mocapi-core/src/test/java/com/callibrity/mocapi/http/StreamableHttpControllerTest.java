@@ -18,7 +18,6 @@ package com.callibrity.mocapi.http;
 import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -32,8 +31,8 @@ import com.callibrity.mocapi.session.InMemoryMcpSessionStore;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionMethods;
 import com.callibrity.mocapi.session.McpSessionService;
+import com.callibrity.mocapi.tools.McpTool;
 import com.callibrity.mocapi.tools.McpToolMethods;
-import com.callibrity.mocapi.tools.ToolMethodInvoker;
 import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
@@ -43,6 +42,7 @@ import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
+import com.github.victools.jsonschema.generator.SchemaGenerator;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.List;
@@ -53,12 +53,10 @@ import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
-import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -84,33 +82,30 @@ class StreamableHttpControllerTest {
             new ServerInfo("test", null, "1.0", null, null, null),
             null);
     registry = mock(OdysseyStreamRegistry.class);
-    when(registry.channel(anyString())).thenReturn(mock(OdysseyStream.class));
-
-    OdysseyStream ephemeralStream = mock(OdysseyStream.class);
-    when(ephemeralStream.subscribe()).thenReturn(new SseEmitter());
-    when(registry.ephemeral()).thenReturn(ephemeralStream);
 
     sessionStore = new InMemoryMcpSessionStore();
     objectMapper = new ObjectMapper();
     toolsCapability = mock(ToolsRegistry.class);
+
+    // Default: lookup returns a non-streamable tool
+    McpTool nonStreamableTool = mock(McpTool.class);
+    when(nonStreamableTool.isStreamable()).thenReturn(false);
+    when(toolsCapability.lookup(any())).thenReturn(nonStreamableTool);
 
     byte[] masterKey = new byte[32];
     new SecureRandom().nextBytes(masterKey);
     sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT);
 
     McpSessionMethods serverMethods = new McpSessionMethods(initializeResponse);
-    ToolMethodInvoker toolMethodInvoker = mock(ToolMethodInvoker.class);
     McpToolMethods toolMethods =
-        new McpToolMethods(toolsCapability, objectMapper, toolMethodInvoker);
-
-    // Wire up the mock to delegate to toolsCapability for non-streamable tools
-    when(toolMethodInvoker.invoke(any(), any(), any()))
-        .thenAnswer(
-            invocation -> {
-              String name = invocation.getArgument(0);
-              ObjectNode args = invocation.getArgument(1);
-              return toolsCapability.callTool(name, args);
-            });
+        new McpToolMethods(
+            toolsCapability,
+            objectMapper,
+            registry,
+            mock(MailboxFactory.class),
+            mock(SchemaGenerator.class),
+            sessionService,
+            Duration.ofSeconds(30));
 
     MethodInvokerFactory invokerFactory =
         new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(objectMapper)));

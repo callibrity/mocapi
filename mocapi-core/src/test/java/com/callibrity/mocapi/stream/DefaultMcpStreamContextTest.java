@@ -70,12 +70,12 @@ class DefaultMcpStreamContextTest {
                 .build());
   }
 
-  private DefaultMcpStreamContext createContext(String progressToken) {
+  private DefaultMcpStreamContext<?> createContext(String progressToken) {
     return createContext(progressToken, null);
   }
 
-  private DefaultMcpStreamContext createContext(String progressToken, String sessionId) {
-    return new DefaultMcpStreamContext(
+  private DefaultMcpStreamContext<?> createContext(String progressToken, String sessionId) {
+    return new DefaultMcpStreamContext<>(
         stream,
         objectMapper,
         progressToken,
@@ -83,7 +83,8 @@ class DefaultMcpStreamContextTest {
         schemaGenerator,
         sessionService,
         sessionId,
-        Duration.ofSeconds(5));
+        Duration.ofSeconds(5),
+        null);
   }
 
   private McpSession sessionWithLogLevel(LogLevel level) {

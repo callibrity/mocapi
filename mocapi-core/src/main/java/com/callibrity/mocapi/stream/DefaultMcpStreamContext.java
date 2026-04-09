@@ -19,6 +19,7 @@ import com.callibrity.mocapi.session.LogLevel;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
+import com.callibrity.ripcurl.core.JsonRpcResult;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
 import com.github.erosb.jsonsKema.SchemaLoader;
@@ -28,6 +29,7 @@ import com.github.victools.jsonschema.generator.SchemaGenerator;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.substrate.core.Mailbox;
 import org.jwcarman.substrate.core.MailboxFactory;
@@ -40,7 +42,7 @@ import tools.jackson.databind.node.ObjectNode;
  * Default implementation of {@link McpStreamContext} that wraps an {@link OdysseyStream} with
  * MCP-specific JSON-RPC notification formatting and elicitation support via Substrate Mailbox.
  */
-public class DefaultMcpStreamContext implements McpStreamContext {
+public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
 
   private final OdysseyStream stream;
   private final ObjectMapper objectMapper;
@@ -50,6 +52,8 @@ public class DefaultMcpStreamContext implements McpStreamContext {
   private final McpSessionService sessionService;
   private final String sessionId;
   private final Duration elicitationTimeout;
+  private final JsonNode requestId;
+  private final AtomicBoolean responseSent = new AtomicBoolean(false);
 
   public DefaultMcpStreamContext(
       OdysseyStream stream,
@@ -59,7 +63,8 @@ public class DefaultMcpStreamContext implements McpStreamContext {
       SchemaGenerator schemaGenerator,
       McpSessionService sessionService,
       String sessionId,
-      Duration elicitationTimeout) {
+      Duration elicitationTimeout,
+      JsonNode requestId) {
     this.stream = stream;
     this.objectMapper = objectMapper;
     this.progressToken = progressToken;
@@ -68,6 +73,22 @@ public class DefaultMcpStreamContext implements McpStreamContext {
     this.sessionService = sessionService;
     this.sessionId = sessionId;
     this.elicitationTimeout = elicitationTimeout;
+    this.requestId = requestId;
+  }
+
+  @Override
+  public void sendResponse(O response) {
+    if (!responseSent.compareAndSet(false, true)) {
+      throw new IllegalStateException("sendResponse() has already been called");
+    }
+    JsonNode resultJson = objectMapper.valueToTree(response);
+    JsonRpcResult result = new JsonRpcResult(resultJson, requestId);
+    stream.publishJson(objectMapper.valueToTree(result));
+    stream.close();
+  }
+
+  public boolean isResponseSent() {
+    return responseSent.get();
   }
 
   @Override

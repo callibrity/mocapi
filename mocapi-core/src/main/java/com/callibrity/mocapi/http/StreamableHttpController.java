@@ -22,7 +22,7 @@ import com.callibrity.mocapi.session.ClientCapabilities;
 import com.callibrity.mocapi.session.ClientInfo;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
-import com.callibrity.mocapi.tools.ToolMethodInvoker;
+import com.callibrity.mocapi.tools.McpToolMethods;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
@@ -206,7 +206,7 @@ public class StreamableHttpController {
 
   private ResponseEntity<Object> handleResult(
       JsonRpcResult result, boolean isInitialize, JsonNode params) {
-    var emitter = result.getMetadata(ToolMethodInvoker.SSE_EMITTER_KEY, SseEmitter.class);
+    var emitter = result.getMetadata(McpToolMethods.SSE_EMITTER_KEY, SseEmitter.class);
     if (emitter.isPresent()) {
       var builder = ResponseEntity.ok();
       if (isInitialize) {

@@ -55,8 +55,10 @@ public class MocapiToolsAutoConfiguration {
   }
 
   @Bean
-  public ToolsRegistry toolsRegistry(List<McpToolProvider> toolProviders) {
-    return new ToolsRegistry(toolProviders, mocapiProperties.getPagination().getPageSize());
+  public ToolsRegistry toolsRegistry(
+      List<McpToolProvider> toolProviders, ObjectMapper objectMapper) {
+    return new ToolsRegistry(
+        toolProviders, objectMapper, mocapiProperties.getPagination().getPageSize());
   }
 
   @Bean
@@ -73,16 +75,15 @@ public class MocapiToolsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AnnotationMcpToolProviderFactory annotationMcpToolProviderFactory(
-      ObjectMapper mapper, MethodSchemaGenerator generator, MethodInvokerFactory invokerFactory) {
-    return new DefaultAnnotationMcpToolProviderFactory(mapper, generator, invokerFactory);
+      MethodSchemaGenerator generator, MethodInvokerFactory invokerFactory) {
+    return new DefaultAnnotationMcpToolProviderFactory(generator, invokerFactory);
   }
 
   @Bean
   public ToolServiceMcpToolProvider toolServiceMcpToolProvider(
       ApplicationContext context,
-      ObjectMapper mapper,
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory) {
-    return new ToolServiceMcpToolProvider(context, mapper, generator, invokerFactory);
+    return new ToolServiceMcpToolProvider(context, generator, invokerFactory);
   }
 }

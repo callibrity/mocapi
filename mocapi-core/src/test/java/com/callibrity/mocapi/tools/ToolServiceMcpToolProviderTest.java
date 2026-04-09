@@ -59,6 +59,11 @@ class ToolServiceMcpToolProviderTest {
       public ObjectNode generateOutputSchema(Object targetObject, Method method) {
         return objectSchema();
       }
+
+      @Override
+      public ObjectNode generateSchema(Class<?> type) {
+        return objectSchema();
+      }
     };
   }
 
@@ -68,8 +73,7 @@ class ToolServiceMcpToolProviderTest {
     when(context.getBeansWithAnnotation(ToolService.class))
         .thenReturn(Map.of("sampleTools", new SampleToolService()));
 
-    var provider =
-        new ToolServiceMcpToolProvider(context, mapper, createSchemaGenerator(), invokerFactory);
+    var provider = new ToolServiceMcpToolProvider(context, createSchemaGenerator(), invokerFactory);
     provider.initialize();
 
     assertThat(provider.getMcpTools()).hasSize(1);
@@ -82,8 +86,7 @@ class ToolServiceMcpToolProviderTest {
     when(context.getBeansWithAnnotation(ToolService.class))
         .thenReturn(Map.of("sampleTools", new SampleToolService()));
 
-    var provider =
-        new ToolServiceMcpToolProvider(context, mapper, createSchemaGenerator(), invokerFactory);
+    var provider = new ToolServiceMcpToolProvider(context, createSchemaGenerator(), invokerFactory);
     provider.initialize();
 
     var tools = provider.getMcpTools();
@@ -99,8 +102,7 @@ class ToolServiceMcpToolProviderTest {
                 "sampleTools", new SampleToolService(),
                 "otherTools", new OtherToolService()));
 
-    var provider =
-        new ToolServiceMcpToolProvider(context, mapper, createSchemaGenerator(), invokerFactory);
+    var provider = new ToolServiceMcpToolProvider(context, createSchemaGenerator(), invokerFactory);
     provider.initialize();
 
     assertThat(provider.getMcpTools()).hasSize(2);
@@ -112,8 +114,7 @@ class ToolServiceMcpToolProviderTest {
     when(context.getBeansWithAnnotation(ToolService.class))
         .thenReturn(Map.of("empty", new EmptyToolService()));
 
-    var provider =
-        new ToolServiceMcpToolProvider(context, mapper, createSchemaGenerator(), invokerFactory);
+    var provider = new ToolServiceMcpToolProvider(context, createSchemaGenerator(), invokerFactory);
     provider.initialize();
 
     assertThat(provider.getMcpTools()).isEmpty();

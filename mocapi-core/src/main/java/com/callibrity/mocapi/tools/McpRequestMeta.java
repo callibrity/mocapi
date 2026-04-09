@@ -15,23 +15,7 @@
  */
 package com.callibrity.mocapi.tools;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-public interface McpTool {
-  String name();
-
-  String title();
-
-  String description();
-
-  ObjectNode inputSchema();
-
-  ObjectNode outputSchema();
-
-  Object call(JsonNode arguments);
-
-  default boolean isStreamable() {
-    return false;
-  }
-}
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record McpRequestMeta(String progressToken) {}

@@ -20,14 +20,12 @@ import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jwcarman.methodical.MethodInvokerFactory;
-import tools.jackson.databind.ObjectMapper;
 
 @RequiredArgsConstructor
 public class DefaultAnnotationMcpToolProviderFactory implements AnnotationMcpToolProviderFactory {
 
   // ------------------------------ FIELDS ------------------------------
 
-  private final ObjectMapper mapper;
   private final MethodSchemaGenerator generator;
   private final MethodInvokerFactory invokerFactory;
 
@@ -36,8 +34,7 @@ public class DefaultAnnotationMcpToolProviderFactory implements AnnotationMcpToo
   // --------------------- Interface AnnotationMcpToolProviderFactory ---------------------
 
   public McpToolProvider create(Object targetObject) {
-    final var tools =
-        AnnotationMcpTool.createTools(mapper, generator, invokerFactory, targetObject);
+    final var tools = AnnotationMcpTool.createTools(generator, invokerFactory, targetObject);
     return () -> List.copyOf(tools);
   }
 }

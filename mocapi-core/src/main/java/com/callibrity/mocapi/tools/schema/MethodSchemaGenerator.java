@@ -23,4 +23,6 @@ public interface MethodSchemaGenerator {
   ObjectNode generateInputSchema(Object targetObject, Method method);
 
   ObjectNode generateOutputSchema(Object targetObject, Method method);
+
+  ObjectNode generateSchema(Class<?> type);
 }

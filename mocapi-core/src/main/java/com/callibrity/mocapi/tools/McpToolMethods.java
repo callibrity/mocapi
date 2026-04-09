@@ -15,20 +15,45 @@
  */
 package com.callibrity.mocapi.tools;
 
+import com.callibrity.mocapi.http.McpRequestId;
+import com.callibrity.mocapi.session.McpSession;
+import com.callibrity.mocapi.session.McpSessionService;
+import com.callibrity.mocapi.stream.DefaultMcpStreamContext;
+import com.callibrity.mocapi.stream.McpStreamContext;
+import com.callibrity.ripcurl.core.JsonRpcError;
+import com.callibrity.ripcurl.core.JsonRpcProtocol;
+import com.callibrity.ripcurl.core.JsonRpcResult;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
+import com.github.victools.jsonschema.generator.SchemaGenerator;
+import java.time.Duration;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.jwcarman.methodical.Named;
+import org.jwcarman.odyssey.core.OdysseyStream;
+import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
+import org.jwcarman.substrate.core.MailboxFactory;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.NullNode;
 
+@Slf4j
 @JsonRpcService
 @RequiredArgsConstructor
 public class McpToolMethods {
 
+  public static final String SSE_EMITTER_KEY = "sseEmitter";
+
   private final ToolsRegistry toolsRegistry;
   private final ObjectMapper objectMapper;
-  private final ToolMethodInvoker toolMethodInvoker;
+  private final OdysseyStreamRegistry odysseyRegistry;
+  private final MailboxFactory mailboxFactory;
+  private final SchemaGenerator schemaGenerator;
+  private final McpSessionService sessionService;
+  private final Duration elicitationTimeout;
 
   @JsonRpcMethod("tools/list")
   public ToolsRegistry.ListToolsResponse listTools(String cursor) {
@@ -36,15 +61,74 @@ public class McpToolMethods {
   }
 
   @JsonRpcMethod("tools/call")
-  public Object callTool(String name, ObjectNode arguments, ObjectNode _meta) {
-    ObjectNode args = arguments != null ? arguments : objectMapper.createObjectNode();
-    String progressToken = extractProgressToken(_meta);
-    return toolMethodInvoker.invoke(name, args, progressToken);
+  public Object callTool(String name, JsonNode arguments, @Named("_meta") McpRequestMeta meta) {
+    JsonNode args = arguments != null ? arguments : objectMapper.createObjectNode();
+    McpTool tool = toolsRegistry.lookup(name);
+
+    if (!tool.isStreamable()) {
+      return toolsRegistry.callTool(name, args);
+    }
+
+    String progressToken = meta != null ? meta.progressToken() : null;
+    JsonNode requestId = McpRequestId.CURRENT.isBound() ? McpRequestId.CURRENT.get() : null;
+    McpSession session = McpSession.CURRENT.get();
+    String sessionId = session.sessionId();
+
+    OdysseyStream stream = odysseyRegistry.ephemeral();
+    DefaultMcpStreamContext<?> ctx =
+        new DefaultMcpStreamContext<>(
+            stream,
+            objectMapper,
+            progressToken,
+            mailboxFactory,
+            schemaGenerator,
+            sessionService,
+            sessionId,
+            elicitationTimeout,
+            requestId);
+
+    stream.publishJson(Map.of());
+    SseEmitter emitter = stream.subscribe();
+
+    Thread.ofVirtual()
+        .start(
+            () ->
+                ScopedValue.where(McpSession.CURRENT, session)
+                    .where(McpStreamContext.CURRENT, ctx)
+                    .run(() -> executeStreamableTool(name, args, requestId, stream, ctx)));
+
+    return new JsonRpcResult(NullNode.getInstance(), requestId)
+        .withMetadata(SSE_EMITTER_KEY, emitter);
   }
 
-  private static String extractProgressToken(ObjectNode meta) {
-    if (meta == null) return null;
-    JsonNode token = meta.get("progressToken");
-    return (token == null || token.isMissingNode()) ? null : token.asString();
+  private void executeStreamableTool(
+      String name,
+      JsonNode arguments,
+      JsonNode requestId,
+      OdysseyStream stream,
+      DefaultMcpStreamContext<?> ctx) {
+    try {
+      ToolsRegistry.CallToolResponse result = toolsRegistry.callTool(name, arguments);
+      if (!ctx.isResponseSent()) {
+        JsonRpcResult response = new JsonRpcResult(objectMapper.valueToTree(result), requestId);
+        stream.publishJson(objectMapper.valueToTree(response));
+      }
+    } catch (JsonRpcException e) {
+      if (!ctx.isResponseSent()) {
+        stream.publishJson(
+            objectMapper.valueToTree(new JsonRpcError(e.getCode(), e.getMessage(), requestId)));
+      }
+    } catch (Exception e) {
+      log.error("Unexpected error executing streamable tool {}", name, e);
+      if (!ctx.isResponseSent()) {
+        stream.publishJson(
+            objectMapper.valueToTree(
+                new JsonRpcError(JsonRpcProtocol.INTERNAL_ERROR, e.getMessage(), requestId)));
+      }
+    } finally {
+      if (!ctx.isResponseSent()) {
+        stream.close();
+      }
+    }
   }
 }

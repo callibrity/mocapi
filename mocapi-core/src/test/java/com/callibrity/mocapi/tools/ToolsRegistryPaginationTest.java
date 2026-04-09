@@ -22,6 +22,7 @@ import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -45,7 +46,7 @@ class ToolsRegistryPaginationTest {
 
   @Test
   void shouldReturnAllToolsInSinglePageWhenWithinPageSize() {
-    var registry = new ToolsRegistry(List.of(createProvider(3)), 10);
+    var registry = new ToolsRegistry(List.of(createProvider(3)), mapper, 10);
     var response = registry.listTools(null);
 
     assertThat(response.tools()).hasSize(3);
@@ -54,7 +55,7 @@ class ToolsRegistryPaginationTest {
 
   @Test
   void shouldReturnFirstPageWithCursorWhenExceedsPageSize() {
-    var registry = new ToolsRegistry(List.of(createProvider(5)), 2);
+    var registry = new ToolsRegistry(List.of(createProvider(5)), mapper, 2);
     var response = registry.listTools(null);
 
     assertThat(response.tools()).hasSize(2);
@@ -65,7 +66,7 @@ class ToolsRegistryPaginationTest {
 
   @Test
   void shouldReturnNextPageWithValidCursor() {
-    var registry = new ToolsRegistry(List.of(createProvider(5)), 2);
+    var registry = new ToolsRegistry(List.of(createProvider(5)), mapper, 2);
     var firstPage = registry.listTools(null);
 
     var secondPage = registry.listTools(firstPage.nextCursor());
@@ -77,7 +78,7 @@ class ToolsRegistryPaginationTest {
 
   @Test
   void shouldReturnLastPageWithNullCursor() {
-    var registry = new ToolsRegistry(List.of(createProvider(5)), 2);
+    var registry = new ToolsRegistry(List.of(createProvider(5)), mapper, 2);
     var firstPage = registry.listTools(null);
     var secondPage = registry.listTools(firstPage.nextCursor());
     var thirdPage = registry.listTools(secondPage.nextCursor());
@@ -91,7 +92,7 @@ class ToolsRegistryPaginationTest {
   void shouldIterateThroughAllPages() {
     int totalTools = 7;
     int pageSize = 3;
-    var registry = new ToolsRegistry(List.of(createProvider(totalTools)), pageSize);
+    var registry = new ToolsRegistry(List.of(createProvider(totalTools)), mapper, pageSize);
 
     int totalRetrieved = 0;
     String cursor = null;
@@ -106,7 +107,7 @@ class ToolsRegistryPaginationTest {
 
   @Test
   void shouldReturnExactPageWhenToolCountEqualsPageSize() {
-    var registry = new ToolsRegistry(List.of(createProvider(3)), 3);
+    var registry = new ToolsRegistry(List.of(createProvider(3)), mapper, 3);
     var response = registry.listTools(null);
 
     assertThat(response.tools()).hasSize(3);
@@ -115,7 +116,7 @@ class ToolsRegistryPaginationTest {
 
   @Test
   void shouldThrowOnInvalidCursor() {
-    var registry = new ToolsRegistry(List.of(createProvider(3)), 2);
+    var registry = new ToolsRegistry(List.of(createProvider(3)), mapper, 2);
 
     assertThatThrownBy(() -> registry.listTools("not-valid-base64!!!"))
         .isExactlyInstanceOf(JsonRpcException.class)
@@ -124,7 +125,7 @@ class ToolsRegistryPaginationTest {
 
   @Test
   void shouldThrowOnOutOfRangeCursor() {
-    var registry = new ToolsRegistry(List.of(createProvider(3)), 2);
+    var registry = new ToolsRegistry(List.of(createProvider(3)), mapper, 2);
     String cursor = ToolsRegistry.encodeCursor(100);
 
     assertThatThrownBy(() -> registry.listTools(cursor))
@@ -134,7 +135,7 @@ class ToolsRegistryPaginationTest {
 
   @Test
   void shouldUseDefaultPageSizeOf50() {
-    var registry = new ToolsRegistry(List.of(createProvider(60)));
+    var registry = new ToolsRegistry(List.of(createProvider(60)), mapper);
     var response = registry.listTools(null);
 
     assertThat(response.tools()).hasSize(50);
@@ -168,8 +169,8 @@ class ToolsRegistryPaginationTest {
     }
 
     @Override
-    public ObjectNode call(ObjectNode parameters) {
-      return parameters;
+    public Object call(JsonNode arguments) {
+      return arguments;
     }
   }
 }

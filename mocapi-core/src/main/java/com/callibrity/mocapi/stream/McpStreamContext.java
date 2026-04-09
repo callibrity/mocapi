@@ -23,9 +23,17 @@ import tools.jackson.core.type.TypeReference;
  * methods for sending intermediate messages (progress notifications, arbitrary notifications) to
  * the client during a long-running operation, and for eliciting structured input from the client.
  */
-public interface McpStreamContext {
+public interface McpStreamContext<O> {
 
-  ScopedValue<McpStreamContext> CURRENT = ScopedValue.newInstance();
+  ScopedValue<McpStreamContext<?>> CURRENT = ScopedValue.newInstance();
+
+  /**
+   * Publishes the final response on the SSE stream and closes it. This is a terminal operation —
+   * calling it twice throws {@link IllegalStateException}.
+   *
+   * @param response the response to send
+   */
+  void sendResponse(O response);
 
   /**
    * Sends a progress notification to the client.

@@ -42,14 +42,14 @@ class ToolsRegistryTest {
               new Jackson3ParameterResolver(mapper), new McpStreamContextScopedValueResolver()));
   private final AnnotationMcpToolProviderFactory factory =
       new DefaultAnnotationMcpToolProviderFactory(
-          mapper, new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7), invokerFactory);
+          new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7), invokerFactory);
 
   @Test
   void shouldListAllTools() {
 
     var provider = factory.create(new HelloTool());
 
-    var registry = new ToolsRegistry(List.of(provider));
+    var registry = new ToolsRegistry(List.of(provider), mapper);
     var response = registry.listTools(null);
 
     assertThat(response).isNotNull();
@@ -69,7 +69,7 @@ class ToolsRegistryTest {
   void shouldLookupTool() {
     var provider = factory.create(new HelloTool());
 
-    var registry = new ToolsRegistry(List.of(provider));
+    var registry = new ToolsRegistry(List.of(provider), mapper);
     var tool = registry.lookup("hello-tool.say-hello");
 
     assertThat(tool).isNotNull();
@@ -80,7 +80,7 @@ class ToolsRegistryTest {
   void shouldCallToolSuccessfully() {
     var provider = factory.create(new HelloTool());
 
-    var registry = new ToolsRegistry(List.of(provider));
+    var registry = new ToolsRegistry(List.of(provider), mapper);
     var response =
         registry.callTool("hello-tool.say-hello", mapper.createObjectNode().put("name", "Mocapi"));
 
@@ -93,7 +93,7 @@ class ToolsRegistryTest {
   void invalidInputShouldThrowException() {
     var provider = factory.create(new HelloTool());
 
-    var registry = new ToolsRegistry(List.of(provider));
+    var registry = new ToolsRegistry(List.of(provider), mapper);
     var request = mapper.createObjectNode();
     assertThatThrownBy(() -> registry.callTool("hello-tool.say-hello", request))
         .isExactlyInstanceOf(JsonRpcException.class);
@@ -103,7 +103,7 @@ class ToolsRegistryTest {
   void missingToolShouldThrowException() {
     var provider = factory.create(new HelloTool());
 
-    var registry = new ToolsRegistry(List.of(provider));
+    var registry = new ToolsRegistry(List.of(provider), mapper);
     var request = mapper.createObjectNode();
     assertThatThrownBy(() -> registry.callTool("non-existent-tool", request))
         .isExactlyInstanceOf(JsonRpcException.class)

@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.tools.schema;
 
+import com.callibrity.mocapi.stream.McpStreamContext;
 import com.github.victools.jsonschema.generator.OptionPreset;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
@@ -74,6 +75,9 @@ public class DefaultMethodSchemaGenerator implements MethodSchemaGenerator {
 
     for (int i = 0; i < parameters.length; i++) {
       var param = parameters[i];
+      if (McpStreamContext.class.isAssignableFrom(parameterTypes[i])) {
+        continue;
+      }
       var paramSchemaNode = generator.generateSchema(parameterTypes[i]);
       paramSchemaNode.remove(SCHEMA_PROPERTY_NAME);
       putIfNotNull(paramSchemaNode, "title", Parameters.titleOf(param));
@@ -101,6 +105,11 @@ public class DefaultMethodSchemaGenerator implements MethodSchemaGenerator {
   public ObjectNode generateOutputSchema(Object targetObject, Method method) {
     return generator.generateSchema(
         getRawType(method.getGenericReturnType(), targetObject.getClass()));
+  }
+
+  @Override
+  public ObjectNode generateSchema(Class<?> type) {
+    return generator.generateSchema(type);
   }
 
   // -------------------------- OTHER METHODS --------------------------

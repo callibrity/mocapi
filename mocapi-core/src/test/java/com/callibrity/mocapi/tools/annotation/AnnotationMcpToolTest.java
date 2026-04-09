@@ -16,13 +16,11 @@
 package com.callibrity.mocapi.tools.annotation;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.stream.McpStreamContextScopedValueResolver;
 import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tools.util.HelloTool;
 import com.callibrity.mocapi.tools.util.NullTool;
-import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -30,7 +28,6 @@ import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.JsonNodeType;
 
 class AnnotationMcpToolTest {
 
@@ -41,7 +38,7 @@ class AnnotationMcpToolTest {
               new Jackson3ParameterResolver(mapper), new McpStreamContextScopedValueResolver()));
   private final AnnotationMcpToolProviderFactory factory =
       new DefaultAnnotationMcpToolProviderFactory(
-          mapper, new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7), invokerFactory);
+          new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7), invokerFactory);
 
   @Test
   void nonCustomizedAnnotationShouldReturnCorrectMetadata() {
@@ -75,21 +72,22 @@ class AnnotationMcpToolTest {
     var result = tool.call(mapper.createObjectNode().put("name", "Mocapi"));
 
     assertThat(result).isNotNull();
-    assertThat(result.get("message").getNodeType()).isEqualTo(JsonNodeType.STRING);
-    assertThat(result.get("message").stringValue()).isEqualTo("Hello, Mocapi!");
+    var json = mapper.valueToTree(result);
+    assertThat(json.get("message").stringValue()).isEqualTo("Hello, Mocapi!");
   }
 
   @Test
-  void nullReturnShouldThrowException() {
+  void nullReturnShouldReturnNull() {
     var tool = factory.create(new NullTool()).getMcpTools().getFirst();
-    var parameters = mapper.createObjectNode().put("name", "Mocapi");
-    assertThatThrownBy(() -> tool.call(parameters)).isExactlyInstanceOf(JsonRpcException.class);
+    var result = tool.call(mapper.createObjectNode().put("name", "Mocapi"));
+
+    assertThat(result).isNull();
   }
 
   @Test
-  void invalidReturnTypeShouldThrowException() {
-    var invalidTool = new InvalidReturnTool();
-    assertThatThrownBy(() -> factory.create(invalidTool))
-        .isExactlyInstanceOf(IllegalArgumentException.class);
+  void nonObjectReturnTypeShouldBeAllowed() {
+    var tool = factory.create(new InvalidReturnTool()).getMcpTools().getFirst();
+    assertThat(tool).isNotNull();
+    assertThat(tool.outputSchema()).isNotNull();
   }
 }

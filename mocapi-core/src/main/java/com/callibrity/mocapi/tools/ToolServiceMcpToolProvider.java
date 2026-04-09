@@ -24,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.springframework.context.ApplicationContext;
-import tools.jackson.databind.ObjectMapper;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -33,7 +32,6 @@ public class ToolServiceMcpToolProvider implements McpToolProvider {
   // ------------------------------ FIELDS ------------------------------
 
   private final ApplicationContext context;
-  private final ObjectMapper mapper;
   private final MethodSchemaGenerator generator;
   private final MethodInvokerFactory invokerFactory;
   private List<AnnotationMcpTool> tools;
@@ -62,7 +60,7 @@ public class ToolServiceMcpToolProvider implements McpToolProvider {
                       "Registering MCP tools for @{} bean \"{}\"...",
                       ToolService.class.getSimpleName(),
                       beanName);
-                  var list = AnnotationMcpTool.createTools(mapper, generator, invokerFactory, bean);
+                  var list = AnnotationMcpTool.createTools(generator, invokerFactory, bean);
                   list.forEach(tool -> log.info("\tRegistered MCP tool: \"{}\"", tool.name()));
                   return list.stream();
                 })

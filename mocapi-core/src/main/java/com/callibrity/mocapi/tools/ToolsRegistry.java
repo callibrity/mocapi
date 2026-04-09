@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 public class ToolsRegistry {
@@ -44,19 +46,22 @@ public class ToolsRegistry {
 
   private final Map<String, McpTool> tools;
   private final ConcurrentHashMap<String, Schema> inputSchemas = new ConcurrentHashMap<>();
+  private final ObjectMapper objectMapper;
   private final int pageSize;
 
   // --------------------------- CONSTRUCTORS ---------------------------
 
-  public ToolsRegistry(List<McpToolProvider> toolProviders) {
-    this(toolProviders, DEFAULT_PAGE_SIZE);
+  public ToolsRegistry(List<McpToolProvider> toolProviders, ObjectMapper objectMapper) {
+    this(toolProviders, objectMapper, DEFAULT_PAGE_SIZE);
   }
 
-  public ToolsRegistry(List<McpToolProvider> toolProviders, int pageSize) {
+  public ToolsRegistry(
+      List<McpToolProvider> toolProviders, ObjectMapper objectMapper, int pageSize) {
     this.tools =
         toolProviders.stream()
             .flatMap(provider -> provider.getMcpTools().stream())
             .collect(Collectors.toMap(McpTool::name, t -> t));
+    this.objectMapper = objectMapper;
     this.pageSize = pageSize;
   }
 
@@ -70,15 +75,19 @@ public class ToolsRegistry {
                     JsonRpcProtocol.INVALID_PARAMS, String.format("Tool %s not found.", name)));
   }
 
-  public CallToolResponse callTool(String name, ObjectNode arguments) {
+  public CallToolResponse callTool(String name, JsonNode arguments) {
     var tool = lookup(name);
     validateInput(name, arguments, tool);
-    var structuredOutput = tool.call(arguments);
-    var textContent = new TextContent(structuredOutput.toString());
-    return new CallToolResponse(List.of(textContent), null, structuredOutput);
+    var result = tool.call(arguments);
+    JsonNode jsonResult = result != null ? objectMapper.valueToTree(result) : null;
+    ObjectNode structuredContent =
+        jsonResult != null && jsonResult.isObject() ? (ObjectNode) jsonResult : null;
+    String text = jsonResult != null ? jsonResult.toString() : "";
+    var textContent = new TextContent(text);
+    return new CallToolResponse(List.of(textContent), null, structuredContent);
   }
 
-  private void validateInput(String name, ObjectNode arguments, McpTool tool) {
+  private void validateInput(String name, JsonNode arguments, McpTool tool) {
     Schema schema = getInputSchema(name, tool);
     Validator validator = Validator.forSchema(schema);
     ValidationFailure failure = validator.validate(new JsonParser(arguments.toString()).parse());

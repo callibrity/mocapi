@@ -22,17 +22,18 @@ import static java.util.Optional.ofNullable;
 import com.callibrity.mocapi.stream.McpStreamContext;
 import com.callibrity.mocapi.tools.McpTool;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
-import com.callibrity.ripcurl.core.JsonRpcProtocol;
-import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
+import java.lang.reflect.Parameter;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
+import org.apache.commons.lang3.reflect.TypeUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 public class AnnotationMcpTool implements McpTool {
@@ -43,7 +44,6 @@ public class AnnotationMcpTool implements McpTool {
   private final String title;
   private final String description;
   private final MethodInvoker<JsonNode> invoker;
-  private final ObjectMapper mapper;
   private final ObjectNode inputSchema;
   private final ObjectNode outputSchema;
   private final boolean streamable;
@@ -51,19 +51,15 @@ public class AnnotationMcpTool implements McpTool {
   // -------------------------- STATIC METHODS --------------------------
 
   public static List<AnnotationMcpTool> createTools(
-      ObjectMapper mapper,
-      MethodSchemaGenerator generator,
-      MethodInvokerFactory invokerFactory,
-      Object targetObject) {
+      MethodSchemaGenerator generator, MethodInvokerFactory invokerFactory, Object targetObject) {
     return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), Tool.class).stream()
-        .map(m -> new AnnotationMcpTool(mapper, generator, invokerFactory, targetObject, m))
+        .map(m -> new AnnotationMcpTool(generator, invokerFactory, targetObject, m))
         .toList();
   }
 
   // --------------------------- CONSTRUCTORS ---------------------------
 
   AnnotationMcpTool(
-      ObjectMapper mapper,
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
       Object targetObject,
@@ -72,17 +68,37 @@ public class AnnotationMcpTool implements McpTool {
     this.name = nameOf(targetObject, method, annotation);
     this.title = titleOf(targetObject, method, annotation);
     this.description = descriptionOf(targetObject, method, annotation);
-    this.streamable = hasStreamContextParam(method);
-    this.mapper = mapper;
     this.invoker = invokerFactory.create(method, targetObject, JsonNode.class);
     this.inputSchema = generator.generateInputSchema(targetObject, method);
-    this.outputSchema = generator.generateOutputSchema(targetObject, method);
-    var outputSchemaType = outputSchema.get("type").asString();
-    if (!"object".equals(outputSchemaType)) {
-      throw new IllegalArgumentException(
-          String.format(
-              "MCP tool \"%s\" returns JSON schema type \"%s\" (object is required).",
-              name, outputSchemaType));
+
+    // Detect McpStreamContext<O> parameter for streaming and output schema
+    boolean foundStream = false;
+    ObjectNode streamOutputSchema = null;
+    for (Parameter param : method.getParameters()) {
+      if (McpStreamContext.class.isAssignableFrom(param.getType())) {
+        foundStream = true;
+        Type genericType = param.getParameterizedType();
+        Map<TypeVariable<?>, Type> typeArgs =
+            TypeUtils.getTypeArguments(genericType, McpStreamContext.class);
+        TypeVariable<?>[] typeParams = McpStreamContext.class.getTypeParameters();
+        if (typeArgs != null && !typeArgs.isEmpty()) {
+          Type outputType = typeArgs.get(typeParams[0]);
+          Class<?> outputClass = TypeUtils.getRawType(outputType, null);
+          if (outputClass != null && outputClass != Void.class) {
+            streamOutputSchema = generator.generateSchema(outputClass);
+          }
+        }
+        break;
+      }
+    }
+    this.streamable = foundStream;
+
+    if (foundStream) {
+      this.outputSchema = streamOutputSchema;
+    } else if (isVoid(method)) {
+      this.outputSchema = null;
+    } else {
+      this.outputSchema = generator.generateOutputSchema(targetObject, method);
     }
   }
 
@@ -101,9 +117,8 @@ public class AnnotationMcpTool implements McpTool {
         .orElseGet(() -> humanReadableName(targetObject, method));
   }
 
-  private static boolean hasStreamContextParam(Method method) {
-    return Arrays.stream(method.getParameterTypes())
-        .anyMatch(McpStreamContext.class::isAssignableFrom);
+  private static boolean isVoid(Method method) {
+    return method.getReturnType() == void.class || method.getReturnType() == Void.class;
   }
 
   // ------------------------ INTERFACE METHODS ------------------------
@@ -141,14 +156,7 @@ public class AnnotationMcpTool implements McpTool {
   }
 
   @Override
-  public ObjectNode call(ObjectNode parameters) {
-    var rawResult = invoker.invoke(parameters);
-    JsonNode result = mapper.valueToTree(rawResult);
-    if (result.isObject()) {
-      return (ObjectNode) result;
-    }
-    throw new JsonRpcException(
-        JsonRpcProtocol.INTERNAL_ERROR,
-        String.format("McpTool %s returned non-object (%s) result.", name, result.getNodeType()));
+  public Object call(JsonNode arguments) {
+    return invoker.invoke(arguments);
   }
 }

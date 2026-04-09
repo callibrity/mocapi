@@ -28,7 +28,6 @@ import com.callibrity.mocapi.session.McpSessionMethods;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStore;
 import com.callibrity.mocapi.tools.McpToolMethods;
-import com.callibrity.mocapi.tools.ToolMethodInvoker;
 import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.github.victools.jsonschema.generator.OptionPreset;
@@ -108,29 +107,21 @@ public class MocapiAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   @ConditionalOnBean(ToolsRegistry.class)
-  public ToolMethodInvoker toolMethodInvoker(
+  public McpToolMethods mcpToolMethods(
       ToolsRegistry toolsRegistry,
-      OdysseyStreamRegistry odysseyRegistry,
       ObjectMapper objectMapper,
+      OdysseyStreamRegistry odysseyRegistry,
       MailboxFactory mailboxFactory,
       SchemaGenerator schemaGenerator,
       McpSessionService sessionService) {
-    return new ToolMethodInvoker(
+    return new McpToolMethods(
         toolsRegistry,
-        odysseyRegistry,
         objectMapper,
+        odysseyRegistry,
         mailboxFactory,
         schemaGenerator,
         sessionService,
         props.getElicitation().getTimeout());
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  @ConditionalOnBean(ToolsRegistry.class)
-  public McpToolMethods mcpToolMethods(
-      ToolsRegistry toolsRegistry, ObjectMapper objectMapper, ToolMethodInvoker toolMethodInvoker) {
-    return new McpToolMethods(toolsRegistry, objectMapper, toolMethodInvoker);
   }
 
   @Bean
