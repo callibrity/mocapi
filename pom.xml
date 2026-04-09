@@ -57,7 +57,6 @@
         <module>mocapi-spring-boot-starter</module>
         <module>mocapi-example</module>
         <module>mocapi-compat</module>
-        <module>mocapi-coverage</module>
     </modules>
 
     <properties>
@@ -92,7 +91,7 @@
         <!-- SonarQube Configuration -->
         <sonar.organization>callibrity</sonar.organization>
         <sonar.projectKey>callibrity_mocapi</sonar.projectKey>
-        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/mocapi-coverage/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/**/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
         <!-- License Header Configuration -->
         <license.email>contactus@callibrity.com</license.email>

@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T15:46:13-04:00
-ITERATION: 50
-SPEC_COMPLETED: 050-compat-scenarios.md
-WHAT_WAS_DONE: Created FullConversationIT (1 test walking complete session lifecycle: initialize → notifications/initialized → tools/list → tools/call echo → ping → DELETE → ping with old session returns 404) and ProtocolVersionNegotiationIT (3 tests: valid version accepted, unrecognized version rejected with error, missing version defaults to current). Added initializeWithProtocolVersion and initializeWithoutProtocolVersion methods to McpClient.
-VERIFICATION: mvn verify — BUILD SUCCESS (all 6 modules pass, 54 compat integration tests green)
+LAST_RUN: 2026-04-09T15:47:30-04:00
+ITERATION: 51
+SPEC_COMPLETED: 051-remove-coverage-module.md
+WHAT_WAS_DONE: Removed mocapi-coverage aggregate module — deleted the directory, removed the module entry from parent pom, and updated sonar.coverage.jacoco.xmlReportPaths to use a per-module wildcard pattern (**/target/site/jacoco/jacoco.xml).
+VERIFICATION: mvn verify — BUILD SUCCESS (5 modules pass, 54 compat integration tests green). grep for mocapi-coverage confirms no actionable references remain (only PRD.md and specs/done/ which are not modifiable per Ralph rules).
 STATUS: MORE_WORK
-NEXT_SPEC: 051-remove-coverage-module.md
-NOTES: None.
+NEXT_SPEC: 052-warn-on-in-memory-session-store.md
+NOTES: PRD.md still mentions mocapi-coverage in the repo structure section but Ralph rules prohibit modifying PRD.md. The human should update PRD.md to remove that line.
