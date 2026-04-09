@@ -175,6 +175,50 @@ public class McpClient {
             .header("Origin", origin));
   }
 
+  public ResultActions initializeWithProtocolVersion(String version) throws Exception {
+    ObjectNode params = objectMapper.createObjectNode();
+    params.put("protocolVersion", version);
+    params.putObject("capabilities");
+    ObjectNode clientInfo = params.putObject("clientInfo");
+    clientInfo.put("name", "compat-test-client");
+    clientInfo.put("version", "1.0.0");
+
+    ObjectNode request = objectMapper.createObjectNode();
+    request.put("jsonrpc", "2.0");
+    request.put("method", "initialize");
+    request.set("params", params);
+    request.put("id", 1);
+
+    var builder =
+        MockMvcRequestBuilders.post(MCP_ENDPOINT)
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON, TEXT_EVENT_STREAM)
+            .header("MCP-Protocol-Version", version)
+            .content(objectMapper.writeValueAsString(request));
+    return mockMvc.perform(builder);
+  }
+
+  public ResultActions initializeWithoutProtocolVersion() throws Exception {
+    ObjectNode params = objectMapper.createObjectNode();
+    params.put("protocolVersion", PROTOCOL_VERSION);
+    params.putObject("capabilities");
+    ObjectNode clientInfo = params.putObject("clientInfo");
+    clientInfo.put("name", "compat-test-client");
+    clientInfo.put("version", "1.0.0");
+
+    ObjectNode request = objectMapper.createObjectNode();
+    request.put("jsonrpc", "2.0");
+    request.put("method", "initialize");
+    request.set("params", params);
+    request.put("id", 1);
+
+    return mockMvc.perform(
+        MockMvcRequestBuilders.post(MCP_ENDPOINT)
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON, TEXT_EVENT_STREAM)
+            .content(objectMapper.writeValueAsString(request)));
+  }
+
   public ObjectMapper objectMapper() {
     return objectMapper;
   }
