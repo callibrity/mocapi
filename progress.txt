@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T19:40:01-04:00
-ITERATION: 69
-SPEC_COMPLETED: 069-fix-elicitation-conformance-enums.md
-WHAT_WAS_DONE: Fixed elicitation conformance enum values by changing ConformanceTools inner enums (DefaultsStatus, UntitledOption, TitledOption) to use lowercase constant names so Enum::name returns lowercase values matching the MCP spec examples and conformance suite expectations. Updated integration test mock responses to use lowercase values accordingly.
+LAST_RUN: 2026-04-09T19:51:00-04:00
+ITERATION: 70
+SPEC_COMPLETED: 070-fix-conformance-enum-field-names-and-formats.md
+WHAT_WAS_DONE: Fixed conformance enum field names and formats — raw-string choose/chooseMany now produce plain enum arrays instead of oneOf/anyOf, added chooseLegacy() for deprecated enumNames format, renamed SEP-1330 fields to camelCase, added legacyEnum variant, and added TitledMultiOption enum for titledMulti (which uses "First Choice" titles distinct from titledSingle's "First Option").
 VERIFICATION: mvn verify — BUILD SUCCESS, all 92 tests pass (unit + integration tests, spotless, license checks), 0 failures
-STATUS: DONE
-NEXT_SPEC: none
-NOTES: The fix uses lowercase Java enum constant names (e.g., `active` instead of `ACTIVE`). This is unconventional but correct for these conformance-only enums since the MCP spec uses lowercase values. The ElicitationSchema builder continues to use Enum::name for const values, which now naturally produces lowercase output for these enums. No builder API changes were needed.
+STATUS: MORE_WORK
+NEXT_SPEC: 072-extract-elicitation-package.md
+NOTES: The DefaultsStatus enum was removed since SEP-1034 now uses raw strings for the status field. The UntitledOption enum was also removed since untitled variants now use raw string lists. Enum-class choose/chooseMany still produce oneOf/anyOf (titled format); only the raw-string overloads changed to plain enum format.

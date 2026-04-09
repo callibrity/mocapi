@@ -363,12 +363,6 @@ public class ConformanceTools {
         null);
   }
 
-  enum DefaultsStatus {
-    active,
-    inactive,
-    pending
-  }
-
   /**
    * Conformance tool for the {@code elicitation-sep1034-defaults} scenario. Exercises default
    * values across all primitive schema types (string, integer, number, enum, boolean).
@@ -387,19 +381,13 @@ public class ConformanceTools {
               schema.string("name", "Name", "John Doe");
               schema.integer("age", "Age", 30);
               schema.number("score", "Score", 95.5);
-              schema.choose("status", DefaultsStatus.class, DefaultsStatus.active);
+              schema.choose("status", List.of("active", "inactive", "pending"), "active");
               schema.bool("verified", "Verified", true);
             });
     return new CallToolResponse(
         List.of(new TextContent("Elicitation completed: action=" + result.action().getValue())),
         null,
         null);
-  }
-
-  enum UntitledOption {
-    option1,
-    option2,
-    option3
   }
 
   enum TitledOption {
@@ -419,9 +407,26 @@ public class ConformanceTools {
     }
   }
 
+  enum TitledMultiOption {
+    value1("First Choice"),
+    value2("Second Choice"),
+    value3("Third Choice");
+
+    private final String title;
+
+    TitledMultiOption(String title) {
+      this.title = title;
+    }
+
+    @Override
+    public String toString() {
+      return title;
+    }
+  }
+
   /**
-   * Conformance tool for the {@code elicitation-sep1330-enums} scenario. Exercises single-select
-   * and multi-select enum variants, both with and without custom display titles.
+   * Conformance tool for the {@code elicitation-sep1330-enums} scenario. Exercises all five enum
+   * variants: untitled single, titled single, legacy enum, untitled multi, and titled multi.
    *
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation">MCP
    *     Elicitation Specification</a>
@@ -434,10 +439,14 @@ public class ConformanceTools {
         ctx.elicit(
             "Enum variants test",
             schema -> {
-              schema.choose("untitled_single", UntitledOption.class);
-              schema.choose("titled_single", TitledOption.class);
-              schema.chooseMany("untitled_multi", UntitledOption.class);
-              schema.chooseMany("titled_multi", TitledOption.class);
+              schema.choose("untitledSingle", List.of("option1", "option2", "option3"));
+              schema.choose("titledSingle", TitledOption.class);
+              schema.chooseLegacy(
+                  "legacyEnum",
+                  List.of("opt1", "opt2", "opt3"),
+                  List.of("Option One", "Option Two", "Option Three"));
+              schema.chooseMany("untitledMulti", List.of("option1", "option2", "option3"));
+              schema.chooseMany("titledMulti", TitledMultiOption.class);
             });
     return new CallToolResponse(
         List.of(new TextContent("Elicitation completed: action=" + result.action().getValue())),

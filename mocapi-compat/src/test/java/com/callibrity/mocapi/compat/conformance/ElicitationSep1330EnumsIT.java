@@ -98,12 +98,12 @@ class ElicitationSep1330EnumsIT {
     ObjectNode elicitResult = client.objectMapper().createObjectNode();
     elicitResult.put("action", "accept");
     ObjectNode content = elicitResult.putObject("content");
-    content.put("untitled_single", "option1");
-    content.put("titled_single", "value1");
+    content.put("untitledSingle", "option1");
+    content.put("titledSingle", "value1");
+    content.put("legacyEnum", "opt1");
     content.set(
-        "untitled_multi", client.objectMapper().createArrayNode().add("option1").add("option2"));
-    content.set(
-        "titled_multi", client.objectMapper().createArrayNode().add("value1").add("value2"));
+        "untitledMulti", client.objectMapper().createArrayNode().add("option1").add("option2"));
+    content.set("titledMulti", client.objectMapper().createArrayNode().add("value1").add("value2"));
 
     Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + jsonRpcId, JsonNode.class);
     mailbox.deliver(elicitResult);

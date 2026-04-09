@@ -521,10 +521,12 @@ public final class ElicitationSchema {
 
     // --- Raw string choose variants ---
 
-    /** Adds a single-select property from raw string values (title = value). */
+    /**
+     * Adds a single-select property from raw string values using plain {@code enum} array format.
+     */
     public Builder choose(String name, List<String> values) {
       requireUniqueName(name);
-      ObjectNode prop = buildOneOfNode(values, Function.identity(), Function.identity());
+      ObjectNode prop = buildEnumNode(values);
       properties.put(name, prop);
       return this;
     }
@@ -532,8 +534,24 @@ public final class ElicitationSchema {
     /** Adds a single-select property from raw string values with a default. */
     public Builder choose(String name, List<String> values, String defaultValue) {
       requireUniqueName(name);
-      ObjectNode prop = buildOneOfNode(values, Function.identity(), Function.identity());
+      ObjectNode prop = buildEnumNode(values);
       prop.put("default", defaultValue);
+      properties.put(name, prop);
+      return this;
+    }
+
+    /**
+     * Adds a single-select property using the legacy {@code enum} + {@code enumNames} format. This
+     * is a deprecated format retained for conformance testing.
+     */
+    public Builder chooseLegacy(String name, List<String> values, List<String> displayNames) {
+      requireUniqueName(name);
+      ObjectNode prop = buildEnumNode(values);
+      ArrayNode enumNames = objectMapper.createArrayNode();
+      for (String dn : displayNames) {
+        enumNames.add(dn);
+      }
+      prop.set("enumNames", enumNames);
       properties.put(name, prop);
       return this;
     }
@@ -593,10 +611,12 @@ public final class ElicitationSchema {
 
     // --- Raw string chooseMany variants ---
 
-    /** Adds a multi-select property from raw string values. */
+    /**
+     * Adds a multi-select property from raw string values using plain {@code enum} array format.
+     */
     public Builder chooseMany(String name, List<String> values) {
       requireUniqueName(name);
-      ObjectNode prop = buildArrayOfAnyOfNode(values, Function.identity(), Function.identity());
+      ObjectNode prop = buildArrayOfEnumNode(values);
       properties.put(name, prop);
       return this;
     }
@@ -662,6 +682,31 @@ public final class ElicitationSchema {
       if (constraints.maxItemsVal != null) {
         prop.put("maxItems", constraints.maxItemsVal);
       }
+    }
+
+    private ObjectNode buildEnumNode(List<String> values) {
+      ObjectNode prop = objectMapper.createObjectNode();
+      prop.put("type", "string");
+      ArrayNode enumArray = objectMapper.createArrayNode();
+      for (String value : values) {
+        enumArray.add(value);
+      }
+      prop.set("enum", enumArray);
+      return prop;
+    }
+
+    private ObjectNode buildArrayOfEnumNode(List<String> values) {
+      ObjectNode prop = objectMapper.createObjectNode();
+      prop.put("type", "array");
+      ObjectNode itemsNode = objectMapper.createObjectNode();
+      itemsNode.put("type", "string");
+      ArrayNode enumArray = objectMapper.createArrayNode();
+      for (String value : values) {
+        enumArray.add(value);
+      }
+      itemsNode.set("enum", enumArray);
+      prop.set("items", itemsNode);
+      return prop;
     }
 
     private void requireUniqueName(String name) {
