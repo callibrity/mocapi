@@ -124,17 +124,18 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void enumPropertyShouldProduceCorrectSchema() {
+  void chooseWithRawStringsShouldProduceOneOfSchema() {
     ElicitationSchema schema =
-        ElicitationSchema.builder().enumProperty("color", List.of("red", "green", "blue")).build();
+        ElicitationSchema.builder().choose("color", List.of("red", "green", "blue")).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("color");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
-    assertThat(prop.get("enum")).hasSize(3);
-    assertThat(prop.get("enum").get(0).asString()).isEqualTo("red");
-    assertThat(prop.get("enum").get(1).asString()).isEqualTo("green");
-    assertThat(prop.get("enum").get(2).asString()).isEqualTo("blue");
+    assertThat(prop.get("oneOf")).hasSize(3);
+    assertThat(prop.get("oneOf").get(0).get("const").asString()).isEqualTo("red");
+    assertThat(prop.get("oneOf").get(0).get("title").asString()).isEqualTo("red");
+    assertThat(prop.get("oneOf").get(1).get("const").asString()).isEqualTo("green");
+    assertThat(prop.get("oneOf").get(2).get("const").asString()).isEqualTo("blue");
   }
 
   @Test
@@ -146,7 +147,7 @@ class ElicitationSchemaTest {
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("status");
 
-    assertThat(prop.has("type")).isFalse();
+    assertThat(prop.get("type").asString()).isEqualTo("string");
     assertThat(prop.get("oneOf")).hasSize(2);
     assertThat(prop.get("oneOf").get(0).get("const").asString()).isEqualTo("active");
     assertThat(prop.get("oneOf").get(0).get("title").asString()).isEqualTo("Active");
@@ -155,19 +156,19 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void multiSelectPropertyShouldProduceArrayOfEnumSchema() {
-    ElicitationSchema schema =
-        ElicitationSchema.builder()
-            .multiSelectProperty("tags", List.of("java", "python", "go"))
-            .build();
+  void chooseManyWithRawStringsShouldProduceArrayOfAnyOfSchema() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.chooseMany("tags", List.of("java", "python", "go"));
+    ElicitationSchema schema = builder.build();
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
     assertThat(prop.get("type").asString()).isEqualTo("array");
     ObjectNode items = (ObjectNode) prop.get("items");
     assertThat(items.get("type").asString()).isEqualTo("string");
-    assertThat(items.get("enum")).hasSize(3);
-    assertThat(items.get("enum").get(0).asString()).isEqualTo("java");
+    assertThat(items.get("anyOf")).hasSize(3);
+    assertThat(items.get("anyOf").get(0).get("const").asString()).isEqualTo("java");
+    assertThat(items.get("anyOf").get(0).get("title").asString()).isEqualTo("java");
   }
 
   @Test
@@ -361,7 +362,7 @@ class ElicitationSchemaTest {
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
 
-    assertThat(prop.has("type")).isFalse();
+    assertThat(prop.get("type").asString()).isEqualTo("string");
     assertThat(prop.has("enum")).isFalse();
     assertThat(prop.get("oneOf")).hasSize(3);
     assertThat(prop.get("oneOf").get(0).get("const").asString()).isEqualTo("JAVA");
@@ -389,7 +390,7 @@ class ElicitationSchemaTest {
     ObjectNode node = schema.toObjectNode(objectMapper);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
 
-    assertThat(prop.has("type")).isFalse();
+    assertThat(prop.get("type").asString()).isEqualTo("string");
     assertThat(prop.has("enum")).isFalse();
     assertThat(prop.get("oneOf")).hasSize(3);
     assertThat(prop.get("default").asString()).isEqualTo("JAVA");
@@ -405,7 +406,7 @@ class ElicitationSchemaTest {
 
     assertThat(prop.get("type").asString()).isEqualTo("array");
     ObjectNode items = (ObjectNode) prop.get("items");
-    assertThat(items.has("type")).isFalse();
+    assertThat(items.get("type").asString()).isEqualTo("string");
     assertThat(items.has("enum")).isFalse();
     assertThat(items.get("anyOf")).hasSize(3);
     assertThat(items.get("anyOf").get(0).get("const").asString()).isEqualTo("JAVA");
@@ -484,6 +485,154 @@ class ElicitationSchemaTest {
   }
 
   @Test
+  void chooseEnumWithTitleFnShouldUseCustomTitles() {
+    Function<Tag, String> titleFn = t -> t.name().toLowerCase();
+    ElicitationSchema schema =
+        ElicitationSchema.builder().choose("tag", Tag.class, titleFn).build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
+
+    assertThat(prop.get("type").asString()).isEqualTo("string");
+    assertThat(prop.get("oneOf")).hasSize(3);
+    assertThat(prop.get("oneOf").get(0).get("const").asString()).isEqualTo("JAVA");
+    assertThat(prop.get("oneOf").get(0).get("title").asString()).isEqualTo("java");
+  }
+
+  @Test
+  void chooseEnumWithTitleFnAndDefaultShouldWork() {
+    Function<Tag, String> titleFn = t -> t.name().toLowerCase();
+    ElicitationSchema schema =
+        ElicitationSchema.builder().choose("tag", Tag.class, titleFn, Tag.PYTHON).build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
+
+    assertThat(prop.get("type").asString()).isEqualTo("string");
+    assertThat(prop.get("oneOf")).hasSize(3);
+    assertThat(prop.get("default").asString()).isEqualTo("PYTHON");
+    assertThat(prop.get("oneOf").get(0).get("title").asString()).isEqualTo("java");
+  }
+
+  @Test
+  void chooseManyEnumWithListDefaultsShouldIncludeDefaults() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.chooseMany("tags", Tag.class, List.of(Tag.JAVA, Tag.GO));
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
+
+    assertThat(prop.get("type").asString()).isEqualTo("array");
+    assertThat(prop.get("default")).hasSize(2);
+    assertThat(prop.get("default").get(0).asString()).isEqualTo("JAVA");
+    assertThat(prop.get("default").get(1).asString()).isEqualTo("GO");
+  }
+
+  @Test
+  void chooseManyEnumWithTitleFnAndListDefaultsShouldWork() {
+    Function<Tag, String> titleFn = t -> t.name().toLowerCase();
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.chooseMany("tags", Tag.class, titleFn, List.of(Tag.PYTHON));
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
+
+    ObjectNode items = (ObjectNode) prop.get("items");
+    assertThat(items.get("anyOf").get(0).get("title").asString()).isEqualTo("java");
+    assertThat(prop.get("default")).hasSize(1);
+    assertThat(prop.get("default").get(0).asString()).isEqualTo("PYTHON");
+  }
+
+  @Test
+  void chooseManyEnumWithTitleFnShouldUseCustomTitles() {
+    Function<Tag, String> titleFn = t -> t.name().toLowerCase();
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.chooseMany("tags", Tag.class, titleFn);
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
+
+    ObjectNode items = (ObjectNode) prop.get("items");
+    assertThat(items.get("anyOf").get(0).get("title").asString()).isEqualTo("java");
+  }
+
+  @Test
+  void chooseWithArbitraryItemsAndDefaultShouldWork() {
+    record Status(String code, String label) {}
+    List<Status> statuses = List.of(new Status("active", "Active"), new Status("inactive", "Gone"));
+    Status defaultStatus = statuses.get(0);
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .choose("status", statuses, Status::code, Status::label, defaultStatus)
+            .build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("status");
+
+    assertThat(prop.get("type").asString()).isEqualTo("string");
+    assertThat(prop.get("oneOf")).hasSize(2);
+    assertThat(prop.get("default").asString()).isEqualTo("active");
+  }
+
+  @Test
+  void chooseWithRawStringsAndDefaultShouldWork() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .choose("color", List.of("red", "green", "blue"), "green")
+            .build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("color");
+
+    assertThat(prop.get("type").asString()).isEqualTo("string");
+    assertThat(prop.get("oneOf")).hasSize(3);
+    assertThat(prop.get("default").asString()).isEqualTo("green");
+  }
+
+  @Test
+  void chooseManyWithRawStringsAndVarargsDefaultsShouldWork() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.chooseMany("tags", List.of("java", "python", "go"), "java", "go");
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
+
+    assertThat(prop.get("type").asString()).isEqualTo("array");
+    assertThat(prop.get("default")).hasSize(2);
+    assertThat(prop.get("default").get(0).asString()).isEqualTo("java");
+    assertThat(prop.get("default").get(1).asString()).isEqualTo("go");
+  }
+
+  @Test
+  void chooseManyWithRawStringsAndListDefaultsShouldWork() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.chooseMany("tags", List.of("java", "python", "go"), List.of("python"));
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
+
+    assertThat(prop.get("default")).hasSize(1);
+    assertThat(prop.get("default").get(0).asString()).isEqualTo("python");
+  }
+
+  @Test
+  void chooseSingleSelectShouldIncludeTypeString() {
+    ElicitationSchema schema = ElicitationSchema.builder().choose("tag", Tag.class).build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
+
+    assertThat(prop.get("type").asString()).isEqualTo("string");
+  }
+
+  @Test
+  void chooseManyItemsShouldIncludeTypeString() {
+    ElicitationSchema.Builder builder = ElicitationSchema.builder();
+    builder.chooseMany("tags", Tag.class);
+    ElicitationSchema schema = builder.build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
+
+    ObjectNode items = (ObjectNode) prop.get("items");
+    assertThat(items.get("type").asString()).isEqualTo("string");
+  }
+
+  @Test
   void multiplePropertyTypesShouldCoexist() {
     ElicitationSchema schema =
         ElicitationSchema.builder()
@@ -491,7 +640,7 @@ class ElicitationSchemaTest {
             .integerProperty("age", "Age")
             .numberProperty("score", "Score")
             .booleanProperty("active", "Active")
-            .enumProperty("color", List.of("red", "blue"))
+            .choose("color", List.of("red", "blue"))
             .required("name", "age")
             .build();
     ObjectNode node = schema.toObjectNode(objectMapper);

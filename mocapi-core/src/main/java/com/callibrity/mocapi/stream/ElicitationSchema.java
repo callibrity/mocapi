@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.stream;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -250,35 +251,6 @@ public final class ElicitationSchema {
       return this;
     }
 
-    public Builder enumProperty(String name, List<String> values) {
-      requireUniqueName(name);
-      ObjectNode prop = objectMapper.createObjectNode();
-      prop.put("type", "string");
-      ArrayNode enumArray = objectMapper.createArrayNode();
-      for (String v : values) {
-        enumArray.add(v);
-      }
-      prop.set("enum", enumArray);
-      properties.put(name, prop);
-      return this;
-    }
-
-    public Builder multiSelectProperty(String name, List<String> values) {
-      requireUniqueName(name);
-      ObjectNode prop = objectMapper.createObjectNode();
-      prop.put("type", "array");
-      ObjectNode items = objectMapper.createObjectNode();
-      items.put("type", "string");
-      ArrayNode enumArray = objectMapper.createArrayNode();
-      for (String v : values) {
-        enumArray.add(v);
-      }
-      items.set("enum", enumArray);
-      prop.set("items", items);
-      properties.put(name, prop);
-      return this;
-    }
-
     // --- Convenience aliases that return sub-builders ---
 
     public StringPropertyBuilder string(String name, String description) {
@@ -357,20 +329,22 @@ public final class ElicitationSchema {
       return new BooleanPropertyBuilder(prop);
     }
 
+    // --- Enum class choose variants ---
+
     /**
      * Adds an enum single-select property using {@code oneOf} with {@code const}/{@code title}
      * entries. Each constant's {@code name()} becomes the {@code const} value and its {@code
      * toString()} becomes the {@code title}.
      */
     public <E extends Enum<E>> Builder choose(String name, Class<E> enumType) {
-      List<E> items = List.of(enumType.getEnumConstants());
-      return choose(name, items, Enum::name, Object::toString);
+      requireUniqueName(name);
+      ObjectNode prop =
+          buildOneOfNode(List.of(enumType.getEnumConstants()), Enum::name, Object::toString);
+      properties.put(name, prop);
+      return this;
     }
 
-    /**
-     * Adds an enum single-select property with a default value using {@code oneOf} with {@code
-     * const}/{@code title} entries.
-     */
+    /** Adds an enum single-select property with a default value. */
     public <E extends Enum<E>> Builder choose(String name, Class<E> enumType, E defaultValue) {
       requireUniqueName(name);
       ObjectNode prop =
@@ -380,10 +354,68 @@ public final class ElicitationSchema {
       return this;
     }
 
-    /**
-     * Adds a single-select property from arbitrary items using {@code oneOf} with {@code
-     * const}/{@code title} entries extracted via the provided functions.
-     */
+    /** Adds an enum single-select property with a custom title function. */
+    public <E extends Enum<E>> Builder choose(
+        String name, Class<E> enumType, Function<E, String> titleFn) {
+      requireUniqueName(name);
+      ObjectNode prop = buildOneOfNode(List.of(enumType.getEnumConstants()), Enum::name, titleFn);
+      properties.put(name, prop);
+      return this;
+    }
+
+    /** Adds an enum single-select property with a custom title function and default value. */
+    public <E extends Enum<E>> Builder choose(
+        String name, Class<E> enumType, Function<E, String> titleFn, E defaultValue) {
+      requireUniqueName(name);
+      ObjectNode prop = buildOneOfNode(List.of(enumType.getEnumConstants()), Enum::name, titleFn);
+      prop.put("default", defaultValue.name());
+      properties.put(name, prop);
+      return this;
+    }
+
+    // --- Enum class chooseMany variants ---
+
+    /** Adds an enum multi-select property with no defaults. */
+    public <E extends Enum<E>> MultiSelectPropertyBuilder chooseMany(
+        String name, Class<E> enumType) {
+      return chooseManyEnum(name, enumType, Object::toString, List.of());
+    }
+
+    /** Adds an enum multi-select property with a custom title function. */
+    public <E extends Enum<E>> MultiSelectPropertyBuilder chooseMany(
+        String name, Class<E> enumType, Function<E, String> titleFn) {
+      return chooseManyEnum(name, enumType, titleFn, List.of());
+    }
+
+    /** Adds an enum multi-select property with defaults as a List. */
+    public <E extends Enum<E>> MultiSelectPropertyBuilder chooseMany(
+        String name, Class<E> enumType, List<E> defaults) {
+      return chooseManyEnum(name, enumType, Object::toString, defaults);
+    }
+
+    /** Adds an enum multi-select property with a custom title function and defaults as a List. */
+    public <E extends Enum<E>> MultiSelectPropertyBuilder chooseMany(
+        String name, Class<E> enumType, Function<E, String> titleFn, List<E> defaults) {
+      return chooseManyEnum(name, enumType, titleFn, defaults);
+    }
+
+    private <E extends Enum<E>> MultiSelectPropertyBuilder chooseManyEnum(
+        String name, Class<E> enumType, Function<E, String> titleFn, List<E> defaults) {
+      MultiSelectPropertyBuilder builder =
+          chooseMany(name, List.of(enumType.getEnumConstants()), Enum::name, titleFn);
+      if (!defaults.isEmpty()) {
+        ArrayNode defaultArray = objectMapper.createArrayNode();
+        for (E d : defaults) {
+          defaultArray.add(d.name());
+        }
+        ((ObjectNode) properties.get(name)).set("default", defaultArray);
+      }
+      return builder;
+    }
+
+    // --- Arbitrary objects choose variants ---
+
+    /** Adds a single-select property from arbitrary items with value and title functions. */
     public <T> Builder choose(
         String name, List<T> items, Function<T, String> valueFn, Function<T, String> titleFn) {
       requireUniqueName(name);
@@ -392,53 +424,145 @@ public final class ElicitationSchema {
       return this;
     }
 
-    /**
-     * Adds a single-select property from arbitrary items using {@code oneOf} with {@code
-     * const}/{@code title} entries. Uses {@code toString()} for the title.
-     */
+    /** Adds a single-select property from arbitrary items with a default value. */
+    public <T> Builder choose(
+        String name,
+        List<T> items,
+        Function<T, String> valueFn,
+        Function<T, String> titleFn,
+        T defaultValue) {
+      requireUniqueName(name);
+      ObjectNode prop = buildOneOfNode(items, valueFn, titleFn);
+      prop.put("default", valueFn.apply(defaultValue));
+      properties.put(name, prop);
+      return this;
+    }
+
+    /** Adds a single-select property from arbitrary items. Uses {@code toString()} for title. */
     public <T> Builder choose(String name, List<T> items, Function<T, String> valueFn) {
-      return choose(name, items, valueFn, Object::toString);
+      requireUniqueName(name);
+      ObjectNode prop = buildOneOfNode(items, valueFn, Object::toString);
+      properties.put(name, prop);
+      return this;
     }
 
-    /**
-     * Adds an enum multi-select property using an array with {@code anyOf} containing {@code
-     * const}/{@code title} entries.
-     */
-    public <E extends Enum<E>> MultiSelectPropertyBuilder chooseMany(
-        String name, Class<E> enumType) {
-      return chooseMany(name, List.of(enumType.getEnumConstants()), Enum::name, Object::toString);
-    }
+    // --- Arbitrary objects chooseMany variants ---
 
-    /**
-     * Adds a multi-select property from arbitrary items using an array with {@code anyOf}
-     * containing {@code const}/{@code title} entries extracted via the provided functions.
-     */
+    /** Adds a multi-select property from arbitrary items with value and title functions. */
     public <T> MultiSelectPropertyBuilder chooseMany(
         String name, List<T> items, Function<T, String> valueFn, Function<T, String> titleFn) {
       requireUniqueName(name);
-      ObjectNode prop = objectMapper.createObjectNode();
-      prop.put("type", "array");
-      ObjectNode itemsNode = objectMapper.createObjectNode();
-      ArrayNode anyOf = objectMapper.createArrayNode();
-      for (T item : items) {
-        ObjectNode option = objectMapper.createObjectNode();
-        option.put("const", valueFn.apply(item));
-        option.put("title", titleFn.apply(item));
-        anyOf.add(option);
-      }
-      itemsNode.set("anyOf", anyOf);
-      prop.set("items", itemsNode);
+      ObjectNode prop = buildArrayOfAnyOfNode(items, valueFn, titleFn);
+      properties.put(name, prop);
+      return new MultiSelectPropertyBuilder(prop);
+    }
+
+    /** Adds a multi-select property from arbitrary items. Uses toString() for title. */
+    public <T> MultiSelectPropertyBuilder chooseMany(
+        String name, List<T> items, Function<T, String> valueFn) {
+      requireUniqueName(name);
+      ObjectNode prop = buildArrayOfAnyOfNode(items, valueFn, Object::toString);
       properties.put(name, prop);
       return new MultiSelectPropertyBuilder(prop);
     }
 
     /**
-     * Adds a multi-select property from arbitrary items using an array with {@code anyOf}
-     * containing {@code const}/{@code title} entries. Uses {@code toString()} for the title.
+     * Adds a multi-select property from arbitrary items with title function and varargs defaults.
+     */
+    @SafeVarargs
+    public final <T> MultiSelectPropertyBuilder chooseMany(
+        String name,
+        List<T> items,
+        Function<T, String> valueFn,
+        Function<T, String> titleFn,
+        T... defaults) {
+      return chooseManyWithDefaults(name, items, valueFn, titleFn, Arrays.asList(defaults));
+    }
+
+    /** Adds a multi-select property from arbitrary items with defaults as a List. */
+    public <T> MultiSelectPropertyBuilder chooseMany(
+        String name, List<T> items, Function<T, String> valueFn, List<T> defaults) {
+      return chooseManyWithDefaults(name, items, valueFn, Object::toString, defaults);
+    }
+
+    /**
+     * Adds a multi-select property from arbitrary items with title function and defaults as a List.
      */
     public <T> MultiSelectPropertyBuilder chooseMany(
-        String name, List<T> items, Function<T, String> valueFn) {
-      return chooseMany(name, items, valueFn, Object::toString);
+        String name,
+        List<T> items,
+        Function<T, String> valueFn,
+        Function<T, String> titleFn,
+        List<T> defaults) {
+      return chooseManyWithDefaults(name, items, valueFn, titleFn, defaults);
+    }
+
+    private <T> MultiSelectPropertyBuilder chooseManyWithDefaults(
+        String name,
+        List<T> items,
+        Function<T, String> valueFn,
+        Function<T, String> titleFn,
+        List<T> defaults) {
+      MultiSelectPropertyBuilder builder = chooseMany(name, items, valueFn, titleFn);
+      if (!defaults.isEmpty()) {
+        ArrayNode defaultArray = objectMapper.createArrayNode();
+        for (T d : defaults) {
+          defaultArray.add(valueFn.apply(d));
+        }
+        ((ObjectNode) properties.get(name)).set("default", defaultArray);
+      }
+      return builder;
+    }
+
+    // --- Raw string choose variants ---
+
+    /** Adds a single-select property from raw string values (title = value). */
+    public Builder choose(String name, List<String> values) {
+      requireUniqueName(name);
+      ObjectNode prop = buildOneOfNode(values, Function.identity(), Function.identity());
+      properties.put(name, prop);
+      return this;
+    }
+
+    /** Adds a single-select property from raw string values with a default. */
+    public Builder choose(String name, List<String> values, String defaultValue) {
+      requireUniqueName(name);
+      ObjectNode prop = buildOneOfNode(values, Function.identity(), Function.identity());
+      prop.put("default", defaultValue);
+      properties.put(name, prop);
+      return this;
+    }
+
+    /** Adds a multi-select property from raw string values with varargs defaults. */
+    public MultiSelectPropertyBuilder chooseMany(
+        String name, List<String> values, String... defaults) {
+      requireUniqueName(name);
+      ObjectNode prop = buildArrayOfAnyOfNode(values, Function.identity(), Function.identity());
+      if (defaults.length > 0) {
+        ArrayNode defaultArray = objectMapper.createArrayNode();
+        for (String d : defaults) {
+          defaultArray.add(d);
+        }
+        prop.set("default", defaultArray);
+      }
+      properties.put(name, prop);
+      return new MultiSelectPropertyBuilder(prop);
+    }
+
+    /** Adds a multi-select property from raw string values with defaults as a List. */
+    public MultiSelectPropertyBuilder chooseMany(
+        String name, List<String> values, List<String> defaults) {
+      requireUniqueName(name);
+      ObjectNode prop = buildArrayOfAnyOfNode(values, Function.identity(), Function.identity());
+      if (!defaults.isEmpty()) {
+        ArrayNode defaultArray = objectMapper.createArrayNode();
+        for (String d : defaults) {
+          defaultArray.add(d);
+        }
+        prop.set("default", defaultArray);
+      }
+      properties.put(name, prop);
+      return new MultiSelectPropertyBuilder(prop);
     }
 
     public Builder required(String... names) {
@@ -457,6 +581,7 @@ public final class ElicitationSchema {
     private <T> ObjectNode buildOneOfNode(
         List<T> items, Function<T, String> valueFn, Function<T, String> titleFn) {
       ObjectNode prop = objectMapper.createObjectNode();
+      prop.put("type", "string");
       ArrayNode oneOf = objectMapper.createArrayNode();
       for (T item : items) {
         ObjectNode option = objectMapper.createObjectNode();
@@ -465,6 +590,24 @@ public final class ElicitationSchema {
         oneOf.add(option);
       }
       prop.set("oneOf", oneOf);
+      return prop;
+    }
+
+    private <T> ObjectNode buildArrayOfAnyOfNode(
+        List<T> items, Function<T, String> valueFn, Function<T, String> titleFn) {
+      ObjectNode prop = objectMapper.createObjectNode();
+      prop.put("type", "array");
+      ObjectNode itemsNode = objectMapper.createObjectNode();
+      itemsNode.put("type", "string");
+      ArrayNode anyOf = objectMapper.createArrayNode();
+      for (T item : items) {
+        ObjectNode option = objectMapper.createObjectNode();
+        option.put("const", valueFn.apply(item));
+        option.put("title", titleFn.apply(item));
+        anyOf.add(option);
+      }
+      itemsNode.set("anyOf", anyOf);
+      prop.set("items", itemsNode);
       return prop;
     }
 

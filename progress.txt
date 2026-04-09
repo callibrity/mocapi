@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T17:23:33-04:00
-ITERATION: 62
-SPEC_COMPLETED: 062-arbitrary-choice-values.md
-WHAT_WAS_DONE: Deleted TitledValue record. Added choose/chooseMany overloads accepting arbitrary objects with value/title extraction functions. Added getChoice(name) and getChoices(name) string-returning overloads to ElicitationResult. Refactored existing enum choose/chooseMany to delegate to the new generic overloads via buildOneOfNode helper.
+LAST_RUN: 2026-04-09T17:39:01-04:00
+ITERATION: 63
+SPEC_COMPLETED: 063-unified-choose-api.md
+WHAT_WAS_DONE: Unified all enum/select methods into consistent choose/chooseMany family. Removed enumProperty and multiSelectProperty legacy methods. Fixed buildOneOfNode bug that omitted "type":"string" (MCP SDK rejection). Added enum variants with titleFn and defaults, arbitrary objects variants with titleFn/defaults, raw string variants. Enum chooseMany uses no-args + List-based defaults (not varargs) to avoid Java overload ambiguity. All enum choose variants with titleFn require explicit Function type variable at call site due to Java lambda/generic ambiguity.
 VERIFICATION: mvn verify — BUILD SUCCESS, 58/58 compat tests pass, all unit tests pass, 0 failures
-STATUS: MORE_WORK
-NEXT_SPEC: none (no more specs in specs/)
-NOTES: The titledEnumProperty and titledMultiSelectProperty methods were removed since they depended on TitledValue. The enumProperty and multiSelectProperty (plain string list) methods remain. The enum choose/chooseMany overloads now delegate to the generic versions internally. Unused import of Function added to test file for Function.identity() usage.
+STATUS: DONE
+NEXT_SPEC: none
+NOTES: Varargs overloads for enum chooseMany were replaced with no-arg + List-based defaults because chooseMany(name, enumType, E...) is ambiguous with chooseMany(name, enumType, Function<E,String>, E...) in Java. Similarly, choose(name, items, valueFn, T defaultValue) without titleFn was removed for arbitrary objects because it's ambiguous with choose(name, items, valueFn, titleFn). Raw string chooseMany uses varargs (String... defaults) which is unambiguous since String is concrete.
