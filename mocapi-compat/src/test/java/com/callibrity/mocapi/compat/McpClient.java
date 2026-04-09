@@ -132,6 +132,15 @@ public class McpClient {
     return mockMvc.perform(builder);
   }
 
+  public ResultActions getWithLastEventId(String sessionId, String lastEventId) throws Exception {
+    return mockMvc.perform(
+        MockMvcRequestBuilders.get(MCP_ENDPOINT)
+            .accept(TEXT_EVENT_STREAM)
+            .header("MCP-Protocol-Version", PROTOCOL_VERSION)
+            .header("MCP-Session-Id", sessionId)
+            .header("Last-Event-ID", lastEventId));
+  }
+
   public ResultActions getRaw(String accept, String sessionId) throws Exception {
     var builder = MockMvcRequestBuilders.get(MCP_ENDPOINT);
     if (accept != null) {
