@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T15:06:12-04:00
-ITERATION: 43
-SPEC_COMPLETED: 043-compat-module-and-harness.md
-WHAT_WAS_DONE: Created mocapi-compat Maven module with deploy.skip, test application (CompatApplication), echo and error tools (CompatTools), random master key initializer, McpClient test helper with all specified methods, and a smoke integration test (SmokeIT) that verifies initialize → ping → delete end-to-end
-VERIFICATION: mvn verify — BUILD SUCCESS (all 6 modules pass: parent, core 181 tests, starter, example, compat 1 IT, coverage)
+LAST_RUN: 2026-04-09T15:10:03-04:00
+ITERATION: 44
+SPEC_COMPLETED: 044-compat-post-and-content-negotiation.md
+WHAT_WAS_DONE: Created PostEndpointIT (5 tests: missing Accept → 406, JSON-only Accept → 406, SSE-only Accept → 406, wildcard Accept → OK, invalid jsonrpc version → JSON-RPC error -32600) and ContentNegotiationIT (2 tests: initialize response is JSON not SSE, ping response is JSON)
+VERIFICATION: mvn verify — BUILD SUCCESS (all 6 modules pass: parent, core 181 tests, starter, example, compat 8 ITs, coverage)
 STATUS: MORE_WORK
-NEXT_SPEC: 044-compat-post-and-content-negotiation.md
-NOTES: Module structure: all source in src/test/java (no main source). CompatTools registers "echo" and "error" tools. McpClient wraps MockMvc with MCP protocol methods. RandomMasterKeyInitializer generates a random Base64-encoded 32-byte key for mocapi.session-encryption-master-key. Substrate in-memory fallbacks auto-wire with expected warnings. Failsafe plugin requires explicit execution goals in the compat pom.
+NEXT_SPEC: 045-compat-session-management.md
+NOTES: The server returns invalid jsonrpc version errors at HTTP 200 with a JSON-RPC error body (code -32600), not HTTP 400. The JsonRpcMessage.parse doesn't throw for wrong version — the validation happens in the dispatcher layer and returns a JSON-RPC error response.
