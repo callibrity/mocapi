@@ -1,4 +1,0 @@
-org.jwcarman.methodical.autoconfigure.Jackson3AutoConfiguration
-org.jwcarman.methodical.autoconfigure.Jackson2AutoConfiguration
-org.jwcarman.methodical.autoconfigure.GsonAutoConfiguration
-org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration

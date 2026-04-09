@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T15:47:30-04:00
-ITERATION: 51
-SPEC_COMPLETED: 051-remove-coverage-module.md
-WHAT_WAS_DONE: Removed mocapi-coverage aggregate module — deleted the directory, removed the module entry from parent pom, and updated sonar.coverage.jacoco.xmlReportPaths to use a per-module wildcard pattern (**/target/site/jacoco/jacoco.xml).
-VERIFICATION: mvn verify — BUILD SUCCESS (5 modules pass, 54 compat integration tests green). grep for mocapi-coverage confirms no actionable references remain (only PRD.md and specs/done/ which are not modifiable per Ralph rules).
-STATUS: MORE_WORK
-NEXT_SPEC: 052-warn-on-in-memory-session-store.md
-NOTES: PRD.md still mentions mocapi-coverage in the repo structure section but Ralph rules prohibit modifying PRD.md. The human should update PRD.md to remove that line.
+LAST_RUN: 2026-04-09T15:49:37-04:00
+ITERATION: 52
+SPEC_COMPLETED: 052-warn-on-in-memory-session-store.md
+WHAT_WAS_DONE: Added a startup warning log when InMemoryMcpSessionStore is auto-configured as a fallback, matching the Substrate pattern (Commons Logging, same message format).
+VERIFICATION: mvn verify — BUILD SUCCESS (5 modules pass, 54 compat integration tests green)
+STATUS: DONE
+NEXT_SPEC: none
+NOTES: Used org.apache.commons.logging (same as Substrate's SubstrateAutoConfiguration) rather than Lombok @Slf4j to exactly match the pattern. No new dependencies needed — Commons Logging is provided by Spring Boot.

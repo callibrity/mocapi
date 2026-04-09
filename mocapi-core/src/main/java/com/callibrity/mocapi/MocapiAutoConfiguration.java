@@ -38,6 +38,8 @@ import com.github.victools.jsonschema.module.jackson.JacksonSchemaModule;
 import com.github.victools.jsonschema.module.jakarta.validation.JakartaValidationModule;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -56,6 +58,8 @@ import tools.jackson.databind.ObjectMapper;
 @PropertySource("classpath:mocapi-defaults.properties")
 @RequiredArgsConstructor
 public class MocapiAutoConfiguration {
+
+  private static final Log log = LogFactory.getLog(MocapiAutoConfiguration.class);
 
   private final MocapiProperties props;
 
@@ -76,6 +80,9 @@ public class MocapiAutoConfiguration {
   @Bean(destroyMethod = "shutdown")
   @ConditionalOnMissingBean(McpSessionStore.class)
   public InMemoryMcpSessionStore mcpSessionStore() {
+    log.warn(
+        "No McpSessionStore implementation found; using in-memory fallback (single-node only). "
+            + "For clustered deployments, provide a McpSessionStore bean.");
     return new InMemoryMcpSessionStore();
   }
 
