@@ -28,7 +28,14 @@ import com.callibrity.mocapi.tools.annotation.ToolService;
 import java.util.Base64;
 import java.util.List;
 
-/** Tools required by the MCP conformance test suite ({@code @modelcontextprotocol/conformance}). */
+/**
+ * Tools required by the {@code @modelcontextprotocol/conformance} npx suite. Each tool method
+ * satisfies a specific conformance scenario. Tool names follow the {@code test_*} convention
+ * expected by the suite.
+ *
+ * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
+ *     Specification</a>
+ */
 @ToolService
 public class ConformanceTools {
 
@@ -160,6 +167,13 @@ public class ConformanceTools {
                 (byte) 0x80
               });
 
+  /**
+   * Conformance tool for the {@code tools-call-simple-text} scenario. Returns a single {@link
+   * TextContent} response.
+   *
+   * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
+   *     Specification</a>
+   */
   @Tool(
       name = "test_simple_text",
       description = "Returns simple text content for conformance testing")
@@ -168,16 +182,37 @@ public class ConformanceTools {
         List.of(new TextContent("This is a simple text response for testing.")), null, null);
   }
 
+  /**
+   * Conformance tool for the {@code tools-call-image} scenario. Returns a single {@link
+   * ImageContent} containing a 1x1 red pixel PNG.
+   *
+   * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
+   *     Specification</a>
+   */
   @Tool(name = "test_image_content", description = "Returns image content for conformance testing")
   public CallToolResponse imageContent() {
     return new CallToolResponse(List.of(new ImageContent(TINY_PNG, "image/png")), null, null);
   }
 
+  /**
+   * Conformance tool for the {@code tools-call-audio} scenario. Returns a single {@link
+   * AudioContent} containing a minimal silent WAV file.
+   *
+   * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
+   *     Specification</a>
+   */
   @Tool(name = "test_audio_content", description = "Returns audio content for conformance testing")
   public CallToolResponse audioContent() {
     return new CallToolResponse(List.of(new AudioContent(TINY_WAV, "audio/wav")), null, null);
   }
 
+  /**
+   * Conformance tool for the {@code tools-call-embedded-resource} scenario. Returns an {@link
+   * EmbeddedResource} with plain text content.
+   *
+   * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
+   *     Specification</a>
+   */
   @Tool(
       name = "test_embedded_resource",
       description = "Returns embedded resource content for conformance testing")
@@ -194,6 +229,13 @@ public class ConformanceTools {
         null);
   }
 
+  /**
+   * Conformance tool for the {@code tools-call-mixed-content} scenario. Returns a response
+   * combining {@link TextContent}, {@link ImageContent}, and {@link ResourceContent}.
+   *
+   * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
+   *     Specification</a>
+   */
   @Tool(
       name = "test_multiple_content_types",
       description = "Returns multiple content types for conformance testing")
@@ -212,6 +254,14 @@ public class ConformanceTools {
         null);
   }
 
+  /**
+   * Conformance tool for the {@code tools-call-with-logging} scenario. Sends three {@code
+   * notifications/message} log entries during execution.
+   *
+   * @see <a
+   *     href="https://modelcontextprotocol.io/specification/2025-11-25/server/utilities/logging">MCP
+   *     Logging Specification</a>
+   */
   @Tool(
       name = "test_tool_with_logging",
       description = "Sends log messages during execution for conformance testing")
@@ -235,6 +285,13 @@ public class ConformanceTools {
         List.of(new TextContent("Logging test completed successfully")), null, null);
   }
 
+  /**
+   * Conformance tool for the {@code tools-call-error} scenario. Returns a response with {@code
+   * isError=true}.
+   *
+   * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
+   *     Specification</a>
+   */
   @Tool(
       name = "test_error_handling",
       description = "Always returns an error for conformance testing")
@@ -245,6 +302,13 @@ public class ConformanceTools {
         null);
   }
 
+  /**
+   * Conformance tool for the {@code tools-call-with-progress} scenario. Sends three {@code
+   * notifications/progress} updates (0/100, 50/100, 100/100) during execution.
+   *
+   * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
+   *     Specification</a>
+   */
   @Tool(
       name = "test_tool_with_progress",
       description = "Reports progress notifications for conformance testing")
@@ -259,6 +323,13 @@ public class ConformanceTools {
         List.of(new TextContent("Progress test completed successfully")), null, null);
   }
 
+  /**
+   * Conformance tool for the {@code tools-call-sampling} scenario. Issues a {@code
+   * sampling/createMessage} request to the client and returns the LLM response.
+   *
+   * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/sampling">MCP
+   *     Sampling Specification</a>
+   */
   @Tool(name = "test_sampling", description = "Tests sampling/createMessage for conformance")
   public CallToolResponse testSampling(String prompt, McpStreamContext<CallToolResponse> ctx) {
     SamplingResult result = ctx.sample(prompt, 100);
@@ -266,6 +337,13 @@ public class ConformanceTools {
     return new CallToolResponse(List.of(new TextContent("LLM response: " + text)), null, null);
   }
 
+  /**
+   * Conformance tool for the {@code tools-call-elicitation} scenario. Issues an {@code
+   * elicitation/create} request to the client asking for username and email.
+   *
+   * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation">MCP
+   *     Elicitation Specification</a>
+   */
   @Tool(name = "test_elicitation", description = "Tests elicitation/create for conformance")
   public CallToolResponse testElicitation(String message, McpStreamContext<CallToolResponse> ctx) {
     var result =
@@ -291,6 +369,13 @@ public class ConformanceTools {
     PENDING
   }
 
+  /**
+   * Conformance tool for the {@code elicitation-sep1034-defaults} scenario. Exercises default
+   * values across all primitive schema types (string, integer, number, enum, boolean).
+   *
+   * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation">MCP
+   *     Elicitation Specification</a>
+   */
   @Tool(
       name = "test_elicitation_sep1034_defaults",
       description = "Tests elicitation with default values for conformance")
@@ -334,6 +419,13 @@ public class ConformanceTools {
     }
   }
 
+  /**
+   * Conformance tool for the {@code elicitation-sep1330-enums} scenario. Exercises single-select
+   * and multi-select enum variants, both with and without custom display titles.
+   *
+   * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation">MCP
+   *     Elicitation Specification</a>
+   */
   @Tool(
       name = "test_elicitation_sep1330_enums",
       description = "Tests elicitation with enum variants for conformance")

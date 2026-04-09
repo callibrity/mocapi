@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T18:22:05-04:00
-ITERATION: 65
-SPEC_COMPLETED: 065-customizer-pattern-for-schema-builder.md
-WHAT_WAS_DONE: Replaced sub-builder pattern with Consumer-based customizer pattern on ElicitationSchemaBuilder. Added constraint interfaces (StringConstraints, NumericConstraints, BooleanConstraints, ChoiceConstraints<T>, MultiChoiceConstraints<T>) with fluent APIs. StringConstraints includes email(), uri(), date(), dateTime() shorthands. All primitive methods (string, integer, number, bool) have 3 overloads: bare, default, customizer. Choose/chooseMany enum and arbitrary-object variants have bare, default (where applicable), and customizer overloads. Removed all old positional titleFn/default overloads (stringProperty, integerProperty, numberProperty, booleanProperty, choose with titleFn params, chooseMany with positional defaults/titleFn). Removed raw string customizer overloads to avoid irreconcilable Java generic type ambiguity with arbitrary objects overloads.
-VERIFICATION: mvn verify — BUILD SUCCESS, 80 compat tests pass (including ElicitationSep1034DefaultsIT and ElicitationSep1330EnumsIT), all unit tests pass, 0 failures
+LAST_RUN: 2026-04-09T18:25:41-04:00
+ITERATION: 66
+SPEC_COMPLETED: 066-compat-docs-and-comments.md
+WHAT_WAS_DONE: Added Javadoc to every conformance tool method in ConformanceTools.java referencing the npx scenario name with @see links to the relevant MCP spec section, and created a README.md in mocapi-compat explaining the module, how to run IT tests and the npx conformance suite, current pass/fail status, and how to add new conformance tools.
+VERIFICATION: mvn verify — BUILD SUCCESS, all modules pass (unit + integration tests, spotless, license checks), 0 failures
 STATUS: MORE_WORK
-NEXT_SPEC: 066-compat-docs-and-comments.md
-NOTES: Raw string choose/chooseMany customizer overloads were omitted because Java's type inference creates irreconcilable ambiguity between chooseMany(String, List<T>, Function<T,String>) and chooseMany(String, List<String>, Consumer<MultiChoiceConstraints<String>>) when T=String. Users needing customization with raw strings should use the arbitrary objects API with Function.identity() as valueFn. Similarly, enum choose customizer overloads require extracted typed Consumer variables when calling with lambdas due to javac overload resolution limitations with generic methods (choose(name, Class<E>, E) vs choose(name, Class<E>, Consumer<ChoiceConstraints<E>>)).
+NEXT_SPEC: 067-resources-support.md
+NOTES: Spotless reformatted some @see tag line breaks in the elicitation/sampling Javadoc comments (Google Java Format prefers the href on the same line as @see <a). Applied spotless:apply and re-verified.
