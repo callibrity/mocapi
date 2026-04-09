@@ -13,25 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server;
+package com.callibrity.mocapi.resources;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ServerCapabilities(
-    ToolsCapabilityDescriptor tools,
-    LoggingCapabilityDescriptor logging,
-    CompletionsCapabilityDescriptor completions,
-    ResourcesCapabilityDescriptor resources) {
-
-  public ServerCapabilities(
-      ToolsCapabilityDescriptor tools,
-      LoggingCapabilityDescriptor logging,
-      CompletionsCapabilityDescriptor completions) {
-    this(tools, logging, completions, null);
-  }
-
-  public ServerCapabilities(ToolsCapabilityDescriptor tools, LoggingCapabilityDescriptor logging) {
-    this(tools, logging, null, null);
-  }
-}
+public record McpResourceTemplate(
+    String uriTemplate, String name, String description, String mimeType) {}
