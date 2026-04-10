@@ -32,7 +32,7 @@ public class CountdownTool {
         Thread.sleep(500);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        break;
+        return;
       }
     }
     ctx.sendResult(new CountdownResponse("Countdown from " + from + " complete!"));

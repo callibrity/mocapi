@@ -86,7 +86,7 @@ The `-v` flag removes the Redis data volume for a clean slate.
 
 ## What's included
 
-Three example tools from `examples-lib`:
+Three example tools from `mocapi-example-autoconfigure`:
 
 - **HelloTool** (`hello`) — returns a greeting for the given name
 - **Rot13Tool** (`rot13`) — applies ROT13 encoding to a string

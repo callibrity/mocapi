@@ -275,8 +275,7 @@ public class CompatibilityTools {
   @ToolMethod(
       name = TEST_TOOL_WITH_LOGGING,
       description = "Sends log messages during execution for conformance testing")
-  public CallToolResult withLogging(McpStreamContext<CallToolResult> ctx)
-      throws InterruptedException {
+  public void withLogging(McpStreamContext<CallToolResult> ctx) throws InterruptedException {
     ctx.log(
         com.callibrity.mocapi.model.LoggingLevel.INFO,
         TEST_TOOL_WITH_LOGGING,
@@ -291,8 +290,9 @@ public class CompatibilityTools {
         com.callibrity.mocapi.model.LoggingLevel.INFO,
         TEST_TOOL_WITH_LOGGING,
         "Tool execution completed");
-    return new CallToolResult(
-        List.of(new TextContent("Logging test completed successfully", null)), null, null);
+    ctx.sendResult(
+        new CallToolResult(
+            List.of(new TextContent("Logging test completed successfully", null)), null, null));
   }
 
   /**
@@ -322,15 +322,15 @@ public class CompatibilityTools {
   @ToolMethod(
       name = "test_tool_with_progress",
       description = "Reports progress notifications for conformance testing")
-  public CallToolResult withProgress(McpStreamContext<CallToolResult> ctx)
-      throws InterruptedException {
+  public void withProgress(McpStreamContext<CallToolResult> ctx) throws InterruptedException {
     ctx.sendProgress(0, 100);
     Thread.sleep(50);
     ctx.sendProgress(50, 100);
     Thread.sleep(50);
     ctx.sendProgress(100, 100);
-    return new CallToolResult(
-        List.of(new TextContent("Progress test completed successfully", null)), null, null);
+    ctx.sendResult(
+        new CallToolResult(
+            List.of(new TextContent("Progress test completed successfully", null)), null, null));
   }
 
   /**
@@ -341,10 +341,11 @@ public class CompatibilityTools {
    *     Sampling Specification</a>
    */
   @ToolMethod(name = "test_sampling", description = "Tests sampling/createMessage for conformance")
-  public CallToolResult testSampling(String prompt, McpStreamContext<CallToolResult> ctx) {
+  public void testSampling(String prompt, McpStreamContext<CallToolResult> ctx) {
     CreateMessageResult result = ctx.sample(prompt, 100);
     String text = result.text();
-    return new CallToolResult(List.of(new TextContent("LLM response: " + text, null)), null, null);
+    ctx.sendResult(
+        new CallToolResult(List.of(new TextContent("LLM response: " + text, null)), null, null));
   }
 
   /**
@@ -355,7 +356,7 @@ public class CompatibilityTools {
    *     Elicitation Specification</a>
    */
   @ToolMethod(name = "test_elicitation", description = "Tests elicitation/create for conformance")
-  public CallToolResult testElicitation(String message, McpStreamContext<CallToolResult> ctx) {
+  public void testElicitation(String message, McpStreamContext<CallToolResult> ctx) {
     var result =
         ctx.elicit(
             message,
@@ -364,13 +365,14 @@ public class CompatibilityTools {
               schema.string("email", "User's email address");
             });
     String content = result.isAccepted() ? result.getString("username") : "n/a";
-    return new CallToolResult(
-        List.of(
-            new TextContent(
-                "User response: action=" + result.action().toJson() + ", content=" + content,
-                null)),
-        null,
-        null);
+    ctx.sendResult(
+        new CallToolResult(
+            List.of(
+                new TextContent(
+                    "User response: action=" + result.action().toJson() + ", content=" + content,
+                    null)),
+            null,
+            null));
   }
 
   /**
@@ -383,7 +385,7 @@ public class CompatibilityTools {
   @ToolMethod(
       name = "test_elicitation_sep1034_defaults",
       description = "Tests elicitation with default values for conformance")
-  public CallToolResult testElicitationDefaults(McpStreamContext<CallToolResult> ctx) {
+  public void testElicitationDefaults(McpStreamContext<CallToolResult> ctx) {
     var result =
         ctx.elicit(
             "Enter defaults test data",
@@ -394,10 +396,12 @@ public class CompatibilityTools {
               schema.choose("status", List.of("active", "inactive", "pending"), "active");
               schema.bool("verified", "Verified", true);
             });
-    return new CallToolResult(
-        List.of(new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
-        null,
-        null);
+    ctx.sendResult(
+        new CallToolResult(
+            List.of(
+                new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
+            null,
+            null));
   }
 
   enum TitledOption {
@@ -459,7 +463,7 @@ public class CompatibilityTools {
   @ToolMethod(
       name = "test_elicitation_sep1330_enums",
       description = "Tests elicitation with enum variants for conformance")
-  public CallToolResult testElicitationEnums(McpStreamContext<CallToolResult> ctx) {
+  public void testElicitationEnums(McpStreamContext<CallToolResult> ctx) {
     Consumer<SingleSelectEnumSchemaBuilder<TitledOption>> titledSingle =
         b -> b.titled(TitledOption::toString);
     Consumer<MultiSelectEnumSchemaBuilder<TitledMultiOption>> titledMulti =
@@ -485,9 +489,11 @@ public class CompatibilityTools {
                   TitledMultiOption::value,
                   titledMulti);
             });
-    return new CallToolResult(
-        List.of(new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
-        null,
-        null);
+    ctx.sendResult(
+        new CallToolResult(
+            List.of(
+                new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
+            null,
+            null));
   }
 }

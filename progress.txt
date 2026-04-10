@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T10:25:19-04:00
-ITERATION: 39
-SPEC_COMPLETED: 131-mocapi-session-store-mongodb.md
-WHAT_WAS_DONE: Created mocapi-session-store-mongodb module with MongoMcpSessionStore using MongoTemplate/MongoCollection APIs, TTL index on expiresAt with expireAfterSeconds:0, read-time expiration filtering (expiresAt > now), MongoMcpSessionStoreAutoConfiguration with conditional activation on MongoTemplate bean, and full test suite (Testcontainers MongoDB + ApplicationContextRunner auto-config tests).
-VERIFICATION: mvn verify — full reactor BUILD SUCCESS (18 modules including mocapi-session-store-mongodb), 12 tests passed (9 functional + 3 auto-config)
+LAST_RUN: 2026-04-10T10:32:00-04:00
+ITERATION: 40
+SPEC_COMPLETED: 132-enforce-void-return-for-streaming-tools.md
+WHAT_WAS_DONE: Added validation in AnnotationMcpTool constructor that rejects @ToolMethod methods with both McpStreamContext parameter and non-void return type (throws IllegalStateException). Updated CompatibilityTools (6 methods), CompatTools (1 method), and CountdownTool (break→return) to use void + ctx.sendResult(). Added AnnotationMcpToolValidationTest with illegal/valid streaming tool fixtures.
+VERIFICATION: mvn verify — full reactor BUILD SUCCESS (18 modules), all conformance ITs pass (39 tests), new validation test passes
 STATUS: MORE_WORK
-NEXT_SPEC: 132-enforce-void-return-for-streaming-tools.md
-NOTES: Uses MongoDB TTL index with expireAfterSeconds:0 so each document's expiresAt field controls its own expiration. The find() method includes an expiresAt > now filter to handle the ~60-second window between logical expiration and TTL monitor cleanup. The update() method uses $set on only the payload field, naturally preserving expiresAt. Collection name configurable via mocapi.session.mongodb.collection property (default: mocapi_sessions).
+NEXT_SPEC: 133-add-long-overload-of-sendProgress.md
+NOTES: The validation fires at tool registration time in the AnnotationMcpTool constructor, before the stream detection loop completes. Both void.class and Void.class are accepted via the existing isVoid() helper. McpToolMethods.executeStreamableTool already handled ctx.isResultSent() checks, so the void conversion was seamless for conformance tools.

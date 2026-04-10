@@ -75,6 +75,15 @@ public class AnnotationMcpTool implements McpTool {
     for (Parameter param : method.getParameters()) {
       if (McpStreamContext.class.isAssignableFrom(param.getType())) {
         foundStream = true;
+        if (!isVoid(method)) {
+          throw new IllegalStateException(
+              "Streaming tool method "
+                  + targetObject.getClass().getName()
+                  + "."
+                  + method.getName()
+                  + " must return void — use ctx.sendResult(R) to deliver the final result"
+                  + " instead of returning it.");
+        }
         Type genericType = param.getParameterizedType();
         Map<TypeVariable<?>, Type> typeArgs =
             TypeUtils.getTypeArguments(genericType, McpStreamContext.class);

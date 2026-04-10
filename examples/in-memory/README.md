@@ -58,7 +58,7 @@ curl -X POST http://localhost:8080/mcp \
 
 ## What's included
 
-Three example tools from `examples-lib`:
+Three example tools from `mocapi-example-autoconfigure`:
 
 - **HelloTool** (`hello`) — returns a greeting for the given name
 - **Rot13Tool** (`rot13`) — applies ROT13 encoding to a string
