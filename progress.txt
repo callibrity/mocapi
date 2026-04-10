@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T20:47:23-04:00
-ITERATION: 75
-SPEC_COMPLETED: 076-simplify-duplicate-property-check.md
-WHAT_WAS_DONE: Replaced scattered requireUniqueName(name) + properties.put(name, ...) pairs with a single addProperty(name, schema) helper that checks for duplicates via Map.put() return value. Deleted requireUniqueName method. Updated all 24 builder methods (string, integer, number, bool, choose, chooseMany, chooseLegacy) to use addProperty. Updated test assertion to match new error message.
+LAST_RUN: 2026-04-09T21:11:25-04:00
+ITERATION: 76
+SPEC_COMPLETED: 077-refactor-prompts-with-registry-lookup.md
+WHAT_WAS_DONE: Refactored prompts to match tools pattern: McpPrompt changed from record to interface with get(Map<String,String>), McpPromptProvider simplified to just getMcpPrompts() (removed get() method), PromptsRegistry now builds Map<String,McpPrompt> at init with lookup(name) instead of iterating providers, added McpPromptDescriptor record for list serialization, McpPromptMethods uses registry.lookup(name).get(arguments), ConformancePrompts updated with McpPrompt anonymous implementations.
 VERIFICATION: mvn verify — BUILD SUCCESS, all 80 tests pass, 0 failures, spotless and license checks pass
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: Error message changed from "Duplicate property name: " to "Duplicate property: " per spec. Test in ElicitationSchemaTest updated accordingly.
+NOTES: @Argument annotation does not exist in any available Methodical version (checked 0.2.1 and 1.0.0-SNAPSHOT). The @Prompt/@PromptService annotations don't exist on main yet (only in worktrees). The interface contract McpPrompt.get(Map<String,String>) enables future annotation-based prompts to use Map<String,String> arguments. No Methodical version bump was needed for this iteration.

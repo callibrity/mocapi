@@ -15,54 +15,56 @@
  */
 package com.callibrity.mocapi.prompts;
 
+import static java.util.Optional.ofNullable;
+
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class PromptsRegistry {
 
-  private final List<McpPromptProvider> providers;
+  private final Map<String, McpPrompt> prompts;
   private final int pageSize;
 
   public PromptsRegistry(List<McpPromptProvider> providers, int pageSize) {
-    this.providers = List.copyOf(providers);
+    this.prompts =
+        providers.stream()
+            .flatMap(p -> p.getMcpPrompts().stream())
+            .collect(Collectors.toMap(McpPrompt::name, p -> p));
     this.pageSize = pageSize;
   }
 
+  public McpPrompt lookup(String name) {
+    return ofNullable(prompts.get(name))
+        .orElseThrow(
+            () ->
+                new JsonRpcException(
+                    JsonRpcProtocol.INVALID_PARAMS, String.format("Prompt not found: %s", name)));
+  }
+
   public ListPromptsResponse listPrompts(String cursor) {
-    List<McpPrompt> allPrompts =
-        providers.stream()
-            .flatMap(p -> p.getPrompts().stream())
-            .sorted(Comparator.comparing(McpPrompt::name))
+    List<McpPromptDescriptor> allDescriptors =
+        prompts.values().stream()
+            .map(p -> new McpPromptDescriptor(p.name(), p.description(), p.arguments()))
+            .sorted(Comparator.comparing(McpPromptDescriptor::name))
             .toList();
-    return paginate(allPrompts, cursor);
+    return paginate(allDescriptors, cursor);
   }
 
-  public GetPromptResponse getPrompt(String name, Map<String, String> arguments) {
-    for (McpPromptProvider provider : providers) {
-      GetPromptResponse response = provider.get(name, arguments);
-      if (response != null) {
-        return response;
-      }
-    }
-    throw new JsonRpcException(
-        JsonRpcProtocol.INVALID_PARAMS, String.format("Prompt not found: %s", name));
-  }
-
-  private ListPromptsResponse paginate(List<McpPrompt> all, String cursor) {
+  private ListPromptsResponse paginate(List<McpPromptDescriptor> all, String cursor) {
     int offset = decodeCursor(cursor);
     if (offset < 0 || offset > all.size()) {
       throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "Invalid cursor");
     }
     int end = Math.min(offset + pageSize, all.size());
-    List<McpPrompt> page = all.subList(offset, end);
+    List<McpPromptDescriptor> page = List.copyOf(all.subList(offset, end));
     String nextCursor = end < all.size() ? encodeCursor(end) : null;
-    return new ListPromptsResponse(new ArrayList<>(page), nextCursor);
+    return new ListPromptsResponse(page, nextCursor);
   }
 
   static String encodeCursor(int offset) {

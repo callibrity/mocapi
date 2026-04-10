@@ -109,72 +109,134 @@ public class ConformancePrompts implements McpPromptProvider {
               });
 
   @Override
-  public List<McpPrompt> getPrompts() {
+  public List<McpPrompt> getMcpPrompts() {
     return List.of(
-        new McpPrompt("test_simple_prompt", "A simple test prompt", List.of()),
-        new McpPrompt(
-            "test_prompt_with_arguments",
-            "A test prompt with arguments",
-            List.of(
-                new PromptArgument("arg1", "First argument", true),
-                new PromptArgument("arg2", "Second argument", true))),
-        new McpPrompt(
-            "test_prompt_with_embedded_resource",
-            "A test prompt with an embedded resource",
-            List.of(new PromptArgument("resourceUri", "URI of the resource to embed", true))),
-        new McpPrompt("test_prompt_with_image", "A test prompt with an image", List.of()));
+        simplePrompt(), promptWithArguments(), promptWithEmbeddedResource(), promptWithImage());
   }
 
-  @Override
-  public GetPromptResponse get(String name, Map<String, String> arguments) {
-    return switch (name) {
-      case "test_simple_prompt" -> simplePrompt();
-      case "test_prompt_with_arguments" -> promptWithArguments(arguments);
-      case "test_prompt_with_embedded_resource" -> promptWithEmbeddedResource(arguments);
-      case "test_prompt_with_image" -> promptWithImage();
-      default -> null;
+  private McpPrompt simplePrompt() {
+    return new McpPrompt() {
+      @Override
+      public String name() {
+        return "test_simple_prompt";
+      }
+
+      @Override
+      public String description() {
+        return "A simple test prompt";
+      }
+
+      @Override
+      public List<PromptArgument> arguments() {
+        return List.of();
+      }
+
+      @Override
+      public GetPromptResponse get(Map<String, String> arguments) {
+        return new GetPromptResponse(
+            "A simple test prompt",
+            List.of(
+                new PromptMessage(
+                    "user", new TextPromptContent("This is a simple prompt for testing."))));
+      }
     };
   }
 
-  private GetPromptResponse simplePrompt() {
-    return new GetPromptResponse(
-        "A simple test prompt",
-        List.of(
-            new PromptMessage(
-                "user", new TextPromptContent("This is a simple prompt for testing."))));
+  private McpPrompt promptWithArguments() {
+    return new McpPrompt() {
+      @Override
+      public String name() {
+        return "test_prompt_with_arguments";
+      }
+
+      @Override
+      public String description() {
+        return "A test prompt with arguments";
+      }
+
+      @Override
+      public List<PromptArgument> arguments() {
+        return List.of(
+            new PromptArgument("arg1", "First argument", true),
+            new PromptArgument("arg2", "Second argument", true));
+      }
+
+      @Override
+      public GetPromptResponse get(Map<String, String> arguments) {
+        String arg1 = arguments != null ? arguments.getOrDefault("arg1", "") : "";
+        String arg2 = arguments != null ? arguments.getOrDefault("arg2", "") : "";
+        return new GetPromptResponse(
+            "A test prompt with arguments",
+            List.of(
+                new PromptMessage(
+                    "user",
+                    new TextPromptContent(
+                        String.format(
+                            "Prompt with arguments: arg1='%s', arg2='%s'", arg1, arg2)))));
+      }
+    };
   }
 
-  private GetPromptResponse promptWithArguments(Map<String, String> arguments) {
-    String arg1 = arguments != null ? arguments.getOrDefault("arg1", "") : "";
-    String arg2 = arguments != null ? arguments.getOrDefault("arg2", "") : "";
-    return new GetPromptResponse(
-        "A test prompt with arguments",
-        List.of(
-            new PromptMessage(
-                "user",
-                new TextPromptContent(
-                    String.format("Prompt with arguments: arg1='%s', arg2='%s'", arg1, arg2)))));
+  private McpPrompt promptWithEmbeddedResource() {
+    return new McpPrompt() {
+      @Override
+      public String name() {
+        return "test_prompt_with_embedded_resource";
+      }
+
+      @Override
+      public String description() {
+        return "A test prompt with an embedded resource";
+      }
+
+      @Override
+      public List<PromptArgument> arguments() {
+        return List.of(new PromptArgument("resourceUri", "URI of the resource to embed", true));
+      }
+
+      @Override
+      public GetPromptResponse get(Map<String, String> arguments) {
+        String resourceUri = arguments != null ? arguments.getOrDefault("resourceUri", "") : "";
+        return new GetPromptResponse(
+            "A test prompt with an embedded resource",
+            List.of(
+                new PromptMessage(
+                    "user",
+                    new ResourcePromptContent(
+                        new EmbeddedPromptResource(
+                            resourceUri, "text/plain", "Embedded resource content for testing."))),
+                new PromptMessage(
+                    "user", new TextPromptContent("Please process the embedded resource above."))));
+      }
+    };
   }
 
-  private GetPromptResponse promptWithEmbeddedResource(Map<String, String> arguments) {
-    String resourceUri = arguments != null ? arguments.getOrDefault("resourceUri", "") : "";
-    return new GetPromptResponse(
-        "A test prompt with an embedded resource",
-        List.of(
-            new PromptMessage(
-                "user",
-                new ResourcePromptContent(
-                    new EmbeddedPromptResource(
-                        resourceUri, "text/plain", "Embedded resource content for testing."))),
-            new PromptMessage(
-                "user", new TextPromptContent("Please process the embedded resource above."))));
-  }
+  private McpPrompt promptWithImage() {
+    return new McpPrompt() {
+      @Override
+      public String name() {
+        return "test_prompt_with_image";
+      }
 
-  private GetPromptResponse promptWithImage() {
-    return new GetPromptResponse(
-        "A test prompt with an image",
-        List.of(
-            new PromptMessage("user", new ImagePromptContent(TINY_PNG, "image/png")),
-            new PromptMessage("user", new TextPromptContent("Please analyze the image above."))));
+      @Override
+      public String description() {
+        return "A test prompt with an image";
+      }
+
+      @Override
+      public List<PromptArgument> arguments() {
+        return List.of();
+      }
+
+      @Override
+      public GetPromptResponse get(Map<String, String> arguments) {
+        return new GetPromptResponse(
+            "A test prompt with an image",
+            List.of(
+                new PromptMessage("user", new ImagePromptContent(TINY_PNG, "image/png")),
+                new PromptMessage(
+                    "user", new TextPromptContent("Please analyze the image above."))));
+      }
+    };
   }
 }

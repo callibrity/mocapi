@@ -33,6 +33,6 @@ public class McpPromptMethods {
 
   @JsonRpcMethod("prompts/get")
   public GetPromptResponse getPrompt(String name, Map<String, String> arguments) {
-    return promptsRegistry.getPrompt(name, arguments);
+    return promptsRegistry.lookup(name).get(arguments);
   }
 }

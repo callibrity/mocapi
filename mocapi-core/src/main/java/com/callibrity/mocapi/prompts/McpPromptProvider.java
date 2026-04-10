@@ -16,10 +16,8 @@
 package com.callibrity.mocapi.prompts;
 
 import java.util.List;
-import java.util.Map;
 
+@FunctionalInterface
 public interface McpPromptProvider {
-  List<McpPrompt> getPrompts();
-
-  GetPromptResponse get(String name, Map<String, String> arguments);
+  List<McpPrompt> getMcpPrompts();
 }
