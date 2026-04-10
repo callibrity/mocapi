@@ -53,6 +53,16 @@ public interface McpStreamContext<R> {
   void sendProgress(double progress, double total);
 
   /**
+   * Sends a progress notification to the client using integer values.
+   *
+   * @param progress the current progress value
+   * @param total the total expected value
+   */
+  default void sendProgress(long progress, long total) {
+    sendProgress((double) progress, (double) total);
+  }
+
+  /**
    * Sends an arbitrary notification to the client.
    *
    * @param method the notification method name

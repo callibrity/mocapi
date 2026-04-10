@@ -125,6 +125,48 @@ class DefaultMcpStreamContextTest {
   }
 
   @Test
+  void sendProgressWithLongsShouldPublishProgressNotification() {
+    var context = createContext("tok-456");
+    context.sendProgress(5L, 10L);
+
+    ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
+    verify(stream).publishJson(captor.capture());
+
+    JsonNode notification = captor.getValue();
+    assertThat(notification.get("method").asString()).isEqualTo("notifications/progress");
+    assertThat(notification.get("params").get("progress").asLong()).isEqualTo(5);
+    assertThat(notification.get("params").get("total").asLong()).isEqualTo(10);
+  }
+
+  @Test
+  void sendProgressWithIntsShouldResolveToLongOverload() {
+    var context = createContext("tok-789");
+    context.sendProgress(5, 10);
+
+    ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
+    verify(stream).publishJson(captor.capture());
+
+    JsonNode notification = captor.getValue();
+    assertThat(notification.get("method").asString()).isEqualTo("notifications/progress");
+    assertThat(notification.get("params").get("progress").asLong()).isEqualTo(5);
+    assertThat(notification.get("params").get("total").asLong()).isEqualTo(10);
+  }
+
+  @Test
+  void sendProgressWithDoublesShouldResolveToDoubleOverload() {
+    var context = createContext("tok-dbl");
+    context.sendProgress(0.5, 1.0);
+
+    ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
+    verify(stream).publishJson(captor.capture());
+
+    JsonNode notification = captor.getValue();
+    assertThat(notification.get("method").asString()).isEqualTo("notifications/progress");
+    assertThat(notification.get("params").get("progress").doubleValue()).isEqualTo(0.5);
+    assertThat(notification.get("params").get("total").doubleValue()).isEqualTo(1.0);
+  }
+
+  @Test
   void sendProgressShouldBeNoOpWithoutToken() {
     var context = createContext(null);
     context.sendProgress(5, 10);

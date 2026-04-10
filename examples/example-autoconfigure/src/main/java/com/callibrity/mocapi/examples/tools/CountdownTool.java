@@ -27,7 +27,7 @@ public class CountdownTool {
       description = "Counts down from the given number, sending progress updates via SSE")
   public void countdown(int from, McpStreamContext<CountdownResponse> ctx) {
     for (int i = from; i > 0; i--) {
-      ctx.sendProgress((from - i), from);
+      ctx.sendProgress(from - i, from);
       try {
         Thread.sleep(500);
       } catch (InterruptedException e) {

@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T10:32:00-04:00
-ITERATION: 40
-SPEC_COMPLETED: 132-enforce-void-return-for-streaming-tools.md
-WHAT_WAS_DONE: Added validation in AnnotationMcpTool constructor that rejects @ToolMethod methods with both McpStreamContext parameter and non-void return type (throws IllegalStateException). Updated CompatibilityTools (6 methods), CompatTools (1 method), and CountdownTool (break→return) to use void + ctx.sendResult(). Added AnnotationMcpToolValidationTest with illegal/valid streaming tool fixtures.
-VERIFICATION: mvn verify — full reactor BUILD SUCCESS (18 modules), all conformance ITs pass (39 tests), new validation test passes
+LAST_RUN: 2026-04-10T10:35:00-04:00
+ITERATION: 41
+SPEC_COMPLETED: 133-add-long-overload-of-sendProgress.md
+WHAT_WAS_DONE: Added default sendProgress(long, long) method to McpStreamContext interface that delegates to the existing double overload, removed unnecessary parentheses in CountdownTool, and added three unit tests verifying long/int/double overload resolution.
+VERIFICATION: mvn verify — full reactor BUILD SUCCESS (18 modules), all tests pass
 STATUS: MORE_WORK
-NEXT_SPEC: 133-add-long-overload-of-sendProgress.md
-NOTES: The validation fires at tool registration time in the AnnotationMcpTool constructor, before the stream detection loop completes. Both void.class and Void.class are accepted via the existing isVoid() helper. McpToolMethods.executeStreamableTool already handled ctx.isResultSent() checks, so the void conversion was seamless for conformance tools.
+NEXT_SPEC: 134-migrate-jdbc-session-store-to-jdbcclient.md
+NOTES: The long overload is a default method on the interface so DefaultMcpStreamContext inherits it without changes. Java method resolution now routes int args to long overload (int→long widening) instead of double overload (int→double widening); observable behavior is identical.
