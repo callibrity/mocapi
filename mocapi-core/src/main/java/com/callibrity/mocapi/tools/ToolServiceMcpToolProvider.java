@@ -61,7 +61,8 @@ public class ToolServiceMcpToolProvider implements McpToolProvider {
                       ToolService.class.getSimpleName(),
                       beanName);
                   var list = AnnotationMcpTool.createTools(generator, invokerFactory, bean);
-                  list.forEach(tool -> log.info("\tRegistered MCP tool: \"{}\"", tool.name()));
+                  list.forEach(
+                      tool -> log.info("\tRegistered MCP tool: \"{}\"", tool.descriptor().name()));
                   return list.stream();
                 })
             .toList();

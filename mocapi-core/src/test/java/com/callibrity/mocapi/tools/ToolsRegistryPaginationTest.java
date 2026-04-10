@@ -18,6 +18,7 @@ package com.callibrity.mocapi.tools;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -124,13 +125,13 @@ class ToolsRegistryPaginationTest {
   }
 
   @Test
-  void shouldThrowOnOutOfRangeCursor() {
+  void shouldClampOutOfRangeCursor() {
     var registry = new ToolsRegistry(List.of(createProvider(3)), mapper, 2);
-    String cursor = ToolsRegistry.encodeCursor(100);
+    String cursor = Cursors.encode(100);
 
-    assertThatThrownBy(() -> registry.listTools(cursor))
-        .isExactlyInstanceOf(JsonRpcException.class)
-        .hasMessageContaining("Invalid cursor");
+    var response = registry.listTools(cursor);
+    assertThat(response.tools()).isEmpty();
+    assertThat(response.nextCursor()).isNull();
   }
 
   @Test
@@ -144,28 +145,19 @@ class ToolsRegistryPaginationTest {
 
   @Test
   void cursorEncodingRoundTrips() {
-    assertThat(ToolsRegistry.decodeCursor(ToolsRegistry.encodeCursor(42))).isEqualTo(42);
+    assertThat(Cursors.decode(Cursors.encode(42))).isEqualTo(42);
   }
 
-  private record StubMcpTool(String name, ObjectNode schema) implements McpTool {
-    @Override
-    public String title() {
-      return name;
+  private static final class StubMcpTool implements McpTool {
+    private final Descriptor descriptor;
+
+    StubMcpTool(String name, ObjectNode schema) {
+      this.descriptor = new Descriptor(name, name, name, schema, schema);
     }
 
     @Override
-    public String description() {
-      return name;
-    }
-
-    @Override
-    public ObjectNode inputSchema() {
-      return schema;
-    }
-
-    @Override
-    public ObjectNode outputSchema() {
-      return schema;
+    public Descriptor descriptor() {
+      return descriptor;
     }
 
     @Override

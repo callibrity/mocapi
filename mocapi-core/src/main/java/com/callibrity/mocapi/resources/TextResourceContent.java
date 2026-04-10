@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.resources.desc;
+package com.callibrity.mocapi.resources;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record McpResourceDescriptor(String uri, String name, String description, String mimeType) {}
+public record TextResourceContent(String uri, String mimeType, String text)
+    implements ResourceContent {}

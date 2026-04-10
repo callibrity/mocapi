@@ -17,6 +17,7 @@ package com.callibrity.mocapi.tools;
 
 import static java.util.Optional.ofNullable;
 
+import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -27,8 +28,6 @@ import com.github.erosb.jsonsKema.Schema;
 import com.github.erosb.jsonsKema.SchemaLoader;
 import com.github.erosb.jsonsKema.ValidationFailure;
 import com.github.erosb.jsonsKema.Validator;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +44,7 @@ public class ToolsRegistry {
   public static final int DEFAULT_PAGE_SIZE = 50;
 
   private final Map<String, McpTool> tools;
+  private final List<McpTool.Descriptor> sortedDescriptors;
   private final ConcurrentHashMap<String, Schema> inputSchemas = new ConcurrentHashMap<>();
   private final ObjectMapper objectMapper;
   private final int pageSize;
@@ -57,10 +57,14 @@ public class ToolsRegistry {
 
   public ToolsRegistry(
       List<McpToolProvider> toolProviders, ObjectMapper objectMapper, int pageSize) {
-    this.tools =
-        toolProviders.stream()
-            .flatMap(provider -> provider.getMcpTools().stream())
-            .collect(Collectors.toMap(McpTool::name, t -> t));
+    var allTools =
+        toolProviders.stream().flatMap(provider -> provider.getMcpTools().stream()).toList();
+    this.tools = allTools.stream().collect(Collectors.toMap(t -> t.descriptor().name(), t -> t));
+    this.sortedDescriptors =
+        allTools.stream()
+            .map(McpTool::descriptor)
+            .sorted(Comparator.comparing(McpTool.Descriptor::name))
+            .toList();
     this.objectMapper = objectMapper;
     this.pageSize = pageSize;
   }
@@ -101,7 +105,10 @@ public class ToolsRegistry {
 
   private Schema getInputSchema(String name, McpTool tool) {
     return inputSchemas.computeIfAbsent(
-        name, _ -> new SchemaLoader(new JsonParser(tool.inputSchema().toString()).parse()).load());
+        name,
+        _ ->
+            new SchemaLoader(new JsonParser(tool.descriptor().inputSchema().toString()).parse())
+                .load());
   }
 
   public boolean isEmpty() {
@@ -109,41 +116,8 @@ public class ToolsRegistry {
   }
 
   public ListToolsResponse listTools(String cursor) {
-    var allDescriptors =
-        tools.values().stream()
-            .map(
-                t ->
-                    new McpToolDescriptor(
-                        t.name(), t.title(), t.description(), t.inputSchema(), t.outputSchema()))
-            .sorted(Comparator.comparing(McpToolDescriptor::name))
-            .toList();
-
-    int offset = decodeCursor(cursor);
-    if (offset < 0 || offset > allDescriptors.size()) {
-      throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "Invalid cursor");
-    }
-
-    int end = Math.min(offset + pageSize, allDescriptors.size());
-    var page = allDescriptors.subList(offset, end);
-    String nextCursor = end < allDescriptors.size() ? encodeCursor(end) : null;
-    return new ListToolsResponse(page, nextCursor);
-  }
-
-  static String encodeCursor(int offset) {
-    return Base64.getEncoder()
-        .encodeToString(String.valueOf(offset).getBytes(StandardCharsets.UTF_8));
-  }
-
-  static int decodeCursor(String cursor) {
-    if (cursor == null) {
-      return 0;
-    }
-    try {
-      return Integer.parseInt(
-          new String(Base64.getDecoder().decode(cursor), StandardCharsets.UTF_8));
-    } catch (IllegalArgumentException _) {
-      return -1;
-    }
+    var page = Cursors.paginate(sortedDescriptors, cursor, pageSize);
+    return new ListToolsResponse(page.items(), page.nextCursor());
   }
 
   // -------------------------- INNER CLASSES --------------------------
@@ -174,13 +148,5 @@ public class ToolsRegistry {
       List<Content> content, Boolean isError, ObjectNode structuredContent) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record ListToolsResponse(List<McpToolDescriptor> tools, String nextCursor) {}
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record McpToolDescriptor(
-      String name,
-      String title,
-      String description,
-      ObjectNode inputSchema,
-      ObjectNode outputSchema) {}
+  public record ListToolsResponse(List<McpTool.Descriptor> tools, String nextCursor) {}
 }

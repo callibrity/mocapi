@@ -86,7 +86,7 @@ class ToolsRegistryTest {
     var tool = registry.lookup("hello-tool.say-hello");
 
     assertThat(tool).isNotNull();
-    assertEquals("hello-tool.say-hello", tool.name());
+    assertEquals("hello-tool.say-hello", tool.descriptor().name());
   }
 
   @Test

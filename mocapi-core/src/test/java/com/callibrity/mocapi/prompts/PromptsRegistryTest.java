@@ -18,6 +18,7 @@ package com.callibrity.mocapi.prompts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.Map;
@@ -29,24 +30,19 @@ class PromptsRegistryTest {
   private McpPrompt createPrompt(String name) {
     return new McpPrompt() {
       @Override
-      public String name() {
-        return name;
-      }
-
-      @Override
-      public String description() {
-        return "Description of " + name;
-      }
-
-      @Override
-      public List<PromptArgument> arguments() {
-        return List.of(new PromptArgument("arg1", "First argument", true));
+      public Descriptor descriptor() {
+        return new Descriptor(
+            name,
+            null,
+            "Description of " + name,
+            null,
+            List.of(new PromptArgument("arg1", "First argument", true)));
       }
 
       @Override
       public GetPromptResponse get(Map<String, String> arguments) {
         return new GetPromptResponse(
-            description(),
+            descriptor().description(),
             List.of(
                 new PromptMessage("user", List.of(new TextPromptContent("Hello from " + name)))));
       }
@@ -94,8 +90,8 @@ class PromptsRegistryTest {
 
     var prompt = registry.lookup("my-prompt");
 
-    assertThat(prompt.name()).isEqualTo("my-prompt");
-    assertThat(prompt.description()).isEqualTo("Description of my-prompt");
+    assertThat(prompt.descriptor().name()).isEqualTo("my-prompt");
+    assertThat(prompt.descriptor().description()).isEqualTo("Description of my-prompt");
   }
 
   @Test
@@ -159,18 +155,18 @@ class PromptsRegistryTest {
   }
 
   @Test
-  void shouldThrowOnOutOfRangeCursor() {
+  void outOfRangeCursorReturnsEmptyPage() {
     var registry = new PromptsRegistry(List.of(createPrompt("a")), 2);
-    String cursor = PromptsRegistry.encodeCursor(100);
+    String cursor = Cursors.encode(100);
 
-    assertThatThrownBy(() -> registry.listPrompts(cursor))
-        .isExactlyInstanceOf(JsonRpcException.class)
-        .hasMessageContaining("Invalid cursor");
+    var response = registry.listPrompts(cursor);
+    assertThat(response.prompts()).isEmpty();
+    assertThat(response.nextCursor()).isNull();
   }
 
   @Test
   void cursorEncodingRoundTrips() {
-    assertThat(PromptsRegistry.decodeCursor(PromptsRegistry.encodeCursor(42))).isEqualTo(42);
+    assertThat(Cursors.decode(Cursors.encode(42))).isEqualTo(42);
   }
 
   @Test

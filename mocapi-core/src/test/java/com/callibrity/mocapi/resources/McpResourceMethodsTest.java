@@ -35,41 +35,25 @@ class McpResourceMethodsTest {
         @Override
         public ReadResourceResponse read() {
           return new ReadResourceResponse(
-              List.of(new ResourceContent("test://greeting", "text/plain", "Hello!", null)));
+              List.of(new TextResourceContent("test://greeting", "text/plain", "Hello!")));
         }
       };
 
   private final McpResourceTemplate itemTemplate =
       new McpResourceTemplate() {
         @Override
-        public String uriTemplate() {
-          return "test://item/{id}";
-        }
-
-        @Override
-        public String name() {
-          return "Item Template";
-        }
-
-        @Override
-        public String description() {
-          return "An item";
-        }
-
-        @Override
-        public String mimeType() {
-          return "application/json";
+        public Descriptor descriptor() {
+          return new Descriptor("test://item/{id}", "Item Template", "An item", "application/json");
         }
 
         @Override
         public ReadResourceResponse read(Map<String, String> pathVariables) {
           return new ReadResourceResponse(
               List.of(
-                  new ResourceContent(
+                  new TextResourceContent(
                       "test://item/" + pathVariables.get("id"),
                       "application/json",
-                      "item " + pathVariables.get("id"),
-                      null)));
+                      "item " + pathVariables.get("id"))));
         }
       };
 
@@ -100,7 +84,8 @@ class McpResourceMethodsTest {
     var response = methods.readResource("test://greeting");
 
     assertThat(response.contents()).hasSize(1);
-    assertThat(response.contents().getFirst().text()).isEqualTo("Hello!");
+    assertThat(response.contents().getFirst()).isInstanceOf(TextResourceContent.class);
+    assertThat(((TextResourceContent) response.contents().getFirst()).text()).isEqualTo("Hello!");
   }
 
   @Test
@@ -113,18 +98,12 @@ class McpResourceMethodsTest {
   @Test
   void subscribeShouldReturnEmptyMap() {
     var result = methods.subscribe("test://greeting");
-
     assertThat(result).isEmpty();
-    assertThat(registry.isSubscribed("test://greeting")).isTrue();
   }
 
   @Test
   void unsubscribeShouldReturnEmptyMap() {
-    registry.subscribe("test://greeting");
-
     var result = methods.unsubscribe("test://greeting");
-
     assertThat(result).isEmpty();
-    assertThat(registry.isSubscribed("test://greeting")).isFalse();
   }
 }

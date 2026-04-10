@@ -15,10 +15,11 @@
  */
 package com.callibrity.mocapi.compat.conformance;
 
+import com.callibrity.mocapi.resources.BlobResourceContent;
 import com.callibrity.mocapi.resources.McpResource;
 import com.callibrity.mocapi.resources.McpResourceTemplate;
 import com.callibrity.mocapi.resources.ReadResourceResponse;
-import com.callibrity.mocapi.resources.ResourceContent;
+import com.callibrity.mocapi.resources.TextResourceContent;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -121,11 +122,8 @@ public class ConformanceResources {
         var d = descriptor();
         return new ReadResourceResponse(
             List.of(
-                new ResourceContent(
-                    d.uri(),
-                    d.mimeType(),
-                    "This is the content of the static text resource.",
-                    null)));
+                new TextResourceContent(
+                    d.uri(), d.mimeType(), "This is the content of the static text resource.")));
       }
     };
   }
@@ -146,7 +144,7 @@ public class ConformanceResources {
       public ReadResourceResponse read() {
         var d = descriptor();
         return new ReadResourceResponse(
-            List.of(new ResourceContent(d.uri(), d.mimeType(), null, TINY_PNG)));
+            List.of(new BlobResourceContent(d.uri(), d.mimeType(), TINY_PNG)));
       }
     };
   }
@@ -168,8 +166,8 @@ public class ConformanceResources {
         var d = descriptor();
         return new ReadResourceResponse(
             List.of(
-                new ResourceContent(
-                    d.uri(), d.mimeType(), "This is the content of the watched resource.", null)));
+                new TextResourceContent(
+                    d.uri(), d.mimeType(), "This is the content of the watched resource.")));
       }
     };
   }
@@ -178,23 +176,12 @@ public class ConformanceResources {
   public McpResourceTemplate templateResource() {
     return new McpResourceTemplate() {
       @Override
-      public String uriTemplate() {
-        return "test://template/{id}/data";
-      }
-
-      @Override
-      public String name() {
-        return "Template Resource";
-      }
-
-      @Override
-      public String description() {
-        return "A resource template for conformance testing";
-      }
-
-      @Override
-      public String mimeType() {
-        return "application/json";
+      public Descriptor descriptor() {
+        return new Descriptor(
+            "test://template/{id}/data",
+            "Template Resource",
+            "A resource template for conformance testing",
+            "application/json");
       }
 
       @Override
@@ -204,7 +191,8 @@ public class ConformanceResources {
             String.format(
                 "{\"id\":\"%s\",\"templateTest\":true,\"data\":\"Data for ID: %s\"}", id, id);
         String uri = String.format("test://template/%s/data", id);
-        return new ReadResourceResponse(List.of(new ResourceContent(uri, mimeType(), json, null)));
+        return new ReadResourceResponse(
+            List.of(new TextResourceContent(uri, descriptor().mimeType(), json)));
       }
     };
   }

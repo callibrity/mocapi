@@ -77,7 +77,7 @@ class ToolServiceMcpToolProviderTest {
     provider.initialize();
 
     assertThat(provider.getMcpTools()).hasSize(1);
-    assertThat(provider.getMcpTools().getFirst().name()).contains("greet");
+    assertThat(provider.getMcpTools().getFirst().descriptor().name()).contains("greet");
   }
 
   @Test

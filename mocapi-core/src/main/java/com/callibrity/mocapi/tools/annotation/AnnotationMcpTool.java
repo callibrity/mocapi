@@ -40,12 +40,8 @@ public class AnnotationMcpTool implements McpTool {
 
   // ------------------------------ FIELDS ------------------------------
 
-  private final String name;
-  private final String title;
-  private final String description;
+  private final Descriptor descriptor;
   private final MethodInvoker<JsonNode> invoker;
-  private final ObjectNode inputSchema;
-  private final ObjectNode outputSchema;
   private final boolean streamable;
 
   // -------------------------- STATIC METHODS --------------------------
@@ -65,11 +61,11 @@ public class AnnotationMcpTool implements McpTool {
       Object targetObject,
       Method method) {
     var annotation = method.getAnnotation(Tool.class);
-    this.name = nameOf(targetObject, method, annotation);
-    this.title = titleOf(targetObject, method, annotation);
-    this.description = descriptionOf(targetObject, method, annotation);
+    String name = nameOf(targetObject, method, annotation);
+    String title = titleOf(targetObject, method, annotation);
+    String description = descriptionOf(targetObject, method, annotation);
     this.invoker = invokerFactory.create(method, targetObject, JsonNode.class);
-    this.inputSchema = generator.generateInputSchema(targetObject, method);
+    ObjectNode inputSchema = generator.generateInputSchema(targetObject, method);
 
     // Detect McpStreamContext<O> parameter for streaming and output schema
     boolean foundStream = false;
@@ -93,13 +89,15 @@ public class AnnotationMcpTool implements McpTool {
     }
     this.streamable = foundStream;
 
+    ObjectNode outputSchema;
     if (foundStream) {
-      this.outputSchema = streamOutputSchema;
+      outputSchema = streamOutputSchema;
     } else if (isVoid(method)) {
-      this.outputSchema = null;
+      outputSchema = null;
     } else {
-      this.outputSchema = generator.generateOutputSchema(targetObject, method);
+      outputSchema = generator.generateOutputSchema(targetObject, method);
     }
+    this.descriptor = new Descriptor(name, title, description, inputSchema, outputSchema);
   }
 
   private static String nameOf(Object targetObject, Method method, Tool annotation) {
@@ -126,28 +124,8 @@ public class AnnotationMcpTool implements McpTool {
   // --------------------- Interface McpTool ---------------------
 
   @Override
-  public String name() {
-    return name;
-  }
-
-  @Override
-  public String title() {
-    return title;
-  }
-
-  @Override
-  public String description() {
-    return description;
-  }
-
-  @Override
-  public ObjectNode inputSchema() {
-    return inputSchema;
-  }
-
-  @Override
-  public ObjectNode outputSchema() {
-    return outputSchema;
+  public Descriptor descriptor() {
+    return descriptor;
   }
 
   @Override

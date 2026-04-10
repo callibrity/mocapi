@@ -18,13 +18,10 @@ package com.callibrity.mocapi.resources;
 import java.util.Map;
 
 public interface McpResourceTemplate {
-  String uriTemplate();
 
-  String name();
-
-  String description();
-
-  String mimeType();
+  Descriptor descriptor();
 
   ReadResourceResponse read(Map<String, String> pathVariables);
+
+  record Descriptor(String uriTemplate, String name, String description, String mimeType) {}
 }

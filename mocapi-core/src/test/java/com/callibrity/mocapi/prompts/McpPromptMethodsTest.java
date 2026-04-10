@@ -28,18 +28,13 @@ class McpPromptMethodsTest {
   private final McpPrompt testPrompt =
       new McpPrompt() {
         @Override
-        public String name() {
-          return "greet";
-        }
-
-        @Override
-        public String description() {
-          return "A greeting prompt";
-        }
-
-        @Override
-        public List<PromptArgument> arguments() {
-          return List.of(new PromptArgument("name", "The name to greet", true));
+        public Descriptor descriptor() {
+          return new Descriptor(
+              "greet",
+              null,
+              "A greeting prompt",
+              null,
+              List.of(new PromptArgument("name", "The name to greet", true)));
         }
 
         @Override

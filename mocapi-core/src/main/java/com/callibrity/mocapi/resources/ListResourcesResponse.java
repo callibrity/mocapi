@@ -15,9 +15,8 @@
  */
 package com.callibrity.mocapi.resources;
 
-import com.callibrity.mocapi.resources.desc.McpResourceDescriptor;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ListResourcesResponse(List<McpResourceDescriptor> resources, String nextCursor) {}
+public record ListResourcesResponse(List<McpResource.Descriptor> resources, String nextCursor) {}

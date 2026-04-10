@@ -83,7 +83,7 @@ public class MocapiAutoConfiguration {
     ToolsCapabilityDescriptor tools =
         toolsRegistry.isEmpty() ? null : new ToolsCapabilityDescriptor(false);
     ResourcesCapabilityDescriptor resources =
-        resourcesRegistry.isEmpty() ? null : new ResourcesCapabilityDescriptor(true, false);
+        resourcesRegistry.isEmpty() ? null : new ResourcesCapabilityDescriptor(false, false);
     PromptsCapabilityDescriptor prompts =
         promptsRegistry.isEmpty() ? null : new PromptsCapabilityDescriptor(false);
     return new InitializeResponse(

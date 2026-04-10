@@ -47,11 +47,11 @@ class AnnotationMcpToolTest {
 
     var tool = tools.getMcpTools().getFirst();
     assertThat(tool).isNotNull();
-    assertThat(tool.name()).isEqualTo("hello-tool.say-hello");
-    assertThat(tool.title()).isEqualTo("Hello Tool - Say Hello");
-    assertThat(tool.description()).isEqualTo("Hello Tool - Say Hello");
-    assertThat(tool.inputSchema().get("type").asString()).isEqualTo("object");
-    assertThat(tool.outputSchema().get("type").asString()).isEqualTo("object");
+    assertThat(tool.descriptor().name()).isEqualTo("hello-tool.say-hello");
+    assertThat(tool.descriptor().title()).isEqualTo("Hello Tool - Say Hello");
+    assertThat(tool.descriptor().description()).isEqualTo("Hello Tool - Say Hello");
+    assertThat(tool.descriptor().inputSchema().get("type").asString()).isEqualTo("object");
+    assertThat(tool.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
   }
 
   @Test
@@ -61,9 +61,9 @@ class AnnotationMcpToolTest {
 
     var tool = tools.getMcpTools().getFirst();
     assertThat(tool).isNotNull();
-    assertThat(tool.name()).isEqualTo("custom name");
-    assertThat(tool.title()).isEqualTo("Custom Title");
-    assertThat(tool.description()).isEqualTo("Custom description of a tool");
+    assertThat(tool.descriptor().name()).isEqualTo("custom name");
+    assertThat(tool.descriptor().title()).isEqualTo("Custom Title");
+    assertThat(tool.descriptor().description()).isEqualTo("Custom description of a tool");
   }
 
   @Test
@@ -88,6 +88,6 @@ class AnnotationMcpToolTest {
   void nonObjectReturnTypeShouldBeAllowed() {
     var tool = factory.create(new InvalidReturnTool()).getMcpTools().getFirst();
     assertThat(tool).isNotNull();
-    assertThat(tool.outputSchema()).isNotNull();
+    assertThat(tool.descriptor().outputSchema()).isNotNull();
   }
 }

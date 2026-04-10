@@ -112,18 +112,8 @@ public class ConformancePrompts {
   public McpPrompt simplePrompt() {
     return new McpPrompt() {
       @Override
-      public String name() {
-        return "test_simple_prompt";
-      }
-
-      @Override
-      public String description() {
-        return "A simple test prompt";
-      }
-
-      @Override
-      public List<PromptArgument> arguments() {
-        return List.of();
+      public Descriptor descriptor() {
+        return new Descriptor("test_simple_prompt", null, "A simple test prompt", null, List.of());
       }
 
       @Override
@@ -142,20 +132,15 @@ public class ConformancePrompts {
   public McpPrompt promptWithArguments() {
     return new McpPrompt() {
       @Override
-      public String name() {
-        return "test_prompt_with_arguments";
-      }
-
-      @Override
-      public String description() {
-        return "A test prompt with arguments";
-      }
-
-      @Override
-      public List<PromptArgument> arguments() {
-        return List.of(
-            new PromptArgument("arg1", "First argument", true),
-            new PromptArgument("arg2", "Second argument", true));
+      public Descriptor descriptor() {
+        return new Descriptor(
+            "test_prompt_with_arguments",
+            null,
+            "A test prompt with arguments",
+            null,
+            List.of(
+                new PromptArgument("arg1", "First argument", true),
+                new PromptArgument("arg2", "Second argument", true)));
       }
 
       @Override
@@ -179,18 +164,13 @@ public class ConformancePrompts {
   public McpPrompt promptWithEmbeddedResource() {
     return new McpPrompt() {
       @Override
-      public String name() {
-        return "test_prompt_with_embedded_resource";
-      }
-
-      @Override
-      public String description() {
-        return "A test prompt with an embedded resource";
-      }
-
-      @Override
-      public List<PromptArgument> arguments() {
-        return List.of(new PromptArgument("resourceUri", "URI of the resource to embed", true));
+      public Descriptor descriptor() {
+        return new Descriptor(
+            "test_prompt_with_embedded_resource",
+            null,
+            "A test prompt with an embedded resource",
+            null,
+            List.of(new PromptArgument("resourceUri", "URI of the resource to embed", true)));
       }
 
       @Override
@@ -219,18 +199,9 @@ public class ConformancePrompts {
   public McpPrompt promptWithImage() {
     return new McpPrompt() {
       @Override
-      public String name() {
-        return "test_prompt_with_image";
-      }
-
-      @Override
-      public String description() {
-        return "A test prompt with an image";
-      }
-
-      @Override
-      public List<PromptArgument> arguments() {
-        return List.of();
+      public Descriptor descriptor() {
+        return new Descriptor(
+            "test_prompt_with_image", null, "A test prompt with an image", null, List.of());
       }
 
       @Override

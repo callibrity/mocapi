@@ -43,13 +43,11 @@ public class McpResourceMethods {
 
   @JsonRpcMethod("resources/subscribe")
   public Map<String, Object> subscribe(String uri) {
-    resourcesRegistry.subscribe(uri);
     return Map.of();
   }
 
   @JsonRpcMethod("resources/unsubscribe")
   public Map<String, Object> unsubscribe(String uri) {
-    resourcesRegistry.unsubscribe(uri);
     return Map.of();
   }
 }

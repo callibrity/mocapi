@@ -18,6 +18,7 @@ package com.callibrity.mocapi.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +37,7 @@ class ResourcesRegistryTest {
       @Override
       public ReadResourceResponse read() {
         return new ReadResourceResponse(
-            List.of(new ResourceContent(uri, mimeType, "content of " + uri, null)));
+            List.of(new TextResourceContent(uri, mimeType, "content of " + uri)));
       }
     };
   }
@@ -45,29 +46,14 @@ class ResourcesRegistryTest {
       String uriTemplate, String name, String description, String mimeType) {
     return new McpResourceTemplate() {
       @Override
-      public String uriTemplate() {
-        return uriTemplate;
-      }
-
-      @Override
-      public String name() {
-        return name;
-      }
-
-      @Override
-      public String description() {
-        return description;
-      }
-
-      @Override
-      public String mimeType() {
-        return mimeType;
+      public Descriptor descriptor() {
+        return new Descriptor(uriTemplate, name, description, mimeType);
       }
 
       @Override
       public ReadResourceResponse read(Map<String, String> pathVariables) {
         return new ReadResourceResponse(
-            List.of(new ResourceContent(uriTemplate, mimeType, "template content", null)));
+            List.of(new TextResourceContent(uriTemplate, mimeType, "template content")));
       }
     };
   }
@@ -132,87 +118,32 @@ class ResourcesRegistryTest {
     var response = registry.readResource("test://hello");
 
     assertThat(response.contents()).hasSize(1);
-    assertThat(response.contents().getFirst().uri()).isEqualTo("test://hello");
-    assertThat(response.contents().getFirst().text()).isEqualTo("content of test://hello");
+    var content = (TextResourceContent) response.contents().getFirst();
+    assertThat(content.uri()).isEqualTo("test://hello");
+    assertThat(content.text()).isEqualTo("content of test://hello");
   }
 
   @Test
   void shouldReadResourceByTemplateMatch() {
-    var t =
-        new McpResourceTemplate() {
-          @Override
-          public String uriTemplate() {
-            return "test://item/{id}/data";
-          }
-
-          @Override
-          public String name() {
-            return "Item";
-          }
-
-          @Override
-          public String description() {
-            return "desc";
-          }
-
-          @Override
-          public String mimeType() {
-            return "application/json";
-          }
-
-          @Override
-          public ReadResourceResponse read(Map<String, String> pathVariables) {
-            String id = pathVariables.get("id");
-            return new ReadResourceResponse(
-                List.of(
-                    new ResourceContent(
-                        "test://item/" + id + "/data", mimeType(), "data for " + id, null)));
-          }
-        };
+    var t = template("test://item/{id}/data", "Item", "desc", "application/json");
     var registry = new ResourcesRegistry(List.of(), List.of(t), 50);
 
     var response = registry.readResource("test://item/42/data");
 
     assertThat(response.contents()).hasSize(1);
-    assertThat(response.contents().getFirst().text()).isEqualTo("data for 42");
+    assertThat(((TextResourceContent) response.contents().getFirst()).text())
+        .isEqualTo("template content");
   }
 
   @Test
   void exactMatchShouldTakePrecedenceOverTemplateMatch() {
     var r = resource("test://item/special/data", "Special", "desc", "text/plain");
-    var t =
-        new McpResourceTemplate() {
-          @Override
-          public String uriTemplate() {
-            return "test://item/{id}/data";
-          }
-
-          @Override
-          public String name() {
-            return "Item";
-          }
-
-          @Override
-          public String description() {
-            return "desc";
-          }
-
-          @Override
-          public String mimeType() {
-            return "application/json";
-          }
-
-          @Override
-          public ReadResourceResponse read(Map<String, String> pathVariables) {
-            return new ReadResourceResponse(
-                List.of(new ResourceContent("test://item/x/data", mimeType(), "template", null)));
-          }
-        };
+    var t = template("test://item/{id}/data", "Item", "desc", "application/json");
     var registry = new ResourcesRegistry(List.of(r), List.of(t), 50);
 
     var response = registry.readResource("test://item/special/data");
 
-    assertThat(response.contents().getFirst().text())
+    assertThat(((TextResourceContent) response.contents().getFirst()).text())
         .isEqualTo("content of test://item/special/data");
   }
 
@@ -237,12 +168,12 @@ class ResourcesRegistryTest {
 
     var page1 = registry.listResources(null);
     assertThat(page1.resources()).hasSize(2);
-    assertThat(page1.resources().get(0).uri()).isEqualTo("test://r000");
+    assertThat(page1.resources().getFirst().uri()).isEqualTo("test://r000");
     assertThat(page1.nextCursor()).isNotNull();
 
     var page2 = registry.listResources(page1.nextCursor());
     assertThat(page2.resources()).hasSize(2);
-    assertThat(page2.resources().get(0).uri()).isEqualTo("test://r002");
+    assertThat(page2.resources().getFirst().uri()).isEqualTo("test://r002");
     assertThat(page2.nextCursor()).isNotNull();
 
     var page3 = registry.listResources(page2.nextCursor());
@@ -281,30 +212,19 @@ class ResourcesRegistryTest {
   }
 
   @Test
-  void shouldThrowOnOutOfRangeCursor() {
+  void outOfRangeCursorReturnsEmptyPage() {
     var registry =
         new ResourcesRegistry(
             List.of(resource("test://a", "A", "desc", "text/plain")), List.of(), 2);
-    String cursor = ResourcesRegistry.encodeCursor(100);
+    String cursor = Cursors.encode(100);
 
-    assertThatThrownBy(() -> registry.listResources(cursor))
-        .isExactlyInstanceOf(JsonRpcException.class)
-        .hasMessageContaining("Invalid cursor");
+    var response = registry.listResources(cursor);
+    assertThat(response.resources()).isEmpty();
+    assertThat(response.nextCursor()).isNull();
   }
 
   @Test
   void cursorEncodingRoundTrips() {
-    assertThat(ResourcesRegistry.decodeCursor(ResourcesRegistry.encodeCursor(42))).isEqualTo(42);
-  }
-
-  @Test
-  void shouldSubscribeAndUnsubscribe() {
-    var registry = new ResourcesRegistry(List.of(), List.of(), 50);
-
-    assertThat(registry.isSubscribed("test://watched")).isFalse();
-    registry.subscribe("test://watched");
-    assertThat(registry.isSubscribed("test://watched")).isTrue();
-    registry.unsubscribe("test://watched");
-    assertThat(registry.isSubscribed("test://watched")).isFalse();
+    assertThat(Cursors.decode(Cursors.encode(42))).isEqualTo(42);
   }
 }

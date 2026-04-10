@@ -18,4 +18,4 @@ package com.callibrity.mocapi.resources;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ResourceContent(String uri, String mimeType, String text, String blob) {}
+public sealed interface ResourceContent permits TextResourceContent, BlobResourceContent {}

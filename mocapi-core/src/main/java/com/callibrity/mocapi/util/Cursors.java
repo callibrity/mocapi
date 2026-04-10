@@ -15,6 +15,38 @@
  */
 package com.callibrity.mocapi.util;
 
-public class Cursors {
+import com.callibrity.ripcurl.core.JsonRpcProtocol;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
+import java.nio.ByteBuffer;
+import java.util.Base64;
+import java.util.List;
+
+public final class Cursors {
+
   private Cursors() {}
+
+  public static String encode(int offset) {
+    return Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(offset).array());
+  }
+
+  public static int decode(String cursor) {
+    if (cursor == null) {
+      return 0;
+    }
+    try {
+      return ByteBuffer.wrap(Base64.getDecoder().decode(cursor)).getInt();
+    } catch (Exception _) {
+      throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "Invalid cursor");
+    }
+  }
+
+  public record Page<T>(List<T> items, String nextCursor) {}
+
+  public static <T> Page<T> paginate(List<T> all, String cursor, int pageSize) {
+    int offset = Math.clamp(decode(cursor), 0, all.size());
+    int end = Math.min(offset + pageSize, all.size());
+    List<T> page = List.copyOf(all.subList(offset, end));
+    String nextCursor = end < all.size() ? encode(end) : null;
+    return new Page<>(page, nextCursor);
+  }
 }
