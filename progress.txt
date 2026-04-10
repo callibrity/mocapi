@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T10:10:22-04:00
-ITERATION: 37
-SPEC_COMPLETED: 129-example-postgresql-app.md
-WHAT_WAS_DONE: Created examples/postgresql module with PostgreSqlExampleApplication delegating to ExampleApplication, pom.xml depending on mocapi-examples-lib, mocapi-session-store-jdbc, postgresql driver, and spring-boot-starter-jdbc, application.yml configuring datasource with env var defaults and Spring SQL init pointing at the JDBC session store's PostgreSQL schema, docker-compose.yml with PostgreSQL 16-alpine and health check, and README.md documenting the session-store-only limitation prominently along with prerequisites, infra startup, app run, session persistence verification, and cloud deployment hints. Added module to examples/pom.xml.
-VERIFICATION: mvn verify — full reactor BUILD SUCCESS (16 modules including mocapi-example-postgresql)
+LAST_RUN: 2026-04-10T10:17:38-04:00
+ITERATION: 38
+SPEC_COMPLETED: 130-mocapi-session-store-cassandra.md
+WHAT_WAS_DONE: Created mocapi-session-store-cassandra module with CassandraMcpSessionStore using native per-row TTL via prepared CqlSession statements, CassandraMcpSessionStoreAutoConfiguration with conditional activation on CqlSession bean, configurable keyspace/table/consistency properties, CQL schema file, and full test suite (Testcontainers Cassandra + ApplicationContextRunner auto-config tests).
+VERIFICATION: mvn verify — full reactor BUILD SUCCESS (17 modules including mocapi-session-store-cassandra), 11 tests passed (8 functional + 3 auto-config)
 STATUS: MORE_WORK
-NEXT_SPEC: 130-mocapi-session-store-cassandra.md
-NOTES: The PostgreSQL example follows the same delegation pattern as the other examples. Unlike Redis and Hazelcast examples which use an all-in-one starter, this example directly depends on mocapi-session-store-jdbc because PostgreSQL lacks the pub/sub primitives needed for Mailbox/Journal/Notifier. The README prominently warns about this limitation. Schema init uses Spring Boot's spring.sql.init to load the schema from mocapi-session-store-jdbc's classpath resource.
+NEXT_SPEC: 131-mocapi-session-store-mongodb.md
+NOTES: Uses Cassandra's native TTL (INSERT ... USING TTL) instead of application-managed expiration. The update method preserves TTL via a two-step SELECT TTL(payload) + UPDATE USING TTL pattern. The touch method reads current payload then re-writes with new TTL. Consistency levels default to LOCAL_ONE reads / LOCAL_QUORUM writes, configurable via properties. Single-node Testcontainers test uses LOCAL_ONE for both to avoid quorum issues with RF=1.
