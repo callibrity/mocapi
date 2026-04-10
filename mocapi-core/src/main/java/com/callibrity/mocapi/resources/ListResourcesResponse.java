@@ -19,4 +19,4 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ListResourcesResponse(List<McpResource> resources, String nextCursor) {}
+public record ListResourcesResponse(List<McpResourceDescriptor> resources, String nextCursor) {}

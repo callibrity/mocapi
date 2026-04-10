@@ -15,7 +15,14 @@
  */
 package com.callibrity.mocapi.resources;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+public interface McpResource {
+  String uri();
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record McpResource(String uri, String name, String description, String mimeType) {}
+  String name();
+
+  String description();
+
+  String mimeType();
+
+  ReadResourceResponse read();
+}

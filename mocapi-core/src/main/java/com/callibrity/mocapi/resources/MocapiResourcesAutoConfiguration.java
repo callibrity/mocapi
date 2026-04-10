@@ -21,7 +21,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -29,7 +28,6 @@ import org.springframework.context.annotation.Bean;
 @AutoConfiguration
 @AutoConfigureBefore(MocapiAutoConfiguration.class)
 @ConditionalOnClass(ResourcesRegistry.class)
-@ConditionalOnBean(McpResourceProvider.class)
 @EnableConfigurationProperties(MocapiProperties.class)
 @RequiredArgsConstructor
 public class MocapiResourcesAutoConfiguration {
@@ -37,7 +35,9 @@ public class MocapiResourcesAutoConfiguration {
   private final MocapiProperties mocapiProperties;
 
   @Bean
-  public ResourcesRegistry resourcesRegistry(List<McpResourceProvider> resourceProviders) {
-    return new ResourcesRegistry(resourceProviders, mocapiProperties.getPagination().getPageSize());
+  public ResourcesRegistry resourcesRegistry(
+      List<McpResource> resources, List<McpResourceTemplate> templates) {
+    return new ResourcesRegistry(
+        resources, templates, mocapiProperties.getPagination().getPageSize());
   }
 }

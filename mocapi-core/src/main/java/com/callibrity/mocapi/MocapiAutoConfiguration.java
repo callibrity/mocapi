@@ -107,7 +107,7 @@ public class MocapiAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ResourcesRegistry resourcesRegistry() {
-    return new ResourcesRegistry(List.of(), props.getPagination().getPageSize());
+    return new ResourcesRegistry(List.of(), List.of(), props.getPagination().getPageSize());
   }
 
   @Bean

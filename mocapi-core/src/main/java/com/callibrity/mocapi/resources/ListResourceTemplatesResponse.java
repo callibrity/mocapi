@@ -20,4 +20,4 @@ import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ListResourceTemplatesResponse(
-    List<McpResourceTemplate> resourceTemplates, String nextCursor) {}
+    List<McpResourceTemplateDescriptor> resourceTemplates, String nextCursor) {}

@@ -20,69 +20,90 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class ResourcesRegistryTest {
 
-  private McpResourceProvider providerWithResources(List<McpResource> resources) {
-    return new McpResourceProvider() {
+  private McpResource resource(String uri, String name, String description, String mimeType) {
+    return new McpResource() {
       @Override
-      public List<McpResource> getResources() {
-        return resources;
+      public String uri() {
+        return uri;
       }
 
       @Override
-      public List<McpResourceTemplate> getResourceTemplates() {
-        return List.of();
+      public String name() {
+        return name;
       }
 
       @Override
-      public ReadResourceResponse read(String uri) {
-        return resources.stream()
-            .filter(r -> r.uri().equals(uri))
-            .findFirst()
-            .map(
-                r ->
-                    new ReadResourceResponse(
-                        List.of(
-                            new ResourceContent(
-                                r.uri(), r.mimeType(), "content of " + r.uri(), null))))
-            .orElse(null);
+      public String description() {
+        return description;
+      }
+
+      @Override
+      public String mimeType() {
+        return mimeType;
+      }
+
+      @Override
+      public ReadResourceResponse read() {
+        return new ReadResourceResponse(
+            List.of(new ResourceContent(uri, mimeType, "content of " + uri, null)));
       }
     };
   }
 
-  private McpResourceProvider providerWithTemplates(List<McpResourceTemplate> templates) {
-    return new McpResourceProvider() {
+  private McpResourceTemplate template(
+      String uriTemplate, String name, String description, String mimeType) {
+    return new McpResourceTemplate() {
       @Override
-      public List<McpResource> getResources() {
-        return List.of();
+      public String uriTemplate() {
+        return uriTemplate;
       }
 
       @Override
-      public List<McpResourceTemplate> getResourceTemplates() {
-        return templates;
+      public String name() {
+        return name;
       }
 
       @Override
-      public ReadResourceResponse read(String uri) {
-        return null;
+      public String description() {
+        return description;
+      }
+
+      @Override
+      public String mimeType() {
+        return mimeType;
+      }
+
+      @Override
+      public ReadResourceResponse read(Map<String, String> pathVariables) {
+        return new ReadResourceResponse(
+            List.of(new ResourceContent(uriTemplate, mimeType, "template content", null)));
       }
     };
   }
 
   @Test
-  void isEmptyShouldReturnTrueWhenNoProviders() {
-    var registry = new ResourcesRegistry(List.of(), 50);
+  void isEmptyShouldReturnTrueWhenNoResourcesOrTemplates() {
+    var registry = new ResourcesRegistry(List.of(), List.of(), 50);
     assertThat(registry.isEmpty()).isTrue();
   }
 
   @Test
-  void isEmptyShouldReturnFalseWhenProvidersExist() {
-    var provider =
-        providerWithResources(List.of(new McpResource("test://a", "A", "desc", "text/plain")));
-    var registry = new ResourcesRegistry(List.of(provider), 50);
+  void isEmptyShouldReturnFalseWhenResourcesExist() {
+    var r = resource("test://a", "A", "desc", "text/plain");
+    var registry = new ResourcesRegistry(List.of(r), List.of(), 50);
+    assertThat(registry.isEmpty()).isFalse();
+  }
+
+  @Test
+  void isEmptyShouldReturnFalseWhenTemplatesExist() {
+    var t = template("test://t/{id}", "T", "desc", "text/plain");
+    var registry = new ResourcesRegistry(List.of(), List.of(t), 50);
     assertThat(registry.isEmpty()).isFalse();
   }
 
@@ -90,9 +111,9 @@ class ResourcesRegistryTest {
   void shouldListAllResources() {
     var resources =
         List.of(
-            new McpResource("test://b", "Resource B", "desc B", "text/plain"),
-            new McpResource("test://a", "Resource A", "desc A", "text/plain"));
-    var registry = new ResourcesRegistry(List.of(providerWithResources(resources)), 50);
+            resource("test://b", "Resource B", "desc B", "text/plain"),
+            resource("test://a", "Resource A", "desc A", "text/plain"));
+    var registry = new ResourcesRegistry(resources, List.of(), 50);
 
     var response = registry.listResources(null);
 
@@ -103,27 +124,12 @@ class ResourcesRegistryTest {
   }
 
   @Test
-  void shouldAggregateResourcesFromMultipleProviders() {
-    var provider1 =
-        providerWithResources(List.of(new McpResource("test://a", "A", "desc", "text/plain")));
-    var provider2 =
-        providerWithResources(List.of(new McpResource("test://b", "B", "desc", "text/plain")));
-    var registry = new ResourcesRegistry(List.of(provider1, provider2), 50);
-
-    var response = registry.listResources(null);
-
-    assertThat(response.resources()).hasSize(2);
-    assertThat(response.resources().get(0).uri()).isEqualTo("test://a");
-    assertThat(response.resources().get(1).uri()).isEqualTo("test://b");
-  }
-
-  @Test
   void shouldListResourceTemplates() {
     var templates =
         List.of(
-            new McpResourceTemplate("test://b/{id}", "Template B", "desc", "text/plain"),
-            new McpResourceTemplate("test://a/{id}", "Template A", "desc", "text/plain"));
-    var registry = new ResourcesRegistry(List.of(providerWithTemplates(templates)), 50);
+            template("test://b/{id}", "Template B", "desc", "text/plain"),
+            template("test://a/{id}", "Template A", "desc", "text/plain"));
+    var registry = new ResourcesRegistry(List.of(), templates, 50);
 
     var response = registry.listResourceTemplates(null);
 
@@ -134,9 +140,9 @@ class ResourcesRegistryTest {
   }
 
   @Test
-  void shouldReadResourceByUri() {
-    var resources = List.of(new McpResource("test://hello", "Hello", "desc", "text/plain"));
-    var registry = new ResourcesRegistry(List.of(providerWithResources(resources)), 50);
+  void shouldReadResourceByExactUriMatch() {
+    var resources = List.of(resource("test://hello", "Hello", "desc", "text/plain"));
+    var registry = new ResourcesRegistry(resources, List.of(), 50);
 
     var response = registry.readResource("test://hello");
 
@@ -146,9 +152,89 @@ class ResourcesRegistryTest {
   }
 
   @Test
+  void shouldReadResourceByTemplateMatch() {
+    var t =
+        new McpResourceTemplate() {
+          @Override
+          public String uriTemplate() {
+            return "test://item/{id}/data";
+          }
+
+          @Override
+          public String name() {
+            return "Item";
+          }
+
+          @Override
+          public String description() {
+            return "desc";
+          }
+
+          @Override
+          public String mimeType() {
+            return "application/json";
+          }
+
+          @Override
+          public ReadResourceResponse read(Map<String, String> pathVariables) {
+            String id = pathVariables.get("id");
+            return new ReadResourceResponse(
+                List.of(
+                    new ResourceContent(
+                        "test://item/" + id + "/data", mimeType(), "data for " + id, null)));
+          }
+        };
+    var registry = new ResourcesRegistry(List.of(), List.of(t), 50);
+
+    var response = registry.readResource("test://item/42/data");
+
+    assertThat(response.contents()).hasSize(1);
+    assertThat(response.contents().getFirst().text()).isEqualTo("data for 42");
+  }
+
+  @Test
+  void exactMatchShouldTakePrecedenceOverTemplateMatch() {
+    var r = resource("test://item/special/data", "Special", "desc", "text/plain");
+    var t =
+        new McpResourceTemplate() {
+          @Override
+          public String uriTemplate() {
+            return "test://item/{id}/data";
+          }
+
+          @Override
+          public String name() {
+            return "Item";
+          }
+
+          @Override
+          public String description() {
+            return "desc";
+          }
+
+          @Override
+          public String mimeType() {
+            return "application/json";
+          }
+
+          @Override
+          public ReadResourceResponse read(Map<String, String> pathVariables) {
+            return new ReadResourceResponse(
+                List.of(new ResourceContent("test://item/x/data", mimeType(), "template", null)));
+          }
+        };
+    var registry = new ResourcesRegistry(List.of(r), List.of(t), 50);
+
+    var response = registry.readResource("test://item/special/data");
+
+    assertThat(response.contents().getFirst().text())
+        .isEqualTo("content of test://item/special/data");
+  }
+
+  @Test
   void shouldThrowWhenReadingUnknownUri() {
-    var resources = List.of(new McpResource("test://hello", "Hello", "desc", "text/plain"));
-    var registry = new ResourcesRegistry(List.of(providerWithResources(resources)), 50);
+    var resources = List.of(resource("test://hello", "Hello", "desc", "text/plain"));
+    var registry = new ResourcesRegistry(resources, List.of(), 50);
 
     assertThatThrownBy(() -> registry.readResource("test://unknown"))
         .isExactlyInstanceOf(JsonRpcException.class)
@@ -160,11 +246,9 @@ class ResourcesRegistryTest {
     List<McpResource> resources =
         IntStream.range(0, 5)
             .mapToObj(
-                i ->
-                    new McpResource(
-                        String.format("test://r%03d", i), "R" + i, "desc", "text/plain"))
+                i -> resource(String.format("test://r%03d", i), "R" + i, "desc", "text/plain"))
             .toList();
-    var registry = new ResourcesRegistry(List.of(providerWithResources(resources)), 2);
+    var registry = new ResourcesRegistry(resources, List.of(), 2);
 
     var page1 = registry.listResources(null);
     assertThat(page1.resources()).hasSize(2);
@@ -187,11 +271,9 @@ class ResourcesRegistryTest {
     List<McpResourceTemplate> templates =
         IntStream.range(0, 3)
             .mapToObj(
-                i ->
-                    new McpResourceTemplate(
-                        String.format("test://t%03d/{id}", i), "T" + i, "desc", "text/plain"))
+                i -> template(String.format("test://t%03d/{id}", i), "T" + i, "desc", "text/plain"))
             .toList();
-    var registry = new ResourcesRegistry(List.of(providerWithTemplates(templates)), 2);
+    var registry = new ResourcesRegistry(List.of(), templates, 2);
 
     var page1 = registry.listResourceTemplates(null);
     assertThat(page1.resourceTemplates()).hasSize(2);
@@ -206,10 +288,7 @@ class ResourcesRegistryTest {
   void shouldThrowOnInvalidCursor() {
     var registry =
         new ResourcesRegistry(
-            List.of(
-                providerWithResources(
-                    List.of(new McpResource("test://a", "A", "desc", "text/plain")))),
-            2);
+            List.of(resource("test://a", "A", "desc", "text/plain")), List.of(), 2);
 
     assertThatThrownBy(() -> registry.listResources("not-valid-base64!!!"))
         .isExactlyInstanceOf(JsonRpcException.class)
@@ -220,10 +299,7 @@ class ResourcesRegistryTest {
   void shouldThrowOnOutOfRangeCursor() {
     var registry =
         new ResourcesRegistry(
-            List.of(
-                providerWithResources(
-                    List.of(new McpResource("test://a", "A", "desc", "text/plain")))),
-            2);
+            List.of(resource("test://a", "A", "desc", "text/plain")), List.of(), 2);
     String cursor = ResourcesRegistry.encodeCursor(100);
 
     assertThatThrownBy(() -> registry.listResources(cursor))
@@ -238,7 +314,7 @@ class ResourcesRegistryTest {
 
   @Test
   void shouldSubscribeAndUnsubscribe() {
-    var registry = new ResourcesRegistry(List.of(), 50);
+    var registry = new ResourcesRegistry(List.of(), List.of(), 50);
 
     assertThat(registry.isSubscribed("test://watched")).isFalse();
     registry.subscribe("test://watched");

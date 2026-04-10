@@ -20,36 +20,76 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class McpResourceMethodsTest {
 
-  private final McpResourceProvider provider =
-      new McpResourceProvider() {
+  private final McpResource greetingResource =
+      new McpResource() {
         @Override
-        public List<McpResource> getResources() {
-          return List.of(
-              new McpResource("test://greeting", "Greeting", "A greeting", "text/plain"));
+        public String uri() {
+          return "test://greeting";
         }
 
         @Override
-        public List<McpResourceTemplate> getResourceTemplates() {
-          return List.of(
-              new McpResourceTemplate(
-                  "test://item/{id}", "Item Template", "An item", "application/json"));
+        public String name() {
+          return "Greeting";
         }
 
         @Override
-        public ReadResourceResponse read(String uri) {
-          if ("test://greeting".equals(uri)) {
-            return new ReadResourceResponse(
-                List.of(new ResourceContent("test://greeting", "text/plain", "Hello!", null)));
-          }
-          return null;
+        public String description() {
+          return "A greeting";
+        }
+
+        @Override
+        public String mimeType() {
+          return "text/plain";
+        }
+
+        @Override
+        public ReadResourceResponse read() {
+          return new ReadResourceResponse(
+              List.of(new ResourceContent("test://greeting", "text/plain", "Hello!", null)));
         }
       };
 
-  private final ResourcesRegistry registry = new ResourcesRegistry(List.of(provider), 50);
+  private final McpResourceTemplate itemTemplate =
+      new McpResourceTemplate() {
+        @Override
+        public String uriTemplate() {
+          return "test://item/{id}";
+        }
+
+        @Override
+        public String name() {
+          return "Item Template";
+        }
+
+        @Override
+        public String description() {
+          return "An item";
+        }
+
+        @Override
+        public String mimeType() {
+          return "application/json";
+        }
+
+        @Override
+        public ReadResourceResponse read(Map<String, String> pathVariables) {
+          return new ReadResourceResponse(
+              List.of(
+                  new ResourceContent(
+                      "test://item/" + pathVariables.get("id"),
+                      "application/json",
+                      "item " + pathVariables.get("id"),
+                      null)));
+        }
+      };
+
+  private final ResourcesRegistry registry =
+      new ResourcesRegistry(List.of(greetingResource), List.of(itemTemplate), 50);
   private final McpResourceMethods methods = new McpResourceMethods(registry);
 
   @Test

@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T21:31:00-04:00
-ITERATION: 78
-SPEC_COMPLETED: 079-fix-initialize-capability-detection.md
-WHAT_WAS_DONE: Added isEmpty() to ToolsRegistry, ResourcesRegistry, and PromptsRegistry. Removed @Nullable from registry parameters in initializeResponse bean and replaced null checks with isEmpty() calls. Added default empty registry beans (ConditionalOnMissingBean) in MocapiAutoConfiguration so registries are always present. BuildProperties stays @Nullable. Added 6 new unit tests (2 per registry) for isEmpty().
-VERIFICATION: mvn verify — BUILD SUCCESS, all 391 tests pass (6 new), 0 failures, spotless and license checks pass
-STATUS: DONE
-NEXT_SPEC: none
-NOTES: Added default ToolsRegistry, ResourcesRegistry, and PromptsRegistry beans in MocapiAutoConfiguration with @ConditionalOnMissingBean, so they're always available even when the domain-specific auto-configurations (MocapiToolsAutoConfiguration, MocapiResourcesAutoConfiguration, MocapiPromptsAutoConfiguration) don't activate. The @Nullable import remains because BuildProperties still uses it.
+LAST_RUN: 2026-04-09T22:33:00-04:00
+ITERATION: 79
+SPEC_COMPLETED: 080-refactor-resources-with-registry-lookup.md
+WHAT_WAS_DONE: Refactored resources subsystem from provider-based iteration to interface-based registry lookup. McpResource and McpResourceTemplate are now interfaces (not records) with read() methods. ResourcesRegistry uses Map<String, McpResource> for O(1) exact URI match and Map<UriTemplate, McpResourceTemplate> for template pattern matching. Created McpResourceDescriptor and McpResourceTemplateDescriptor records for list serialization. Deleted McpResourceProvider interface. Refactored ConformanceResources from a single provider into individual @Bean methods. Updated MocapiResourcesAutoConfiguration to inject List<McpResource> + List<McpResourceTemplate>.
+VERIFICATION: mvn verify — BUILD SUCCESS, all tests pass (15 ResourcesRegistryTest, 6 McpResourceMethodsTest, 80 integration tests), 0 failures, spotless and license checks pass
+STATUS: MORE_WORK
+NEXT_SPEC: 081-remove-prompt-and-resource-providers.md
+NOTES: McpResourceProvider is fully deleted. The MocapiResourcesAutoConfiguration no longer uses @ConditionalOnBean since Spring injects empty lists when no resource/template beans exist, and isEmpty() handles capability detection. UriTemplate from spring-web is used for template matching (available via spring-boot-starter-webmvc transitive dependency).

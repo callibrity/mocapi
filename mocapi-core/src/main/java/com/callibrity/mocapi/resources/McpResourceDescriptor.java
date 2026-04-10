@@ -15,16 +15,7 @@
  */
 package com.callibrity.mocapi.resources;
 
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-public interface McpResourceTemplate {
-  String uriTemplate();
-
-  String name();
-
-  String description();
-
-  String mimeType();
-
-  ReadResourceResponse read(Map<String, String> pathVariables);
-}
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record McpResourceDescriptor(String uri, String name, String description, String mimeType) {}
