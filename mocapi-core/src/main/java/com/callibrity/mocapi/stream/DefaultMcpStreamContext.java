@@ -55,6 +55,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import org.jwcarman.substrate.core.Mailbox;
 import org.jwcarman.substrate.core.MailboxFactory;
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -151,6 +152,26 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
     ObjectNode schemaNode = (ObjectNode) objectMapper.valueToTree(requestedSchema);
     JsonRpcResult result = sendElicitationAndWait(message, requestedSchema);
     return parseRawResponse(result, schemaNode);
+  }
+
+  @Override
+  public <T> Optional<T> elicit(
+      String message, Consumer<RequestedSchemaBuilder> schema, Class<T> resultType) {
+    ElicitResult result = elicit(message, schema);
+    if (!result.isAccepted()) {
+      return Optional.empty();
+    }
+    return Optional.of(objectMapper.treeToValue(result.content(), resultType));
+  }
+
+  @Override
+  public <T> Optional<T> elicit(
+      String message, Consumer<RequestedSchemaBuilder> schema, TypeReference<T> resultType) {
+    ElicitResult result = elicit(message, schema);
+    if (!result.isAccepted()) {
+      return Optional.empty();
+    }
+    return Optional.of(objectMapper.treeToValue(result.content(), resultType));
   }
 
   @Override

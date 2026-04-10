@@ -21,7 +21,9 @@ import com.callibrity.mocapi.stream.elicitation.McpElicitationException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationTimeoutException;
 import com.callibrity.mocapi.stream.elicitation.RequestedSchemaBuilder;
+import java.util.Optional;
 import java.util.function.Consumer;
+import tools.jackson.core.type.TypeReference;
 
 /**
  * Handle that MCP handler methods can declare as a parameter to opt into SSE streaming. Provides
@@ -128,6 +130,60 @@ public interface McpStreamContext<R> {
    * @throws McpElicitationNotSupportedException if the client does not support elicitation
    */
   ElicitResult elicit(String message, Consumer<RequestedSchemaBuilder> schema);
+
+  /**
+   * Sends an elicitation request and deserializes the accepted content into a bean. Delegates to
+   * {@link #elicit(String, Consumer)} for the underlying request, schema validation, and mailbox
+   * correlation. On accept, the content is deserialized into {@code resultType} via the framework's
+   * {@link tools.jackson.databind.ObjectMapper#treeToValue(tools.jackson.databind.JsonNode, Class)
+   * ObjectMapper}. On decline or cancel, returns {@link Optional#empty()} without attempting
+   * deserialization. Schema validation runs before bean binding — a validation failure throws
+   * {@link McpElicitationException} as usual.
+   *
+   * <p>This replaces the removed {@code elicitForm(Class)} method (deleted in spec 100) with an
+   * explicit-schema approach: the tool author controls the schema via the DSL, while bean binding
+   * is a convenience layer on top.
+   *
+   * @param <T> the bean type
+   * @param message the message to display to the user
+   * @param schema a consumer that configures the {@link RequestedSchemaBuilder}
+   * @param resultType the class to deserialize accepted content into
+   * @return the deserialized bean wrapped in {@link Optional}, or empty if declined/cancelled
+   * @throws McpElicitationTimeoutException if the client does not respond within the timeout
+   * @throws McpElicitationException if the response fails schema validation
+   * @throws McpElicitationNotSupportedException if the client does not support elicitation
+   * @throws tools.jackson.core.JacksonException if accepted content cannot be deserialized into
+   *     {@code resultType}
+   */
+  <T> Optional<T> elicit(
+      String message, Consumer<RequestedSchemaBuilder> schema, Class<T> resultType);
+
+  /**
+   * Sends an elicitation request and deserializes the accepted content into a generic type.
+   * Delegates to {@link #elicit(String, Consumer)} for the underlying request, schema validation,
+   * and mailbox correlation. On accept, the content is deserialized into the type described by
+   * {@code resultType} via the framework's {@link tools.jackson.databind.ObjectMapper
+   * ObjectMapper}. On decline or cancel, returns {@link Optional#empty()} without attempting
+   * deserialization. Schema validation runs before bean binding — a validation failure throws
+   * {@link McpElicitationException} as usual.
+   *
+   * <p>This replaces the removed {@code elicitForm(TypeReference)} method (deleted in spec 100)
+   * with an explicit-schema approach: the tool author controls the schema via the DSL, while bean
+   * binding is a convenience layer on top.
+   *
+   * @param <T> the target type
+   * @param message the message to display to the user
+   * @param schema a consumer that configures the {@link RequestedSchemaBuilder}
+   * @param resultType a type reference describing the target generic type
+   * @return the deserialized value wrapped in {@link Optional}, or empty if declined/cancelled
+   * @throws McpElicitationTimeoutException if the client does not respond within the timeout
+   * @throws McpElicitationException if the response fails schema validation
+   * @throws McpElicitationNotSupportedException if the client does not support elicitation
+   * @throws tools.jackson.core.JacksonException if accepted content cannot be deserialized into
+   *     {@code resultType}
+   */
+  <T> Optional<T> elicit(
+      String message, Consumer<RequestedSchemaBuilder> schema, TypeReference<T> resultType);
 
   /**
    * Sends a {@code sampling/createMessage} request to the client, blocking until a response is

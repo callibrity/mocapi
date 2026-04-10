@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T03:32:00-04:00
-ITERATION: 12
-SPEC_COMPLETED: 105-upgrade-client-response-mailbox-to-jsonrpcresponse.md
-WHAT_WAS_DONE: Upgraded the client-response mailbox from Mailbox<JsonNode> to Mailbox<JsonRpcResponse> across all four call sites (StreamableHttpController.handleClientResult, handleClientError, DefaultMcpStreamContext.sample, sendElicitationAndWait). Dropped the "elicit:" prefix from mailbox addresses — now uses just the jsonRpcId UUID. Deleted the ad-hoc ObjectNode error wrapper in handleClientError. Replaced manual rawResponse.get("error")/get("result") probing with sealed switch over JsonRpcResult/JsonRpcError in both sampling and elicitation flows. Simplified parseSamplingResponse→parseSamplingResult and removed deserializeElicitResult. Added new tests for JsonRpcError branches (sampling and elicitation) and sampling success/timeout/not-supported. Updated all 4 integration tests to use the new channel naming and typed mailbox delivery.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests pass (including updated ToolsCallElicitationIT, ToolsCallSamplingIT, ElicitationSep1034DefaultsIT, ElicitationSep1330EnumsIT), spotless and license checks pass
+LAST_RUN: 2026-04-10T03:37:07-04:00
+ITERATION: 13
+SPEC_COMPLETED: 106-bean-oriented-elicit-overload.md
+WHAT_WAS_DONE: Added two bean-oriented elicit overloads to McpStreamContext — one accepting Class<T> and one accepting TypeReference<T>. Both delegate to the existing elicit(String, Consumer<RequestedSchemaBuilder>) method and deserialize accepted content via ObjectMapper.treeToValue, returning Optional.of(bean) on accept and Optional.empty() on decline/cancel. Schema validation runs before bean binding. Jackson exceptions propagate as-is for mismatched bean types.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests pass, 30 unit tests in DefaultMcpStreamContextTest pass (6 new: Class accept, TypeReference accept, decline empty, cancel empty, schema validation failure, mismatched bean DatabindException), spotless and license checks pass
 STATUS: MORE_WORK
-NEXT_SPEC: none (no more specs in specs/ directory)
-NOTES: The error message format changed slightly — was "Client returned JSON-RPC error: {json}" (JsonNode toString), now "Client returned JSON-RPC error: JsonRpcErrorDetail[code=X, message=Y, data=Z]" (record toString). No tests assert on exact error message strings so this is not a breaking change. Integration tests now detect the mailbox channel by checking the Class argument (JsonRpcResponse.class) instead of the "elicit:" key prefix.
+NEXT_SPEC: 107-consolidate-sampling-result-with-model.md
+NOTES: The new overloads use Jackson 3's treeToValue(JsonNode, TypeReference<T>) overload directly — no need for the readerFor/constructType workaround mentioned in the spec. JacksonException is unchecked in Jackson 3, so no checked exception handling needed in the overload bodies.

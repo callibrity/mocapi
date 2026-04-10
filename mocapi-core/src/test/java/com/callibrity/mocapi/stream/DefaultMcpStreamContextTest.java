@@ -46,6 +46,8 @@ import org.junit.jupiter.api.Test;
 import org.jwcarman.substrate.core.Mailbox;
 import org.jwcarman.substrate.core.MailboxFactory;
 import org.mockito.ArgumentCaptor;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DatabindException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.StringNode;
@@ -390,6 +392,140 @@ class DefaultMcpStreamContextTest {
     assertThatThrownBy(() -> context.elicit("Enter info", schema -> schema.string("name", "Name")))
         .isInstanceOf(McpElicitationException.class)
         .hasMessageContaining("JSON-RPC error");
+
+    verify(mailbox).delete();
+  }
+
+  // --- Bean-oriented elicit overload tests ---
+
+  record UserForm(String name, int age) {}
+
+  @Test
+  void elicitWithClassShouldDeserializeAcceptedContent() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+
+    JsonNode responseNode =
+        objectMapper.valueToTree(
+            Map.of("action", "accept", "content", Map.of("name", "Alice", "age", 30)));
+    when(mailbox.poll(any(Duration.class)))
+        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+
+    Optional<UserForm> result =
+        context.elicit(
+            "Enter info",
+            schema -> schema.string("name", "Name").integer("age", "Age"),
+            UserForm.class);
+
+    assertThat(result).contains(new UserForm("Alice", 30));
+    verify(mailbox).delete();
+  }
+
+  @Test
+  void elicitWithTypeReferenceShouldDeserializeAcceptedContent() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+
+    JsonNode responseNode =
+        objectMapper.valueToTree(
+            Map.of("action", "accept", "content", Map.of("name", "Alice", "email", "a@b.com")));
+    when(mailbox.poll(any(Duration.class)))
+        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+
+    Optional<Map<String, String>> result =
+        context.elicit(
+            "Enter info",
+            schema -> schema.string("name", "Name").string("email", "Email"),
+            new TypeReference<Map<String, String>>() {});
+
+    assertThat(result).isPresent();
+    assertThat(result.get()).containsEntry("name", "Alice").containsEntry("email", "a@b.com");
+    verify(mailbox).delete();
+  }
+
+  @Test
+  void elicitWithClassShouldReturnEmptyOnDecline() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+
+    JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "decline"));
+    when(mailbox.poll(any(Duration.class)))
+        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+
+    Optional<UserForm> result =
+        context.elicit("Enter info", schema -> schema.string("name", "Name"), UserForm.class);
+
+    assertThat(result).isEmpty();
+    verify(mailbox).delete();
+  }
+
+  @Test
+  void elicitWithClassShouldReturnEmptyOnCancel() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+
+    JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "cancel"));
+    when(mailbox.poll(any(Duration.class)))
+        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+
+    Optional<UserForm> result =
+        context.elicit("Enter info", schema -> schema.string("name", "Name"), UserForm.class);
+
+    assertThat(result).isEmpty();
+    verify(mailbox).delete();
+  }
+
+  @Test
+  void elicitWithClassShouldThrowOnSchemaValidationFailure() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+
+    JsonNode responseNode =
+        objectMapper.valueToTree(
+            Map.of("action", "accept", "content", Map.of("age", "not-an-integer")));
+    when(mailbox.poll(any(Duration.class)))
+        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+
+    assertThatThrownBy(
+            () ->
+                context.elicit(
+                    "Enter info", schema -> schema.integer("age", "Age"), UserForm.class))
+        .isInstanceOf(McpElicitationException.class)
+        .hasMessageContaining("schema validation");
+
+    verify(mailbox).delete();
+  }
+
+  @Test
+  void elicitWithClassShouldThrowDatabindExceptionOnMismatchedBean() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+
+    JsonNode responseNode =
+        objectMapper.valueToTree(
+            Map.of("action", "accept", "content", Map.of("totally", "wrong", "fields", "here")));
+    when(mailbox.poll(any(Duration.class)))
+        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+
+    assertThatThrownBy(
+            () ->
+                context.elicit(
+                    "Enter info",
+                    schema -> schema.string("totally", "T").string("fields", "F"),
+                    UserForm.class))
+        .isInstanceOf(DatabindException.class);
 
     verify(mailbox).delete();
   }
