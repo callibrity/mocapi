@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T09:55:35-04:00
-ITERATION: 33
-SPEC_COMPLETED: 125-examples-module-scaffolding.md
-WHAT_WAS_DONE: Created examples/ aggregator with examples-lib module, migrated all tools (HelloTool, Rot13Tool, CountdownTool), ExampleApplication, and tests from mocapi-example/ with package rename from com.callibrity.mocapi.example to com.callibrity.mocapi.examples, deleted old mocapi-example/ module.
-VERIFICATION: mvn verify — full reactor BUILD SUCCESS (12 modules); mvn -pl examples/examples-lib test — 2 tests run, 0 failures
+LAST_RUN: 2026-04-10T10:01:00-04:00
+ITERATION: 34
+SPEC_COMPLETED: 126-example-in-memory-app.md
+WHAT_WAS_DONE: Created examples/in-memory module with InMemoryExampleApplication delegating to ExampleApplication, application.yml with master key placeholder and logging config, README.md with curl examples, and spring-boot-maven-plugin for runnable jar. Added module to examples/pom.xml.
+VERIFICATION: mvn verify — full reactor BUILD SUCCESS (13 modules); mvn spring-boot:run -pl examples/in-memory — app starts on port 8080; POST /mcp initialize returns 200 with session ID; POST /mcp tools/call hello returns {"message":"Hello, World!"}
 STATUS: MORE_WORK
-NEXT_SPEC: 126-example-in-memory-app.md
-NOTES: The examples-lib pom parents to mocapi-examples (the aggregator), not directly to mocapi-parent. IT tests (HelloToolIT, Rot13ToolIT) ran as part of verify via failsafe. The application.properties with the dev-only encryption key was carried over to examples-lib/src/main/resources/.
+NEXT_SPEC: 127-example-redis-app.md
+NOTES: The in-memory module depends only on mocapi-examples-lib (no explicit spring-boot-starter-web since it's transitive via mocapi-spring-boot-starter). The MCP endpoint requires Accept header to include both application/json and text/event-stream. Session ID is returned in the Mcp-Session-Id response header, not in the JSON body.

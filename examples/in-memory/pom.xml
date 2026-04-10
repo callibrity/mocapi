@@ -21,17 +21,33 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.callibrity.mocapi</groupId>
-        <artifactId>mocapi-parent</artifactId>
+        <artifactId>mocapi-examples</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>mocapi-examples</artifactId>
-    <name>Mocapi - Examples</name>
-    <description>Example applications demonstrating mocapi on various backends</description>
-    <packaging>pom</packaging>
+    <artifactId>mocapi-example-in-memory</artifactId>
+    <name>Mocapi - Example (In-Memory)</name>
+    <description>Mocapi example app with in-memory backends — zero external infrastructure</description>
 
-    <modules>
-        <module>examples-lib</module>
-        <module>in-memory</module>
-    </modules>
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-examples-lib</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
+            </plugin>
+        </plugins>
+    </build>
 </project>
