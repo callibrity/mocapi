@@ -141,9 +141,9 @@ public interface McpStreamContext<R> {
    * deserialization. Schema validation runs before bean binding — a validation failure throws
    * {@link McpElicitationException} as usual.
    *
-   * <p>This replaces the removed {@code elicitForm(Class)} method (deleted in spec 100) with an
-   * explicit-schema approach: the tool author controls the schema via the DSL, while bean binding
-   * is a convenience layer on top.
+   * <p>This is a convenience overload of {@link #elicit(String, Consumer)} that adds bean
+   * deserialization: the tool author controls the schema via the DSL, while bean binding is a
+   * convenience layer on top.
    *
    * @param <T> the bean type
    * @param message the message to display to the user
@@ -168,9 +168,9 @@ public interface McpStreamContext<R> {
    * deserialization. Schema validation runs before bean binding — a validation failure throws
    * {@link McpElicitationException} as usual.
    *
-   * <p>This replaces the removed {@code elicitForm(TypeReference)} method (deleted in spec 100)
-   * with an explicit-schema approach: the tool author controls the schema via the DSL, while bean
-   * binding is a convenience layer on top.
+   * <p>This is a convenience overload of {@link #elicit(String, Consumer)} that adds generic-type
+   * deserialization: the tool author controls the schema via the DSL, while bean binding is a
+   * convenience layer on top.
    *
    * @param <T> the target type
    * @param message the message to display to the user
