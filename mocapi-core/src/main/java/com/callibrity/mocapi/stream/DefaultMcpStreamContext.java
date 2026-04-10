@@ -16,10 +16,15 @@
 package com.callibrity.mocapi.stream;
 
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.CreateMessageRequestParams;
+import com.callibrity.mocapi.model.CreateMessageResult;
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.LoggingMessageNotificationParams;
 import com.callibrity.mocapi.model.ProgressNotification;
 import com.callibrity.mocapi.model.ProgressNotificationParams;
+import com.callibrity.mocapi.model.Role;
+import com.callibrity.mocapi.model.SamplingMessage;
+import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStream;
@@ -43,6 +48,7 @@ import com.github.erosb.jsonsKema.ValidationFailure;
 import com.github.erosb.jsonsKema.Validator;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -171,20 +177,26 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
 
     String jsonRpcId = UUID.randomUUID().toString();
 
-    ObjectNode contentNode = objectMapper.createObjectNode();
-    contentNode.put("type", "text");
-    contentNode.put("text", prompt);
-
-    ObjectNode messageNode = objectMapper.createObjectNode();
-    messageNode.put("role", "user");
-    messageNode.set("content", contentNode);
-
-    ObjectNode params = objectMapper.createObjectNode();
-    params.set("messages", objectMapper.createArrayNode().add(messageNode));
-    params.put("maxTokens", maxTokens);
+    var requestParams =
+        new CreateMessageRequestParams(
+            List.of(new SamplingMessage(Role.USER, new TextContent(prompt, null))),
+            null,
+            null,
+            null,
+            null,
+            maxTokens,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
 
     JsonRpcCall request =
-        JsonRpcCall.of("sampling/createMessage", params, objectMapper.valueToTree(jsonRpcId));
+        JsonRpcCall.of(
+            "sampling/createMessage",
+            objectMapper.valueToTree(requestParams),
+            objectMapper.valueToTree(jsonRpcId));
 
     Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + jsonRpcId, JsonNode.class);
     try {
@@ -243,13 +255,10 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
       resultNode = rawResponse;
     }
 
-    String role = resultNode.has("role") ? resultNode.get("role").asString() : null;
-    JsonNode content = resultNode.get("content");
-    String model = resultNode.has("model") ? resultNode.get("model").asString() : null;
-    String stopReason =
-        resultNode.has("stopReason") ? resultNode.get("stopReason").asString() : null;
-
-    return new SamplingResult(role, content, model, stopReason);
+    CreateMessageResult result = objectMapper.treeToValue(resultNode, CreateMessageResult.class);
+    String role = result.role() != null ? result.role().toJson() : null;
+    JsonNode content = result.content() != null ? objectMapper.valueToTree(result.content()) : null;
+    return new SamplingResult(role, content, result.model(), result.stopReason());
   }
 
   private void requireElicitationSupport() {

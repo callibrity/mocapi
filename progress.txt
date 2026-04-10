@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T01:33:01-04:00
-ITERATION: 95
-SPEC_COMPLETED: 096-migrate-log-notification-to-model.md
-WHAT_WAS_DONE: Migrated DefaultMcpStreamContext.log() to construct a LoggingMessageNotificationParams record instead of hand-building an ObjectNode, mirroring the sendProgress pattern.
+LAST_RUN: 2026-04-10T01:37:00-04:00
+ITERATION: 96
+SPEC_COMPLETED: 097-migrate-sampling-to-model.md
+WHAT_WAS_DONE: Migrated DefaultMcpStreamContext.sample() to construct a CreateMessageRequestParams record with SamplingMessage/TextContent instead of hand-building ObjectNodes, and migrated parseSamplingResponse() to deserialize into CreateMessageResult via objectMapper.treeToValue instead of manual field extraction.
 VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests pass, spotless and license checks pass
 STATUS: MORE_WORK
-NEXT_SPEC: 097-migrate-sampling-to-model.md
-NOTES: Pre-converted data via objectMapper.valueToTree(data) before passing to the record to preserve NullNode serialization for null data (record has @JsonInclude(NON_NULL) which would otherwise omit null fields). All existing tests pass unchanged.
+NEXT_SPEC: 098-migrate-elicitation-to-model.md
+NOTES: SamplingResult still exposes content as JsonNode — the ContentBlock from CreateMessageResult is serialized back via objectMapper.valueToTree() to preserve the existing public API. No test changes needed; no existing sampling tests existed in DefaultMcpStreamContextTest (elicitation tests all pass unchanged).
