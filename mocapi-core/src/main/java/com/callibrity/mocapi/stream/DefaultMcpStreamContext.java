@@ -74,7 +74,13 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
   private final MailboxFactory mailboxFactory;
   private final McpSessionService sessionService;
   private final String sessionId;
+
+  /** How long to wait for the client to respond to an elicitation/create request (human input). */
   private final Duration elicitationTimeout;
+
+  /** How long to wait for the client to respond to a sampling/createMessage request (LLM). */
+  private final Duration samplingTimeout;
+
   private final JsonNode requestId;
   private final AtomicBoolean resultSent = new AtomicBoolean(false);
 
@@ -86,6 +92,7 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
       McpSessionService sessionService,
       String sessionId,
       Duration elicitationTimeout,
+      Duration samplingTimeout,
       JsonNode requestId) {
     this.stream = stream;
     this.objectMapper = objectMapper;
@@ -94,6 +101,7 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
     this.sessionService = sessionService;
     this.sessionId = sessionId;
     this.elicitationTimeout = elicitationTimeout;
+    this.samplingTimeout = samplingTimeout;
     this.requestId = requestId;
   }
 
@@ -198,7 +206,7 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
         sendAndWaitForResult(
             "sampling/createMessage",
             objectMapper.valueToTree(requestParams),
-            elicitationTimeout,
+            samplingTimeout,
             McpSamplingTimeoutException::new,
             McpSamplingException::new);
     return parseSamplingResult(result);

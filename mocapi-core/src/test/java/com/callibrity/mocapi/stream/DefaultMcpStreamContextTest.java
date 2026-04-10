@@ -84,6 +84,21 @@ class DefaultMcpStreamContextTest {
         sessionService,
         sessionId,
         Duration.ofSeconds(5),
+        Duration.ofSeconds(5),
+        null);
+  }
+
+  private DefaultMcpStreamContext<?> createContextWithTimeouts(
+      String sessionId, Duration elicitationTimeout, Duration samplingTimeout) {
+    return new DefaultMcpStreamContext<>(
+        stream,
+        objectMapper,
+        null,
+        mailboxFactory,
+        sessionService,
+        sessionId,
+        elicitationTimeout,
+        samplingTimeout,
         null);
   }
 
@@ -597,5 +612,41 @@ class DefaultMcpStreamContextTest {
 
     assertThatThrownBy(() -> context.sample("Say hello", 100))
         .isInstanceOf(McpSamplingNotSupportedException.class);
+  }
+
+  // --- Distinct timeout tests ---
+
+  @Test
+  void sampleShouldUseSamplingTimeout() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithSampling()));
+    Duration samplingTimeout = Duration.ofMillis(100);
+    Duration elicitationTimeout = Duration.ofMinutes(5);
+    var context = createContextWithTimeouts("sess-1", elicitationTimeout, samplingTimeout);
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> context.sample("Say hello", 100))
+        .isInstanceOf(McpSamplingTimeoutException.class);
+
+    verify(mailbox).poll(samplingTimeout);
+    verify(mailbox).delete();
+  }
+
+  @Test
+  void elicitShouldUseElicitationTimeout() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    Duration samplingTimeout = Duration.ofMillis(100);
+    Duration elicitationTimeout = Duration.ofMinutes(5);
+    var context = createContextWithTimeouts("sess-1", elicitationTimeout, samplingTimeout);
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> context.elicit("Enter info", schema -> schema.string("name", "Name")))
+        .isInstanceOf(McpElicitationTimeoutException.class);
+
+    verify(mailbox).poll(elicitationTimeout);
+    verify(mailbox).delete();
   }
 }

@@ -35,12 +35,20 @@ public class MocapiProperties {
 
   private Elicitation elicitation = new Elicitation();
 
+  private Sampling sampling = new Sampling();
+
   private Pagination pagination = new Pagination();
 
   @Data
   public static class Elicitation {
     /** How long to wait for the client to respond to an elicitation request. */
     private Duration timeout = Duration.ofMinutes(5);
+  }
+
+  @Data
+  public static class Sampling {
+    /** How long to wait for the client to respond to a sampling/createMessage request. */
+    private Duration timeout = Duration.ofSeconds(30);
   }
 
   @Data

@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T03:50:00-04:00
-ITERATION: 17
-SPEC_COMPLETED: 110-extract-mailbox-jsonrpc-response-helper.md
-WHAT_WAS_DONE: Extracted private sendAndWaitForResult() helper on DefaultMcpStreamContext that encapsulates the mailbox create/publish/poll/close sequence with parameterized exception factories. Both sample() and sendElicitationAndWait() now delegate to the helper with zero inline mailbox plumbing.
-VERIFICATION: mvn verify — BUILD SUCCESS, 80 tests pass, all 6 modules green. No test changes needed — pure internal refactor.
-STATUS: MORE_WORK
-NEXT_SPEC: 111-split-elicitation-and-sampling-timeouts.md
-NOTES: The helper uses method-name-based timeout messages (e.g., "sampling/createMessage timed out after PT30S") instead of the old flow-specific prefixes ("Sampling timed out after PT30S"). No tests asserted on the old timeout message wording — only the error messages ("JSON-RPC error") were tested, and those are preserved exactly. Both flows still use the same elicitationTimeout field — spec 111 will split them.
+LAST_RUN: 2026-04-10T03:54:00-04:00
+ITERATION: 18
+SPEC_COMPLETED: 111-split-elicitation-and-sampling-timeouts.md
+WHAT_WAS_DONE: Split the single elicitationTimeout field into two distinct timeouts — elicitationTimeout (5m default, for human input) and samplingTimeout (30s default, for LLM responses) — across MocapiProperties, MocapiAutoConfiguration, McpToolMethods, and DefaultMcpStreamContext. Added two new tests verifying each flow uses its own timeout.
+VERIFICATION: mvn verify — BUILD SUCCESS, 80 tests pass, all 6 modules green. Conformance suite still passes.
+STATUS: DONE
+NEXT_SPEC: none
+NOTES: The new mocapi.sampling.timeout property will appear in spring-configuration-metadata.json after the annotation processor runs (verified in target/). Existing deployments with mocapi.elicitation.timeout configured will see no behavior change — they'll get the new 30s sampling default unless they set mocapi.sampling.timeout explicitly.

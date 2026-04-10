@@ -107,6 +107,7 @@ class StreamableHttpControllerTest {
             objectMapper,
             mock(MailboxFactory.class),
             sessionService,
+            Duration.ofSeconds(30),
             Duration.ofSeconds(30));
 
     MethodInvokerFactory invokerFactory =

@@ -172,7 +172,8 @@ public class MocapiAutoConfiguration {
         objectMapper,
         mailboxFactory,
         sessionService,
-        props.getElicitation().getTimeout());
+        props.getElicitation().getTimeout(),
+        props.getSampling().getTimeout());
   }
 
   @Bean

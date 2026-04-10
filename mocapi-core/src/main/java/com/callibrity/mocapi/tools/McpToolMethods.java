@@ -53,6 +53,7 @@ public class McpToolMethods {
   private final MailboxFactory mailboxFactory;
   private final McpSessionService sessionService;
   private final Duration elicitationTimeout;
+  private final Duration samplingTimeout;
 
   @JsonRpcMethod("tools/list")
   public ListToolsResult listTools(@JsonRpcParams PaginatedRequestParams params) {
@@ -85,6 +86,7 @@ public class McpToolMethods {
             sessionService,
             sessionId,
             elicitationTimeout,
+            samplingTimeout,
             requestId);
 
     SseEmitter emitter = stream.subscribe();
