@@ -23,24 +23,24 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.jdbc.autoconfigure.JdbcClientAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
 /**
  * Registers a {@link JdbcMcpSessionStore} when a {@link DataSource} and {@link JdbcClient} are
- * available and no other store is defined.
+ * available. The in-memory fallback in {@link MocapiAutoConfiguration} steps aside via its own
+ * {@code @ConditionalOnMissingBean} once this backend bean is present.
  */
 @AutoConfiguration(
     before = MocapiAutoConfiguration.class,
-    afterName = "org.springframework.boot.jdbc.autoconfigure.JdbcClientAutoConfiguration")
+    after = JdbcClientAutoConfiguration.class)
 @ConditionalOnClass(JdbcClient.class)
 @ConditionalOnBean({DataSource.class, JdbcClient.class})
 public class JdbcMcpSessionStoreAutoConfiguration {
 
   @Bean
-  @ConditionalOnMissingBean(McpSessionStore.class)
   public McpSessionStore jdbcMcpSessionStore(
       JdbcClient jdbcClient,
       DataSource dataSource,

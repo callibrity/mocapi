@@ -21,24 +21,22 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Registers a {@link MongoMcpSessionStore} when a {@link MongoTemplate} is available and no other
- * store is defined.
+ * Registers a {@link MongoMcpSessionStore} when a {@link MongoTemplate} is available. The in-memory
+ * fallback in {@link MocapiAutoConfiguration} steps aside via its own
+ * {@code @ConditionalOnMissingBean} once this backend bean is present.
  */
-@AutoConfiguration(
-    before = MocapiAutoConfiguration.class,
-    afterName = "org.springframework.boot.autoconfigure.data.mongodb.MongoDataAutoConfiguration")
+@AutoConfiguration(before = MocapiAutoConfiguration.class, after = DataMongoAutoConfiguration.class)
 @ConditionalOnClass(MongoTemplate.class)
 @ConditionalOnBean(MongoTemplate.class)
 public class MongoMcpSessionStoreAutoConfiguration {
 
   @Bean
-  @ConditionalOnMissingBean(McpSessionStore.class)
   public McpSessionStore mongoMcpSessionStore(
       MongoTemplate mongoTemplate,
       ObjectMapper objectMapper,

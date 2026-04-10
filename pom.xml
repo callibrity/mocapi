@@ -65,6 +65,7 @@
         <module>mocapi-session-store-mongodb</module>
         <module>mocapi-redis-spring-boot-starter</module>
         <module>mocapi-hazelcast-spring-boot-starter</module>
+        <module>mocapi-postgresql-spring-boot-starter</module>
     </modules>
 
     <properties>

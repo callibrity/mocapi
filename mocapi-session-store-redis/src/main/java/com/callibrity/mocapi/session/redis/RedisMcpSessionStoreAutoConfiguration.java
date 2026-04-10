@@ -21,24 +21,24 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Registers a {@link RedisMcpSessionStore} when Redis is available and no other store is defined.
+ * Registers a {@link RedisMcpSessionStore} when Spring Data Redis is on the classpath and a {@link
+ * RedisConnectionFactory} bean is available. The in-memory fallback in {@link
+ * MocapiAutoConfiguration} steps aside via its own {@code @ConditionalOnMissingBean} once this
+ * backend bean is present.
  */
-@AutoConfiguration(
-    before = MocapiAutoConfiguration.class,
-    afterName = "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration")
+@AutoConfiguration(before = MocapiAutoConfiguration.class, after = DataRedisAutoConfiguration.class)
 @ConditionalOnClass(RedisConnectionFactory.class)
 @ConditionalOnBean(RedisConnectionFactory.class)
 public class RedisMcpSessionStoreAutoConfiguration {
 
   @Bean
-  @ConditionalOnMissingBean(McpSessionStore.class)
   public McpSessionStore redisMcpSessionStore(
       StringRedisTemplate redisTemplate,
       ObjectMapper objectMapper,

@@ -23,23 +23,21 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.cassandra.autoconfigure.CassandraAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Registers a {@link CassandraMcpSessionStore} when a {@link CqlSession} is available and no other
- * store is defined.
+ * Registers a {@link CassandraMcpSessionStore} when a {@link CqlSession} is available. The
+ * in-memory fallback in {@link MocapiAutoConfiguration} steps aside via its own
+ * {@code @ConditionalOnMissingBean} once this backend bean is present.
  */
-@AutoConfiguration(
-    before = MocapiAutoConfiguration.class,
-    afterName = "org.springframework.boot.autoconfigure.cassandra.CassandraAutoConfiguration")
+@AutoConfiguration(before = MocapiAutoConfiguration.class, after = CassandraAutoConfiguration.class)
 @ConditionalOnClass(CqlSession.class)
 @ConditionalOnBean(CqlSession.class)
 public class CassandraMcpSessionStoreAutoConfiguration {
 
   @Bean
-  @ConditionalOnMissingBean(McpSessionStore.class)
   public McpSessionStore cassandraMcpSessionStore(
       CqlSession cqlSession,
       ObjectMapper objectMapper,
