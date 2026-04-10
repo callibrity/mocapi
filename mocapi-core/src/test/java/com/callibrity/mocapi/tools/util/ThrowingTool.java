@@ -13,10 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.model;
+package com.callibrity.mocapi.tools.util;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import tools.jackson.databind.node.ValueNode;
+import com.callibrity.mocapi.tools.annotation.ToolMethod;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record RequestMeta(ValueNode progressToken) {}
+public class ThrowingTool {
+  @ToolMethod
+  public String explode(String input) {
+    throw new RuntimeException("tool went boom");
+  }
+}

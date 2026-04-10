@@ -19,11 +19,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.stream.McpStreamContextScopedValueResolver;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.tools.annotation.DefaultAnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
+import com.callibrity.mocapi.tools.util.ErrorReturningTool;
 import com.callibrity.mocapi.tools.util.HelloTool;
+import com.callibrity.mocapi.tools.util.ThrowingTool;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.util.List;
@@ -121,5 +124,35 @@ class ToolsRegistryTest {
     assertThatThrownBy(() -> registry.callTool("non-existent-tool", request))
         .isExactlyInstanceOf(JsonRpcException.class)
         .hasMessageContaining("Tool non-existent-tool not found.");
+  }
+
+  @Test
+  void runtimeExceptionFromToolShouldReturnCallToolResultWithIsErrorTrue() {
+    var provider = factory.create(new ThrowingTool());
+    var registry = new ToolsRegistry(List.of(provider), mapper);
+    var args = mapper.createObjectNode().put("input", "test");
+
+    var result = registry.callTool("throwing-tool.explode", args);
+
+    assertThat(result.isError()).isTrue();
+    assertThat(result.structuredContent()).isNull();
+    assertThat(result.content()).hasSize(1);
+    assertThat(result.content().getFirst()).isInstanceOf(TextContent.class);
+    assertThat(((TextContent) result.content().getFirst()).text()).isEqualTo("tool went boom");
+  }
+
+  @Test
+  void toolReturningCallToolResultWithIsErrorTrueShouldPassThrough() {
+    var provider = factory.create(new ErrorReturningTool());
+    var registry = new ToolsRegistry(List.of(provider), mapper);
+    var args = mapper.createObjectNode().put("input", "test");
+
+    var result = registry.callTool("error-returning-tool.fail-gracefully", args);
+
+    assertThat(result.isError()).isTrue();
+    assertThat(result.structuredContent()).isNull();
+    assertThat(result.content()).hasSize(1);
+    assertThat(result.content().getFirst()).isInstanceOf(TextContent.class);
+    assertThat(((TextContent) result.content().getFirst()).text()).isEqualTo("handled failure");
   }
 }

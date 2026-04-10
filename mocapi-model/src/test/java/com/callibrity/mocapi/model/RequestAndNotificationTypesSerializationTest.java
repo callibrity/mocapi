@@ -22,6 +22,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.StringNode;
 
 class RequestAndNotificationTypesSerializationTest {
 
@@ -29,13 +30,13 @@ class RequestAndNotificationTypesSerializationTest {
 
   @Test
   void requestParamsRoundTrip() throws Exception {
-    var params = new RequestParams(new RequestMeta("tok"));
+    var params = new RequestParams(new RequestMeta(StringNode.valueOf("tok")));
     String json = mapper.writeValueAsString(params);
     assertThat(json).contains("\"_meta\"");
     assertThat(json).contains("\"progressToken\":\"tok\"");
 
     var deserialized = mapper.readValue(json, RequestParams.class);
-    assertThat(deserialized.meta().progressToken()).isEqualTo("tok");
+    assertThat(deserialized.meta().progressToken().asString()).isEqualTo("tok");
   }
 
   @Test
@@ -47,14 +48,15 @@ class RequestAndNotificationTypesSerializationTest {
 
   @Test
   void paginatedRequestParamsRoundTrip() throws Exception {
-    var params = new PaginatedRequestParams("cursor-123", new RequestMeta("tok"));
+    var params =
+        new PaginatedRequestParams("cursor-123", new RequestMeta(StringNode.valueOf("tok")));
     String json = mapper.writeValueAsString(params);
     assertThat(json).contains("\"cursor\":\"cursor-123\"");
     assertThat(json).contains("\"_meta\"");
 
     var deserialized = mapper.readValue(json, PaginatedRequestParams.class);
     assertThat(deserialized.cursor()).isEqualTo("cursor-123");
-    assertThat(deserialized.meta().progressToken()).isEqualTo("tok");
+    assertThat(deserialized.meta().progressToken().asString()).isEqualTo("tok");
   }
 
   @Test
@@ -115,7 +117,10 @@ class RequestAndNotificationTypesSerializationTest {
   void callToolRequestParamsWithTask() throws Exception {
     var params =
         new CallToolRequestParams(
-            "tool", null, new TaskMetadata("t1"), new RequestMeta("progress-tok"));
+            "tool",
+            null,
+            new TaskMetadata("t1"),
+            new RequestMeta(StringNode.valueOf("progress-tok")));
     String json = mapper.writeValueAsString(params);
     assertThat(json).contains("\"task\":{\"taskId\":\"t1\"}");
     assertThat(json).contains("\"_meta\"");

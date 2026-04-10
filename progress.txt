@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T00:47:35-04:00
-ITERATION: 92
-SPEC_COMPLETED: 093-request-types-in-model.md
-WHAT_WAS_DONE: Added all MCP request param types, notification param types, completion types, base types, and McpMethods constants class to mocapi-model with full serialization round-trip tests.
+LAST_RUN: 2026-04-10T01:26:27-04:00
+ITERATION: 93
+SPEC_COMPLETED: 094-tool-execution-errors-as-is-error-result.md
+WHAT_WAS_DONE: Changed tool execution failures from JSON-RPC error responses to CallToolResult(isError=true) in both non-streamable (ToolsRegistry.callTool) and streamable (McpToolMethods.executeStreamableTool) paths, while preserving JsonRpcException as JSON-RPC errors for protocol-level failures.
 VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests, spotless and license checks pass
-STATUS: DONE
+STATUS: MORE_WORK
 NEXT_SPEC: none
-NOTES: Types that already existed from prior specs were not duplicated: RequestMeta, ProgressNotificationParams, SamplingMessage. The CompletionRef sealed interface uses @JsonTypeInfo with type discriminator values "ref/prompt" and "ref/resource" for polymorphic deserialization. ProgressNotificationParams from spec 092 does not have the _meta field shown in the spec 093 listing — that was intentionally left as-is since spec 092 established its shape. No changes to mocapi-core.
+NOTES: Added toErrorCallToolResult(Throwable) static helper to ToolsRegistry shared by both call paths. Added ThrowingTool and ErrorReturningTool test fixtures. Repurposed runtimeExceptionShouldReturnJsonInternalError controller test. Removed unused JsonRpcProtocol import from McpToolMethods. The McpRequestMeta.java deletion shown in git status is from a prior change, not this spec.

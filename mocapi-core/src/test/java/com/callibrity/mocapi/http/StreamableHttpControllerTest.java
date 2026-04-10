@@ -27,6 +27,7 @@ import com.callibrity.mocapi.model.ClientCapabilities;
 import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.InitializeResult;
 import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.session.InMemoryMcpSessionStore;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionMethods;
@@ -38,7 +39,9 @@ import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
+import com.callibrity.ripcurl.core.JsonRpcResult;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
+import com.callibrity.ripcurl.core.annotation.JsonRpcParamsResolver;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
@@ -107,7 +110,10 @@ class StreamableHttpControllerTest {
             Duration.ofSeconds(30));
 
     MethodInvokerFactory invokerFactory =
-        new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(objectMapper)));
+        new DefaultMethodInvokerFactory(
+            List.of(
+                new JsonRpcParamsResolver(objectMapper),
+                new Jackson3ParameterResolver(objectMapper)));
     JsonRpcMethodProvider serverProvider =
         () ->
             List.copyOf(
@@ -345,8 +351,9 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void runtimeExceptionShouldReturnJsonInternalError() {
-      when(toolsCapability.callTool(any(), any())).thenThrow(new RuntimeException("unexpected"));
+    void toolExecutionErrorShouldReturnCallToolResultWithIsErrorTrue() {
+      when(toolsCapability.callTool(any(), any()))
+          .thenReturn(ToolsRegistry.toErrorCallToolResult(new RuntimeException("unexpected")));
 
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
@@ -361,7 +368,29 @@ class StreamableHttpControllerTest {
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
-      assertErrorCode(response, -32603);
+      assertCallToolResultIsError(response, "unexpected");
+    }
+
+    @Test
+    void toolReturningCallToolResultWithIsErrorTrueShouldPassThrough() {
+      var errorResult =
+          new CallToolResult(List.of(new TextContent("handled error", null)), true, null);
+      when(toolsCapability.callTool(any(), any())).thenReturn(errorResult);
+
+      String sessionId = createSession();
+      ObjectNode request = objectMapper.createObjectNode();
+      request.put("jsonrpc", VERSION);
+      request.put("method", "tools/call");
+      request.put("id", 1);
+      ObjectNode params = request.putObject("params");
+      params.put("name", "error-tool");
+      params.putObject("arguments");
+
+      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+      assertCallToolResultIsError(response, "handled error");
     }
   }
 
@@ -546,6 +575,22 @@ class StreamableHttpControllerTest {
       assertThat(node.has("error")).isTrue();
       assertThat(node.get("error").get("message").asString()).isEqualTo(expectedMessage);
     }
+  }
+
+  private static void assertCallToolResultIsError(
+      org.springframework.http.ResponseEntity<Object> response, String expectedMessage) {
+    assertThat(response.getBody()).isInstanceOf(JsonRpcResult.class);
+    JsonRpcResult body = (JsonRpcResult) response.getBody();
+    assertThat(body.jsonrpc()).isEqualTo(VERSION);
+    assertThat(body.id()).isNotNull();
+    JsonNode result = body.result();
+    assertThat(result).isNotNull();
+    assertThat(result.get("isError").asBoolean()).isTrue();
+    assertThat(result.has("content")).isTrue();
+    JsonNode content = result.get("content");
+    assertThat(content.isArray()).isTrue();
+    assertThat(content).hasSize(1);
+    assertThat(content.get(0).get("text").asString()).isEqualTo(expectedMessage);
   }
 
   private static void assertJsonRpcResponse(

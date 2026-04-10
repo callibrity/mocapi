@@ -15,8 +15,10 @@
  */
 package com.callibrity.mocapi.session;
 
+import com.callibrity.mocapi.model.InitializeRequestParams;
 import com.callibrity.mocapi.model.InitializeResult;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
+import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +30,7 @@ public class McpSessionMethods {
   private final InitializeResult initializeResult;
 
   @JsonRpcMethod("initialize")
-  public InitializeResult initialize() {
+  public InitializeResult initialize(@JsonRpcParams InitializeRequestParams params) {
     return initializeResult;
   }
 

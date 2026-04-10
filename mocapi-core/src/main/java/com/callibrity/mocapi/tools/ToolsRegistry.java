@@ -34,10 +34,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
+@Slf4j
 public class ToolsRegistry {
 
   // ------------------------------ FIELDS ------------------------------
@@ -83,7 +85,23 @@ public class ToolsRegistry {
   public CallToolResult callTool(String name, JsonNode arguments) {
     var tool = lookup(name);
     validateInput(name, arguments, tool);
-    var result = tool.call(arguments);
+    try {
+      return toCallToolResult(tool.call(arguments), objectMapper);
+    } catch (JsonRpcException e) {
+      throw e;
+    } catch (Exception e) {
+      log.warn("Tool {} threw an unhandled exception", name, e);
+      return toErrorCallToolResult(e);
+    }
+  }
+
+  /**
+   * Wraps an arbitrary tool return value into a {@link CallToolResult}. If the value is already a
+   * {@code CallToolResult} it is returned as-is; otherwise it is serialized to JSON and used as
+   * both {@code structuredContent} (when it's an object) and {@code TextContent} (stringified
+   * form).
+   */
+  public static CallToolResult toCallToolResult(Object result, ObjectMapper objectMapper) {
     if (result instanceof CallToolResult callToolResult) {
       return callToolResult;
     }
@@ -93,6 +111,11 @@ public class ToolsRegistry {
     String text = jsonResult != null ? jsonResult.toString() : "";
     var textContent = new TextContent(text, null);
     return new CallToolResult(List.of(textContent), null, structuredContent);
+  }
+
+  public static CallToolResult toErrorCallToolResult(Throwable throwable) {
+    String message = throwable.getMessage() != null ? throwable.getMessage() : throwable.toString();
+    return new CallToolResult(List.of(new TextContent(message, null)), true, null);
   }
 
   private void validateInput(String name, JsonNode arguments, McpTool tool) {

@@ -13,9 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.tools;
+package com.callibrity.mocapi.tools.util;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.TextContent;
+import com.callibrity.mocapi.tools.annotation.ToolMethod;
+import java.util.List;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record McpRequestMeta(String progressToken) {}
+public class ErrorReturningTool {
+  @ToolMethod
+  public CallToolResult failGracefully(String input) {
+    return new CallToolResult(List.of(new TextContent("handled failure", null)), true, null);
+  }
+}

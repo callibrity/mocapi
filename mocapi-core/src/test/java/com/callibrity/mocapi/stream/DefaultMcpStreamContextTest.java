@@ -51,6 +51,8 @@ import org.jwcarman.substrate.core.MailboxFactory;
 import org.mockito.ArgumentCaptor;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.StringNode;
+import tools.jackson.databind.node.ValueNode;
 
 class DefaultMcpStreamContextTest {
 
@@ -80,10 +82,11 @@ class DefaultMcpStreamContextTest {
   }
 
   private DefaultMcpStreamContext<?> createContext(String progressToken, String sessionId) {
+    ValueNode tokenNode = progressToken == null ? null : StringNode.valueOf(progressToken);
     return new DefaultMcpStreamContext<>(
         stream,
         objectMapper,
-        progressToken,
+        tokenNode,
         mailboxFactory,
         schemaGenerator,
         sessionService,

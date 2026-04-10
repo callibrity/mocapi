@@ -16,7 +16,8 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import tools.jackson.databind.node.ValueNode;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ProgressNotificationParams(
-    Object progressToken, double progress, Double total, String message) {}
+    ValueNode progressToken, double progress, Double total, String message) {}

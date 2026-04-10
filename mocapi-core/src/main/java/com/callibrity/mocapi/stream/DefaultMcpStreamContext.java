@@ -15,7 +15,10 @@
  */
 package com.callibrity.mocapi.stream;
 
+import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.LoggingLevel;
+import com.callibrity.mocapi.model.ProgressNotification;
+import com.callibrity.mocapi.model.ProgressNotificationParams;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStream;
@@ -28,6 +31,7 @@ import com.callibrity.mocapi.stream.elicitation.ElicitationSchemaValidator;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationTimeoutException;
+import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
@@ -48,28 +52,29 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ValueNode;
 
 /**
  * Default implementation of {@link McpStreamContext} that wraps an {@link McpSessionStream} with
  * MCP-specific JSON-RPC notification formatting and elicitation support via Substrate Mailbox.
  */
-public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
+public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
 
   private final McpSessionStream stream;
   private final ObjectMapper objectMapper;
-  private final String progressToken;
+  private final ValueNode progressToken;
   private final MailboxFactory mailboxFactory;
   private final SchemaGenerator schemaGenerator;
   private final McpSessionService sessionService;
   private final String sessionId;
   private final Duration elicitationTimeout;
   private final JsonNode requestId;
-  private final AtomicBoolean responseSent = new AtomicBoolean(false);
+  private final AtomicBoolean resultSent = new AtomicBoolean(false);
 
   public DefaultMcpStreamContext(
       McpSessionStream stream,
       ObjectMapper objectMapper,
-      String progressToken,
+      ValueNode progressToken,
       MailboxFactory mailboxFactory,
       SchemaGenerator schemaGenerator,
       McpSessionService sessionService,
@@ -88,30 +93,28 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
   }
 
   @Override
-  public void sendResponse(O response) {
-    if (!responseSent.compareAndSet(false, true)) {
-      throw new IllegalStateException("sendResponse() has already been called");
+  public void sendResult(R result) {
+    if (!resultSent.compareAndSet(false, true)) {
+      throw new IllegalStateException("sendResult() has already been called");
     }
-    JsonNode resultJson = objectMapper.valueToTree(response);
-    JsonRpcResult result = new JsonRpcResult(resultJson, requestId);
-    stream.publishJson(objectMapper.valueToTree(result));
+    CallToolResult callToolResult = ToolsRegistry.toCallToolResult(result, objectMapper);
+    JsonRpcResult jsonRpcResult =
+        new JsonRpcResult(objectMapper.valueToTree(callToolResult), requestId);
+    stream.publishJson(objectMapper.valueToTree(jsonRpcResult));
     stream.close();
   }
 
-  public boolean isResponseSent() {
-    return responseSent.get();
+  public boolean isResultSent() {
+    return resultSent.get();
   }
 
   @Override
-  public void sendProgress(long progress, long total) {
-    if (progressToken == null) {
+  public void sendProgress(double progress, double total) {
+    if (progressToken == null || progressToken.isNull()) {
       return;
     }
-    ObjectNode params = objectMapper.createObjectNode();
-    params.put("progressToken", progressToken);
-    params.put("progress", progress);
-    params.put("total", total);
-    publishNotification("notifications/progress", params);
+    var params = new ProgressNotificationParams(progressToken, progress, total, null);
+    publishNotification(ProgressNotification.METHOD, objectMapper.valueToTree(params));
   }
 
   @Override

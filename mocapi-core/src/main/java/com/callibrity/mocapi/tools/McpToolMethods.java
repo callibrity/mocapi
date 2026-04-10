@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.tools;
 
 import com.callibrity.mocapi.http.McpRequestId;
+import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ListToolsResult;
 import com.callibrity.mocapi.session.McpSession;
@@ -24,21 +25,21 @@ import com.callibrity.mocapi.session.McpSessionStream;
 import com.callibrity.mocapi.stream.DefaultMcpStreamContext;
 import com.callibrity.mocapi.stream.McpStreamContext;
 import com.callibrity.ripcurl.core.JsonRpcError;
-import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
+import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jwcarman.methodical.Named;
 import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.NullNode;
+import tools.jackson.databind.node.ValueNode;
 
 @Slf4j
 @JsonRpcService
@@ -60,15 +61,17 @@ public class McpToolMethods {
   }
 
   @JsonRpcMethod("tools/call")
-  public Object callTool(String name, JsonNode arguments, @Named("_meta") McpRequestMeta meta) {
-    JsonNode args = arguments != null ? arguments : objectMapper.createObjectNode();
+  public Object callTool(@JsonRpcParams CallToolRequestParams params) {
+    String name = params.name();
+    JsonNode args =
+        params.arguments() != null ? params.arguments() : objectMapper.createObjectNode();
     McpTool tool = toolsRegistry.lookup(name);
 
     if (!tool.isStreamable()) {
       return toolsRegistry.callTool(name, args);
     }
 
-    String progressToken = meta != null ? meta.progressToken() : null;
+    ValueNode progressToken = params.meta() != null ? params.meta().progressToken() : null;
     JsonNode requestId = McpRequestId.CURRENT.isBound() ? McpRequestId.CURRENT.get() : null;
     McpSession session = McpSession.CURRENT.get();
     String sessionId = session.sessionId();
@@ -107,24 +110,25 @@ public class McpToolMethods {
       DefaultMcpStreamContext<?> ctx) {
     try {
       CallToolResult result = toolsRegistry.callTool(name, arguments);
-      if (!ctx.isResponseSent()) {
+      if (!ctx.isResultSent()) {
         JsonRpcResult response = new JsonRpcResult(objectMapper.valueToTree(result), requestId);
         stream.publishJson(objectMapper.valueToTree(response));
       }
     } catch (JsonRpcException e) {
-      if (!ctx.isResponseSent()) {
+      if (!ctx.isResultSent()) {
         stream.publishJson(
             objectMapper.valueToTree(new JsonRpcError(e.getCode(), e.getMessage(), requestId)));
       }
     } catch (Exception e) {
-      log.error("Unexpected error executing streamable tool {}", name, e);
-      if (!ctx.isResponseSent()) {
-        stream.publishJson(
-            objectMapper.valueToTree(
-                new JsonRpcError(JsonRpcProtocol.INTERNAL_ERROR, e.getMessage(), requestId)));
+      log.warn("Tool {} threw an unhandled exception", name, e);
+      if (!ctx.isResultSent()) {
+        CallToolResult errorResult = ToolsRegistry.toErrorCallToolResult(e);
+        JsonRpcResult response =
+            new JsonRpcResult(objectMapper.valueToTree(errorResult), requestId);
+        stream.publishJson(objectMapper.valueToTree(response));
       }
     } finally {
-      if (!ctx.isResponseSent()) {
+      if (!ctx.isResultSent()) {
         stream.close();
       }
     }

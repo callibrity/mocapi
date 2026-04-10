@@ -30,17 +30,18 @@ import tools.jackson.core.type.TypeReference;
  * methods for sending intermediate messages (progress notifications, arbitrary notifications) to
  * the client during a long-running operation, and for eliciting structured input from the client.
  */
-public interface McpStreamContext<O> {
+public interface McpStreamContext<R> {
 
   ScopedValue<McpStreamContext<?>> CURRENT = ScopedValue.newInstance();
 
   /**
-   * Publishes the final response on the SSE stream and closes it. This is a terminal operation —
-   * calling it twice throws {@link IllegalStateException}.
+   * Publishes the final result on the SSE stream and closes it. The value is wrapped into a {@code
+   * CallToolResult} the same way a normal tool return value would be. This is a terminal operation
+   * — calling it twice throws {@link IllegalStateException}.
    *
-   * @param response the response to send
+   * @param result the tool result to send
    */
-  void sendResponse(O response);
+  void sendResult(R result);
 
   /**
    * Sends a progress notification to the client.
@@ -48,7 +49,7 @@ public interface McpStreamContext<O> {
    * @param progress the current progress value
    * @param total the total expected value
    */
-  void sendProgress(long progress, long total);
+  void sendProgress(double progress, double total);
 
   /**
    * Sends an arbitrary notification to the client.
