@@ -15,24 +15,24 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.List;
-import org.junit.jupiter.api.Test;
+/** Immutable schema for a string property in an MCP elicitation form. */
+public record StringPropertySchema(
+    @JsonIgnore boolean required,
+    String description,
+    String title,
+    @JsonProperty("default") String defaultValue,
+    Integer minLength,
+    Integer maxLength,
+    String pattern,
+    String format)
+    implements PropertySchema {
 
-class ChooseLegacyBuilderTest {
-
-  @Test
-  void shouldProduceEnumWithEnumNames() {
-    LegacyEnumPropertySchema schema =
-        new ChooseLegacyBuilder(
-                List.of("opt1", "opt2", "opt3"),
-                List.of("Option One", "Option Two", "Option Three"))
-            .build();
-
-    assertThat(schema.type()).isEqualTo("string");
-    assertThat(schema.values()).containsExactly("opt1", "opt2", "opt3");
-    assertThat(schema.enumNames()).containsExactly("Option One", "Option Two", "Option Three");
-    assertThat(schema.required()).isTrue();
+  @JsonProperty("type")
+  @Override
+  public String type() {
+    return "string";
   }
 }

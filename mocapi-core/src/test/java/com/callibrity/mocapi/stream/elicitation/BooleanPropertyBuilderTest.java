@@ -18,55 +18,61 @@ package com.callibrity.mocapi.stream.elicitation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 class BooleanPropertyBuilderTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-
   @Test
   void shouldBuildMinimalBooleanProperty() {
-    ObjectNode node = new BooleanPropertyBuilder("Is active").build(objectMapper);
+    BooleanPropertySchema schema = new BooleanPropertyBuilder().description("Is active").build();
 
-    assertThat(node.get("type").asString()).isEqualTo("boolean");
-    assertThat(node.get("description").asString()).isEqualTo("Is active");
-    assertThat(node.has("default")).isFalse();
+    assertThat(schema.type()).isEqualTo("boolean");
+    assertThat(schema.description()).isEqualTo("Is active");
+    assertThat(schema.defaultValue()).isNull();
+    assertThat(schema.required()).isTrue();
   }
 
   @Test
   void shouldIncludeTitle() {
-    ObjectNode node =
-        new BooleanPropertyBuilder("Is active").title("Active Status").build(objectMapper);
+    BooleanPropertySchema schema =
+        new BooleanPropertyBuilder().description("Is active").title("Active Status").build();
 
-    assertThat(node.get("title").asString()).isEqualTo("Active Status");
+    assertThat(schema.title()).isEqualTo("Active Status");
   }
 
   @Test
   void shouldIncludeDefaultValueTrue() {
-    ObjectNode node =
-        new BooleanPropertyBuilder("Is active").defaultValue(true).build(objectMapper);
+    BooleanPropertySchema schema =
+        new BooleanPropertyBuilder().description("Is active").defaultValue(true).build();
 
-    assertThat(node.get("default").asBoolean()).isTrue();
+    assertThat(schema.defaultValue()).isTrue();
   }
 
   @Test
   void shouldIncludeDefaultValueFalse() {
-    ObjectNode node =
-        new BooleanPropertyBuilder("Is active").defaultValue(false).build(objectMapper);
+    BooleanPropertySchema schema =
+        new BooleanPropertyBuilder().description("Is active").defaultValue(false).build();
 
-    assertThat(node.get("default").asBoolean()).isFalse();
+    assertThat(schema.defaultValue()).isFalse();
   }
 
   @Test
   void shouldChainTitleAndDefault() {
-    ObjectNode node =
-        new BooleanPropertyBuilder("Is active")
+    BooleanPropertySchema schema =
+        new BooleanPropertyBuilder()
+            .description("Is active")
             .title("Active Status")
             .defaultValue(true)
-            .build(objectMapper);
+            .build();
 
-    assertThat(node.get("title").asString()).isEqualTo("Active Status");
-    assertThat(node.get("default").asBoolean()).isTrue();
+    assertThat(schema.title()).isEqualTo("Active Status");
+    assertThat(schema.defaultValue()).isTrue();
+  }
+
+  @Test
+  void optionalShouldSetRequiredFalse() {
+    BooleanPropertySchema schema =
+        new BooleanPropertyBuilder().description("Is active").optional().build();
+
+    assertThat(schema.required()).isFalse();
   }
 }

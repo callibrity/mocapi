@@ -15,24 +15,28 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-import java.util.List;
-import org.junit.jupiter.api.Test;
+/** Sealed interface for property schemas used in MCP elicitation. */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public sealed interface PropertySchema
+    permits StringPropertySchema,
+        IntegerPropertySchema,
+        NumberPropertySchema,
+        BooleanPropertySchema,
+        EnumPropertySchema,
+        TitledEnumPropertySchema,
+        MultiSelectPropertySchema,
+        TitledMultiSelectPropertySchema,
+        LegacyEnumPropertySchema {
 
-class ChooseLegacyBuilderTest {
+  String type();
 
-  @Test
-  void shouldProduceEnumWithEnumNames() {
-    LegacyEnumPropertySchema schema =
-        new ChooseLegacyBuilder(
-                List.of("opt1", "opt2", "opt3"),
-                List.of("Option One", "Option Two", "Option Three"))
-            .build();
+  String description();
 
-    assertThat(schema.type()).isEqualTo("string");
-    assertThat(schema.values()).containsExactly("opt1", "opt2", "opt3");
-    assertThat(schema.enumNames()).containsExactly("Option One", "Option Two", "Option Three");
-    assertThat(schema.required()).isTrue();
-  }
+  String title();
+
+  @JsonIgnore
+  boolean required();
 }

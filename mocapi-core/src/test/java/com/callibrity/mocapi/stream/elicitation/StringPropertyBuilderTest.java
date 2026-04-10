@@ -18,94 +18,104 @@ package com.callibrity.mocapi.stream.elicitation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 class StringPropertyBuilderTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-
   @Test
   void shouldBuildMinimalStringProperty() {
-    ObjectNode node = new StringPropertyBuilder("A description").build(objectMapper);
+    StringPropertySchema schema = new StringPropertyBuilder().description("A description").build();
 
-    assertThat(node.get("type").asString()).isEqualTo("string");
-    assertThat(node.get("description").asString()).isEqualTo("A description");
-    assertThat(node.has("title")).isFalse();
-    assertThat(node.has("default")).isFalse();
+    assertThat(schema.type()).isEqualTo("string");
+    assertThat(schema.description()).isEqualTo("A description");
+    assertThat(schema.title()).isNull();
+    assertThat(schema.defaultValue()).isNull();
+    assertThat(schema.required()).isTrue();
   }
 
   @Test
   void shouldIncludeTitle() {
-    ObjectNode node = new StringPropertyBuilder("desc").title("Full Name").build(objectMapper);
+    StringPropertySchema schema =
+        new StringPropertyBuilder().description("desc").title("Full Name").build();
 
-    assertThat(node.get("title").asString()).isEqualTo("Full Name");
+    assertThat(schema.title()).isEqualTo("Full Name");
   }
 
   @Test
   void shouldIncludeDefaultValue() {
-    ObjectNode node = new StringPropertyBuilder("desc").defaultValue("hello").build(objectMapper);
+    StringPropertySchema schema =
+        new StringPropertyBuilder().description("desc").defaultValue("hello").build();
 
-    assertThat(node.get("default").asString()).isEqualTo("hello");
+    assertThat(schema.defaultValue()).isEqualTo("hello");
   }
 
   @Test
   void shouldIncludeMinAndMaxLength() {
-    ObjectNode node =
-        new StringPropertyBuilder("desc").minLength(1).maxLength(255).build(objectMapper);
+    StringPropertySchema schema =
+        new StringPropertyBuilder().description("desc").minLength(1).maxLength(255).build();
 
-    assertThat(node.get("minLength").asInt()).isEqualTo(1);
-    assertThat(node.get("maxLength").asInt()).isEqualTo(255);
+    assertThat(schema.minLength()).isEqualTo(1);
+    assertThat(schema.maxLength()).isEqualTo(255);
   }
 
   @Test
   void shouldIncludePattern() {
-    ObjectNode node = new StringPropertyBuilder("desc").pattern("^[a-z]+$").build(objectMapper);
+    StringPropertySchema schema =
+        new StringPropertyBuilder().description("desc").pattern("^[a-z]+$").build();
 
-    assertThat(node.get("pattern").asString()).isEqualTo("^[a-z]+$");
+    assertThat(schema.pattern()).isEqualTo("^[a-z]+$");
   }
 
   @Test
   void shouldSetEmailFormat() {
-    ObjectNode node = new StringPropertyBuilder("desc").email().build(objectMapper);
+    StringPropertySchema schema = new StringPropertyBuilder().description("desc").email().build();
 
-    assertThat(node.get("format").asString()).isEqualTo("email");
+    assertThat(schema.format()).isEqualTo("email");
   }
 
   @Test
   void shouldSetUriFormat() {
-    ObjectNode node = new StringPropertyBuilder("desc").uri().build(objectMapper);
+    StringPropertySchema schema = new StringPropertyBuilder().description("desc").uri().build();
 
-    assertThat(node.get("format").asString()).isEqualTo("uri");
+    assertThat(schema.format()).isEqualTo("uri");
   }
 
   @Test
   void shouldSetDateFormat() {
-    ObjectNode node = new StringPropertyBuilder("desc").date().build(objectMapper);
+    StringPropertySchema schema = new StringPropertyBuilder().description("desc").date().build();
 
-    assertThat(node.get("format").asString()).isEqualTo("date");
+    assertThat(schema.format()).isEqualTo("date");
   }
 
   @Test
   void shouldSetDateTimeFormat() {
-    ObjectNode node = new StringPropertyBuilder("desc").dateTime().build(objectMapper);
+    StringPropertySchema schema =
+        new StringPropertyBuilder().description("desc").dateTime().build();
 
-    assertThat(node.get("format").asString()).isEqualTo("date-time");
+    assertThat(schema.format()).isEqualTo("date-time");
   }
 
   @Test
   void shouldChainMultipleConstraints() {
-    ObjectNode node =
-        new StringPropertyBuilder("desc")
+    StringPropertySchema schema =
+        new StringPropertyBuilder()
+            .description("desc")
             .title("ZIP")
             .pattern("^\\d{5}$")
             .maxLength(5)
             .defaultValue("12345")
-            .build(objectMapper);
+            .build();
 
-    assertThat(node.get("title").asString()).isEqualTo("ZIP");
-    assertThat(node.get("pattern").asString()).isEqualTo("^\\d{5}$");
-    assertThat(node.get("maxLength").asInt()).isEqualTo(5);
-    assertThat(node.get("default").asString()).isEqualTo("12345");
+    assertThat(schema.title()).isEqualTo("ZIP");
+    assertThat(schema.pattern()).isEqualTo("^\\d{5}$");
+    assertThat(schema.maxLength()).isEqualTo(5);
+    assertThat(schema.defaultValue()).isEqualTo("12345");
+  }
+
+  @Test
+  void optionalShouldSetRequiredFalse() {
+    StringPropertySchema schema =
+        new StringPropertyBuilder().description("Nickname").optional().build();
+
+    assertThat(schema.required()).isFalse();
   }
 }

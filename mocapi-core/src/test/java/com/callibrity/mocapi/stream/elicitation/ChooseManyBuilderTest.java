@@ -19,12 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 class ChooseManyBuilderTest {
-
-  private final ObjectMapper objectMapper = new ObjectMapper();
 
   enum Tag {
     JAVA,
@@ -49,85 +45,83 @@ class ChooseManyBuilderTest {
   }
 
   @Test
-  void fromEnumShouldProduceArrayOfAnyOf() {
-    ObjectNode node = ChooseManyBuilder.fromEnum(Tag.class).build(objectMapper);
+  void fromEnumShouldProduceTitledMultiSelect() {
+    PropertySchema schema = ChooseManyBuilder.fromEnum(Tag.class).build();
 
-    assertThat(node.get("type").asString()).isEqualTo("array");
-    ObjectNode items = (ObjectNode) node.get("items");
-    assertThat(items.get("type").asString()).isEqualTo("string");
-    assertThat(items.get("anyOf")).hasSize(3);
-    assertThat(items.get("anyOf").get(0).get("const").asString()).isEqualTo("JAVA");
-    assertThat(items.get("anyOf").get(0).get("title").asString()).isEqualTo("JAVA");
+    assertThat(schema).isInstanceOf(TitledMultiSelectPropertySchema.class);
+    var titled = (TitledMultiSelectPropertySchema) schema;
+    assertThat(titled.type()).isEqualTo("array");
+    assertThat(titled.items().type()).isEqualTo("string");
+    assertThat(titled.items().anyOf()).hasSize(3);
+    assertThat(titled.items().anyOf().get(0).value()).isEqualTo("JAVA");
+    assertThat(titled.items().anyOf().get(0).title()).isEqualTo("JAVA");
+    assertThat(titled.required()).isTrue();
   }
 
   @Test
   void fromEnumShouldUseToStringForTitle() {
-    ObjectNode node = ChooseManyBuilder.fromEnum(TitledColor.class).build(objectMapper);
+    PropertySchema schema = ChooseManyBuilder.fromEnum(TitledColor.class).build();
 
-    ObjectNode items = (ObjectNode) node.get("items");
-    assertThat(items.get("anyOf").get(0).get("title").asString()).isEqualTo("Crimson Red");
+    var titled = (TitledMultiSelectPropertySchema) schema;
+    assertThat(titled.items().anyOf().get(0).title()).isEqualTo("Crimson Red");
   }
 
   @Test
   void fromEnumWithCustomTitleFnShouldUseIt() {
-    ObjectNode node =
-        ChooseManyBuilder.fromEnum(Tag.class)
-            .titleFn(t -> t.name().toLowerCase())
-            .build(objectMapper);
+    PropertySchema schema =
+        ChooseManyBuilder.fromEnum(Tag.class).titleFn(t -> t.name().toLowerCase()).build();
 
-    ObjectNode items = (ObjectNode) node.get("items");
-    assertThat(items.get("anyOf").get(0).get("title").asString()).isEqualTo("java");
+    var titled = (TitledMultiSelectPropertySchema) schema;
+    assertThat(titled.items().anyOf().get(0).title()).isEqualTo("java");
   }
 
   @Test
   void fromEnumWithDefaultsShouldIncludeDefaults() {
-    ObjectNode node =
-        ChooseManyBuilder.fromEnum(Tag.class)
-            .defaults(List.of(Tag.JAVA, Tag.GO))
-            .build(objectMapper);
+    PropertySchema schema =
+        ChooseManyBuilder.fromEnum(Tag.class).defaults(List.of(Tag.JAVA, Tag.GO)).build();
 
-    assertThat(node.get("default")).hasSize(2);
-    assertThat(node.get("default").get(0).asString()).isEqualTo("JAVA");
-    assertThat(node.get("default").get(1).asString()).isEqualTo("GO");
+    var titled = (TitledMultiSelectPropertySchema) schema;
+    assertThat(titled.defaultValues()).containsExactly("JAVA", "GO");
   }
 
   @Test
   void fromEnumWithMaxItemsShouldIncludeMaxItems() {
-    ObjectNode node = ChooseManyBuilder.fromEnum(Tag.class).maxItems(2).build(objectMapper);
+    PropertySchema schema = ChooseManyBuilder.fromEnum(Tag.class).maxItems(2).build();
 
-    assertThat(node.get("maxItems").asInt()).isEqualTo(2);
+    var titled = (TitledMultiSelectPropertySchema) schema;
+    assertThat(titled.maxItems()).isEqualTo(2);
   }
 
   @Test
   void fromEnumWithMinItemsShouldIncludeMinItems() {
-    ObjectNode node = ChooseManyBuilder.fromEnum(Tag.class).minItems(1).build(objectMapper);
+    PropertySchema schema = ChooseManyBuilder.fromEnum(Tag.class).minItems(1).build();
 
-    assertThat(node.get("minItems").asInt()).isEqualTo(1);
+    var titled = (TitledMultiSelectPropertySchema) schema;
+    assertThat(titled.minItems()).isEqualTo(1);
   }
 
   @Test
-  void fromRawStringsShouldProduceArrayOfPlainEnum() {
-    ObjectNode node = ChooseManyBuilder.from(List.of("java", "python", "go")).build(objectMapper);
+  void fromRawStringsShouldProduceMultiSelect() {
+    PropertySchema schema = ChooseManyBuilder.from(List.of("java", "python", "go")).build();
 
-    assertThat(node.get("type").asString()).isEqualTo("array");
-    ObjectNode items = (ObjectNode) node.get("items");
-    assertThat(items.get("type").asString()).isEqualTo("string");
-    assertThat(items.has("anyOf")).isFalse();
-    assertThat(items.get("enum")).hasSize(3);
-    assertThat(items.get("enum").get(0).asString()).isEqualTo("java");
+    assertThat(schema).isInstanceOf(MultiSelectPropertySchema.class);
+    var multi = (MultiSelectPropertySchema) schema;
+    assertThat(multi.type()).isEqualTo("array");
+    assertThat(multi.items().type()).isEqualTo("string");
+    assertThat(multi.items().values()).containsExactly("java", "python", "go");
   }
 
   @Test
-  void fromArbitraryItemsShouldProduceArrayOfAnyOf() {
+  void fromArbitraryItemsShouldProduceTitledMultiSelect() {
     record Role(String code, String label) {}
     List<Role> roles = List.of(new Role("admin", "Admin"), new Role("user", "User"));
 
-    ObjectNode node = ChooseManyBuilder.from(roles, Role::code).build(objectMapper);
+    PropertySchema schema = ChooseManyBuilder.from(roles, Role::code).build();
 
-    assertThat(node.get("type").asString()).isEqualTo("array");
-    ObjectNode items = (ObjectNode) node.get("items");
-    assertThat(items.get("anyOf")).hasSize(2);
-    assertThat(items.get("anyOf").get(0).get("const").asString()).isEqualTo("admin");
+    assertThat(schema).isInstanceOf(TitledMultiSelectPropertySchema.class);
+    var titled = (TitledMultiSelectPropertySchema) schema;
+    assertThat(titled.items().anyOf()).hasSize(2);
+    assertThat(titled.items().anyOf().get(0).value()).isEqualTo("admin");
   }
 
   @Test
@@ -135,28 +129,33 @@ class ChooseManyBuilderTest {
     record Role(String code, String label) {}
     List<Role> roles = List.of(new Role("admin", "Administrator"));
 
-    ObjectNode node =
-        ChooseManyBuilder.from(roles, Role::code).titleFn(Role::label).build(objectMapper);
+    PropertySchema schema = ChooseManyBuilder.from(roles, Role::code).titleFn(Role::label).build();
 
-    ObjectNode items = (ObjectNode) node.get("items");
-    assertThat(items.get("anyOf").get(0).get("title").asString()).isEqualTo("Administrator");
+    var titled = (TitledMultiSelectPropertySchema) schema;
+    assertThat(titled.items().anyOf().get(0).title()).isEqualTo("Administrator");
   }
 
   @Test
   void shouldChainMultipleConstraints() {
-    ObjectNode node =
+    PropertySchema schema =
         ChooseManyBuilder.fromEnum(Tag.class)
             .titleFn(t -> t.name().toLowerCase())
             .defaults(List.of(Tag.PYTHON))
             .minItems(1)
             .maxItems(3)
-            .build(objectMapper);
+            .build();
 
-    ObjectNode items = (ObjectNode) node.get("items");
-    assertThat(items.get("anyOf").get(0).get("title").asString()).isEqualTo("java");
-    assertThat(node.get("default")).hasSize(1);
-    assertThat(node.get("default").get(0).asString()).isEqualTo("PYTHON");
-    assertThat(node.get("minItems").asInt()).isEqualTo(1);
-    assertThat(node.get("maxItems").asInt()).isEqualTo(3);
+    var titled = (TitledMultiSelectPropertySchema) schema;
+    assertThat(titled.items().anyOf().get(0).title()).isEqualTo("java");
+    assertThat(titled.defaultValues()).containsExactly("PYTHON");
+    assertThat(titled.minItems()).isEqualTo(1);
+    assertThat(titled.maxItems()).isEqualTo(3);
+  }
+
+  @Test
+  void optionalShouldSetRequiredFalse() {
+    PropertySchema schema = ChooseManyBuilder.fromEnum(Tag.class).optional().build();
+
+    assertThat(schema.required()).isFalse();
   }
 }

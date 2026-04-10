@@ -15,24 +15,24 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
-import org.junit.jupiter.api.Test;
 
-class ChooseLegacyBuilderTest {
+/** Immutable schema for a titled multi-select property (array of anyOf). */
+public record TitledMultiSelectPropertySchema(
+    @JsonIgnore boolean required,
+    String description,
+    String title,
+    TitledEnumItemsSchema items,
+    @JsonProperty("default") List<String> defaultValues,
+    Integer minItems,
+    Integer maxItems)
+    implements PropertySchema {
 
-  @Test
-  void shouldProduceEnumWithEnumNames() {
-    LegacyEnumPropertySchema schema =
-        new ChooseLegacyBuilder(
-                List.of("opt1", "opt2", "opt3"),
-                List.of("Option One", "Option Two", "Option Three"))
-            .build();
-
-    assertThat(schema.type()).isEqualTo("string");
-    assertThat(schema.values()).containsExactly("opt1", "opt2", "opt3");
-    assertThat(schema.enumNames()).containsExactly("Option One", "Option Two", "Option Three");
-    assertThat(schema.required()).isTrue();
+  @JsonProperty("type")
+  @Override
+  public String type() {
+    return "array";
   }
 }

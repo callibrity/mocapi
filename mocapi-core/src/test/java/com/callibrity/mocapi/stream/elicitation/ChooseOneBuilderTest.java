@@ -19,12 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 class ChooseOneBuilderTest {
-
-  private final ObjectMapper objectMapper = new ObjectMapper();
 
   enum Tag {
     JAVA,
@@ -49,68 +45,74 @@ class ChooseOneBuilderTest {
   }
 
   @Test
-  void fromEnumShouldProduceOneOfWithConstTitle() {
-    ObjectNode node = ChooseOneBuilder.fromEnum(Tag.class).build(objectMapper);
+  void fromEnumShouldProduceTitledEnumWithConstTitle() {
+    PropertySchema schema = ChooseOneBuilder.fromEnum(Tag.class).build();
 
-    assertThat(node.get("type").asString()).isEqualTo("string");
-    assertThat(node.get("oneOf")).hasSize(3);
-    assertThat(node.get("oneOf").get(0).get("const").asString()).isEqualTo("JAVA");
-    assertThat(node.get("oneOf").get(0).get("title").asString()).isEqualTo("JAVA");
+    assertThat(schema).isInstanceOf(TitledEnumPropertySchema.class);
+    var titled = (TitledEnumPropertySchema) schema;
+    assertThat(titled.type()).isEqualTo("string");
+    assertThat(titled.oneOf()).hasSize(3);
+    assertThat(titled.oneOf().get(0).value()).isEqualTo("JAVA");
+    assertThat(titled.oneOf().get(0).title()).isEqualTo("JAVA");
+    assertThat(titled.required()).isTrue();
   }
 
   @Test
   void fromEnumShouldUseToStringForTitle() {
-    ObjectNode node = ChooseOneBuilder.fromEnum(TitledColor.class).build(objectMapper);
+    PropertySchema schema = ChooseOneBuilder.fromEnum(TitledColor.class).build();
 
-    assertThat(node.get("oneOf").get(0).get("const").asString()).isEqualTo("RED");
-    assertThat(node.get("oneOf").get(0).get("title").asString()).isEqualTo("Crimson Red");
+    var titled = (TitledEnumPropertySchema) schema;
+    assertThat(titled.oneOf().get(0).value()).isEqualTo("RED");
+    assertThat(titled.oneOf().get(0).title()).isEqualTo("Crimson Red");
   }
 
   @Test
   void fromEnumWithCustomTitleFnShouldUseIt() {
-    ObjectNode node =
-        ChooseOneBuilder.fromEnum(Tag.class)
-            .titleFn(t -> t.name().toLowerCase())
-            .build(objectMapper);
+    PropertySchema schema =
+        ChooseOneBuilder.fromEnum(Tag.class).titleFn(t -> t.name().toLowerCase()).build();
 
-    assertThat(node.get("oneOf").get(0).get("title").asString()).isEqualTo("java");
+    var titled = (TitledEnumPropertySchema) schema;
+    assertThat(titled.oneOf().get(0).title()).isEqualTo("java");
   }
 
   @Test
   void fromEnumWithDefaultShouldIncludeDefault() {
-    ObjectNode node =
-        ChooseOneBuilder.fromEnum(Tag.class).defaultValue(Tag.PYTHON).build(objectMapper);
+    PropertySchema schema = ChooseOneBuilder.fromEnum(Tag.class).defaultValue(Tag.PYTHON).build();
 
-    assertThat(node.get("default").asString()).isEqualTo("PYTHON");
+    var titled = (TitledEnumPropertySchema) schema;
+    assertThat(titled.defaultValue()).isEqualTo("PYTHON");
   }
 
   @Test
   void fromRawStringsShouldProducePlainEnum() {
-    ObjectNode node = ChooseOneBuilder.from(List.of("red", "green", "blue")).build(objectMapper);
+    PropertySchema schema = ChooseOneBuilder.from(List.of("red", "green", "blue")).build();
 
-    assertThat(node.get("type").asString()).isEqualTo("string");
-    assertThat(node.has("oneOf")).isFalse();
-    assertThat(node.get("enum")).hasSize(3);
-    assertThat(node.get("enum").get(0).asString()).isEqualTo("red");
+    assertThat(schema).isInstanceOf(EnumPropertySchema.class);
+    var enumSchema = (EnumPropertySchema) schema;
+    assertThat(enumSchema.type()).isEqualTo("string");
+    assertThat(enumSchema.values()).containsExactly("red", "green", "blue");
   }
 
   @Test
   void fromRawStringsWithDefaultShouldIncludeDefault() {
-    ObjectNode node =
-        ChooseOneBuilder.from(List.of("red", "green")).defaultValue("green").build(objectMapper);
+    PropertySchema schema =
+        ChooseOneBuilder.from(List.of("red", "green")).defaultValue("green").build();
 
-    assertThat(node.get("default").asString()).isEqualTo("green");
+    var enumSchema = (EnumPropertySchema) schema;
+    assertThat(enumSchema.defaultValue()).isEqualTo("green");
   }
 
   @Test
-  void fromArbitraryItemsShouldProduceOneOf() {
+  void fromArbitraryItemsShouldProduceTitledEnum() {
     record Status(String code, String label) {}
     List<Status> statuses = List.of(new Status("a", "Active"), new Status("i", "Inactive"));
 
-    ObjectNode node = ChooseOneBuilder.from(statuses, Status::code).build(objectMapper);
+    PropertySchema schema = ChooseOneBuilder.from(statuses, Status::code).build();
 
-    assertThat(node.get("oneOf")).hasSize(2);
-    assertThat(node.get("oneOf").get(0).get("const").asString()).isEqualTo("a");
+    assertThat(schema).isInstanceOf(TitledEnumPropertySchema.class);
+    var titled = (TitledEnumPropertySchema) schema;
+    assertThat(titled.oneOf()).hasSize(2);
+    assertThat(titled.oneOf().get(0).value()).isEqualTo("a");
   }
 
   @Test
@@ -118,10 +120,11 @@ class ChooseOneBuilderTest {
     record Status(String code, String label) {}
     List<Status> statuses = List.of(new Status("a", "Active"), new Status("i", "Inactive"));
 
-    ObjectNode node =
-        ChooseOneBuilder.from(statuses, Status::code).titleFn(Status::label).build(objectMapper);
+    PropertySchema schema =
+        ChooseOneBuilder.from(statuses, Status::code).titleFn(Status::label).build();
 
-    assertThat(node.get("oneOf").get(0).get("title").asString()).isEqualTo("Active");
+    var titled = (TitledEnumPropertySchema) schema;
+    assertThat(titled.oneOf().get(0).title()).isEqualTo("Active");
   }
 
   @Test
@@ -129,11 +132,17 @@ class ChooseOneBuilderTest {
     record Status(String code, String label) {}
     List<Status> statuses = List.of(new Status("a", "Active"), new Status("i", "Inactive"));
 
-    ObjectNode node =
-        ChooseOneBuilder.from(statuses, Status::code)
-            .defaultValue(statuses.get(0))
-            .build(objectMapper);
+    PropertySchema schema =
+        ChooseOneBuilder.from(statuses, Status::code).defaultValue(statuses.get(0)).build();
 
-    assertThat(node.get("default").asString()).isEqualTo("a");
+    var titled = (TitledEnumPropertySchema) schema;
+    assertThat(titled.defaultValue()).isEqualTo("a");
+  }
+
+  @Test
+  void optionalShouldSetRequiredFalse() {
+    PropertySchema schema = ChooseOneBuilder.fromEnum(Tag.class).optional().build();
+
+    assertThat(schema.required()).isFalse();
   }
 }

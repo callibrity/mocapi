@@ -15,14 +15,11 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Orchestrator for constructing {@link ElicitationSchema} instances. Delegates to individual
@@ -30,9 +27,7 @@ import tools.jackson.databind.node.ObjectNode;
  */
 public final class ElicitationSchemaBuilder {
 
-  private final Map<String, ObjectNode> properties = new LinkedHashMap<>();
-  private final List<String> required = new ArrayList<>();
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final Map<String, PropertySchema> properties = new LinkedHashMap<>();
 
   ElicitationSchemaBuilder() {}
 
@@ -40,7 +35,7 @@ public final class ElicitationSchemaBuilder {
 
   public ElicitationSchemaBuilder string(String name, String description) {
     requireUniqueName(name);
-    properties.put(name, new StringPropertyBuilder(description).build(objectMapper));
+    properties.put(name, new StringPropertyBuilder().description(description).build());
     return this;
   }
 
@@ -48,16 +43,16 @@ public final class ElicitationSchemaBuilder {
     requireUniqueName(name);
     properties.put(
         name,
-        new StringPropertyBuilder(description).defaultValue(defaultValue).build(objectMapper));
+        new StringPropertyBuilder().description(description).defaultValue(defaultValue).build());
     return this;
   }
 
   public ElicitationSchemaBuilder string(
       String name, String description, Consumer<StringPropertyBuilder> customizer) {
     requireUniqueName(name);
-    StringPropertyBuilder builder = new StringPropertyBuilder(description);
+    StringPropertyBuilder builder = new StringPropertyBuilder().description(description);
     customizer.accept(builder);
-    properties.put(name, builder.build(objectMapper));
+    properties.put(name, builder.build());
     return this;
   }
 
@@ -65,7 +60,7 @@ public final class ElicitationSchemaBuilder {
 
   public ElicitationSchemaBuilder integer(String name, String description) {
     requireUniqueName(name);
-    properties.put(name, new IntegerPropertyBuilder(description).build(objectMapper));
+    properties.put(name, new IntegerPropertyBuilder().description(description).build());
     return this;
   }
 
@@ -73,16 +68,16 @@ public final class ElicitationSchemaBuilder {
     requireUniqueName(name);
     properties.put(
         name,
-        new IntegerPropertyBuilder(description).defaultValue(defaultValue).build(objectMapper));
+        new IntegerPropertyBuilder().description(description).defaultValue(defaultValue).build());
     return this;
   }
 
   public ElicitationSchemaBuilder integer(
       String name, String description, Consumer<IntegerPropertyBuilder> customizer) {
     requireUniqueName(name);
-    IntegerPropertyBuilder builder = new IntegerPropertyBuilder(description);
+    IntegerPropertyBuilder builder = new IntegerPropertyBuilder().description(description);
     customizer.accept(builder);
-    properties.put(name, builder.build(objectMapper));
+    properties.put(name, builder.build());
     return this;
   }
 
@@ -90,7 +85,7 @@ public final class ElicitationSchemaBuilder {
 
   public ElicitationSchemaBuilder number(String name, String description) {
     requireUniqueName(name);
-    properties.put(name, new NumberPropertyBuilder(description).build(objectMapper));
+    properties.put(name, new NumberPropertyBuilder().description(description).build());
     return this;
   }
 
@@ -98,16 +93,16 @@ public final class ElicitationSchemaBuilder {
     requireUniqueName(name);
     properties.put(
         name,
-        new NumberPropertyBuilder(description).defaultValue(defaultValue).build(objectMapper));
+        new NumberPropertyBuilder().description(description).defaultValue(defaultValue).build());
     return this;
   }
 
   public ElicitationSchemaBuilder number(
       String name, String description, Consumer<NumberPropertyBuilder> customizer) {
     requireUniqueName(name);
-    NumberPropertyBuilder builder = new NumberPropertyBuilder(description);
+    NumberPropertyBuilder builder = new NumberPropertyBuilder().description(description);
     customizer.accept(builder);
-    properties.put(name, builder.build(objectMapper));
+    properties.put(name, builder.build());
     return this;
   }
 
@@ -115,7 +110,7 @@ public final class ElicitationSchemaBuilder {
 
   public ElicitationSchemaBuilder bool(String name, String description) {
     requireUniqueName(name);
-    properties.put(name, new BooleanPropertyBuilder(description).build(objectMapper));
+    properties.put(name, new BooleanPropertyBuilder().description(description).build());
     return this;
   }
 
@@ -123,16 +118,16 @@ public final class ElicitationSchemaBuilder {
     requireUniqueName(name);
     properties.put(
         name,
-        new BooleanPropertyBuilder(description).defaultValue(defaultValue).build(objectMapper));
+        new BooleanPropertyBuilder().description(description).defaultValue(defaultValue).build());
     return this;
   }
 
   public ElicitationSchemaBuilder bool(
       String name, String description, Consumer<BooleanPropertyBuilder> customizer) {
     requireUniqueName(name);
-    BooleanPropertyBuilder builder = new BooleanPropertyBuilder(description);
+    BooleanPropertyBuilder builder = new BooleanPropertyBuilder().description(description);
     customizer.accept(builder);
-    properties.put(name, builder.build(objectMapper));
+    properties.put(name, builder.build());
     return this;
   }
 
@@ -140,15 +135,14 @@ public final class ElicitationSchemaBuilder {
 
   public <E extends Enum<E>> ElicitationSchemaBuilder choose(String name, Class<E> enumType) {
     requireUniqueName(name);
-    properties.put(name, ChooseOneBuilder.fromEnum(enumType).build(objectMapper));
+    properties.put(name, ChooseOneBuilder.fromEnum(enumType).build());
     return this;
   }
 
   public <E extends Enum<E>> ElicitationSchemaBuilder choose(
       String name, Class<E> enumType, E defaultValue) {
     requireUniqueName(name);
-    properties.put(
-        name, ChooseOneBuilder.fromEnum(enumType).defaultValue(defaultValue).build(objectMapper));
+    properties.put(name, ChooseOneBuilder.fromEnum(enumType).defaultValue(defaultValue).build());
     return this;
   }
 
@@ -157,7 +151,7 @@ public final class ElicitationSchemaBuilder {
     requireUniqueName(name);
     ChooseOneBuilder<E> builder = ChooseOneBuilder.fromEnum(enumType);
     customizer.accept(builder);
-    properties.put(name, builder.build(objectMapper));
+    properties.put(name, builder.build());
     return this;
   }
 
@@ -166,15 +160,14 @@ public final class ElicitationSchemaBuilder {
   public <T> ElicitationSchemaBuilder choose(
       String name, List<T> items, Function<T, String> valueFn) {
     requireUniqueName(name);
-    properties.put(name, ChooseOneBuilder.from(items, valueFn).build(objectMapper));
+    properties.put(name, ChooseOneBuilder.from(items, valueFn).build());
     return this;
   }
 
   public <T> ElicitationSchemaBuilder choose(
       String name, List<T> items, Function<T, String> valueFn, T defaultValue) {
     requireUniqueName(name);
-    properties.put(
-        name, ChooseOneBuilder.from(items, valueFn).defaultValue(defaultValue).build(objectMapper));
+    properties.put(name, ChooseOneBuilder.from(items, valueFn).defaultValue(defaultValue).build());
     return this;
   }
 
@@ -186,7 +179,7 @@ public final class ElicitationSchemaBuilder {
     requireUniqueName(name);
     ChooseOneBuilder<T> builder = ChooseOneBuilder.from(items, valueFn);
     customizer.accept(builder);
-    properties.put(name, builder.build(objectMapper));
+    properties.put(name, builder.build());
     return this;
   }
 
@@ -194,14 +187,13 @@ public final class ElicitationSchemaBuilder {
 
   public ElicitationSchemaBuilder choose(String name, List<String> values) {
     requireUniqueName(name);
-    properties.put(name, ChooseOneBuilder.from(values).build(objectMapper));
+    properties.put(name, ChooseOneBuilder.from(values).build());
     return this;
   }
 
   public ElicitationSchemaBuilder choose(String name, List<String> values, String defaultValue) {
     requireUniqueName(name);
-    properties.put(
-        name, ChooseOneBuilder.from(values).defaultValue(defaultValue).build(objectMapper));
+    properties.put(name, ChooseOneBuilder.from(values).defaultValue(defaultValue).build());
     return this;
   }
 
@@ -211,7 +203,7 @@ public final class ElicitationSchemaBuilder {
   public ElicitationSchemaBuilder chooseLegacy(
       String name, List<String> values, List<String> displayNames) {
     requireUniqueName(name);
-    properties.put(name, new ChooseLegacyBuilder(values, displayNames).build(objectMapper));
+    properties.put(name, new ChooseLegacyBuilder(values, displayNames).build());
     return this;
   }
 
@@ -219,7 +211,7 @@ public final class ElicitationSchemaBuilder {
 
   public <E extends Enum<E>> ElicitationSchemaBuilder chooseMany(String name, Class<E> enumType) {
     requireUniqueName(name);
-    properties.put(name, ChooseManyBuilder.fromEnum(enumType).build(objectMapper));
+    properties.put(name, ChooseManyBuilder.fromEnum(enumType).build());
     return this;
   }
 
@@ -228,7 +220,7 @@ public final class ElicitationSchemaBuilder {
     requireUniqueName(name);
     ChooseManyBuilder<E> builder = ChooseManyBuilder.fromEnum(enumType);
     customizer.accept(builder);
-    properties.put(name, builder.build(objectMapper));
+    properties.put(name, builder.build());
     return this;
   }
 
@@ -237,7 +229,7 @@ public final class ElicitationSchemaBuilder {
   public <T> ElicitationSchemaBuilder chooseMany(
       String name, List<T> items, Function<T, String> valueFn) {
     requireUniqueName(name);
-    properties.put(name, ChooseManyBuilder.from(items, valueFn).build(objectMapper));
+    properties.put(name, ChooseManyBuilder.from(items, valueFn).build());
     return this;
   }
 
@@ -249,7 +241,7 @@ public final class ElicitationSchemaBuilder {
     requireUniqueName(name);
     ChooseManyBuilder<T> builder = ChooseManyBuilder.from(items, valueFn);
     customizer.accept(builder);
-    properties.put(name, builder.build(objectMapper));
+    properties.put(name, builder.build());
     return this;
   }
 
@@ -257,21 +249,12 @@ public final class ElicitationSchemaBuilder {
 
   public ElicitationSchemaBuilder chooseMany(String name, List<String> values) {
     requireUniqueName(name);
-    properties.put(name, ChooseManyBuilder.from(values).build(objectMapper));
-    return this;
-  }
-
-  public ElicitationSchemaBuilder required(String... names) {
-    for (String name : names) {
-      if (!required.contains(name)) {
-        required.add(name);
-      }
-    }
+    properties.put(name, ChooseManyBuilder.from(values).build());
     return this;
   }
 
   public ElicitationSchema build() {
-    return new ElicitationSchema(new LinkedHashMap<>(properties), new ArrayList<>(required));
+    return new ElicitationSchema(new LinkedHashMap<>(properties));
   }
 
   private void requireUniqueName(String name) {

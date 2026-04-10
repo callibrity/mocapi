@@ -187,13 +187,9 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void requiredFieldsShouldBeIncluded() {
+  void requiredFieldsShouldBeIncludedByDefault() {
     ElicitationSchema schema =
-        ElicitationSchema.builder()
-            .string("name", "Name")
-            .string("email", "Email")
-            .required("name", "email")
-            .build();
+        ElicitationSchema.builder().string("name", "Name").string("email", "Email").build();
     ObjectNode node = schema.toObjectNode(objectMapper);
 
     assertThat(node.get("required")).hasSize(2);
@@ -202,8 +198,22 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void noRequiredFieldsShouldOmitRequiredArray() {
-    ElicitationSchema schema = ElicitationSchema.builder().string("name", "Name").build();
+  void optionalFieldsShouldBeExcludedFromRequired() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .string("name", "Name")
+            .string("nickname", "Nickname", s -> s.optional())
+            .build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+
+    assertThat(node.get("required")).hasSize(1);
+    assertThat(node.get("required").get(0).asString()).isEqualTo("name");
+  }
+
+  @Test
+  void allOptionalFieldsShouldOmitRequiredArray() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder().string("name", "Name", s -> s.optional()).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
 
     assertThat(node.has("required")).isFalse();
@@ -216,19 +226,6 @@ class ElicitationSchemaTest {
     assertThatThrownBy(() -> builder.string("name", "Name again"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Duplicate property name: name");
-  }
-
-  @Test
-  void requiredCalledMultipleTimesShouldNotDuplicate() {
-    ElicitationSchema schema =
-        ElicitationSchema.builder()
-            .string("name", "Name")
-            .required("name")
-            .required("name")
-            .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
-
-    assertThat(node.get("required")).hasSize(1);
   }
 
   // --- Customizer constraint tests ---
@@ -744,12 +741,11 @@ class ElicitationSchemaTest {
             .number("score", "Score")
             .bool("active", "Active")
             .choose("color", List.of("red", "blue"))
-            .required("name", "age")
             .build();
     ObjectNode node = schema.toObjectNode(objectMapper);
 
     assertThat(node.get("properties")).hasSize(5);
-    assertThat(node.get("required")).hasSize(2);
+    assertThat(node.get("required")).hasSize(5);
   }
 
   @Test
@@ -765,5 +761,14 @@ class ElicitationSchemaTest {
 
     assertThat(prop.get("oneOf").get(0).get("title").asString()).isEqualTo("Active");
     assertThat(prop.get("default").asString()).isEqualTo("active");
+  }
+
+  @Test
+  void requiredFieldShouldNotAppearInSerializedJson() {
+    ElicitationSchema schema = ElicitationSchema.builder().string("name", "Name").build();
+    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode prop = (ObjectNode) node.get("properties").get("name");
+
+    assertThat(prop.has("required")).isFalse();
   }
 }

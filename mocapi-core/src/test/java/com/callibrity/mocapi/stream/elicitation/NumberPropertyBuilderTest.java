@@ -18,58 +18,66 @@ package com.callibrity.mocapi.stream.elicitation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 class NumberPropertyBuilderTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-
   @Test
   void shouldBuildMinimalNumberProperty() {
-    ObjectNode node = new NumberPropertyBuilder("Score").build(objectMapper);
+    NumberPropertySchema schema = new NumberPropertyBuilder().description("Score").build();
 
-    assertThat(node.get("type").asString()).isEqualTo("number");
-    assertThat(node.get("description").asString()).isEqualTo("Score");
-    assertThat(node.has("default")).isFalse();
+    assertThat(schema.type()).isEqualTo("number");
+    assertThat(schema.description()).isEqualTo("Score");
+    assertThat(schema.defaultValue()).isNull();
+    assertThat(schema.required()).isTrue();
   }
 
   @Test
   void shouldIncludeTitle() {
-    ObjectNode node = new NumberPropertyBuilder("Score").title("Your Score").build(objectMapper);
+    NumberPropertySchema schema =
+        new NumberPropertyBuilder().description("Score").title("Your Score").build();
 
-    assertThat(node.get("title").asString()).isEqualTo("Your Score");
+    assertThat(schema.title()).isEqualTo("Your Score");
   }
 
   @Test
   void shouldIncludeDefaultValue() {
-    ObjectNode node = new NumberPropertyBuilder("Score").defaultValue(95.5).build(objectMapper);
+    NumberPropertySchema schema =
+        new NumberPropertyBuilder().description("Score").defaultValue(95.5).build();
 
-    assertThat(node.get("default").asDouble()).isEqualTo(95.5);
+    assertThat(schema.defaultValue()).isEqualTo(95.5);
   }
 
   @Test
   void shouldIncludeMinimumAndMaximum() {
-    ObjectNode node =
-        new NumberPropertyBuilder("Score").minimum(0.0).maximum(100.0).build(objectMapper);
+    NumberPropertySchema schema =
+        new NumberPropertyBuilder().description("Score").minimum(0.0).maximum(100.0).build();
 
-    assertThat(node.get("minimum").asDouble()).isEqualTo(0.0);
-    assertThat(node.get("maximum").asDouble()).isEqualTo(100.0);
+    assertThat(schema.minimum()).isEqualTo(0.0);
+    assertThat(schema.maximum()).isEqualTo(100.0);
   }
 
   @Test
   void shouldChainAllConstraints() {
-    ObjectNode node =
-        new NumberPropertyBuilder("Score")
+    NumberPropertySchema schema =
+        new NumberPropertyBuilder()
+            .description("Score")
             .title("Your Score")
             .defaultValue(75.0)
             .minimum(0.0)
             .maximum(100.0)
-            .build(objectMapper);
+            .build();
 
-    assertThat(node.get("title").asString()).isEqualTo("Your Score");
-    assertThat(node.get("default").asDouble()).isEqualTo(75.0);
-    assertThat(node.get("minimum").asDouble()).isEqualTo(0.0);
-    assertThat(node.get("maximum").asDouble()).isEqualTo(100.0);
+    assertThat(schema.title()).isEqualTo("Your Score");
+    assertThat(schema.defaultValue()).isEqualTo(75.0);
+    assertThat(schema.minimum()).isEqualTo(0.0);
+    assertThat(schema.maximum()).isEqualTo(100.0);
+  }
+
+  @Test
+  void optionalShouldSetRequiredFalse() {
+    NumberPropertySchema schema =
+        new NumberPropertyBuilder().description("Score").optional().build();
+
+    assertThat(schema.required()).isFalse();
   }
 }

@@ -15,24 +15,14 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
-import org.junit.jupiter.api.Test;
 
-class ChooseLegacyBuilderTest {
+/** Items schema for untitled multi-select using plain enum values. */
+public record EnumItemsSchema(@JsonProperty("enum") List<String> values) {
 
-  @Test
-  void shouldProduceEnumWithEnumNames() {
-    LegacyEnumPropertySchema schema =
-        new ChooseLegacyBuilder(
-                List.of("opt1", "opt2", "opt3"),
-                List.of("Option One", "Option Two", "Option Three"))
-            .build();
-
-    assertThat(schema.type()).isEqualTo("string");
-    assertThat(schema.values()).containsExactly("opt1", "opt2", "opt3");
-    assertThat(schema.enumNames()).containsExactly("Option One", "Option Two", "Option Three");
-    assertThat(schema.required()).isTrue();
+  @JsonProperty("type")
+  public String type() {
+    return "string";
   }
 }

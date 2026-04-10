@@ -18,57 +18,66 @@ package com.callibrity.mocapi.stream.elicitation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 class IntegerPropertyBuilderTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-
   @Test
   void shouldBuildMinimalIntegerProperty() {
-    ObjectNode node = new IntegerPropertyBuilder("Age").build(objectMapper);
+    IntegerPropertySchema schema = new IntegerPropertyBuilder().description("Age").build();
 
-    assertThat(node.get("type").asString()).isEqualTo("integer");
-    assertThat(node.get("description").asString()).isEqualTo("Age");
-    assertThat(node.has("default")).isFalse();
+    assertThat(schema.type()).isEqualTo("integer");
+    assertThat(schema.description()).isEqualTo("Age");
+    assertThat(schema.defaultValue()).isNull();
+    assertThat(schema.required()).isTrue();
   }
 
   @Test
   void shouldIncludeTitle() {
-    ObjectNode node = new IntegerPropertyBuilder("Age").title("Your Age").build(objectMapper);
+    IntegerPropertySchema schema =
+        new IntegerPropertyBuilder().description("Age").title("Your Age").build();
 
-    assertThat(node.get("title").asString()).isEqualTo("Your Age");
+    assertThat(schema.title()).isEqualTo("Your Age");
   }
 
   @Test
   void shouldIncludeDefaultValue() {
-    ObjectNode node = new IntegerPropertyBuilder("Age").defaultValue(30).build(objectMapper);
+    IntegerPropertySchema schema =
+        new IntegerPropertyBuilder().description("Age").defaultValue(30).build();
 
-    assertThat(node.get("default").asInt()).isEqualTo(30);
+    assertThat(schema.defaultValue()).isEqualTo(30);
   }
 
   @Test
   void shouldIncludeMinimumAndMaximum() {
-    ObjectNode node = new IntegerPropertyBuilder("Age").minimum(0).maximum(150).build(objectMapper);
+    IntegerPropertySchema schema =
+        new IntegerPropertyBuilder().description("Age").minimum(0).maximum(150).build();
 
-    assertThat(node.get("minimum").asDouble()).isEqualTo(0.0);
-    assertThat(node.get("maximum").asDouble()).isEqualTo(150.0);
+    assertThat(schema.minimum()).isEqualTo(0);
+    assertThat(schema.maximum()).isEqualTo(150);
   }
 
   @Test
   void shouldChainAllConstraints() {
-    ObjectNode node =
-        new IntegerPropertyBuilder("Age")
+    IntegerPropertySchema schema =
+        new IntegerPropertyBuilder()
+            .description("Age")
             .title("Your Age")
             .defaultValue(25)
             .minimum(0)
             .maximum(150)
-            .build(objectMapper);
+            .build();
 
-    assertThat(node.get("title").asString()).isEqualTo("Your Age");
-    assertThat(node.get("default").asInt()).isEqualTo(25);
-    assertThat(node.get("minimum").asDouble()).isEqualTo(0.0);
-    assertThat(node.get("maximum").asDouble()).isEqualTo(150.0);
+    assertThat(schema.title()).isEqualTo("Your Age");
+    assertThat(schema.defaultValue()).isEqualTo(25);
+    assertThat(schema.minimum()).isEqualTo(0);
+    assertThat(schema.maximum()).isEqualTo(150);
+  }
+
+  @Test
+  void optionalShouldSetRequiredFalse() {
+    IntegerPropertySchema schema =
+        new IntegerPropertyBuilder().description("Age").optional().build();
+
+    assertThat(schema.required()).isFalse();
   }
 }

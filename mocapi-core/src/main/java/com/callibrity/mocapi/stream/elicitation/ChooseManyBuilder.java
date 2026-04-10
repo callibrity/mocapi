@@ -17,9 +17,6 @@ package com.callibrity.mocapi.stream.elicitation;
 
 import java.util.List;
 import java.util.function.Function;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Builder for multi-select (choose many) elicitation schema properties.
@@ -35,6 +32,9 @@ public final class ChooseManyBuilder<T> {
   private Integer minItems;
   private Integer maxItems;
   private boolean rawStrings;
+  private String description;
+  private String title;
+  private boolean required = true;
 
   private ChooseManyBuilder(List<T> items, Function<T, String> valueFn, boolean rawStrings) {
     this.items = items;
@@ -60,6 +60,21 @@ public final class ChooseManyBuilder<T> {
     return new ChooseManyBuilder<>(values, Function.identity(), true);
   }
 
+  public ChooseManyBuilder<T> description(String description) {
+    this.description = description;
+    return this;
+  }
+
+  public ChooseManyBuilder<T> title(String title) {
+    this.title = title;
+    return this;
+  }
+
+  public ChooseManyBuilder<T> optional() {
+    this.required = false;
+    return this;
+  }
+
   public ChooseManyBuilder<T> titleFn(Function<T, String> titleFn) {
     this.titleFn = titleFn;
     this.rawStrings = false;
@@ -81,63 +96,24 @@ public final class ChooseManyBuilder<T> {
     return this;
   }
 
-  public ObjectNode build(ObjectMapper objectMapper) {
-    ObjectNode prop;
-    if (rawStrings && titleFn == null) {
-      prop = buildArrayOfEnumNode(objectMapper);
-    } else {
-      Function<T, String> effectiveTitleFn = titleFn != null ? titleFn : Object::toString;
-      prop = buildArrayOfAnyOfNode(objectMapper, effectiveTitleFn);
-    }
-    applyConstraints(prop, objectMapper);
-    return prop;
-  }
-
-  private ObjectNode buildArrayOfEnumNode(ObjectMapper objectMapper) {
-    ObjectNode prop = objectMapper.createObjectNode();
-    prop.put("type", "array");
-    ObjectNode itemsNode = objectMapper.createObjectNode();
-    itemsNode.put("type", "string");
-    ArrayNode enumArray = objectMapper.createArrayNode();
-    for (T item : items) {
-      enumArray.add(valueFn.apply(item));
-    }
-    itemsNode.set("enum", enumArray);
-    prop.set("items", itemsNode);
-    return prop;
-  }
-
-  private ObjectNode buildArrayOfAnyOfNode(
-      ObjectMapper objectMapper, Function<T, String> effectiveTitleFn) {
-    ObjectNode prop = objectMapper.createObjectNode();
-    prop.put("type", "array");
-    ObjectNode itemsNode = objectMapper.createObjectNode();
-    itemsNode.put("type", "string");
-    ArrayNode anyOf = objectMapper.createArrayNode();
-    for (T item : items) {
-      ObjectNode option = objectMapper.createObjectNode();
-      option.put("const", valueFn.apply(item));
-      option.put("title", effectiveTitleFn.apply(item));
-      anyOf.add(option);
-    }
-    itemsNode.set("anyOf", anyOf);
-    prop.set("items", itemsNode);
-    return prop;
-  }
-
-  private void applyConstraints(ObjectNode prop, ObjectMapper objectMapper) {
+  public PropertySchema build() {
+    List<String> defaultValues = null;
     if (defaults != null && !defaults.isEmpty()) {
-      ArrayNode defaultArray = objectMapper.createArrayNode();
-      for (T d : defaults) {
-        defaultArray.add(valueFn.apply(d));
-      }
-      prop.set("default", defaultArray);
+      defaultValues = defaults.stream().map(valueFn).toList();
     }
-    if (minItems != null) {
-      prop.put("minItems", minItems);
+    if (rawStrings && titleFn == null) {
+      List<String> values = items.stream().map(valueFn).toList();
+      EnumItemsSchema itemsSchema = new EnumItemsSchema(values);
+      return new MultiSelectPropertySchema(
+          required, description, title, itemsSchema, defaultValues, minItems, maxItems);
     }
-    if (maxItems != null) {
-      prop.put("maxItems", maxItems);
-    }
+    Function<T, String> effectiveTitleFn = titleFn != null ? titleFn : Object::toString;
+    List<EnumOption> options =
+        items.stream()
+            .map(item -> new EnumOption(valueFn.apply(item), effectiveTitleFn.apply(item)))
+            .toList();
+    TitledEnumItemsSchema itemsSchema = new TitledEnumItemsSchema(options);
+    return new TitledMultiSelectPropertySchema(
+        required, description, title, itemsSchema, defaultValues, minItems, maxItems);
   }
 }

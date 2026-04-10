@@ -15,26 +15,32 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
-
 /** Builder for string-typed elicitation schema properties. */
 public final class StringPropertyBuilder {
 
-  private final String description;
+  private String description;
   private String title;
+  private boolean required = true;
   private String defaultValue;
   private Integer minLength;
   private Integer maxLength;
   private String pattern;
   private String format;
 
-  public StringPropertyBuilder(String description) {
+  public StringPropertyBuilder() {}
+
+  public StringPropertyBuilder description(String description) {
     this.description = description;
+    return this;
   }
 
   public StringPropertyBuilder title(String title) {
     this.title = title;
+    return this;
+  }
+
+  public StringPropertyBuilder optional() {
+    this.required = false;
     return this;
   }
 
@@ -82,28 +88,8 @@ public final class StringPropertyBuilder {
     return this;
   }
 
-  public ObjectNode build(ObjectMapper objectMapper) {
-    ObjectNode prop = objectMapper.createObjectNode();
-    prop.put("type", "string");
-    prop.put("description", description);
-    if (title != null) {
-      prop.put("title", title);
-    }
-    if (defaultValue != null) {
-      prop.put("default", defaultValue);
-    }
-    if (minLength != null) {
-      prop.put("minLength", minLength);
-    }
-    if (maxLength != null) {
-      prop.put("maxLength", maxLength);
-    }
-    if (pattern != null) {
-      prop.put("pattern", pattern);
-    }
-    if (format != null) {
-      prop.put("format", format);
-    }
-    return prop;
+  public StringPropertySchema build() {
+    return new StringPropertySchema(
+        required, description, title, defaultValue, minLength, maxLength, pattern, format);
   }
 }

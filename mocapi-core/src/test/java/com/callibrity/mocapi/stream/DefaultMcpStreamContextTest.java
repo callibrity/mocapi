@@ -481,11 +481,7 @@ class DefaultMcpStreamContextTest {
     ElicitationResult result =
         context.elicit(
             "Enter your info",
-            schema ->
-                schema
-                    .string("username", "User's name")
-                    .string("email", "User's email")
-                    .required("username", "email"));
+            schema -> schema.string("username", "User's name").string("email", "User's email"));
 
     assertThat(result.isAccepted()).isTrue();
     assertThat(result.getString("username")).isEqualTo("Alice");

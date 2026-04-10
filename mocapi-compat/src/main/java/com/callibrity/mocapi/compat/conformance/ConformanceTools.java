@@ -352,7 +352,6 @@ public class ConformanceTools {
             schema -> {
               schema.string("username", "User's response");
               schema.string("email", "User's email address");
-              schema.required("username", "email");
             });
     String content = result.isAccepted() ? result.getString("username") : "n/a";
     return new CallToolResponse(

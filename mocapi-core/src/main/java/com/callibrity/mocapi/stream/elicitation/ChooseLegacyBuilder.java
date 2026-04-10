@@ -16,9 +16,6 @@
 package com.callibrity.mocapi.stream.elicitation;
 
 import java.util.List;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Builder for the deprecated {@code enum} + {@code enumNames} single-select format. Retained for
@@ -31,25 +28,31 @@ public final class ChooseLegacyBuilder {
 
   private final List<String> values;
   private final List<String> displayNames;
+  private String description;
+  private String title;
+  private boolean required = true;
 
   public ChooseLegacyBuilder(List<String> values, List<String> displayNames) {
     this.values = values;
     this.displayNames = displayNames;
   }
 
-  public ObjectNode build(ObjectMapper objectMapper) {
-    ObjectNode prop = objectMapper.createObjectNode();
-    prop.put("type", "string");
-    ArrayNode enumArray = objectMapper.createArrayNode();
-    for (String value : values) {
-      enumArray.add(value);
-    }
-    prop.set("enum", enumArray);
-    ArrayNode enumNames = objectMapper.createArrayNode();
-    for (String dn : displayNames) {
-      enumNames.add(dn);
-    }
-    prop.set("enumNames", enumNames);
-    return prop;
+  public ChooseLegacyBuilder description(String description) {
+    this.description = description;
+    return this;
+  }
+
+  public ChooseLegacyBuilder title(String title) {
+    this.title = title;
+    return this;
+  }
+
+  public ChooseLegacyBuilder optional() {
+    this.required = false;
+    return this;
+  }
+
+  public LegacyEnumPropertySchema build() {
+    return new LegacyEnumPropertySchema(required, description, title, values, displayNames, null);
   }
 }

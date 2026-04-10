@@ -17,9 +17,6 @@ package com.callibrity.mocapi.stream.elicitation;
 
 import java.util.List;
 import java.util.function.Function;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Builder for single-select (choose one) elicitation schema properties.
@@ -33,6 +30,9 @@ public final class ChooseOneBuilder<T> {
   private Function<T, String> titleFn;
   private T defaultValue;
   private boolean rawStrings;
+  private String description;
+  private String title;
+  private boolean required = true;
 
   private ChooseOneBuilder(List<T> items, Function<T, String> valueFn, boolean rawStrings) {
     this.items = items;
@@ -58,6 +58,21 @@ public final class ChooseOneBuilder<T> {
     return new ChooseOneBuilder<>(values, Function.identity(), true);
   }
 
+  public ChooseOneBuilder<T> description(String description) {
+    this.description = description;
+    return this;
+  }
+
+  public ChooseOneBuilder<T> title(String title) {
+    this.title = title;
+    return this;
+  }
+
+  public ChooseOneBuilder<T> optional() {
+    this.required = false;
+    return this;
+  }
+
   public ChooseOneBuilder<T> titleFn(Function<T, String> titleFn) {
     this.titleFn = titleFn;
     this.rawStrings = false;
@@ -69,43 +84,17 @@ public final class ChooseOneBuilder<T> {
     return this;
   }
 
-  public ObjectNode build(ObjectMapper objectMapper) {
-    ObjectNode prop;
+  public PropertySchema build() {
+    String defaultStr = defaultValue != null ? valueFn.apply(defaultValue) : null;
     if (rawStrings && titleFn == null) {
-      prop = buildEnumNode(objectMapper);
-    } else {
-      Function<T, String> effectiveTitleFn = titleFn != null ? titleFn : Object::toString;
-      prop = buildOneOfNode(objectMapper, effectiveTitleFn);
+      List<String> values = items.stream().map(valueFn).toList();
+      return new EnumPropertySchema(required, description, title, values, defaultStr);
     }
-    if (defaultValue != null) {
-      prop.put("default", valueFn.apply(defaultValue));
-    }
-    return prop;
-  }
-
-  private ObjectNode buildEnumNode(ObjectMapper objectMapper) {
-    ObjectNode prop = objectMapper.createObjectNode();
-    prop.put("type", "string");
-    ArrayNode enumArray = objectMapper.createArrayNode();
-    for (T item : items) {
-      enumArray.add(valueFn.apply(item));
-    }
-    prop.set("enum", enumArray);
-    return prop;
-  }
-
-  private ObjectNode buildOneOfNode(
-      ObjectMapper objectMapper, Function<T, String> effectiveTitleFn) {
-    ObjectNode prop = objectMapper.createObjectNode();
-    prop.put("type", "string");
-    ArrayNode oneOf = objectMapper.createArrayNode();
-    for (T item : items) {
-      ObjectNode option = objectMapper.createObjectNode();
-      option.put("const", valueFn.apply(item));
-      option.put("title", effectiveTitleFn.apply(item));
-      oneOf.add(option);
-    }
-    prop.set("oneOf", oneOf);
-    return prop;
+    Function<T, String> effectiveTitleFn = titleFn != null ? titleFn : Object::toString;
+    List<EnumOption> options =
+        items.stream()
+            .map(item -> new EnumOption(valueFn.apply(item), effectiveTitleFn.apply(item)))
+            .toList();
+    return new TitledEnumPropertySchema(required, description, title, options, defaultStr);
   }
 }

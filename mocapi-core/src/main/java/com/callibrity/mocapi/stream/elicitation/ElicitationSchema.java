@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import tools.jackson.databind.ObjectMapper;
@@ -22,17 +23,16 @@ import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * An MCP elicitation schema. Wraps the property definitions and required fields, and renders them
- * as a JSON Schema object node.
+ * An MCP elicitation schema. Wraps the property definitions and renders them as a JSON Schema
+ * object node. Required fields are derived from each property's {@link PropertySchema#required()}
+ * flag.
  */
 public final class ElicitationSchema {
 
-  private final Map<String, ObjectNode> properties;
-  private final List<String> required;
+  private final Map<String, PropertySchema> properties;
 
-  ElicitationSchema(Map<String, ObjectNode> properties, List<String> required) {
+  ElicitationSchema(Map<String, PropertySchema> properties) {
     this.properties = properties;
-    this.required = required;
   }
 
   /** Creates a new builder for constructing an {@link ElicitationSchema}. */
@@ -51,8 +51,13 @@ public final class ElicitationSchema {
     schema.put("type", "object");
 
     ObjectNode propsNode = objectMapper.createObjectNode();
+    List<String> required = new ArrayList<>();
+
     for (var entry : properties.entrySet()) {
-      propsNode.set(entry.getKey(), entry.getValue());
+      propsNode.set(entry.getKey(), objectMapper.valueToTree(entry.getValue()));
+      if (entry.getValue().required()) {
+        required.add(entry.getKey());
+      }
     }
     schema.set("properties", propsNode);
 

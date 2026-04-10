@@ -15,24 +15,30 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
-
 /** Builder for number-typed elicitation schema properties. */
 public final class NumberPropertyBuilder {
 
-  private final String description;
+  private String description;
   private String title;
+  private boolean required = true;
   private Double defaultValue;
   private Number minimum;
   private Number maximum;
 
-  public NumberPropertyBuilder(String description) {
+  public NumberPropertyBuilder() {}
+
+  public NumberPropertyBuilder description(String description) {
     this.description = description;
+    return this;
   }
 
   public NumberPropertyBuilder title(String title) {
     this.title = title;
+    return this;
+  }
+
+  public NumberPropertyBuilder optional() {
+    this.required = false;
     return this;
   }
 
@@ -51,22 +57,7 @@ public final class NumberPropertyBuilder {
     return this;
   }
 
-  public ObjectNode build(ObjectMapper objectMapper) {
-    ObjectNode prop = objectMapper.createObjectNode();
-    prop.put("type", "number");
-    prop.put("description", description);
-    if (title != null) {
-      prop.put("title", title);
-    }
-    if (defaultValue != null) {
-      prop.put("default", defaultValue);
-    }
-    if (minimum != null) {
-      prop.put("minimum", minimum.doubleValue());
-    }
-    if (maximum != null) {
-      prop.put("maximum", maximum.doubleValue());
-    }
-    return prop;
+  public NumberPropertySchema build() {
+    return new NumberPropertySchema(required, description, title, defaultValue, minimum, maximum);
   }
 }

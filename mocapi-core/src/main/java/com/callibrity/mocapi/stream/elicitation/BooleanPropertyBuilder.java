@@ -15,22 +15,28 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
-
 /** Builder for boolean-typed elicitation schema properties. */
 public final class BooleanPropertyBuilder {
 
-  private final String description;
+  private String description;
   private String title;
+  private boolean required = true;
   private Boolean defaultValue;
 
-  public BooleanPropertyBuilder(String description) {
+  public BooleanPropertyBuilder() {}
+
+  public BooleanPropertyBuilder description(String description) {
     this.description = description;
+    return this;
   }
 
   public BooleanPropertyBuilder title(String title) {
     this.title = title;
+    return this;
+  }
+
+  public BooleanPropertyBuilder optional() {
+    this.required = false;
     return this;
   }
 
@@ -39,16 +45,7 @@ public final class BooleanPropertyBuilder {
     return this;
   }
 
-  public ObjectNode build(ObjectMapper objectMapper) {
-    ObjectNode prop = objectMapper.createObjectNode();
-    prop.put("type", "boolean");
-    prop.put("description", description);
-    if (title != null) {
-      prop.put("title", title);
-    }
-    if (defaultValue != null) {
-      prop.put("default", defaultValue);
-    }
-    return prop;
+  public BooleanPropertySchema build() {
+    return new BooleanPropertySchema(required, description, title, defaultValue);
   }
 }
