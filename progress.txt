@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T00:12:00-04:00
-ITERATION: 86
-SPEC_COMPLETED: 087-migrate-prompts-to-model.md
-WHAT_WAS_DONE: Migrated all prompt types in mocapi-core to use canonical types from mocapi-model: replaced McpPrompt.Descriptor with model.Prompt, GetPromptResponse with GetPromptResult, ListPromptsResponse with ListPromptsResult, core PromptMessage/PromptArgument/Icon with model equivalents; deleted entire content type hierarchy (ContentBlock, TextContent, ImageContent, AudioContent, ResourceLink, EmbeddedResource, Annotations) from core in favor of model equivalents; updated CallToolResponse to use model.ContentBlock; updated PromptsRegistry, McpPromptMethods, ConformancePrompts, ConformanceTools, ToolsRegistry, and all unit tests. Also fixed pre-existing @Tool→@ToolMethod annotation rename in ConformanceTools.
+LAST_RUN: 2026-04-10T00:15:08-04:00
+ITERATION: 87
+SPEC_COMPLETED: 088-uppercase-enums-with-json-value.md
+WHAT_WAS_DONE: Converted Role and LoggingLevel enums in mocapi-model from lowercase constants to uppercase Java names (USER, ASSISTANT, DEBUG, INFO, etc.) with @JsonValue for lowercase JSON serialization and @JsonCreator for case-insensitive deserialization; updated all references across mocapi-model tests, mocapi-core tests, and mocapi-compat ConformancePrompts.
 VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests, spotless and license checks pass
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: The content package now contains only CallToolResponse (still referencing model.ContentBlock). The @Tool→@ToolMethod rename in ConformanceTools was a pre-existing issue from a prior spec that was masked by cached class files; fixed as part of this iteration. Model types use Role enum instead of String for roles, and Boolean wrapper instead of boolean primitive for PromptArgument.required. Model content types lack convenience constructors so null is passed explicitly for annotations parameter.
+NOTES: Used com.fasterxml.jackson.annotation (not tools.jackson.annotation) to match the existing annotation package convention in mocapi-model. The LogLevel enum in mocapi-core already followed this pattern and was not modified. The ProtocolTypesSerializationTest.loggingLevelValues() assertion was updated to expect uppercase Enum.name() values since the test uses Enum::name extractor.

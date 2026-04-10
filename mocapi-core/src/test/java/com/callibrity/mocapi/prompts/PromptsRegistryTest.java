@@ -51,7 +51,7 @@ class PromptsRegistryTest {
             descriptor().description(),
             List.of(
                 new PromptMessage(
-                    Role.user, List.of(new TextContent("Hello from " + name, null)))));
+                    Role.USER, List.of(new TextContent("Hello from " + name, null)))));
       }
     };
   }

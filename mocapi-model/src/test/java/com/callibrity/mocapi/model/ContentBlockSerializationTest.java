@@ -89,7 +89,7 @@ class ContentBlockSerializationTest {
 
   @Test
   void textContentWithAnnotations() throws Exception {
-    var annotations = new Annotations(List.of(Role.user), 0.8, "2025-01-01T00:00:00Z");
+    var annotations = new Annotations(List.of(Role.USER), 0.8, "2025-01-01T00:00:00Z");
     var original = new TextContent("annotated", annotations);
     String json = mapper.writeValueAsString(original);
     assertThat(json).contains("\"audience\":[\"user\"]");
@@ -98,7 +98,7 @@ class ContentBlockSerializationTest {
     ContentBlock deserialized = mapper.readValue(json, ContentBlock.class);
     assertThat(deserialized).isInstanceOf(TextContent.class);
     var text = (TextContent) deserialized;
-    assertThat(text.annotations().audience()).containsExactly(Role.user);
+    assertThat(text.annotations().audience()).containsExactly(Role.USER);
     assertThat(text.annotations().priority()).isEqualTo(0.8);
   }
 }

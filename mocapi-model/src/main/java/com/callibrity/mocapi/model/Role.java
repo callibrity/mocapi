@@ -15,7 +15,21 @@
  */
 package com.callibrity.mocapi.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.Locale;
+
 public enum Role {
-  user,
-  assistant
+  USER,
+  ASSISTANT;
+
+  @JsonValue
+  public String toJson() {
+    return name().toLowerCase(Locale.ROOT);
+  }
+
+  @JsonCreator
+  public static Role fromJson(String value) {
+    return valueOf(value.toUpperCase(Locale.ROOT));
+  }
 }

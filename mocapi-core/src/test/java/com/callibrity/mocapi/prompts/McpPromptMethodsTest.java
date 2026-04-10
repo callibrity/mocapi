@@ -50,7 +50,7 @@ class McpPromptMethodsTest {
               "A greeting prompt",
               List.of(
                   new PromptMessage(
-                      Role.user, List.of(new TextContent("Hello, " + name + "!", null)))));
+                      Role.USER, List.of(new TextContent("Hello, " + name + "!", null)))));
         }
       };
 
@@ -72,7 +72,7 @@ class McpPromptMethodsTest {
     var response = methods.getPrompt("greet", Map.of("name", "Mocapi"));
 
     assertThat(response.messages()).hasSize(1);
-    assertThat(response.messages().getFirst().role()).isEqualTo(Role.user);
+    assertThat(response.messages().getFirst().role()).isEqualTo(Role.USER);
     assertThat(response.messages().getFirst().content()).hasSize(1);
     assertThat(response.messages().getFirst().content().getFirst()).isInstanceOf(TextContent.class);
     assertThat(((TextContent) response.messages().getFirst().content().getFirst()).text())

@@ -124,7 +124,7 @@ public class ConformancePrompts {
             "A simple test prompt",
             List.of(
                 new PromptMessage(
-                    Role.user,
+                    Role.USER,
                     List.of(new TextContent("This is a simple prompt for testing.", null)))));
       }
     };
@@ -153,7 +153,7 @@ public class ConformancePrompts {
             "A test prompt with arguments",
             List.of(
                 new PromptMessage(
-                    Role.user,
+                    Role.USER,
                     List.of(
                         new TextContent(
                             String.format(
@@ -183,7 +183,7 @@ public class ConformancePrompts {
             "A test prompt with an embedded resource",
             List.of(
                 new PromptMessage(
-                    Role.user,
+                    Role.USER,
                     List.of(
                         new EmbeddedResource(
                             new TextResourceContents(
@@ -192,7 +192,7 @@ public class ConformancePrompts {
                                 "Embedded resource content for testing."),
                             null))),
                 new PromptMessage(
-                    Role.user,
+                    Role.USER,
                     List.of(
                         new TextContent("Please process the embedded resource above.", null)))));
       }
@@ -214,9 +214,9 @@ public class ConformancePrompts {
             "A test prompt with an image",
             List.of(
                 new PromptMessage(
-                    Role.user, List.of(new ImageContent(TINY_PNG, "image/png", null))),
+                    Role.USER, List.of(new ImageContent(TINY_PNG, "image/png", null))),
                 new PromptMessage(
-                    Role.user, List.of(new TextContent("Please analyze the image above.", null)))));
+                    Role.USER, List.of(new TextContent("Please analyze the image above.", null)))));
       }
     };
   }

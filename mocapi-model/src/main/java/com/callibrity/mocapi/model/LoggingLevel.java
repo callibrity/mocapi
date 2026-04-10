@@ -15,13 +15,27 @@
  */
 package com.callibrity.mocapi.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.Locale;
+
 public enum LoggingLevel {
-  debug,
-  info,
-  notice,
-  warning,
-  error,
-  critical,
-  alert,
-  emergency
+  DEBUG,
+  INFO,
+  NOTICE,
+  WARNING,
+  ERROR,
+  CRITICAL,
+  ALERT,
+  EMERGENCY;
+
+  @JsonValue
+  public String toJson() {
+    return name().toLowerCase(Locale.ROOT);
+  }
+
+  @JsonCreator
+  public static LoggingLevel fromJson(String value) {
+    return valueOf(value.toUpperCase(Locale.ROOT));
+  }
 }
