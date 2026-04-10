@@ -106,7 +106,7 @@ class RequestAndNotificationTypesSerializationTest {
 
     var deserialized = mapper.readValue(json, CallToolRequestParams.class);
     assertThat(deserialized.name()).isEqualTo("myTool");
-    assertThat(deserialized.arguments().get("key").asText()).isEqualTo("value");
+    assertThat(deserialized.arguments().get("key").asString()).isEqualTo("value");
   }
 
   @Test
