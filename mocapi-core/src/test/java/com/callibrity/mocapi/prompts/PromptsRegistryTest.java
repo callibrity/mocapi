@@ -47,7 +47,8 @@ class PromptsRegistryTest {
       public GetPromptResponse get(Map<String, String> arguments) {
         return new GetPromptResponse(
             description(),
-            List.of(new PromptMessage("user", new TextPromptContent("Hello from " + name))));
+            List.of(
+                new PromptMessage("user", List.of(new TextPromptContent("Hello from " + name)))));
       }
     };
   }

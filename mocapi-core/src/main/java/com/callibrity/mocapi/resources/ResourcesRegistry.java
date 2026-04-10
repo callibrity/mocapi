@@ -37,11 +37,17 @@ public class ResourcesRegistry {
   private final Map<UriTemplate, McpResourceTemplate> templates;
   private final int pageSize;
   private final Set<String> subscribedUris = ConcurrentHashMap.newKeySet();
+  private final List<McpResource.Descriptor> resourceDescriptors;
 
   public ResourcesRegistry(
       List<McpResource> resources, List<McpResourceTemplate> templates, int pageSize) {
     this.resources =
-        resources.stream().collect(Collectors.toMap(McpResource::uri, r -> r, (a, b) -> a));
+        resources.stream().collect(Collectors.toMap(r -> r.descriptor().uri(), r -> r));
+    this.resourceDescriptors =
+        resources.stream()
+            .map(McpResource::descriptor)
+            .sorted(Comparator.comparing(McpResource.Descriptor::uri))
+            .toList();
     this.templates =
         templates.stream()
             .collect(
@@ -60,7 +66,12 @@ public class ResourcesRegistry {
   public ListResourcesResponse listResources(String cursor) {
     List<McpResourceDescriptor> allResources =
         resources.values().stream()
-            .map(r -> new McpResourceDescriptor(r.uri(), r.name(), r.description(), r.mimeType()))
+            .map(
+                r -> {
+                  var d = r.descriptor();
+                  return new McpResourceDescriptor(
+                      d.uri(), d.name(), d.description(), d.mimeType());
+                })
             .sorted(Comparator.comparing(McpResourceDescriptor::uri))
             .toList();
     return paginateResources(allResources, cursor);

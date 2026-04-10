@@ -51,7 +51,10 @@ public class PromptsRegistry {
   public ListPromptsResponse listPrompts(String cursor) {
     List<McpPromptDescriptor> allDescriptors =
         prompts.values().stream()
-            .map(p -> new McpPromptDescriptor(p.name(), p.description(), p.arguments()))
+            .map(
+                p ->
+                    new McpPromptDescriptor(
+                        p.name(), p.title(), p.description(), p.icons(), p.arguments()))
             .sorted(Comparator.comparing(McpPromptDescriptor::name))
             .toList();
     return paginate(allDescriptors, cursor);

@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T22:36:00-04:00
-ITERATION: 80
-SPEC_COMPLETED: 081-remove-prompt-and-resource-providers.md
-WHAT_WAS_DONE: Removed McpPromptProvider interface and refactored PromptsRegistry to accept List<McpPrompt> directly. Updated MocapiPromptsAutoConfiguration to inject List<McpPrompt> (removed @ConditionalOnBean since Spring injects empty lists). Converted ConformancePrompts from @Component implementing McpPromptProvider to @Configuration with individual @Bean methods. Updated PromptsRegistryTest and McpPromptMethodsTest to pass prompts directly. McpResourceProvider was already deleted by spec 080.
-VERIFICATION: mvn verify — BUILD SUCCESS, all tests pass (80 integration tests, all unit tests), 0 failures, spotless and license checks pass
-STATUS: MORE_WORK
-NEXT_SPEC: 082-prompts-spec-compliance.md
-NOTES: The prompts subsystem now mirrors the resources subsystem pattern — individual beans collected via Spring's List injection, no provider intermediary. Both McpPromptProvider and McpResourceProvider are fully deleted.
+LAST_RUN: 2026-04-09T22:48:00-04:00
+ITERATION: 81
+SPEC_COMPLETED: 082-prompts-spec-compliance.md
+WHAT_WAS_DONE: Full MCP 2025-11-25 prompts spec compliance — PromptMessage.content is now List<PromptContent>; added AudioPromptContent, ResourceLinkContent, Annotations, and Icon records; McpPrompt/McpPromptDescriptor now have title and icons fields; prompt capability reports listChanged: false; all conformance prompts and tests updated for array content format. Also fixed pre-existing compile errors in McpResource/ResourcesRegistry/ConformanceResources (descriptor() refactor from spec 080/081 was incomplete), a typo in Cursors.java, and a missing license header.
+VERIFICATION: mvn verify — BUILD SUCCESS, 80 integration tests, all unit tests pass, 0 failures, spotless and license checks pass
+STATUS: DONE
+NEXT_SPEC: none
+NOTES: ResourceLinkContent uses @JsonTypeName("resource") for serialization but is not in @JsonSubTypes (would conflict with ResourcePromptContent). Deserialization of "resource" type always maps to ResourcePromptContent, which is fine since the server produces prompt content, not consumes it. The _meta fields were not explicitly added as record components since Jackson ignores unknown properties by default, satisfying the "don't reject if present" requirement. Pre-existing resource module issues (McpResource interface changed to use descriptor() but callers weren't all updated) were fixed as necessary to achieve BUILD SUCCESS.

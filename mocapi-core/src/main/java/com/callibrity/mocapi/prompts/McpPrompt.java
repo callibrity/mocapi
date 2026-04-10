@@ -21,7 +21,15 @@ import java.util.Map;
 public interface McpPrompt {
   String name();
 
+  default String title() {
+    return null;
+  }
+
   String description();
+
+  default List<Icon> icons() {
+    return null;
+  }
 
   List<PromptArgument> arguments();
 

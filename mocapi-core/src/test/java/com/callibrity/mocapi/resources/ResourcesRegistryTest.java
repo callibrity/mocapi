@@ -29,23 +29,8 @@ class ResourcesRegistryTest {
   private McpResource resource(String uri, String name, String description, String mimeType) {
     return new McpResource() {
       @Override
-      public String uri() {
-        return uri;
-      }
-
-      @Override
-      public String name() {
-        return name;
-      }
-
-      @Override
-      public String description() {
-        return description;
-      }
-
-      @Override
-      public String mimeType() {
-        return mimeType;
+      public Descriptor descriptor() {
+        return new Descriptor(uri, name, description, mimeType);
       }
 
       @Override

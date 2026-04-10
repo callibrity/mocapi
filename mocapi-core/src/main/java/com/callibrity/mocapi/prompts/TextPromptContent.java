@@ -15,4 +15,11 @@
  */
 package com.callibrity.mocapi.prompts;
 
-public record TextPromptContent(String text) implements PromptContent {}
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record TextPromptContent(String text, Annotations annotations) implements PromptContent {
+  public TextPromptContent(String text) {
+    this(text, null);
+  }
+}

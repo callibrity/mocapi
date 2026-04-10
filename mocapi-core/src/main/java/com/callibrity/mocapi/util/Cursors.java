@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.prompts;
+package com.callibrity.mocapi.util;
 
-import java.util.List;
-
-public record PromptMessage(String role, List<PromptContent> content) {}
+public class Cursors {
+  private Cursors() {}
+}

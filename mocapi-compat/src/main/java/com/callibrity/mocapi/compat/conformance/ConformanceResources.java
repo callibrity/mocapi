@@ -108,31 +108,24 @@ public class ConformanceResources {
   public McpResource staticTextResource() {
     return new McpResource() {
       @Override
-      public String uri() {
-        return "test://static-text";
-      }
-
-      @Override
-      public String name() {
-        return "Static Text Resource";
-      }
-
-      @Override
-      public String description() {
-        return "A static text resource for conformance testing";
-      }
-
-      @Override
-      public String mimeType() {
-        return "text/plain";
+      public Descriptor descriptor() {
+        return new Descriptor(
+            "test://static-text",
+            "Static Text Resource",
+            "A static text resource for conformance testing",
+            "text/plain");
       }
 
       @Override
       public ReadResourceResponse read() {
+        var d = descriptor();
         return new ReadResourceResponse(
             List.of(
                 new ResourceContent(
-                    uri(), mimeType(), "This is the content of the static text resource.", null)));
+                    d.uri(),
+                    d.mimeType(),
+                    "This is the content of the static text resource.",
+                    null)));
       }
     };
   }
@@ -141,29 +134,19 @@ public class ConformanceResources {
   public McpResource staticBinaryResource() {
     return new McpResource() {
       @Override
-      public String uri() {
-        return "test://static-binary";
-      }
-
-      @Override
-      public String name() {
-        return "Static Binary Resource";
-      }
-
-      @Override
-      public String description() {
-        return "A static binary resource for conformance testing";
-      }
-
-      @Override
-      public String mimeType() {
-        return "image/png";
+      public Descriptor descriptor() {
+        return new Descriptor(
+            "test://static-binary",
+            "Static Binary Resource",
+            "A static binary resource for conformance testing",
+            "image/png");
       }
 
       @Override
       public ReadResourceResponse read() {
+        var d = descriptor();
         return new ReadResourceResponse(
-            List.of(new ResourceContent(uri(), mimeType(), null, TINY_PNG)));
+            List.of(new ResourceContent(d.uri(), d.mimeType(), null, TINY_PNG)));
       }
     };
   }
@@ -172,31 +155,21 @@ public class ConformanceResources {
   public McpResource watchedResource() {
     return new McpResource() {
       @Override
-      public String uri() {
-        return "test://watched-resource";
-      }
-
-      @Override
-      public String name() {
-        return "Watched Resource";
-      }
-
-      @Override
-      public String description() {
-        return "A resource that supports subscriptions for conformance testing";
-      }
-
-      @Override
-      public String mimeType() {
-        return "text/plain";
+      public Descriptor descriptor() {
+        return new Descriptor(
+            "test://watched-resource",
+            "Watched Resource",
+            "A resource that supports subscriptions for conformance testing",
+            "text/plain");
       }
 
       @Override
       public ReadResourceResponse read() {
+        var d = descriptor();
         return new ReadResourceResponse(
             List.of(
                 new ResourceContent(
-                    uri(), mimeType(), "This is the content of the watched resource.", null)));
+                    d.uri(), d.mimeType(), "This is the content of the watched resource.", null)));
       }
     };
   }

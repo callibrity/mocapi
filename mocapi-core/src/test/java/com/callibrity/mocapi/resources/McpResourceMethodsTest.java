@@ -28,23 +28,8 @@ class McpResourceMethodsTest {
   private final McpResource greetingResource =
       new McpResource() {
         @Override
-        public String uri() {
-          return "test://greeting";
-        }
-
-        @Override
-        public String name() {
-          return "Greeting";
-        }
-
-        @Override
-        public String description() {
-          return "A greeting";
-        }
-
-        @Override
-        public String mimeType() {
-          return "text/plain";
+        public Descriptor descriptor() {
+          return new Descriptor("test://greeting", "Greeting", "A greeting", "text/plain");
         }
 
         @Override

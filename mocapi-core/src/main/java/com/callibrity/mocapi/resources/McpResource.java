@@ -16,13 +16,14 @@
 package com.callibrity.mocapi.resources;
 
 public interface McpResource {
-  String uri();
 
-  String name();
+  // -------------------------- OTHER METHODS --------------------------
 
-  String description();
-
-  String mimeType();
+  Descriptor descriptor();
 
   ReadResourceResponse read();
+
+  // -------------------------- INNER CLASSES --------------------------
+
+  record Descriptor(String uri, String name, String description, String mimeType) {}
 }

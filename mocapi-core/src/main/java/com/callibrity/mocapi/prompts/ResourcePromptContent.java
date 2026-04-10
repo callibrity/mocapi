@@ -15,4 +15,12 @@
  */
 package com.callibrity.mocapi.prompts;
 
-public record ResourcePromptContent(EmbeddedPromptResource resource) implements PromptContent {}
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record ResourcePromptContent(EmbeddedPromptResource resource, Annotations annotations)
+    implements PromptContent {
+  public ResourcePromptContent(EmbeddedPromptResource resource) {
+    this(resource, null);
+  }
+}

@@ -15,19 +15,10 @@
  */
 package com.callibrity.mocapi.prompts;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes({
-  @JsonSubTypes.Type(value = TextPromptContent.class, name = "text"),
-  @JsonSubTypes.Type(value = ImagePromptContent.class, name = "image"),
-  @JsonSubTypes.Type(value = AudioPromptContent.class, name = "audio"),
-  @JsonSubTypes.Type(value = ResourcePromptContent.class, name = "resource")
-})
-public sealed interface PromptContent
-    permits TextPromptContent,
-        ImagePromptContent,
-        AudioPromptContent,
-        ResourcePromptContent,
-        ResourceLinkContent {}
+@JsonTypeName("resource")
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record ResourceLinkContent(String uri, String mimeType, Annotations annotations)
+    implements PromptContent {}

@@ -132,7 +132,8 @@ public class ConformancePrompts {
             "A simple test prompt",
             List.of(
                 new PromptMessage(
-                    "user", new TextPromptContent("This is a simple prompt for testing."))));
+                    "user",
+                    List.of(new TextPromptContent("This is a simple prompt for testing.")))));
       }
     };
   }
@@ -166,9 +167,10 @@ public class ConformancePrompts {
             List.of(
                 new PromptMessage(
                     "user",
-                    new TextPromptContent(
-                        String.format(
-                            "Prompt with arguments: arg1='%s', arg2='%s'", arg1, arg2)))));
+                    List.of(
+                        new TextPromptContent(
+                            String.format(
+                                "Prompt with arguments: arg1='%s', arg2='%s'", arg1, arg2))))));
       }
     };
   }
@@ -199,11 +201,16 @@ public class ConformancePrompts {
             List.of(
                 new PromptMessage(
                     "user",
-                    new ResourcePromptContent(
-                        new EmbeddedPromptResource(
-                            resourceUri, "text/plain", "Embedded resource content for testing."))),
+                    List.of(
+                        new ResourcePromptContent(
+                            new EmbeddedPromptResource(
+                                resourceUri,
+                                "text/plain",
+                                "Embedded resource content for testing.")))),
                 new PromptMessage(
-                    "user", new TextPromptContent("Please process the embedded resource above."))));
+                    "user",
+                    List.of(
+                        new TextPromptContent("Please process the embedded resource above.")))));
       }
     };
   }
@@ -231,9 +238,9 @@ public class ConformancePrompts {
         return new GetPromptResponse(
             "A test prompt with an image",
             List.of(
-                new PromptMessage("user", new ImagePromptContent(TINY_PNG, "image/png")),
+                new PromptMessage("user", List.of(new ImagePromptContent(TINY_PNG, "image/png"))),
                 new PromptMessage(
-                    "user", new TextPromptContent("Please analyze the image above."))));
+                    "user", List.of(new TextPromptContent("Please analyze the image above.")))));
       }
     };
   }

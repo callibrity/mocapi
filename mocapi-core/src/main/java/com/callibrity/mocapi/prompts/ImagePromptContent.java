@@ -15,4 +15,12 @@
  */
 package com.callibrity.mocapi.prompts;
 
-public record ImagePromptContent(String data, String mimeType) implements PromptContent {}
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record ImagePromptContent(String data, String mimeType, Annotations annotations)
+    implements PromptContent {
+  public ImagePromptContent(String data, String mimeType) {
+    this(data, mimeType, null);
+  }
+}

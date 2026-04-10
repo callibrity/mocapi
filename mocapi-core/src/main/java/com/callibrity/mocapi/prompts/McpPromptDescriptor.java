@@ -20,4 +20,8 @@ import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record McpPromptDescriptor(
-    String name, String description, List<PromptArgument> arguments) {}
+    String name,
+    String title,
+    String description,
+    List<Icon> icons,
+    List<PromptArgument> arguments) {}
