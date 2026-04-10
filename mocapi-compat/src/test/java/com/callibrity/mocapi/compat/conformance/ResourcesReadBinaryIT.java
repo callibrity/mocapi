@@ -68,8 +68,8 @@ class ResourcesReadBinaryIT {
 
     ObjectNode response = (ObjectNode) client.objectMapper().readTree(body);
     String blob = response.get("result").get("contents").get(0).get("blob").asString();
-    assertThat(blob).isNotBlank();
-    // Verify it's valid base64
-    assertThat(java.util.Base64.getDecoder().decode(blob)).isNotEmpty();
+    assertThat(blob)
+        .isEqualTo(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwzAAAAAElFTkSuQmCC");
   }
 }

@@ -56,7 +56,19 @@ class ToolsCallMixedContentIT {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result.content.length()").value(3))
         .andExpect(jsonPath("$.result.content[0].type").value("text"))
+        .andExpect(jsonPath("$.result.content[0].text").value("Multiple content types test:"))
         .andExpect(jsonPath("$.result.content[1].type").value("image"))
-        .andExpect(jsonPath("$.result.content[2].type").value("resource"));
+        .andExpect(jsonPath("$.result.content[1].mimeType").value("image/png"))
+        .andExpect(
+            jsonPath("$.result.content[1].data")
+                .value(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwzAAAAAElFTkSuQmCC"))
+        .andExpect(jsonPath("$.result.content[2].type").value("resource"))
+        .andExpect(
+            jsonPath("$.result.content[2].resource.uri").value("test://mixed-content-resource"))
+        .andExpect(jsonPath("$.result.content[2].resource.mimeType").value("application/json"))
+        .andExpect(
+            jsonPath("$.result.content[2].resource.text")
+                .value("{\"test\":\"data\",\"value\":123}"));
   }
 }

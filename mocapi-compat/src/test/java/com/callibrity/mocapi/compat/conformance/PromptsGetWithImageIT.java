@@ -58,7 +58,10 @@ class PromptsGetWithImageIT {
         .andExpect(jsonPath("$.result.messages[0].role").value("user"))
         .andExpect(jsonPath("$.result.messages[0].content.type").value("image"))
         .andExpect(jsonPath("$.result.messages[0].content.mimeType").value("image/png"))
-        .andExpect(jsonPath("$.result.messages[0].content.data").isNotEmpty())
+        .andExpect(
+            jsonPath("$.result.messages[0].content.data")
+                .value(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwzAAAAAElFTkSuQmCC"))
         .andExpect(jsonPath("$.result.messages[1].role").value("user"))
         .andExpect(jsonPath("$.result.messages[1].content.type").value("text"))
         .andExpect(

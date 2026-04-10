@@ -55,6 +55,9 @@ class ToolsCallErrorIT {
         .post(sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(2))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result.isError").value(true))
-        .andExpect(jsonPath("$.result.content[0].type").value("text"));
+        .andExpect(jsonPath("$.result.content[0].type").value("text"))
+        .andExpect(
+            jsonPath("$.result.content[0].text")
+                .value("This tool intentionally returns an error for testing"));
   }
 }

@@ -55,7 +55,9 @@ class ToolsCallAudioIT {
         .post(sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(2))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result.content[0].type").value("audio"))
-        .andExpect(jsonPath("$.result.content[0].data").exists())
+        .andExpect(
+            jsonPath("$.result.content[0].data")
+                .value("UklGRiUAAABXQVZFZm10IBAAAAABAAEARKwAAESsAAABAAgAZGF0YQEAAACA"))
         .andExpect(jsonPath("$.result.content[0].mimeType").value("audio/wav"));
   }
 }

@@ -55,6 +55,10 @@ class ToolsCallEmbeddedResourceIT {
         .post(sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(2))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result.content[0].type").value("resource"))
-        .andExpect(jsonPath("$.result.content[0].resource.uri").exists());
+        .andExpect(jsonPath("$.result.content[0].resource.uri").value("test://embedded-resource"))
+        .andExpect(jsonPath("$.result.content[0].resource.mimeType").value("text/plain"))
+        .andExpect(
+            jsonPath("$.result.content[0].resource.text")
+                .value("This is an embedded resource content."));
   }
 }

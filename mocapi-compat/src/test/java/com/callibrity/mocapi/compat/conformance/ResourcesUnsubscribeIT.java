@@ -70,6 +70,7 @@ class ResourcesUnsubscribeIT {
             unsubscribeParams,
             client.objectMapper().getNodeFactory().numberNode(3))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isMap());
+        .andExpect(jsonPath("$.result").isMap())
+        .andExpect(jsonPath("$.result.length()").value(0));
   }
 }

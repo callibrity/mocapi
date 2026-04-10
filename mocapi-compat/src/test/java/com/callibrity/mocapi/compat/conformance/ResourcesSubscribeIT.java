@@ -57,6 +57,7 @@ class ResourcesSubscribeIT {
             params,
             client.objectMapper().getNodeFactory().numberNode(2))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isMap());
+        .andExpect(jsonPath("$.result").isMap())
+        .andExpect(jsonPath("$.result.length()").value(0));
   }
 }

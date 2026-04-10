@@ -55,7 +55,7 @@ class ServerInitializeIT {
     client
         .initializeResult()
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.protocolVersion").isString());
+        .andExpect(jsonPath("$.result.protocolVersion").value("2025-11-25"));
   }
 
   @Test
@@ -63,7 +63,9 @@ class ServerInitializeIT {
     client
         .initializeResult()
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.capabilities").exists());
+        .andExpect(jsonPath("$.result.capabilities.tools").exists())
+        .andExpect(jsonPath("$.result.capabilities.resources").exists())
+        .andExpect(jsonPath("$.result.capabilities.prompts").exists());
   }
 
   @Test
@@ -71,6 +73,6 @@ class ServerInitializeIT {
     client
         .initializeResult()
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.serverInfo.name").exists());
+        .andExpect(jsonPath("$.result.serverInfo.name").value("mocapi-mcp-server"));
   }
 }
