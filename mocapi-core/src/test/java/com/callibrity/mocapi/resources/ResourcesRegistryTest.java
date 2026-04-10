@@ -18,6 +18,7 @@ package com.callibrity.mocapi.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceTemplate;
@@ -30,6 +31,10 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class ResourcesRegistryTest {
+
+  private static PaginatedRequestParams cursor(String c) {
+    return new PaginatedRequestParams(c, null);
+  }
 
   private McpResource resource(String uri, String name, String description, String mimeType) {
     return new McpResource() {
@@ -175,12 +180,12 @@ class ResourcesRegistryTest {
     assertThat(page1.resources().getFirst().uri()).isEqualTo("test://r000");
     assertThat(page1.nextCursor()).isNotNull();
 
-    var page2 = registry.listResources(page1.nextCursor());
+    var page2 = registry.listResources(cursor(page1.nextCursor()));
     assertThat(page2.resources()).hasSize(2);
     assertThat(page2.resources().getFirst().uri()).isEqualTo("test://r002");
     assertThat(page2.nextCursor()).isNotNull();
 
-    var page3 = registry.listResources(page2.nextCursor());
+    var page3 = registry.listResources(cursor(page2.nextCursor()));
     assertThat(page3.resources()).hasSize(1);
     assertThat(page3.resources().getFirst().uri()).isEqualTo("test://r004");
     assertThat(page3.nextCursor()).isNull();
@@ -199,7 +204,7 @@ class ResourcesRegistryTest {
     assertThat(page1.resourceTemplates()).hasSize(2);
     assertThat(page1.nextCursor()).isNotNull();
 
-    var page2 = registry.listResourceTemplates(page1.nextCursor());
+    var page2 = registry.listResourceTemplates(cursor(page1.nextCursor()));
     assertThat(page2.resourceTemplates()).hasSize(1);
     assertThat(page2.nextCursor()).isNull();
   }
@@ -210,7 +215,7 @@ class ResourcesRegistryTest {
         new ResourcesRegistry(
             List.of(resource("test://a", "A", "desc", "text/plain")), List.of(), 2);
 
-    assertThatThrownBy(() -> registry.listResources("not-valid-base64!!!"))
+    assertThatThrownBy(() -> registry.listResources(cursor("not-valid-base64!!!")))
         .isExactlyInstanceOf(JsonRpcException.class)
         .hasMessageContaining("Invalid cursor");
   }
@@ -220,9 +225,7 @@ class ResourcesRegistryTest {
     var registry =
         new ResourcesRegistry(
             List.of(resource("test://a", "A", "desc", "text/plain")), List.of(), 2);
-    String cursor = Cursors.encode(100);
-
-    var response = registry.listResources(cursor);
+    var response = registry.listResources(cursor(Cursors.encode(100)));
     assertThat(response.resources()).isEmpty();
     assertThat(response.nextCursor()).isNull();
   }

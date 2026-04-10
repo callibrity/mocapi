@@ -18,6 +18,7 @@ package com.callibrity.mocapi.util;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -135,5 +136,52 @@ class CursorsTest {
   void negativeCursorClampsToZero() {
     var page = Cursors.paginate(ITEMS, Cursors.encode(-5), 2);
     assertThat(page.items()).containsExactly("a", "b");
+  }
+
+  // --- PaginatedRequestParams overload tests ---
+
+  private static PaginatedRequestParams cursor(String c) {
+    return new PaginatedRequestParams(c, null);
+  }
+
+  @Test
+  void paramsOverloadNullParamsPaginatesFromBeginning() {
+    var fromParams = Cursors.paginate(ITEMS, (PaginatedRequestParams) null, 2);
+    var fromString = Cursors.paginate(ITEMS, (String) null, 2);
+    assertThat(fromParams.items()).isEqualTo(fromString.items());
+    assertThat(fromParams.nextCursor()).isEqualTo(fromString.nextCursor());
+  }
+
+  @Test
+  void paramsOverloadNullCursorInParamsPaginatesFromBeginning() {
+    var fromParams = Cursors.paginate(ITEMS, cursor(null), 2);
+    var fromString = Cursors.paginate(ITEMS, (String) null, 2);
+    assertThat(fromParams.items()).isEqualTo(fromString.items());
+    assertThat(fromParams.nextCursor()).isEqualTo(fromString.nextCursor());
+  }
+
+  @Test
+  void paramsOverloadValidCursorMatchesStringOverload() {
+    String cursorValue = Cursors.encode(2);
+    var fromParams = Cursors.paginate(ITEMS, cursor(cursorValue), 2);
+    var fromString = Cursors.paginate(ITEMS, cursorValue, 2);
+    assertThat(fromParams.items()).isEqualTo(fromString.items());
+    assertThat(fromParams.nextCursor()).isEqualTo(fromString.nextCursor());
+  }
+
+  @Test
+  void paramsOverloadInvalidCursorThrows() {
+    assertThatThrownBy(() -> Cursors.paginate(ITEMS, cursor("!!!not-base64!!!"), 2))
+        .isInstanceOf(JsonRpcException.class)
+        .hasMessageContaining("Invalid cursor");
+  }
+
+  @Test
+  void paramsOverloadOutOfRangeCursorClampsToEnd() {
+    String cursorValue = Cursors.encode(100);
+    var fromParams = Cursors.paginate(ITEMS, cursor(cursorValue), 2);
+    var fromString = Cursors.paginate(ITEMS, cursorValue, 2);
+    assertThat(fromParams.items()).isEqualTo(fromString.items());
+    assertThat(fromParams.nextCursor()).isEqualTo(fromString.nextCursor());
   }
 }

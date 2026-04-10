@@ -18,6 +18,7 @@ package com.callibrity.mocapi.tools;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -31,6 +32,10 @@ import tools.jackson.databind.node.ObjectNode;
 class ToolsRegistryPaginationTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
+
+  private static PaginatedRequestParams cursor(String c) {
+    return new PaginatedRequestParams(c, null);
+  }
 
   private McpToolProvider createProvider(int toolCount) {
     ObjectNode emptySchema = mapper.createObjectNode().put("type", "object");
@@ -49,7 +54,7 @@ class ToolsRegistryPaginationTest {
   @Test
   void shouldReturnAllToolsInSinglePageWhenWithinPageSize() {
     var registry = new ToolsRegistry(List.of(createProvider(3)), mapper, 10);
-    var response = registry.listTools(null);
+    var response = registry.listTools((PaginatedRequestParams) null);
 
     assertThat(response.tools()).hasSize(3);
     assertThat(response.nextCursor()).isNull();
@@ -58,7 +63,7 @@ class ToolsRegistryPaginationTest {
   @Test
   void shouldReturnFirstPageWithCursorWhenExceedsPageSize() {
     var registry = new ToolsRegistry(List.of(createProvider(5)), mapper, 2);
-    var response = registry.listTools(null);
+    var response = registry.listTools((PaginatedRequestParams) null);
 
     assertThat(response.tools()).hasSize(2);
     assertThat(response.nextCursor()).isNotNull();
@@ -69,9 +74,9 @@ class ToolsRegistryPaginationTest {
   @Test
   void shouldReturnNextPageWithValidCursor() {
     var registry = new ToolsRegistry(List.of(createProvider(5)), mapper, 2);
-    var firstPage = registry.listTools(null);
+    var firstPage = registry.listTools((PaginatedRequestParams) null);
 
-    var secondPage = registry.listTools(firstPage.nextCursor());
+    var secondPage = registry.listTools(cursor(firstPage.nextCursor()));
     assertThat(secondPage.tools()).hasSize(2);
     assertThat(secondPage.tools().get(0).name()).isEqualTo("tool-002");
     assertThat(secondPage.tools().get(1).name()).isEqualTo("tool-003");
@@ -81,9 +86,9 @@ class ToolsRegistryPaginationTest {
   @Test
   void shouldReturnLastPageWithNullCursor() {
     var registry = new ToolsRegistry(List.of(createProvider(5)), mapper, 2);
-    var firstPage = registry.listTools(null);
-    var secondPage = registry.listTools(firstPage.nextCursor());
-    var thirdPage = registry.listTools(secondPage.nextCursor());
+    var firstPage = registry.listTools((PaginatedRequestParams) null);
+    var secondPage = registry.listTools(cursor(firstPage.nextCursor()));
+    var thirdPage = registry.listTools(cursor(secondPage.nextCursor()));
 
     assertThat(thirdPage.tools()).hasSize(1);
     assertThat(thirdPage.tools().getFirst().name()).isEqualTo("tool-004");
@@ -97,12 +102,12 @@ class ToolsRegistryPaginationTest {
     var registry = new ToolsRegistry(List.of(createProvider(totalTools)), mapper, pageSize);
 
     int totalRetrieved = 0;
-    String cursor = null;
+    String nextCursor = null;
     do {
-      var response = registry.listTools(cursor);
+      var response = registry.listTools(cursor(nextCursor));
       totalRetrieved += response.tools().size();
-      cursor = response.nextCursor();
-    } while (cursor != null);
+      nextCursor = response.nextCursor();
+    } while (nextCursor != null);
 
     assertThat(totalRetrieved).isEqualTo(totalTools);
   }
@@ -110,7 +115,7 @@ class ToolsRegistryPaginationTest {
   @Test
   void shouldReturnExactPageWhenToolCountEqualsPageSize() {
     var registry = new ToolsRegistry(List.of(createProvider(3)), mapper, 3);
-    var response = registry.listTools(null);
+    var response = registry.listTools((PaginatedRequestParams) null);
 
     assertThat(response.tools()).hasSize(3);
     assertThat(response.nextCursor()).isNull();
@@ -120,7 +125,7 @@ class ToolsRegistryPaginationTest {
   void shouldThrowOnInvalidCursor() {
     var registry = new ToolsRegistry(List.of(createProvider(3)), mapper, 2);
 
-    assertThatThrownBy(() -> registry.listTools("not-valid-base64!!!"))
+    assertThatThrownBy(() -> registry.listTools(cursor("not-valid-base64!!!")))
         .isExactlyInstanceOf(JsonRpcException.class)
         .hasMessageContaining("Invalid cursor");
   }
@@ -128,9 +133,9 @@ class ToolsRegistryPaginationTest {
   @Test
   void shouldClampOutOfRangeCursor() {
     var registry = new ToolsRegistry(List.of(createProvider(3)), mapper, 2);
-    String cursor = Cursors.encode(100);
+    String cursorValue = Cursors.encode(100);
 
-    var response = registry.listTools(cursor);
+    var response = registry.listTools(cursor(cursorValue));
     assertThat(response.tools()).isEmpty();
     assertThat(response.nextCursor()).isNull();
   }
@@ -138,7 +143,7 @@ class ToolsRegistryPaginationTest {
   @Test
   void shouldUseDefaultPageSizeOf50() {
     var registry = new ToolsRegistry(List.of(createProvider(60)), mapper);
-    var response = registry.listTools(null);
+    var response = registry.listTools((PaginatedRequestParams) null);
 
     assertThat(response.tools()).hasSize(50);
     assertThat(response.nextCursor()).isNotNull();

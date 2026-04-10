@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T01:52:45-04:00
-ITERATION: 99
-SPEC_COMPLETED: 100-remove-bean-elicitation.md
-WHAT_WAS_DONE: Removed bean-based elicitation (elicitForm overloads, BeanElicitationResult, generateSchema, doElicit/parseResponse helpers, ElicitationSchemaValidator, and SchemaGenerator dependency) from McpStreamContext/DefaultMcpStreamContext/McpToolMethods/MocapiAutoConfiguration. Updated McpElicitationNotSupportedException javadoc. Deleted all bean-elicit tests. Builder-based elicit() path untouched.
+LAST_RUN: 2026-04-10T01:59:00-04:00
+ITERATION: 100
+SPEC_COMPLETED: 101-push-paginated-request-params-through-list-registries.md
+WHAT_WAS_DONE: Migrated all four registry list methods (ToolsRegistry.listTools, PromptsRegistry.listPrompts, ResourcesRegistry.listResources, ResourcesRegistry.listResourceTemplates) from String cursor to PaginatedRequestParams parameter, and removed cursor-extraction glue from all four handler methods (McpToolMethods, McpPromptMethods, McpResourceMethods). Added five new CursorsTest tests for the PaginatedRequestParams overload. Updated all registry test classes to pass PaginatedRequestParams instead of raw cursor strings.
 VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests pass, spotless and license checks pass
 STATUS: MORE_WORK
-NEXT_SPEC: 101-push-paginated-request-params-through-list-registries.md
-NOTES: The elicitationSchemaGenerator bean was removed from MocapiAutoConfiguration since it was only consumed by the bean-elicit path. DefaultMethodSchemaGenerator creates its own SchemaGenerator internally for tool input-schema generation.
+NEXT_SPEC: 102-migrate-elicitation-builders-to-model-schema.md
+NOTES: The String overload of Cursors.paginate remains intact for any future internal callers. params.cursor() now only appears inside Cursors.java itself (the PaginatedRequestParams overload delegates to the String overload).

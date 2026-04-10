@@ -18,6 +18,7 @@ package com.callibrity.mocapi.prompts;
 import static java.util.Optional.ofNullable;
 
 import com.callibrity.mocapi.model.ListPromptsResult;
+import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
@@ -64,8 +65,8 @@ public class PromptsRegistry {
                     JsonRpcProtocol.INVALID_PARAMS, String.format("Prompt not found: %s", name)));
   }
 
-  public ListPromptsResult listPrompts(String cursor) {
-    var page = Cursors.paginate(sortedDescriptors, cursor, pageSize);
+  public ListPromptsResult listPrompts(PaginatedRequestParams params) {
+    var page = Cursors.paginate(sortedDescriptors, params, pageSize);
     return new ListPromptsResult(page.items(), page.nextCursor());
   }
 }

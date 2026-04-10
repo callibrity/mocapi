@@ -85,53 +85,33 @@ The property builders each already expose `.optional()` which flips a
 required names in `ElicitationSchemaBuilder` / `ElicitationSchema`
 instead of on the produced schema records.
 
-### Prerequisite model fix — add `pattern` to `StringSchema`
-
-The MCP elicitation spec
-(https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation#requested-schema)
-includes `pattern` as a valid field on a string primitive schema. The
-canonical example from the spec docs is:
-
-```json
-{
-  "type": "string",
-  "title": "Display Name",
-  "description": "Description text",
-  "minLength": 3,
-  "maxLength": 50,
-  "pattern": "^[A-Za-z]+$",
-  "format": "email",
-  "default": "user@example.com"
-}
-```
-
-`mocapi-model`'s current `StringSchema` record does **not** have a
-`pattern` field — this is a pre-existing gap in the spec mirror. Fix it
-as the **first step** of this migration, before touching any builder:
-
-- Add `String pattern` to
-  `com.callibrity.mocapi.model.StringSchema`, positioned between
-  `maxLength` and `format` to match the spec example's field order.
-- Add a unit test in `mocapi-model` that round-trips a `StringSchema`
-  with a non-null `pattern` field and asserts the serialized JSON
-  contains the `"pattern"` key.
-- `@JsonInclude(NON_NULL)` is already on the record — a null pattern
-  is omitted on the wire, preserving compatibility with existing
-  `StringSchema` instances that don't set it.
-
 ### Field mapping gotchas
 
-- **`StringPropertyBuilder.pattern(String)`**: the builder method
-  **stays**. Once `StringSchema` has a `pattern` field (prerequisite
-  above), map the builder's value directly into `StringSchema.pattern`.
-  The existing tool-author API is preserved.
+- **`StringPropertyBuilder.pattern(String)`**: core's
+  `StringPropertySchema` has a `pattern` field, but **`pattern` is not
+  in the MCP spec's `StringSchema` interface** (verified against
+  `schema/2025-11-25/schema.ts` in the canonical
+  `modelcontextprotocol/modelcontextprotocol` repository — the fields
+  are exactly `type`, `title`, `description`, `minLength`, `maxLength`,
+  `format`, `default`, and nothing else). The docs example at
+  `modelcontextprotocol.io/specification/2025-11-25/client/elicitation`
+  shows `pattern` in an illustration, but that example is
+  inconsistent with the authoritative TypeScript schema.
+
+  **Delete the `pattern(String)` method from `StringPropertyBuilder`**
+  as part of this migration. It was a spec divergence that shouldn't
+  have been exposed. Any tool author using it today gets a clear
+  compile error and can drop the call — there's no server-side
+  enforcement of `pattern` in the spec, so the field wasn't doing
+  anything useful on the wire anyway.
 - **`StringPropertyBuilder.format(String)`**: core stores format as a
   free-form `String`; model's `StringSchema.format` is typed
-  `StringFormat` (enum). In the builder, keep the shorthand methods
-  (`email()`, `uri()`, `date()`, `dateTime()`), but have them set a
-  `StringFormat` value internally rather than a raw string. Remove any
-  `format(String)` overload that accepts arbitrary strings — the enum
-  enforces the spec's closed set.
+  `StringFormat` (enum, values `EMAIL`, `URI`, `DATE`, `DATE_TIME`
+  matching the spec's closed set). In the builder, keep the shorthand
+  methods (`email()`, `uri()`, `date()`, `dateTime()`), but have them
+  set a `StringFormat` value internally rather than a raw string.
+  Remove any `format(String)` overload that accepts arbitrary strings
+  — the enum enforces the spec's closed set.
 - **`IntegerPropertyBuilder` vs `NumberSchema`**: model's `NumberSchema`
   has a `String type` field that can be `"integer"` or `"number"`. The
   integer builder produces a `NumberSchema` with
@@ -161,18 +141,16 @@ the typed `RequestedSchema` in a follow-up spec.
 - [ ] `DefaultMcpStreamContext.elicit(String,
       Consumer<ElicitationSchemaBuilder>)` passes a `RequestedSchema`
       (not an `ObjectNode`) into the request construction path.
-- [ ] `com.callibrity.mocapi.model.StringSchema` has a new `String
-      pattern` field matching the MCP spec. A unit test in
-      `mocapi-model` round-trips a `StringSchema` with a non-null
-      pattern and asserts the JSON round-trip preserves it.
 - [ ] `ElicitationSchemaBuilder`'s fluent API is **source-compatible**
-      for the supported subset: every method signature a tool author
+      for the spec-valid subset: every method signature a tool author
       might call (`string`, `integer`, `number`, `bool`, `choose`,
       `chooseMany`, `chooseLegacy`) still exists with the same name and
-      parameters. `StringPropertyBuilder.pattern(String)` is retained
-      and now maps into the new `StringSchema.pattern` field. The only
-      removal is any free-form `format(String)` setter — the shorthand
-      methods continue to work via the typed `StringFormat` enum.
+      parameters. The removals are:
+  - `StringPropertyBuilder.pattern(String)` — not in the MCP
+    `StringSchema` interface per `schema.ts`.
+  - Any free-form `format(String)` setter — the shorthand methods
+    (`email()`, `uri()`, `date()`, `dateTime()`) continue to work via
+    the typed `StringFormat` enum.
 - [ ] `StringPropertyBuilder` still provides the `email()`, `uri()`,
       `date()`, `dateTime()` shorthand methods; they set a typed
       `StringFormat` value internally.
@@ -203,32 +181,29 @@ the typed `RequestedSchema` in a follow-up spec.
   would otherwise complicate this migration; this spec then replaces
   the remaining hand-rolled schema types with model types.
 - Recommended commit granularity (for bisectability):
-  1. Add `pattern` field to `mocapi-model/StringSchema` plus its
-     round-trip test. This is the prerequisite and must land first so
-     subsequent commits can map `StringPropertyBuilder.pattern(...)`
-     into it.
-  2. `StringPropertyBuilder` → `StringSchema`, delete
-     `StringPropertySchema`.
-  3. `IntegerPropertyBuilder` → `NumberSchema(type="integer")`, delete
+  1. `StringPropertyBuilder` → `StringSchema`, delete
+     `StringPropertySchema`. Remove the `pattern(String)` method from
+     the builder in the same commit.
+  2. `IntegerPropertyBuilder` → `NumberSchema(type="integer")`, delete
      `IntegerPropertySchema`.
-  4. `NumberPropertyBuilder` → `NumberSchema(type="number")`, delete
+  3. `NumberPropertyBuilder` → `NumberSchema(type="number")`, delete
      `NumberPropertySchema`.
-  5. `BooleanPropertyBuilder` → `BooleanSchema`, delete
+  4. `BooleanPropertyBuilder` → `BooleanSchema`, delete
      `BooleanPropertySchema`.
-  6. `ChooseOneBuilder` (untitled + titled variants) → model single-select
+  5. `ChooseOneBuilder` (untitled + titled variants) → model single-select
      schemas, delete core `EnumPropertySchema` and
      `TitledEnumPropertySchema`.
-  7. `ChooseManyBuilder` (untitled + titled variants) → model
+  6. `ChooseManyBuilder` (untitled + titled variants) → model
      multi-select schemas, delete core `MultiSelectPropertySchema` and
      `TitledMultiSelectPropertySchema`.
-  8. `ChooseLegacyBuilder` → `LegacyTitledEnumSchema`, delete core
+  7. `ChooseLegacyBuilder` → `LegacyTitledEnumSchema`, delete core
      `LegacyEnumPropertySchema`.
-  9. Delete core `EnumItemsSchema` / `TitledEnumItemsSchema` /
+  8. Delete core `EnumItemsSchema` / `TitledEnumItemsSchema` /
      `EnumOption` once no core callers remain.
-  10. `ElicitationSchema` rework: change storage and add
-      `toRequestedSchema()`, delete `toObjectNode()`; update
-      `DefaultMcpStreamContext.elicit` to use the new method.
-  11. If `ElicitationSchemaValidator` has no remaining callers after
+  9. `ElicitationSchema` rework: change storage and add
+     `toRequestedSchema()`, delete `toObjectNode()`; update
+     `DefaultMcpStreamContext.elicit` to use the new method.
+  10. If `ElicitationSchemaValidator` has no remaining callers after
       spec 100, delete it and its test.
 - Before deleting each core schema record, grep the entire reactor for
   direct references — prompts, tools, resources, and stream-context

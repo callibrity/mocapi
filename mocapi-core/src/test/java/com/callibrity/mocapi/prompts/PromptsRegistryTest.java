@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.model.GetPromptResult;
+import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptArgument;
 import com.callibrity.mocapi.model.PromptMessage;
@@ -32,6 +33,10 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class PromptsRegistryTest {
+
+  private static PaginatedRequestParams cursor(String c) {
+    return new PaginatedRequestParams(c, null);
+  }
 
   private McpPrompt createPrompt(String name) {
     return new McpPrompt() {
@@ -121,12 +126,12 @@ class PromptsRegistryTest {
     assertThat(page1.prompts().get(0).name()).isEqualTo("prompt-000");
     assertThat(page1.nextCursor()).isNotNull();
 
-    var page2 = registry.listPrompts(page1.nextCursor());
+    var page2 = registry.listPrompts(cursor(page1.nextCursor()));
     assertThat(page2.prompts()).hasSize(2);
     assertThat(page2.prompts().get(0).name()).isEqualTo("prompt-002");
     assertThat(page2.nextCursor()).isNotNull();
 
-    var page3 = registry.listPrompts(page2.nextCursor());
+    var page3 = registry.listPrompts(cursor(page2.nextCursor()));
     assertThat(page3.prompts()).hasSize(1);
     assertThat(page3.prompts().getFirst().name()).isEqualTo("prompt-004");
     assertThat(page3.nextCursor()).isNull();
@@ -142,12 +147,12 @@ class PromptsRegistryTest {
     var registry = new PromptsRegistry(prompts, 3);
 
     int totalRetrieved = 0;
-    String cursor = null;
+    String nextCursor = null;
     do {
-      var response = registry.listPrompts(cursor);
+      var response = registry.listPrompts(cursor(nextCursor));
       totalRetrieved += response.prompts().size();
-      cursor = response.nextCursor();
-    } while (cursor != null);
+      nextCursor = response.nextCursor();
+    } while (nextCursor != null);
 
     assertThat(totalRetrieved).isEqualTo(totalPrompts);
   }
@@ -156,7 +161,7 @@ class PromptsRegistryTest {
   void shouldThrowOnInvalidCursor() {
     var registry = new PromptsRegistry(List.of(createPrompt("a")), 2);
 
-    assertThatThrownBy(() -> registry.listPrompts("not-valid-base64!!!"))
+    assertThatThrownBy(() -> registry.listPrompts(cursor("not-valid-base64!!!")))
         .isExactlyInstanceOf(JsonRpcException.class)
         .hasMessageContaining("Invalid cursor");
   }
@@ -164,9 +169,7 @@ class PromptsRegistryTest {
   @Test
   void outOfRangeCursorReturnsEmptyPage() {
     var registry = new PromptsRegistry(List.of(createPrompt("a")), 2);
-    String cursor = Cursors.encode(100);
-
-    var response = registry.listPrompts(cursor);
+    var response = registry.listPrompts(cursor(Cursors.encode(100)));
     assertThat(response.prompts()).isEmpty();
     assertThat(response.nextCursor()).isNull();
   }

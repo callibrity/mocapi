@@ -17,6 +17,7 @@ package com.callibrity.mocapi.resources;
 
 import com.callibrity.mocapi.model.ListResourceTemplatesResult;
 import com.callibrity.mocapi.model.ListResourcesResult;
+import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceTemplate;
@@ -70,13 +71,13 @@ public class ResourcesRegistry {
     return resources.isEmpty() && templates.isEmpty();
   }
 
-  public ListResourcesResult listResources(String cursor) {
-    var page = Cursors.paginate(sortedResourceDescriptors, cursor, pageSize);
+  public ListResourcesResult listResources(PaginatedRequestParams params) {
+    var page = Cursors.paginate(sortedResourceDescriptors, params, pageSize);
     return new ListResourcesResult(page.items(), page.nextCursor());
   }
 
-  public ListResourceTemplatesResult listResourceTemplates(String cursor) {
-    var page = Cursors.paginate(sortedTemplateDescriptors, cursor, pageSize);
+  public ListResourceTemplatesResult listResourceTemplates(PaginatedRequestParams params) {
+    var page = Cursors.paginate(sortedTemplateDescriptors, params, pageSize);
     return new ListResourceTemplatesResult(page.items(), page.nextCursor());
   }
 

@@ -56,8 +56,7 @@ public class McpToolMethods {
 
   @JsonRpcMethod("tools/list")
   public ListToolsResult listTools(@JsonRpcParams PaginatedRequestParams params) {
-    String cursor = params != null ? params.cursor() : null;
-    return toolsRegistry.listTools(cursor);
+    return toolsRegistry.listTools(params);
   }
 
   @JsonRpcMethod("tools/call")

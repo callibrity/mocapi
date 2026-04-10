@@ -19,6 +19,7 @@ import static java.util.Optional.ofNullable;
 
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ListToolsResult;
+import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.util.Cursors;
@@ -139,8 +140,8 @@ public class ToolsRegistry {
     return tools.isEmpty();
   }
 
-  public ListToolsResult listTools(String cursor) {
-    var page = Cursors.paginate(sortedDescriptors, cursor, pageSize);
+  public ListToolsResult listTools(PaginatedRequestParams params) {
+    var page = Cursors.paginate(sortedDescriptors, params, pageSize);
     return new ListToolsResult(page.items(), page.nextCursor());
   }
 }

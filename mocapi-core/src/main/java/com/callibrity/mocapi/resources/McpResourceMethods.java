@@ -34,15 +34,13 @@ public class McpResourceMethods {
 
   @JsonRpcMethod("resources/list")
   public ListResourcesResult listResources(@JsonRpcParams PaginatedRequestParams params) {
-    String cursor = params != null ? params.cursor() : null;
-    return resourcesRegistry.listResources(cursor);
+    return resourcesRegistry.listResources(params);
   }
 
   @JsonRpcMethod("resources/templates/list")
   public ListResourceTemplatesResult listResourceTemplates(
       @JsonRpcParams PaginatedRequestParams params) {
-    String cursor = params != null ? params.cursor() : null;
-    return resourcesRegistry.listResourceTemplates(cursor);
+    return resourcesRegistry.listResourceTemplates(params);
   }
 
   @JsonRpcMethod("resources/read")

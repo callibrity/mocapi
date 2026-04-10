@@ -33,8 +33,7 @@ public class McpPromptMethods {
 
   @JsonRpcMethod("prompts/list")
   public ListPromptsResult listPrompts(@JsonRpcParams PaginatedRequestParams params) {
-    String cursor = params != null ? params.cursor() : null;
-    return promptsRegistry.listPrompts(cursor);
+    return promptsRegistry.listPrompts(params);
   }
 
   @JsonRpcMethod("prompts/get")
