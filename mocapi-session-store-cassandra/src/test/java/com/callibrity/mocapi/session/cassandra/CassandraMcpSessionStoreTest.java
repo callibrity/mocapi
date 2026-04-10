@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.session.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.callibrity.mocapi.model.ClientCapabilities;
 import com.callibrity.mocapi.model.ElicitationCapability;
@@ -121,11 +122,10 @@ class CassandraMcpSessionStoreTest {
   }
 
   @Test
-  void saveWithShortTtlExpiresSession() throws InterruptedException {
+  void saveWithShortTtlExpiresSession() {
     McpSession session = sessionWithId();
     store.save(session, Duration.ofSeconds(1));
-    Thread.sleep(2_000);
-    assertThat(store.find(session.sessionId())).isEmpty();
+    await().atMost(Duration.ofSeconds(3)).until(() -> store.find(session.sessionId()).isEmpty());
   }
 
   @Test
@@ -150,12 +150,14 @@ class CassandraMcpSessionStoreTest {
   }
 
   @Test
-  void touchExtendsTtl() throws InterruptedException {
+  void touchExtendsTtl() {
     McpSession session = sessionWithId();
     store.save(session, Duration.ofSeconds(1));
     store.touch(session.sessionId(), Duration.ofSeconds(10));
-    Thread.sleep(2_000);
-    assertThat(store.find(session.sessionId())).isPresent();
+    await()
+        .pollDelay(Duration.ofSeconds(2))
+        .atMost(Duration.ofSeconds(3))
+        .untilAsserted(() -> assertThat(store.find(session.sessionId())).isPresent());
   }
 
   @Test
