@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -68,7 +69,7 @@ class JdbcMcpSessionStorePostgresIT {
     jdbcTemplate.update("DELETE FROM " + TABLE_NAME);
     store =
         new JdbcMcpSessionStore(
-            jdbcTemplate,
+            JdbcClient.create(dataSource),
             new JsonMapper(),
             JdbcDialect.POSTGRESQL,
             TABLE_NAME,

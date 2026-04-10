@@ -87,12 +87,15 @@ public class StreamableHttpController {
       return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
     }
 
-    return switch (message) {
-      case JsonRpcCall call -> handleCall(call, protocolVersion, sessionId, origin);
-      case JsonRpcNotification notification -> handleNotification(notification, sessionId);
-      case JsonRpcResult result -> handleClientResult(result, sessionId);
-      case JsonRpcError error -> handleClientError(error, sessionId);
-    };
+    ResponseEntity<Object> entity =
+        switch (message) {
+          case JsonRpcCall call -> handleCall(call, protocolVersion, sessionId, origin);
+          case JsonRpcNotification notification -> handleNotification(notification, sessionId);
+          case JsonRpcResult result -> handleClientResult(result, sessionId);
+          case JsonRpcError error -> handleClientError(error, sessionId);
+        };
+    log.info("Handled POST: {}", entity.getBody());
+    return entity;
   }
 
   /**

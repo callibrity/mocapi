@@ -24,7 +24,7 @@ import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -46,7 +46,7 @@ class JdbcMcpSessionStoreAutoConfigurationTest {
     runner
         .withPropertyValues("mocapi.session.jdbc.cleanup-enabled=false")
         .withBean(DataSource.class, () -> dataSource)
-        .withBean(JdbcTemplate.class, () -> new JdbcTemplate(dataSource))
+        .withBean(JdbcClient.class, () -> JdbcClient.create(dataSource))
         .withBean(ObjectMapper.class, JsonMapper::new)
         .run(
             context -> {
@@ -63,7 +63,7 @@ class JdbcMcpSessionStoreAutoConfigurationTest {
     runner
         .withPropertyValues("mocapi.session.jdbc.cleanup-enabled=false")
         .withBean(DataSource.class, () -> dataSource)
-        .withBean(JdbcTemplate.class, () -> new JdbcTemplate(dataSource))
+        .withBean(JdbcClient.class, () -> JdbcClient.create(dataSource))
         .withBean(ObjectMapper.class, JsonMapper::new)
         .withBean(McpSessionStore.class, () -> userStore)
         .run(

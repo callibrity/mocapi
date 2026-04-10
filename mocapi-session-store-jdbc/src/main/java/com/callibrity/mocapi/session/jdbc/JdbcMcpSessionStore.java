@@ -24,12 +24,14 @@ import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.springframework.jdbc.core.JdbcTemplate;
+import java.util.regex.Pattern;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * JDBC-backed {@link McpSessionStore}. Sessions are stored as JSON in a single table with an {@code
- * expires_at} column for TTL enforcement.
+ * JDBC-backed {@link McpSessionStore} using {@link JdbcClient}. Sessions are stored as JSON in a
+ * single table with an {@code expires_at} column for TTL enforcement. The table name is validated
+ * at construction time to prevent SQL injection.
  *
  * <p>TTL is enforced in two ways:
  *
@@ -48,20 +50,31 @@ import tools.jackson.databind.ObjectMapper;
  */
 public class JdbcMcpSessionStore implements McpSessionStore, AutoCloseable {
 
-  private final JdbcTemplate jdbcTemplate;
+  static final Pattern SAFE_IDENTIFIER = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
+
+  private final JdbcClient jdbcClient;
   private final ObjectMapper objectMapper;
   private final JdbcDialect dialect;
   private final String tableName;
   private final ScheduledExecutorService cleanupExecutor;
 
   JdbcMcpSessionStore(
-      JdbcTemplate jdbcTemplate,
+      JdbcClient jdbcClient,
       ObjectMapper objectMapper,
       JdbcDialect dialect,
       String tableName,
       boolean cleanupEnabled,
       Duration cleanupInterval) {
-    this.jdbcTemplate = jdbcTemplate;
+    if (tableName == null || !SAFE_IDENTIFIER.matcher(tableName).matches()) {
+      throw new IllegalArgumentException(
+          "Invalid table name '"
+              + tableName
+              + "'. Table names must match "
+              + SAFE_IDENTIFIER.pattern()
+              + " — only letters, digits, and underscores are allowed,"
+              + " and the name must not start with a digit.");
+    }
+    this.jdbcClient = jdbcClient;
     this.objectMapper = objectMapper;
     this.dialect = dialect;
     this.tableName = tableName;
@@ -85,43 +98,58 @@ public class JdbcMcpSessionStore implements McpSessionStore, AutoCloseable {
   public void save(McpSession session, Duration ttl) {
     String json = objectMapper.writeValueAsString(session);
     Timestamp expiresAt = Timestamp.from(Instant.now().plus(ttl));
-    jdbcTemplate.update(dialect.upsertSql(tableName), session.sessionId(), json, expiresAt);
+    jdbcClient
+        .sql(dialect.upsertSql(tableName))
+        .param("sid", session.sessionId())
+        .param("payload", json)
+        .param("expiresAt", expiresAt)
+        .update();
   }
 
   @Override
   public void update(String sessionId, McpSession session) {
     String json = objectMapper.writeValueAsString(session);
-    jdbcTemplate.update(
-        "UPDATE " + tableName + " SET payload = ? WHERE session_id = ?", json, sessionId);
+    jdbcClient
+        .sql("UPDATE " + tableName + " SET payload = :payload WHERE session_id = :sid")
+        .param("payload", json)
+        .param("sid", sessionId)
+        .update();
   }
 
   @Override
   public Optional<McpSession> find(String sessionId) {
-    var results =
-        jdbcTemplate.query(
-            "SELECT payload FROM " + tableName + " WHERE session_id = ? AND expires_at > ?",
-            (rs, rowNum) -> objectMapper.readValue(rs.getString("payload"), McpSession.class),
-            sessionId,
-            Timestamp.from(Instant.now()));
-    return results.stream().findFirst();
+    return jdbcClient
+        .sql("SELECT payload FROM " + tableName + " WHERE session_id = :sid AND expires_at > :now")
+        .param("sid", sessionId)
+        .param("now", Timestamp.from(Instant.now()))
+        .query((rs, rowNum) -> objectMapper.readValue(rs.getString("payload"), McpSession.class))
+        .optional();
   }
 
   @Override
   public void touch(String sessionId, Duration ttl) {
     Timestamp expiresAt = Timestamp.from(Instant.now().plus(ttl));
-    jdbcTemplate.update(
-        "UPDATE " + tableName + " SET expires_at = ? WHERE session_id = ?", expiresAt, sessionId);
+    jdbcClient
+        .sql("UPDATE " + tableName + " SET expires_at = :expiresAt WHERE session_id = :sid")
+        .param("expiresAt", expiresAt)
+        .param("sid", sessionId)
+        .update();
   }
 
   @Override
   public void delete(String sessionId) {
-    jdbcTemplate.update("DELETE FROM " + tableName + " WHERE session_id = ?", sessionId);
+    jdbcClient
+        .sql("DELETE FROM " + tableName + " WHERE session_id = :sid")
+        .param("sid", sessionId)
+        .update();
   }
 
   /** Deletes all rows whose {@code expires_at} is in the past. */
   public void cleanupExpired() {
-    jdbcTemplate.update(
-        "DELETE FROM " + tableName + " WHERE expires_at <= ?", Timestamp.from(Instant.now()));
+    jdbcClient
+        .sql("DELETE FROM " + tableName + " WHERE expires_at <= :now")
+        .param("now", Timestamp.from(Instant.now()))
+        .update();
   }
 
   @Override

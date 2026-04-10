@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.session.jdbc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.model.ClientCapabilities;
 import com.callibrity.mocapi.model.ElicitationCapability;
@@ -30,11 +31,16 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import tools.jackson.databind.json.JsonMapper;
@@ -43,6 +49,7 @@ class JdbcMcpSessionStoreTest {
 
   private static final String TABLE_NAME = "mocapi_sessions";
 
+  private DataSource dataSource;
   private JdbcTemplate jdbcTemplate;
   private JdbcMcpSessionStore store;
 
@@ -56,7 +63,7 @@ class JdbcMcpSessionStoreTest {
 
   @BeforeEach
   void setUp() {
-    var dataSource =
+    dataSource =
         new DriverManagerDataSource(
             "jdbc:h2:mem:" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1", "sa", "");
     new ResourceDatabasePopulator(new ClassPathResource("schema/mocapi-session-store-h2.sql"))
@@ -64,7 +71,12 @@ class JdbcMcpSessionStoreTest {
     jdbcTemplate = new JdbcTemplate(dataSource);
     store =
         new JdbcMcpSessionStore(
-            jdbcTemplate, new JsonMapper(), JdbcDialect.H2, TABLE_NAME, false, Duration.ZERO);
+            JdbcClient.create(dataSource),
+            new JsonMapper(),
+            JdbcDialect.H2,
+            TABLE_NAME,
+            false,
+            Duration.ZERO);
   }
 
   @AfterEach
@@ -235,5 +247,41 @@ class JdbcMcpSessionStoreTest {
     assertThat(error1.get()).isNull();
     assertThat(error2.get()).isNull();
     assertThat(store.find(sessionId)).isPresent();
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(
+      strings = {"table with space", "'quoted'", "--comment", ";DROP", "1startswithdigit", ""})
+  void rejectsInvalidTableNames(String invalidName) {
+    assertThatThrownBy(
+            () ->
+                new JdbcMcpSessionStore(
+                    JdbcClient.create(dataSource),
+                    new JsonMapper(),
+                    JdbcDialect.H2,
+                    invalidName,
+                    false,
+                    Duration.ZERO))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void acceptsValidCustomTableName() {
+    jdbcTemplate.execute(
+        "CREATE TABLE my_custom_sessions"
+            + " (session_id VARCHAR(64) PRIMARY KEY, payload CLOB, expires_at TIMESTAMP)");
+    try (var customStore =
+        new JdbcMcpSessionStore(
+            JdbcClient.create(dataSource),
+            new JsonMapper(),
+            JdbcDialect.H2,
+            "my_custom_sessions",
+            false,
+            Duration.ZERO)) {
+      McpSession session = sessionWithId();
+      customStore.save(session, Duration.ofHours(1));
+      assertThat(customStore.find(session.sessionId())).isPresent().hasValue(session);
+    }
   }
 }

@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T10:35:00-04:00
-ITERATION: 41
-SPEC_COMPLETED: 133-add-long-overload-of-sendProgress.md
-WHAT_WAS_DONE: Added default sendProgress(long, long) method to McpStreamContext interface that delegates to the existing double overload, removed unnecessary parentheses in CountdownTool, and added three unit tests verifying long/int/double overload resolution.
-VERIFICATION: mvn verify — full reactor BUILD SUCCESS (18 modules), all tests pass
+LAST_RUN: 2026-04-10T10:46:00-04:00
+ITERATION: 42
+SPEC_COMPLETED: 134-migrate-jdbc-session-store-to-jdbcclient.md
+WHAT_WAS_DONE: Migrated JdbcMcpSessionStore from JdbcTemplate to JdbcClient with named parameters throughout, added SAFE_IDENTIFIER table name validation at construction time, updated auto-configuration to inject JdbcClient and reference the new JdbcClientAutoConfiguration, added parameterized tests for invalid table names and a valid custom table name round-trip test.
+VERIFICATION: mvn verify — full reactor BUILD SUCCESS (18 modules), all 21 JDBC session store tests pass (including 7 new parameterized invalid-name tests + 1 valid custom table name test), compatibility suite passes, Spotless clean
 STATUS: MORE_WORK
-NEXT_SPEC: 134-migrate-jdbc-session-store-to-jdbcclient.md
-NOTES: The long overload is a default method on the interface so DefaultMcpStreamContext inherits it without changes. Java method resolution now routes int args to long overload (int→long widening) instead of double overload (int→double widening); observable behavior is identical.
+NEXT_SPEC: 135-mocapi-postgresql-spring-boot-starter.md
+NOTES: Pre-existing Spotless violations in mocapi-core (StreamableHttpController.java) and mocapi-example-autoconfigure (HelloTool.java) were auto-fixed by mvn spotless:apply. The JdbcDialect upsert SQL was changed from positional ? to named parameters (:sid, :payload, :expiresAt) to match the JdbcClient convention. The afterName in auto-configuration was updated from the old Spring Boot 3.x path (org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration) to the Spring Boot 4.x path (org.springframework.boot.jdbc.autoconfigure.JdbcClientAutoConfiguration). SonarCloud hotspot review is a post-merge action — the 5 S2077/S3649 hotspots should either auto-clear or be manually marked Safe.

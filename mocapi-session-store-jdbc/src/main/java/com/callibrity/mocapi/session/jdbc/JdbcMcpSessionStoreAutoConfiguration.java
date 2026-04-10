@@ -25,24 +25,24 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Registers a {@link JdbcMcpSessionStore} when a {@link DataSource} and {@link JdbcTemplate} are
+ * Registers a {@link JdbcMcpSessionStore} when a {@link DataSource} and {@link JdbcClient} are
  * available and no other store is defined.
  */
 @AutoConfiguration(
     before = MocapiAutoConfiguration.class,
-    afterName = "org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration")
-@ConditionalOnClass(JdbcTemplate.class)
-@ConditionalOnBean({DataSource.class, JdbcTemplate.class})
+    afterName = "org.springframework.boot.jdbc.autoconfigure.JdbcClientAutoConfiguration")
+@ConditionalOnClass(JdbcClient.class)
+@ConditionalOnBean({DataSource.class, JdbcClient.class})
 public class JdbcMcpSessionStoreAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(McpSessionStore.class)
   public McpSessionStore jdbcMcpSessionStore(
-      JdbcTemplate jdbcTemplate,
+      JdbcClient jdbcClient,
       DataSource dataSource,
       ObjectMapper objectMapper,
       @Value("${mocapi.session.jdbc.table-name:mocapi_sessions}") String tableName,
@@ -55,6 +55,6 @@ public class JdbcMcpSessionStoreAutoConfiguration {
             : JdbcDialect.from(dialectOverride);
     Duration cleanupInterval = Duration.parse(cleanupIntervalStr);
     return new JdbcMcpSessionStore(
-        jdbcTemplate, objectMapper, dialect, tableName, cleanupEnabled, cleanupInterval);
+        jdbcClient, objectMapper, dialect, tableName, cleanupEnabled, cleanupInterval);
   }
 }

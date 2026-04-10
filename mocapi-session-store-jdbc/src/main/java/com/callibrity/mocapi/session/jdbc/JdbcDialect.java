@@ -25,7 +25,7 @@ enum JdbcDialect {
     String upsertSql(String table) {
       return "INSERT INTO "
           + table
-          + " (session_id, payload, expires_at) VALUES (?, ?, ?)"
+          + " (session_id, payload, expires_at) VALUES (:sid, :payload, :expiresAt)"
           + " ON CONFLICT (session_id) DO UPDATE"
           + " SET payload = EXCLUDED.payload, expires_at = EXCLUDED.expires_at";
     }
@@ -36,7 +36,7 @@ enum JdbcDialect {
     String upsertSql(String table) {
       return "INSERT INTO "
           + table
-          + " (session_id, payload, expires_at) VALUES (?, ?, ?)"
+          + " (session_id, payload, expires_at) VALUES (:sid, :payload, :expiresAt)"
           + " ON DUPLICATE KEY UPDATE payload = VALUES(payload), expires_at = VALUES(expires_at)";
     }
   },
@@ -46,10 +46,16 @@ enum JdbcDialect {
     String upsertSql(String table) {
       return "MERGE INTO "
           + table
-          + " (session_id, payload, expires_at) KEY (session_id) VALUES (?, ?, ?)";
+          + " (session_id, payload, expires_at) KEY (session_id) VALUES (:sid, :payload, :expiresAt)";
     }
   };
 
+  /**
+   * Returns the dialect-specific upsert SQL for the given table. The SQL uses named parameters
+   * {@code :sid}, {@code :payload}, and {@code :expiresAt}. <strong>The implementer may assume the
+   * {@code tableName} is a validated bare SQL identifier</strong> &mdash; callers must validate
+   * before invoking this method.
+   */
   abstract String upsertSql(String tableName);
 
   static JdbcDialect detect(DataSource dataSource) {

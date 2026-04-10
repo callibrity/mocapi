@@ -22,21 +22,23 @@ import com.callibrity.mocapi.tools.annotation.ToolService;
 @ToolService
 public class HelloTool {
 
-    @ToolMethod(name = "hello", description = "Returns a greeting message")
-    public HelloResponse sayHello(String name) {
-        return new HelloResponse(String.format("Hello, %s!", name));
-    }
+  @ToolMethod(name = "hello", description = "Returns a greeting message")
+  public HelloResponse sayHello(String name) {
+    return new HelloResponse(String.format("Hello, %s!", name));
+  }
 
-    @ToolMethod(name = "hello-elicitation", description = "Returns a greeting message after elicitation")
-    public void sayHelloElicitation(McpStreamContext<String> ctx) {
-        var result = ctx.elicit("Please tell me about yourself!", schema ->
-                schema.string("firstName", "First Name")
-        );
-        var firstName = result.getString("firstName");
-        var lastName = result.getString("lastName");
+  @ToolMethod(
+      name = "hello-elicitation",
+      description = "Returns a greeting message after elicitation")
+  public void sayHelloElicitation(McpStreamContext<HelloResponse> ctx) {
+    var result =
+        ctx.elicit(
+            "Please tell me about yourself!",
+            schema -> schema.string("firstName", "First Name").string("lastName", "Last Name"));
+    var firstName = result.getString("firstName");
+    var lastName = result.getString("lastName");
+    ctx.sendResult(new HelloResponse(String.format("Hello, %s %s!", firstName, lastName)));
+  }
 
-    }
-
-    public record HelloResponse(String message) {
-    }
+  public record HelloResponse(String message) {}
 }
