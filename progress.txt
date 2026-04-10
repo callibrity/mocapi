@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T11:34:00-04:00
-ITERATION: 46
-SPEC_COMPLETED: 138-replace-thread-sleep-in-tests-with-awaitility.md
-WHAT_WAS_DONE: Replaced all 10 Thread.sleep() calls in test code with Awaitility constructs across 4 session store modules (redis, hazelcast, jdbc, cassandra). Added awaitility test dependency to each module's pom.xml (version 4.3.0 managed by Spring Boot BOM). saveWithShortTtlExpiresSession tests use await().until() for polling; touchExtendsTtl tests use await().pollDelay().untilAsserted() to wait past original TTL then verify session persists.
-VERIFICATION: mvn verify -Dmaven.test.failure.ignore=true — full reactor BUILD SUCCESS (21 modules all SUCCESS), zero Thread.sleep in src/test, Spotless clean, license check clean. Pre-existing userProvidedBeanTakesPrecedence failures in AutoConfiguration tests and Postgres IT JSONB cast errors (both unrelated to this spec).
+LAST_RUN: 2026-04-10T11:38:00-04:00
+ITERATION: 47
+SPEC_COMPLETED: 139-add-assertions-to-assertionless-tests.md
+WHAT_WAS_DONE: Added assertThatCode(() -> store.delete("nonexistent")).doesNotThrowAnyException() to all 4 assertion-less deleteOnNonExistentKeyDoesNotFail tests flagged by SonarCloud S2699 (BLOCKER) across Redis, Hazelcast, JDBC, and JDBC Postgres IT session store test files.
+VERIFICATION: mvn verify -Dmaven.test.failure.ignore=true — full reactor BUILD SUCCESS (21 modules all SUCCESS). Pre-existing userProvidedBeanTakesPrecedence failure in RedisMcpSessionStoreAutoConfigurationTest (unrelated to this spec).
 STATUS: MORE_WORK
-NEXT_SPEC: 139-add-assertions-to-assertionless-tests.md
-NOTES: Awaitility 4.3.0 is managed by the Spring Boot 4.0.5 BOM, so no version property or dependencyManagement entry was needed in the parent pom. The spec mentioned adding to dependencyManagement, but this was unnecessary since the BOM already handles it. Five test files were modified across 4 modules: RedisMcpSessionStoreTest, HazelcastMcpSessionStoreTest, JdbcMcpSessionStoreTest, JdbcMcpSessionStorePostgresIT, CassandraMcpSessionStoreTest.
+NEXT_SPEC: 140-replace-deprecated-asText-with-asString.md
+NOTES: All 4 Sonar S2699 issues were the same pattern: deleteOnNonExistentKeyDoesNotFail tests that called store.delete() without any assertion. Used AssertJ assertThatCode(...).doesNotThrowAnyException() to make the "no exception thrown" intent explicit. Test names already accurately described the behavior so no renaming was needed.

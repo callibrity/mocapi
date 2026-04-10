@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.session.hazelcast;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.awaitility.Awaitility.await;
 
 import com.callibrity.mocapi.model.ClientCapabilities;
@@ -151,6 +152,6 @@ class HazelcastMcpSessionStoreTest {
 
   @Test
   void deleteOnNonExistentKeyDoesNotFail() {
-    store.delete("nonexistent");
+    assertThatCode(() -> store.delete("nonexistent")).doesNotThrowAnyException();
   }
 }

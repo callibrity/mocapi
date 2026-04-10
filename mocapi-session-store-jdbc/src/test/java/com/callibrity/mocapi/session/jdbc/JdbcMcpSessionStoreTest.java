@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.session.jdbc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
@@ -176,7 +177,7 @@ class JdbcMcpSessionStoreTest {
 
   @Test
   void deleteOnNonExistentKeyDoesNotFail() {
-    store.delete("nonexistent");
+    assertThatCode(() -> store.delete("nonexistent")).doesNotThrowAnyException();
   }
 
   @Test
