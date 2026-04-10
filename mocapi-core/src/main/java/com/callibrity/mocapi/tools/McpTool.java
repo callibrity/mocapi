@@ -15,25 +15,16 @@
  */
 package com.callibrity.mocapi.tools;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.callibrity.mocapi.model.Tool;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.ObjectNode;
 
 public interface McpTool {
 
-  Descriptor descriptor();
+  Tool descriptor();
 
   Object call(JsonNode arguments);
 
   default boolean isStreamable() {
     return false;
   }
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  record Descriptor(
-      String name,
-      String title,
-      String description,
-      ObjectNode inputSchema,
-      ObjectNode outputSchema) {}
 }

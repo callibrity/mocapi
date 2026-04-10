@@ -22,7 +22,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.content.CallToolResponse;
+import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.server.InitializeResponse;
 import com.callibrity.mocapi.server.ServerCapabilities;
 import com.callibrity.mocapi.server.ServerInfo;
@@ -269,7 +269,7 @@ class StreamableHttpControllerTest {
     @Test
     void toolsListShouldReturnJson() {
       when(toolsCapability.listTools(any()))
-          .thenReturn(new ToolsRegistry.ListToolsResponse(List.of(), null));
+          .thenReturn(new com.callibrity.mocapi.model.ListToolsResult(List.of(), null));
 
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();
@@ -287,7 +287,7 @@ class StreamableHttpControllerTest {
     @Test
     void toolsCallShouldReturnJson() {
       when(toolsCapability.callTool(eq("test-tool"), any()))
-          .thenReturn(new CallToolResponse(List.of(), null, objectMapper.createObjectNode()));
+          .thenReturn(new CallToolResult(List.of(), null, objectMapper.createObjectNode()));
 
       String sessionId = createSession();
       ObjectNode request = objectMapper.createObjectNode();

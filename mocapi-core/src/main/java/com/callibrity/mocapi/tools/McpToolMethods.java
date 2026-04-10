@@ -15,8 +15,9 @@
  */
 package com.callibrity.mocapi.tools;
 
-import com.callibrity.mocapi.content.CallToolResponse;
 import com.callibrity.mocapi.http.McpRequestId;
+import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ListToolsResult;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStream;
@@ -54,7 +55,7 @@ public class McpToolMethods {
   private final Duration elicitationTimeout;
 
   @JsonRpcMethod("tools/list")
-  public ToolsRegistry.ListToolsResponse listTools(String cursor) {
+  public ListToolsResult listTools(String cursor) {
     return toolsRegistry.listTools(cursor);
   }
 
@@ -105,7 +106,7 @@ public class McpToolMethods {
       McpSessionStream stream,
       DefaultMcpStreamContext<?> ctx) {
     try {
-      CallToolResponse result = toolsRegistry.callTool(name, arguments);
+      CallToolResult result = toolsRegistry.callTool(name, arguments);
       if (!ctx.isResponseSent()) {
         JsonRpcResult response = new JsonRpcResult(objectMapper.valueToTree(result), requestId);
         stream.publishJson(objectMapper.valueToTree(response));

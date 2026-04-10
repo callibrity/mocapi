@@ -19,6 +19,7 @@ import static com.callibrity.mocapi.tools.annotation.Names.humanReadableName;
 import static com.callibrity.mocapi.tools.annotation.Names.identifier;
 import static java.util.Optional.ofNullable;
 
+import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.stream.McpStreamContext;
 import com.callibrity.mocapi.tools.McpTool;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
@@ -40,7 +41,7 @@ public class AnnotationMcpTool implements McpTool {
 
   // ------------------------------ FIELDS ------------------------------
 
-  private final Descriptor descriptor;
+  private final Tool descriptor;
   private final MethodInvoker<JsonNode> invoker;
   private final boolean streamable;
 
@@ -98,7 +99,7 @@ public class AnnotationMcpTool implements McpTool {
     } else {
       outputSchema = generator.generateOutputSchema(targetObject, method);
     }
-    this.descriptor = new Descriptor(name, title, description, inputSchema, outputSchema);
+    this.descriptor = new Tool(name, title, description, inputSchema, outputSchema);
   }
 
   private static String nameOf(Object targetObject, Method method, ToolMethod annotation) {
@@ -125,7 +126,7 @@ public class AnnotationMcpTool implements McpTool {
   // --------------------- Interface McpTool ---------------------
 
   @Override
-  public Descriptor descriptor() {
+  public Tool descriptor() {
     return descriptor;
   }
 

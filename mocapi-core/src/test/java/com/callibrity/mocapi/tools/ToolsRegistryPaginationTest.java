@@ -18,6 +18,7 @@ package com.callibrity.mocapi.tools;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
@@ -149,14 +150,14 @@ class ToolsRegistryPaginationTest {
   }
 
   private static final class StubMcpTool implements McpTool {
-    private final Descriptor descriptor;
+    private final Tool descriptor;
 
     StubMcpTool(String name, ObjectNode schema) {
-      this.descriptor = new Descriptor(name, name, name, schema, schema);
+      this.descriptor = new Tool(name, name, name, schema, schema);
     }
 
     @Override
-    public Descriptor descriptor() {
+    public Tool descriptor() {
       return descriptor;
     }
 

@@ -17,12 +17,13 @@ package com.callibrity.mocapi.tools;
 
 import static java.util.Optional.ofNullable;
 
-import com.callibrity.mocapi.content.CallToolResponse;
+import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ListToolsResult;
 import com.callibrity.mocapi.model.TextContent;
+import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
 import com.github.erosb.jsonsKema.SchemaLoader;
@@ -44,7 +45,7 @@ public class ToolsRegistry {
   public static final int DEFAULT_PAGE_SIZE = 50;
 
   private final Map<String, McpTool> tools;
-  private final List<McpTool.Descriptor> sortedDescriptors;
+  private final List<Tool> sortedDescriptors;
   private final ConcurrentHashMap<String, Schema> inputSchemas = new ConcurrentHashMap<>();
   private final ObjectMapper objectMapper;
   private final int pageSize;
@@ -63,7 +64,7 @@ public class ToolsRegistry {
     this.sortedDescriptors =
         allTools.stream()
             .map(McpTool::descriptor)
-            .sorted(Comparator.comparing(McpTool.Descriptor::name))
+            .sorted(Comparator.comparing(Tool::name))
             .toList();
     this.objectMapper = objectMapper;
     this.pageSize = pageSize;
@@ -79,19 +80,19 @@ public class ToolsRegistry {
                     JsonRpcProtocol.INVALID_PARAMS, String.format("Tool %s not found.", name)));
   }
 
-  public CallToolResponse callTool(String name, JsonNode arguments) {
+  public CallToolResult callTool(String name, JsonNode arguments) {
     var tool = lookup(name);
     validateInput(name, arguments, tool);
     var result = tool.call(arguments);
-    if (result instanceof CallToolResponse response) {
-      return response;
+    if (result instanceof CallToolResult callToolResult) {
+      return callToolResult;
     }
     JsonNode jsonResult = result != null ? objectMapper.valueToTree(result) : null;
     ObjectNode structuredContent =
         jsonResult != null && jsonResult.isObject() ? (ObjectNode) jsonResult : null;
     String text = jsonResult != null ? jsonResult.toString() : "";
     var textContent = new TextContent(text, null);
-    return new CallToolResponse(List.of(textContent), null, structuredContent);
+    return new CallToolResult(List.of(textContent), null, structuredContent);
   }
 
   private void validateInput(String name, JsonNode arguments, McpTool tool) {
@@ -115,13 +116,8 @@ public class ToolsRegistry {
     return tools.isEmpty();
   }
 
-  public ListToolsResponse listTools(String cursor) {
+  public ListToolsResult listTools(String cursor) {
     var page = Cursors.paginate(sortedDescriptors, cursor, pageSize);
-    return new ListToolsResponse(page.items(), page.nextCursor());
+    return new ListToolsResult(page.items(), page.nextCursor());
   }
-
-  // -------------------------- INNER CLASSES --------------------------
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record ListToolsResponse(List<McpTool.Descriptor> tools, String nextCursor) {}
 }

@@ -15,8 +15,8 @@
  */
 package com.callibrity.mocapi.compat.conformance;
 
-import com.callibrity.mocapi.content.CallToolResponse;
 import com.callibrity.mocapi.model.AudioContent;
+import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.EmbeddedResource;
 import com.callibrity.mocapi.model.ImageContent;
 import com.callibrity.mocapi.model.TextContent;
@@ -177,8 +177,8 @@ public class ConformanceTools {
   @ToolMethod(
       name = "test_simple_text",
       description = "Returns simple text content for conformance testing")
-  public CallToolResponse simpleText() {
-    return new CallToolResponse(
+  public CallToolResult simpleText() {
+    return new CallToolResult(
         List.of(new TextContent("This is a simple text response for testing.", null)), null, null);
   }
 
@@ -192,8 +192,8 @@ public class ConformanceTools {
   @ToolMethod(
       name = "test_image_content",
       description = "Returns image content for conformance testing")
-  public CallToolResponse imageContent() {
-    return new CallToolResponse(List.of(new ImageContent(TINY_PNG, "image/png", null)), null, null);
+  public CallToolResult imageContent() {
+    return new CallToolResult(List.of(new ImageContent(TINY_PNG, "image/png", null)), null, null);
   }
 
   /**
@@ -206,8 +206,8 @@ public class ConformanceTools {
   @ToolMethod(
       name = "test_audio_content",
       description = "Returns audio content for conformance testing")
-  public CallToolResponse audioContent() {
-    return new CallToolResponse(List.of(new AudioContent(TINY_WAV, "audio/wav", null)), null, null);
+  public CallToolResult audioContent() {
+    return new CallToolResult(List.of(new AudioContent(TINY_WAV, "audio/wav", null)), null, null);
   }
 
   /**
@@ -220,8 +220,8 @@ public class ConformanceTools {
   @ToolMethod(
       name = "test_embedded_resource",
       description = "Returns embedded resource content for conformance testing")
-  public CallToolResponse embeddedResource() {
-    return new CallToolResponse(
+  public CallToolResult embeddedResource() {
+    return new CallToolResult(
         List.of(
             new EmbeddedResource(
                 new TextResourceContents(
@@ -243,8 +243,8 @@ public class ConformanceTools {
   @ToolMethod(
       name = "test_multiple_content_types",
       description = "Returns multiple content types for conformance testing")
-  public CallToolResponse mixedContent() {
-    return new CallToolResponse(
+  public CallToolResult mixedContent() {
+    return new CallToolResult(
         List.of(
             new TextContent("Multiple content types test:", null),
             new ImageContent(TINY_PNG, "image/png", null),
@@ -269,7 +269,7 @@ public class ConformanceTools {
   @ToolMethod(
       name = "test_tool_with_logging",
       description = "Sends log messages during execution for conformance testing")
-  public CallToolResponse withLogging(McpStreamContext<CallToolResponse> ctx)
+  public CallToolResult withLogging(McpStreamContext<CallToolResult> ctx)
       throws InterruptedException {
     ctx.log(
         com.callibrity.mocapi.session.LogLevel.INFO,
@@ -285,7 +285,7 @@ public class ConformanceTools {
         com.callibrity.mocapi.session.LogLevel.INFO,
         "test_tool_with_logging",
         "Tool execution completed");
-    return new CallToolResponse(
+    return new CallToolResult(
         List.of(new TextContent("Logging test completed successfully", null)), null, null);
   }
 
@@ -299,8 +299,8 @@ public class ConformanceTools {
   @ToolMethod(
       name = "test_error_handling",
       description = "Always returns an error for conformance testing")
-  public CallToolResponse errorHandling() {
-    return new CallToolResponse(
+  public CallToolResult errorHandling() {
+    return new CallToolResult(
         List.of(new TextContent("This tool intentionally returns an error for testing", null)),
         true,
         null);
@@ -316,14 +316,14 @@ public class ConformanceTools {
   @ToolMethod(
       name = "test_tool_with_progress",
       description = "Reports progress notifications for conformance testing")
-  public CallToolResponse withProgress(McpStreamContext<CallToolResponse> ctx)
+  public CallToolResult withProgress(McpStreamContext<CallToolResult> ctx)
       throws InterruptedException {
     ctx.sendProgress(0, 100);
     Thread.sleep(50);
     ctx.sendProgress(50, 100);
     Thread.sleep(50);
     ctx.sendProgress(100, 100);
-    return new CallToolResponse(
+    return new CallToolResult(
         List.of(new TextContent("Progress test completed successfully", null)), null, null);
   }
 
@@ -335,11 +335,10 @@ public class ConformanceTools {
    *     Sampling Specification</a>
    */
   @ToolMethod(name = "test_sampling", description = "Tests sampling/createMessage for conformance")
-  public CallToolResponse testSampling(String prompt, McpStreamContext<CallToolResponse> ctx) {
+  public CallToolResult testSampling(String prompt, McpStreamContext<CallToolResult> ctx) {
     SamplingResult result = ctx.sample(prompt, 100);
     String text = result.text();
-    return new CallToolResponse(
-        List.of(new TextContent("LLM response: " + text, null)), null, null);
+    return new CallToolResult(List.of(new TextContent("LLM response: " + text, null)), null, null);
   }
 
   /**
@@ -350,7 +349,7 @@ public class ConformanceTools {
    *     Elicitation Specification</a>
    */
   @ToolMethod(name = "test_elicitation", description = "Tests elicitation/create for conformance")
-  public CallToolResponse testElicitation(String message, McpStreamContext<CallToolResponse> ctx) {
+  public CallToolResult testElicitation(String message, McpStreamContext<CallToolResult> ctx) {
     var result =
         ctx.elicit(
             message,
@@ -359,7 +358,7 @@ public class ConformanceTools {
               schema.string("email", "User's email address");
             });
     String content = result.isAccepted() ? result.getString("username") : "n/a";
-    return new CallToolResponse(
+    return new CallToolResult(
         List.of(
             new TextContent(
                 "User response: action=" + result.action().getValue() + ", content=" + content,
@@ -378,7 +377,7 @@ public class ConformanceTools {
   @ToolMethod(
       name = "test_elicitation_sep1034_defaults",
       description = "Tests elicitation with default values for conformance")
-  public CallToolResponse testElicitationDefaults(McpStreamContext<CallToolResponse> ctx) {
+  public CallToolResult testElicitationDefaults(McpStreamContext<CallToolResult> ctx) {
     var result =
         ctx.elicit(
             "Enter defaults test data",
@@ -389,7 +388,7 @@ public class ConformanceTools {
               schema.choose("status", List.of("active", "inactive", "pending"), "active");
               schema.bool("verified", "Verified", true);
             });
-    return new CallToolResponse(
+    return new CallToolResult(
         List.of(
             new TextContent("Elicitation completed: action=" + result.action().getValue(), null)),
         null,
@@ -440,7 +439,7 @@ public class ConformanceTools {
   @ToolMethod(
       name = "test_elicitation_sep1330_enums",
       description = "Tests elicitation with enum variants for conformance")
-  public CallToolResponse testElicitationEnums(McpStreamContext<CallToolResponse> ctx) {
+  public CallToolResult testElicitationEnums(McpStreamContext<CallToolResult> ctx) {
     var result =
         ctx.elicit(
             "Enum variants test",
@@ -454,7 +453,7 @@ public class ConformanceTools {
               schema.chooseMany("untitledMulti", List.of("option1", "option2", "option3"));
               schema.chooseMany("titledMulti", TitledMultiOption.class);
             });
-    return new CallToolResponse(
+    return new CallToolResult(
         List.of(
             new TextContent("Elicitation completed: action=" + result.action().getValue(), null)),
         null,

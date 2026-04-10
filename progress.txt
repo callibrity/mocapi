@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T00:15:08-04:00
-ITERATION: 87
-SPEC_COMPLETED: 088-uppercase-enums-with-json-value.md
-WHAT_WAS_DONE: Converted Role and LoggingLevel enums in mocapi-model from lowercase constants to uppercase Java names (USER, ASSISTANT, DEBUG, INFO, etc.) with @JsonValue for lowercase JSON serialization and @JsonCreator for case-insensitive deserialization; updated all references across mocapi-model tests, mocapi-core tests, and mocapi-compat ConformancePrompts.
+LAST_RUN: 2026-04-10T00:22:10-04:00
+ITERATION: 88
+SPEC_COMPLETED: 089-migrate-tools-to-model.md
+WHAT_WAS_DONE: Replaced tool types in mocapi-core with canonical types from mocapi-model: McpTool.Descriptor → model.Tool, ToolsRegistry.ListToolsResponse → model.ListToolsResult, CallToolResponse → model.CallToolResult; updated McpTool interface, ToolsRegistry, McpToolMethods, AnnotationMcpTool, ConformanceTools, and all tests; deleted content package (CallToolResponse was the only occupant).
 VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests, spotless and license checks pass
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: Used com.fasterxml.jackson.annotation (not tools.jackson.annotation) to match the existing annotation package convention in mocapi-model. The LogLevel enum in mocapi-core already followed this pattern and was not modified. The ProtocolTypesSerializationTest.loggingLevelValues() assertion was updated to expect uppercase Enum.name() values since the test uses Enum::name extractor.
+NOTES: The model types (Tool, ListToolsResult, CallToolResult) have identical field signatures to the old types they replaced, making this a clean drop-in migration. No new dependencies were needed since mocapi-core already depends on mocapi-model.
