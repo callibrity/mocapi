@@ -60,6 +60,7 @@
         <module>mocapi-compat</module>
         <module>mocapi-session-store-redis</module>
         <module>mocapi-session-store-hazelcast</module>
+        <module>mocapi-session-store-jdbc</module>
     </modules>
 
     <properties>

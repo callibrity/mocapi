@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T07:52:00-04:00
-ITERATION: 21
-SPEC_COMPLETED: 114-mocapi-session-store-hazelcast.md
-WHAT_WAS_DONE: Created new mocapi-session-store-hazelcast module with HazelcastMcpSessionStore (all 5 McpSessionStore methods via IMap operations, EntryView-based TTL preservation for update, configurable map name) and HazelcastMcpSessionStoreAutoConfiguration (conditional on HazelcastInstance, before MocapiAutoConfiguration).
-VERIFICATION: mvn verify — BUILD SUCCESS, full reactor green. Module tests: 11 passed (8 embedded Hazelcast integration tests for HazelcastMcpSessionStore including round-trip serialization, TTL expiration, TTL preservation on update + 3 ApplicationContextRunner tests for auto-configuration). Spotless and license checks pass.
-STATUS: MORE_WORK
-NEXT_SPEC: 115-mocapi-session-store-jdbc.md
-NOTES: Hazelcast 5.5.0 (managed by Spring Boot 4.0.5 BOM) supports zero-config Compact serialization for records — no custom serializer or Serializable needed. Used com.hazelcast.core.EntryView (not com.hazelcast.map.EntryView which doesn't exist in 5.5.0). Each test creates an isolated Hazelcast instance with a unique cluster name to prevent cross-JVM clustering. Tests take ~31s due to Hazelcast startup/shutdown per test.
+LAST_RUN: 2026-04-10T08:03:00-04:00
+ITERATION: 22
+SPEC_COMPLETED: 115-mocapi-session-store-jdbc.md
+WHAT_WAS_DONE: Created new mocapi-session-store-jdbc module with JdbcMcpSessionStore (all 5 McpSessionStore methods via JdbcTemplate, dialect-specific upsert via JdbcDialect enum for PostgreSQL/MySQL/H2, auto-detection via DatabaseMetaData, configurable table name, periodic cleanup of expired rows via ScheduledExecutorService with configurable interval and disable switch) and JdbcMcpSessionStoreAutoConfiguration (conditional on DataSource + JdbcTemplate, before MocapiAutoConfiguration). Ships three schema SQL files for PostgreSQL, MySQL, and H2.
+VERIFICATION: mvn verify — BUILD SUCCESS, full reactor green. Module tests: 13 passed (10 H2 integration tests for JdbcMcpSessionStore including round-trip, all-fields round-trip, TTL expiration, touch extends TTL, TTL preservation on update, delete, find/delete nonexistent, cleanup of expired rows, concurrent upsert + 3 ApplicationContextRunner tests for auto-configuration). Spotless and license checks pass. PostgreSQL Testcontainers IT test (9 tests) runs via failsafe when Docker is available.
+STATUS: DONE
+NEXT_SPEC: none
+NOTES: Duration property for cleanup-interval is parsed as String then Duration.parse() in auto-config because ApplicationContextRunner doesn't register Spring Boot's duration converters. Dialect auto-detection uses DataSource.getConnection().getMetaData().getDatabaseProductName(). JdbcMcpSessionStore implements AutoCloseable to shut down the cleanup executor on context close.
