@@ -104,6 +104,10 @@ public class ToolsRegistry {
         name, _ -> new SchemaLoader(new JsonParser(tool.inputSchema().toString()).parse()).load());
   }
 
+  public boolean isEmpty() {
+    return tools.isEmpty();
+  }
+
   public ListToolsResponse listTools(String cursor) {
     var allDescriptors =
         tools.values().stream()

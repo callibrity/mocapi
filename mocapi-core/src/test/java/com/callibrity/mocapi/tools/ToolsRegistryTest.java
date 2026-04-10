@@ -45,6 +45,19 @@ class ToolsRegistryTest {
           new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7), invokerFactory);
 
   @Test
+  void isEmptyShouldReturnTrueWhenNoTools() {
+    var registry = new ToolsRegistry(List.of(), mapper);
+    assertThat(registry.isEmpty()).isTrue();
+  }
+
+  @Test
+  void isEmptyShouldReturnFalseWhenToolsExist() {
+    var provider = factory.create(new HelloTool());
+    var registry = new ToolsRegistry(List.of(provider), mapper);
+    assertThat(registry.isEmpty()).isFalse();
+  }
+
+  @Test
   void shouldListAllTools() {
 
     var provider = factory.create(new HelloTool());

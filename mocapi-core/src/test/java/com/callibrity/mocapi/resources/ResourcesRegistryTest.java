@@ -73,6 +73,20 @@ class ResourcesRegistryTest {
   }
 
   @Test
+  void isEmptyShouldReturnTrueWhenNoProviders() {
+    var registry = new ResourcesRegistry(List.of(), 50);
+    assertThat(registry.isEmpty()).isTrue();
+  }
+
+  @Test
+  void isEmptyShouldReturnFalseWhenProvidersExist() {
+    var provider =
+        providerWithResources(List.of(new McpResource("test://a", "A", "desc", "text/plain")));
+    var registry = new ResourcesRegistry(List.of(provider), 50);
+    assertThat(registry.isEmpty()).isFalse();
+  }
+
+  @Test
   void shouldListAllResources() {
     var resources =
         List.of(

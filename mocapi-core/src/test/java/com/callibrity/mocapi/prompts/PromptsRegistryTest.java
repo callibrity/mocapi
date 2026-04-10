@@ -57,6 +57,18 @@ class PromptsRegistryTest {
   }
 
   @Test
+  void isEmptyShouldReturnTrueWhenNoPrompts() {
+    var registry = new PromptsRegistry(List.of(), 50);
+    assertThat(registry.isEmpty()).isTrue();
+  }
+
+  @Test
+  void isEmptyShouldReturnFalseWhenPromptsExist() {
+    var registry = new PromptsRegistry(List.of(providerWith(List.of(createPrompt("test")))), 50);
+    assertThat(registry.isEmpty()).isFalse();
+  }
+
+  @Test
   void shouldListAllPrompts() {
     var prompts = List.of(createPrompt("beta"), createPrompt("alpha"));
     var registry = new PromptsRegistry(List.of(providerWith(prompts)), 50);

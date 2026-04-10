@@ -39,6 +39,10 @@ public class PromptsRegistry {
     this.pageSize = pageSize;
   }
 
+  public boolean isEmpty() {
+    return prompts.isEmpty();
+  }
+
   public McpPrompt lookup(String name) {
     return ofNullable(prompts.get(name))
         .orElseThrow(

@@ -45,6 +45,7 @@ import com.github.victools.jsonschema.generator.SchemaVersion;
 import com.github.victools.jsonschema.module.jackson.JacksonSchemaModule;
 import com.github.victools.jsonschema.module.jakarta.validation.JakartaValidationModule;
 import java.util.Base64;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -74,17 +75,17 @@ public class MocapiAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public InitializeResponse initializeResponse(
-      @Nullable ToolsRegistry toolsRegistry,
-      @Nullable ResourcesRegistry resourcesRegistry,
-      @Nullable PromptsRegistry promptsRegistry,
+      ToolsRegistry toolsRegistry,
+      ResourcesRegistry resourcesRegistry,
+      PromptsRegistry promptsRegistry,
       @Nullable BuildProperties buildProperties) {
     String version = buildProperties != null ? buildProperties.getVersion() : "unknown";
     ToolsCapabilityDescriptor tools =
-        toolsRegistry != null ? new ToolsCapabilityDescriptor(false) : null;
+        toolsRegistry.isEmpty() ? null : new ToolsCapabilityDescriptor(false);
     ResourcesCapabilityDescriptor resources =
-        resourcesRegistry != null ? new ResourcesCapabilityDescriptor(true, false) : null;
+        resourcesRegistry.isEmpty() ? null : new ResourcesCapabilityDescriptor(true, false);
     PromptsCapabilityDescriptor prompts =
-        promptsRegistry != null ? new PromptsCapabilityDescriptor(false) : null;
+        promptsRegistry.isEmpty() ? null : new PromptsCapabilityDescriptor(false);
     return new InitializeResponse(
         InitializeResponse.PROTOCOL_VERSION,
         new ServerCapabilities(
@@ -95,6 +96,24 @@ public class MocapiAutoConfiguration {
             prompts),
         new ServerInfo(props.getServerName(), props.getServerTitle(), version, null, null, null),
         props.getInstructions());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ToolsRegistry toolsRegistry(ObjectMapper objectMapper) {
+    return new ToolsRegistry(List.of(), objectMapper, props.getPagination().getPageSize());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ResourcesRegistry resourcesRegistry() {
+    return new ResourcesRegistry(List.of(), props.getPagination().getPageSize());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public PromptsRegistry promptsRegistry() {
+    return new PromptsRegistry(List.of(), props.getPagination().getPageSize());
   }
 
   @Bean(destroyMethod = "shutdown")

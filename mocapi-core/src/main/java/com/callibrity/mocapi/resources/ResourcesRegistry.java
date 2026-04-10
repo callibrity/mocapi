@@ -36,6 +36,10 @@ public class ResourcesRegistry {
     this.pageSize = pageSize;
   }
 
+  public boolean isEmpty() {
+    return providers.isEmpty();
+  }
+
   public ListResourcesResponse listResources(String cursor) {
     List<McpResource> allResources =
         providers.stream()

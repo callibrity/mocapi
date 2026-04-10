@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T21:17:00-04:00
-ITERATION: 77
-SPEC_COMPLETED: 078-unit-tests-for-prompts-and-resources.md
-WHAT_WAS_DONE: Added 32 unit tests across 4 new test classes: ResourcesRegistryTest (11 tests covering list, aggregate, read, unknown URI, pagination, cursor encoding, subscribe/unsubscribe), McpResourceMethodsTest (6 tests covering list resources, list templates, read, unknown URI, subscribe, unsubscribe), PromptsRegistryTest (10 tests covering list, aggregate, lookup, unknown name, pagination, cursor encoding, arguments), McpPromptMethodsTest (5 tests covering list, get, unknown name, argument passthrough, arguments in listing).
-VERIFICATION: mvn verify — BUILD SUCCESS, all 385 tests pass (32 new), 0 failures, spotless and license checks pass
+LAST_RUN: 2026-04-09T21:31:00-04:00
+ITERATION: 78
+SPEC_COMPLETED: 079-fix-initialize-capability-detection.md
+WHAT_WAS_DONE: Added isEmpty() to ToolsRegistry, ResourcesRegistry, and PromptsRegistry. Removed @Nullable from registry parameters in initializeResponse bean and replaced null checks with isEmpty() calls. Added default empty registry beans (ConditionalOnMissingBean) in MocapiAutoConfiguration so registries are always present. BuildProperties stays @Nullable. Added 6 new unit tests (2 per registry) for isEmpty().
+VERIFICATION: mvn verify — BUILD SUCCESS, all 391 tests pass (6 new), 0 failures, spotless and license checks pass
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: All tests are pure unit tests with no Spring context. Used anonymous implementations of McpResourceProvider, McpPromptProvider, and McpPrompt interfaces as stubs. No annotation-based provider tests were written because @Resource/@Prompt annotations don't exist on main yet. The spec mentioned provider annotation tests but the codebase only has interface-based providers currently.
+NOTES: Added default ToolsRegistry, ResourcesRegistry, and PromptsRegistry beans in MocapiAutoConfiguration with @ConditionalOnMissingBean, so they're always available even when the domain-specific auto-configurations (MocapiToolsAutoConfiguration, MocapiResourcesAutoConfiguration, MocapiPromptsAutoConfiguration) don't activate. The @Nullable import remains because BuildProperties still uses it.
