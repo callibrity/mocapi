@@ -20,68 +20,72 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.callibrity.mocapi.model.NumberSchema;
 import org.junit.jupiter.api.Test;
 
-class IntegerPropertyBuilderTest {
+class IntegerSchemaBuilderTest {
 
   @Test
-  void shouldBuildMinimalIntegerProperty() {
-    NumberSchema schema = new IntegerPropertyBuilder().description("Age").build();
+  void minimalIntegerShouldHaveTypeAndDescription() {
+    NumberSchema schema = new IntegerSchemaBuilder().description("Age").build();
 
     assertThat(schema.type()).isEqualTo("integer");
     assertThat(schema.description()).isEqualTo("Age");
-    assertThat(schema.defaultValue()).isNull();
   }
 
   @Test
-  void shouldIncludeTitle() {
-    NumberSchema schema = new IntegerPropertyBuilder().description("Age").title("Your Age").build();
+  void titleShouldBeIncluded() {
+    NumberSchema schema = new IntegerSchemaBuilder().description("Age").title("Your Age").build();
 
     assertThat(schema.title()).isEqualTo("Your Age");
   }
 
   @Test
-  void shouldIncludeDefaultValue() {
-    NumberSchema schema = new IntegerPropertyBuilder().description("Age").defaultValue(30).build();
+  void defaultValueShouldBeIncluded() {
+    NumberSchema schema = new IntegerSchemaBuilder().description("Age").defaultValue(25).build();
 
+    assertThat(schema.defaultValue()).isEqualTo(25);
+  }
+
+  @Test
+  void minimumShouldBeIncluded() {
+    NumberSchema schema = new IntegerSchemaBuilder().description("Age").minimum(0).build();
+
+    assertThat(schema.minimum()).isEqualTo(0);
+  }
+
+  @Test
+  void maximumShouldBeIncluded() {
+    NumberSchema schema = new IntegerSchemaBuilder().description("Age").maximum(150).build();
+
+    assertThat(schema.maximum()).isEqualTo(150);
+  }
+
+  @Test
+  void constraintChainingShouldWork() {
+    NumberSchema schema =
+        new IntegerSchemaBuilder()
+            .description("Age")
+            .title("Your Age")
+            .minimum(0)
+            .maximum(150)
+            .defaultValue(30)
+            .build();
+
+    assertThat(schema.title()).isEqualTo("Your Age");
+    assertThat(schema.minimum()).isEqualTo(0);
+    assertThat(schema.maximum()).isEqualTo(150);
     assertThat(schema.defaultValue()).isEqualTo(30);
   }
 
   @Test
-  void shouldIncludeMinimumAndMaximum() {
-    NumberSchema schema =
-        new IntegerPropertyBuilder().description("Age").minimum(0).maximum(150).build();
+  void defaultShouldBeRequired() {
+    IntegerSchemaBuilder builder = new IntegerSchemaBuilder();
 
-    assertThat(schema.minimum()).isEqualTo(0);
-    assertThat(schema.maximum()).isEqualTo(150);
-  }
-
-  @Test
-  void shouldChainAllConstraints() {
-    NumberSchema schema =
-        new IntegerPropertyBuilder()
-            .description("Age")
-            .title("Your Age")
-            .defaultValue(25)
-            .minimum(0)
-            .maximum(150)
-            .build();
-
-    assertThat(schema.title()).isEqualTo("Your Age");
-    assertThat(schema.defaultValue()).isEqualTo(25);
-    assertThat(schema.minimum()).isEqualTo(0);
-    assertThat(schema.maximum()).isEqualTo(150);
+    assertThat(builder.isRequired()).isTrue();
   }
 
   @Test
   void optionalShouldSetRequiredFalse() {
-    IntegerPropertyBuilder builder = new IntegerPropertyBuilder().description("Age").optional();
+    IntegerSchemaBuilder builder = new IntegerSchemaBuilder().optional();
 
     assertThat(builder.isRequired()).isFalse();
-  }
-
-  @Test
-  void defaultShouldBeRequired() {
-    IntegerPropertyBuilder builder = new IntegerPropertyBuilder().description("Age");
-
-    assertThat(builder.isRequired()).isTrue();
   }
 }

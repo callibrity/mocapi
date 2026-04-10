@@ -15,41 +15,47 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
-import com.callibrity.mocapi.model.LegacyTitledEnumSchema;
-import java.util.List;
+import com.callibrity.mocapi.model.NumberSchema;
 
-/**
- * Builder for the deprecated {@code enum} + {@code enumNames} single-select format. Retained for
- * conformance testing.
- *
- * @deprecated Use {@link ChooseOneBuilder} instead.
- */
-@Deprecated
-public final class ChooseLegacyBuilder {
+/** Builder for number-typed {@link NumberSchema} elicitation schema properties. */
+public final class NumberSchemaBuilder {
 
-  private final List<String> values;
-  private final List<String> displayNames;
   private String description;
   private String title;
   private boolean required = true;
+  private Double defaultValue;
+  private Number minimum;
+  private Number maximum;
 
-  public ChooseLegacyBuilder(List<String> values, List<String> displayNames) {
-    this.values = values;
-    this.displayNames = displayNames;
-  }
+  public NumberSchemaBuilder() {}
 
-  public ChooseLegacyBuilder description(String description) {
+  public NumberSchemaBuilder description(String description) {
     this.description = description;
     return this;
   }
 
-  public ChooseLegacyBuilder title(String title) {
+  public NumberSchemaBuilder title(String title) {
     this.title = title;
     return this;
   }
 
-  public ChooseLegacyBuilder optional() {
+  public NumberSchemaBuilder optional() {
     this.required = false;
+    return this;
+  }
+
+  public NumberSchemaBuilder defaultValue(double value) {
+    this.defaultValue = value;
+    return this;
+  }
+
+  public NumberSchemaBuilder minimum(Number min) {
+    this.minimum = min;
+    return this;
+  }
+
+  public NumberSchemaBuilder maximum(Number max) {
+    this.maximum = max;
     return this;
   }
 
@@ -57,7 +63,7 @@ public final class ChooseLegacyBuilder {
     return required;
   }
 
-  public LegacyTitledEnumSchema build() {
-    return new LegacyTitledEnumSchema(title, description, values, displayNames, null);
+  public NumberSchema build() {
+    return new NumberSchema("number", title, description, minimum, maximum, defaultValue);
   }
 }

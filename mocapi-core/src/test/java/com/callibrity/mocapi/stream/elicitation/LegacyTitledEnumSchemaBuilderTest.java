@@ -21,12 +21,12 @@ import com.callibrity.mocapi.model.LegacyTitledEnumSchema;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class ChooseLegacyBuilderTest {
+class LegacyTitledEnumSchemaBuilderTest {
 
   @Test
   void shouldProduceEnumWithEnumNames() {
     LegacyTitledEnumSchema schema =
-        new ChooseLegacyBuilder(
+        new LegacyTitledEnumSchemaBuilder(
                 List.of("opt1", "opt2", "opt3"),
                 List.of("Option One", "Option Two", "Option Three"))
             .build();
@@ -38,14 +38,16 @@ class ChooseLegacyBuilderTest {
 
   @Test
   void defaultShouldBeRequired() {
-    ChooseLegacyBuilder builder = new ChooseLegacyBuilder(List.of("a"), List.of("A"));
+    LegacyTitledEnumSchemaBuilder builder =
+        new LegacyTitledEnumSchemaBuilder(List.of("a"), List.of("A"));
 
     assertThat(builder.isRequired()).isTrue();
   }
 
   @Test
   void optionalShouldSetRequiredFalse() {
-    ChooseLegacyBuilder builder = new ChooseLegacyBuilder(List.of("a"), List.of("A")).optional();
+    LegacyTitledEnumSchemaBuilder builder =
+        new LegacyTitledEnumSchemaBuilder(List.of("a"), List.of("A")).optional();
 
     assertThat(builder.isRequired()).isFalse();
   }

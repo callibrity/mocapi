@@ -15,47 +15,41 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
-import com.callibrity.mocapi.model.NumberSchema;
+import com.callibrity.mocapi.model.LegacyTitledEnumSchema;
+import java.util.List;
 
-/** Builder for number-typed elicitation schema properties. */
-public final class NumberPropertyBuilder {
+/**
+ * Builder for the deprecated {@link LegacyTitledEnumSchema} ({@code enum} + {@code enumNames}
+ * format). Retained for conformance testing.
+ *
+ * @deprecated Use {@link SingleSelectEnumSchemaBuilder} instead.
+ */
+@Deprecated
+public final class LegacyTitledEnumSchemaBuilder {
 
+  private final List<String> values;
+  private final List<String> displayNames;
   private String description;
   private String title;
   private boolean required = true;
-  private Double defaultValue;
-  private Number minimum;
-  private Number maximum;
 
-  public NumberPropertyBuilder() {}
+  public LegacyTitledEnumSchemaBuilder(List<String> values, List<String> displayNames) {
+    this.values = values;
+    this.displayNames = displayNames;
+  }
 
-  public NumberPropertyBuilder description(String description) {
+  public LegacyTitledEnumSchemaBuilder description(String description) {
     this.description = description;
     return this;
   }
 
-  public NumberPropertyBuilder title(String title) {
+  public LegacyTitledEnumSchemaBuilder title(String title) {
     this.title = title;
     return this;
   }
 
-  public NumberPropertyBuilder optional() {
+  public LegacyTitledEnumSchemaBuilder optional() {
     this.required = false;
-    return this;
-  }
-
-  public NumberPropertyBuilder defaultValue(double value) {
-    this.defaultValue = value;
-    return this;
-  }
-
-  public NumberPropertyBuilder minimum(Number min) {
-    this.minimum = min;
-    return this;
-  }
-
-  public NumberPropertyBuilder maximum(Number max) {
-    this.maximum = max;
     return this;
   }
 
@@ -63,7 +57,7 @@ public final class NumberPropertyBuilder {
     return required;
   }
 
-  public NumberSchema build() {
-    return new NumberSchema("number", title, description, minimum, maximum, defaultValue);
+  public LegacyTitledEnumSchema build() {
+    return new LegacyTitledEnumSchema(title, description, values, displayNames, null);
   }
 }

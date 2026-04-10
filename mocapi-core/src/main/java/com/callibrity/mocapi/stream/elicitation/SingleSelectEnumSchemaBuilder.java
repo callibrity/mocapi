@@ -16,74 +16,76 @@
 package com.callibrity.mocapi.stream.elicitation;
 
 import com.callibrity.mocapi.model.EnumOption;
-import com.callibrity.mocapi.model.PrimitiveSchemaDefinition;
+import com.callibrity.mocapi.model.SingleSelectEnumSchema;
 import com.callibrity.mocapi.model.TitledSingleSelectEnumSchema;
 import com.callibrity.mocapi.model.UntitledSingleSelectEnumSchema;
 import java.util.List;
 import java.util.function.Function;
 
 /**
- * Builder for single-select (choose one) elicitation schema properties.
+ * Builder for {@link SingleSelectEnumSchema} elicitation schema properties. Defaults to untitled;
+ * call {@link #titled(Function)} to produce a titled variant.
  *
  * @param <T> the type of the selectable items
  */
-public final class ChooseOneBuilder<T> {
+public final class SingleSelectEnumSchemaBuilder<T> {
 
   private final List<T> items;
   private final Function<T, String> valueFn;
   private Function<T, String> titleFn;
   private T defaultValue;
-  private boolean rawStrings;
   private String description;
   private String title;
   private boolean required = true;
 
-  private ChooseOneBuilder(List<T> items, Function<T, String> valueFn, boolean rawStrings) {
+  private SingleSelectEnumSchemaBuilder(List<T> items, Function<T, String> valueFn) {
     this.items = items;
     this.valueFn = valueFn;
-    this.rawStrings = rawStrings;
   }
 
-  /**
-   * Creates a builder from an enum type. Uses {@code name()} for values, {@code toString()} for
-   * titles.
-   */
-  public static <E extends Enum<E>> ChooseOneBuilder<E> fromEnum(Class<E> enumType) {
-    return new ChooseOneBuilder<>(List.of(enumType.getEnumConstants()), Enum::name, false);
+  /** Creates a builder from an enum type. Uses {@code name()} for values. */
+  public static <E extends Enum<E>> SingleSelectEnumSchemaBuilder<E> fromEnum(Class<E> enumType) {
+    return new SingleSelectEnumSchemaBuilder<>(List.of(enumType.getEnumConstants()), Enum::name);
   }
 
   /** Creates a builder from arbitrary items with an explicit value function. */
-  public static <T> ChooseOneBuilder<T> from(List<T> items, Function<T, String> valueFn) {
-    return new ChooseOneBuilder<>(items, valueFn, false);
+  public static <T> SingleSelectEnumSchemaBuilder<T> from(
+      List<T> items, Function<T, String> valueFn) {
+    return new SingleSelectEnumSchemaBuilder<>(items, valueFn);
   }
 
-  /** Creates a builder from raw string values (produces plain enum array format). */
-  public static ChooseOneBuilder<String> from(List<String> values) {
-    return new ChooseOneBuilder<>(values, Function.identity(), true);
+  /** Creates a builder from raw string values. */
+  public static SingleSelectEnumSchemaBuilder<String> from(List<String> values) {
+    return new SingleSelectEnumSchemaBuilder<>(values, Function.identity());
   }
 
-  public ChooseOneBuilder<T> description(String description) {
+  public SingleSelectEnumSchemaBuilder<T> description(String description) {
     this.description = description;
     return this;
   }
 
-  public ChooseOneBuilder<T> title(String title) {
+  public SingleSelectEnumSchemaBuilder<T> title(String title) {
     this.title = title;
     return this;
   }
 
-  public ChooseOneBuilder<T> optional() {
+  public SingleSelectEnumSchemaBuilder<T> optional() {
     this.required = false;
     return this;
   }
 
-  public ChooseOneBuilder<T> titleFn(Function<T, String> titleFn) {
+  /**
+   * Switches this builder into titled mode. The title function is applied per item at build time.
+   *
+   * @param titleFn function to derive a display title from each item
+   * @return this builder
+   */
+  public SingleSelectEnumSchemaBuilder<T> titled(Function<T, String> titleFn) {
     this.titleFn = titleFn;
-    this.rawStrings = false;
     return this;
   }
 
-  public ChooseOneBuilder<T> defaultValue(T value) {
+  public SingleSelectEnumSchemaBuilder<T> defaultValue(T value) {
     this.defaultValue = value;
     return this;
   }
@@ -92,16 +94,15 @@ public final class ChooseOneBuilder<T> {
     return required;
   }
 
-  public PrimitiveSchemaDefinition build() {
+  public SingleSelectEnumSchema build() {
     String defaultStr = defaultValue != null ? valueFn.apply(defaultValue) : null;
-    if (rawStrings && titleFn == null) {
+    if (titleFn == null) {
       List<String> values = items.stream().map(valueFn).toList();
       return new UntitledSingleSelectEnumSchema(title, description, values, defaultStr);
     }
-    Function<T, String> effectiveTitleFn = titleFn != null ? titleFn : Object::toString;
     List<EnumOption> options =
         items.stream()
-            .map(item -> new EnumOption(valueFn.apply(item), effectiveTitleFn.apply(item)))
+            .map(item -> new EnumOption(valueFn.apply(item), titleFn.apply(item)))
             .toList();
     return new TitledSingleSelectEnumSchema(title, description, options, defaultStr);
   }

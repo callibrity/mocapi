@@ -24,7 +24,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
-class ElicitationSchemaGoldenJsonTest {
+class RequestedSchemaBuilderGoldenJsonTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -36,8 +36,8 @@ class ElicitationSchemaGoldenJsonTest {
 
   @Test
   void builderSchemaShouldMatchGoldenFixture() throws Exception {
-    ElicitationSchema schema =
-        ElicitationSchema.builder()
+    RequestedSchema requestedSchema =
+        new RequestedSchemaBuilder()
             .string("name", "Full name", "Jane Doe")
             .string("email", "Email address", s -> s.email().optional())
             .integer("age", "Your age", a -> a.minimum(0).maximum(150).defaultValue(30))
@@ -50,7 +50,6 @@ class ElicitationSchemaGoldenJsonTest {
             .chooseLegacy("legacy", List.of("a", "b"), List.of("Alpha", "Beta"))
             .build();
 
-    RequestedSchema requestedSchema = schema.toRequestedSchema();
     JsonNode actual = objectMapper.valueToTree(requestedSchema);
 
     String goldenJson =
@@ -64,9 +63,9 @@ class ElicitationSchemaGoldenJsonTest {
             "score": {"type":"number","description":"Test score","minimum":0.0,"maximum":100.0,"default":95.5},
             "active": {"type":"boolean","description":"Is active","default":true},
             "color": {"type":"string","enum":["red","green","blue"],"default":"green"},
-            "priority": {"type":"string","oneOf":[{"const":"LOW","title":"LOW"},{"const":"MEDIUM","title":"MEDIUM"},{"const":"HIGH","title":"HIGH"}],"default":"MEDIUM"},
+            "priority": {"type":"string","enum":["LOW","MEDIUM","HIGH"],"default":"MEDIUM"},
             "tags": {"type":"array","items":{"type":"string","enum":["java","python","go"]}},
-            "roles": {"type":"array","minItems":1,"items":{"type":"string","anyOf":[{"const":"LOW","title":"LOW"},{"const":"MEDIUM","title":"MEDIUM"},{"const":"HIGH","title":"HIGH"}]},"default":["LOW"]},
+            "roles": {"type":"array","minItems":1,"items":{"type":"string","enum":["LOW","MEDIUM","HIGH"]},"default":["LOW"]},
             "legacy": {"type":"string","enum":["a","b"],"enumNames":["Alpha","Beta"]}
           },
           "required": ["name","age","score","active","color","priority","tags","roles","legacy"]

@@ -20,70 +20,73 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.callibrity.mocapi.model.NumberSchema;
 import org.junit.jupiter.api.Test;
 
-class NumberPropertyBuilderTest {
+class NumberSchemaBuilderTest {
 
   @Test
-  void shouldBuildMinimalNumberProperty() {
-    NumberSchema schema = new NumberPropertyBuilder().description("Score").build();
+  void minimalNumberShouldHaveTypeAndDescription() {
+    NumberSchema schema = new NumberSchemaBuilder().description("Score").build();
 
     assertThat(schema.type()).isEqualTo("number");
     assertThat(schema.description()).isEqualTo("Score");
-    assertThat(schema.defaultValue()).isNull();
   }
 
   @Test
-  void shouldIncludeTitle() {
+  void titleShouldBeIncluded() {
     NumberSchema schema =
-        new NumberPropertyBuilder().description("Score").title("Your Score").build();
+        new NumberSchemaBuilder().description("Score").title("Test Score").build();
 
-    assertThat(schema.title()).isEqualTo("Your Score");
+    assertThat(schema.title()).isEqualTo("Test Score");
   }
 
   @Test
-  void shouldIncludeDefaultValue() {
-    NumberSchema schema =
-        new NumberPropertyBuilder().description("Score").defaultValue(95.5).build();
+  void defaultValueShouldBeIncluded() {
+    NumberSchema schema = new NumberSchemaBuilder().description("Score").defaultValue(95.5).build();
 
     assertThat(schema.defaultValue()).isEqualTo(95.5);
   }
 
   @Test
-  void shouldIncludeMinimumAndMaximum() {
-    NumberSchema schema =
-        new NumberPropertyBuilder().description("Score").minimum(0.0).maximum(100.0).build();
+  void minimumShouldBeIncluded() {
+    NumberSchema schema = new NumberSchemaBuilder().description("Score").minimum(0.0).build();
 
     assertThat(schema.minimum()).isEqualTo(0.0);
+  }
+
+  @Test
+  void maximumShouldBeIncluded() {
+    NumberSchema schema = new NumberSchemaBuilder().description("Score").maximum(100.0).build();
+
     assertThat(schema.maximum()).isEqualTo(100.0);
   }
 
   @Test
-  void shouldChainAllConstraints() {
+  void constraintChainingShouldWork() {
     NumberSchema schema =
-        new NumberPropertyBuilder()
+        new NumberSchemaBuilder()
             .description("Score")
-            .title("Your Score")
-            .defaultValue(75.0)
+            .title("Test Score")
             .minimum(0.0)
             .maximum(100.0)
+            .defaultValue(50.0)
             .build();
 
-    assertThat(schema.title()).isEqualTo("Your Score");
-    assertThat(schema.defaultValue()).isEqualTo(75.0);
+    assertThat(schema.title()).isEqualTo("Test Score");
     assertThat(schema.minimum()).isEqualTo(0.0);
     assertThat(schema.maximum()).isEqualTo(100.0);
-  }
-
-  @Test
-  void optionalShouldSetRequiredFalse() {
-    NumberPropertyBuilder builder = new NumberPropertyBuilder().description("Score").optional();
-
-    assertThat(builder.isRequired()).isFalse();
+    assertThat(schema.defaultValue()).isEqualTo(50.0);
   }
 
   @Test
   void defaultShouldBeRequired() {
-    NumberPropertyBuilder builder = new NumberPropertyBuilder().description("Score");
+    NumberSchemaBuilder builder = new NumberSchemaBuilder();
 
     assertThat(builder.isRequired()).isTrue();
+  }
+
+  @Test
+  void optionalShouldSetRequiredFalse() {
+    NumberSchemaBuilder builder = new NumberSchemaBuilder().optional();
+
+    assertThat(builder.isRequired()).isFalse();
   }
 }

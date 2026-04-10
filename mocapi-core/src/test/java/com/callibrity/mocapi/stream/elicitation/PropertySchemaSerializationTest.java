@@ -28,7 +28,7 @@ class PropertySchemaSerializationTest {
 
   @Test
   void stringPropertySerializesCorrectly() throws Exception {
-    var schema = new StringPropertyBuilder().description("Email").email().build();
+    var schema = new StringSchemaBuilder().description("Email").email().build();
 
     String json = mapper.writeValueAsString(schema);
 
@@ -39,7 +39,7 @@ class PropertySchemaSerializationTest {
 
   @Test
   void stringPropertyOmitsNullFields() throws Exception {
-    var schema = new StringPropertyBuilder().description("Name").build();
+    var schema = new StringSchemaBuilder().description("Name").build();
 
     String json = mapper.writeValueAsString(schema);
 
@@ -52,7 +52,7 @@ class PropertySchemaSerializationTest {
 
   @Test
   void integerPropertySerializesCorrectly() throws Exception {
-    var schema = new IntegerPropertyBuilder().description("Age").minimum(0).maximum(150).build();
+    var schema = new IntegerSchemaBuilder().description("Age").minimum(0).maximum(150).build();
 
     String json = mapper.writeValueAsString(schema);
 
@@ -63,7 +63,7 @@ class PropertySchemaSerializationTest {
 
   @Test
   void numberPropertySerializesCorrectly() throws Exception {
-    var schema = new NumberPropertyBuilder().description("Score").defaultValue(95.5).build();
+    var schema = new NumberSchemaBuilder().description("Score").defaultValue(95.5).build();
 
     String json = mapper.writeValueAsString(schema);
 
@@ -73,7 +73,7 @@ class PropertySchemaSerializationTest {
 
   @Test
   void booleanPropertySerializesCorrectly() throws Exception {
-    var schema = new BooleanPropertyBuilder().description("Active").defaultValue(true).build();
+    var schema = new BooleanSchemaBuilder().description("Active").defaultValue(true).build();
 
     String json = mapper.writeValueAsString(schema);
 
@@ -84,7 +84,7 @@ class PropertySchemaSerializationTest {
   @Test
   void enumPropertySerializesWithEnumKeyword() throws Exception {
     PrimitiveSchemaDefinition schema =
-        ChooseOneBuilder.from(List.of("red", "green", "blue")).build();
+        SingleSelectEnumSchemaBuilder.from(List.of("red", "green", "blue")).build();
 
     String json = mapper.writeValueAsString(schema);
 
@@ -95,7 +95,9 @@ class PropertySchemaSerializationTest {
   @Test
   void titledEnumPropertySerializesWithOneOf() throws Exception {
     PrimitiveSchemaDefinition schema =
-        ChooseOneBuilder.from(List.of("a", "b"), s -> s).titleFn(s -> s.toUpperCase()).build();
+        SingleSelectEnumSchemaBuilder.from(List.of("a", "b"), s -> s)
+            .titled(s -> s.toUpperCase())
+            .build();
 
     String json = mapper.writeValueAsString(schema);
 
@@ -107,7 +109,8 @@ class PropertySchemaSerializationTest {
 
   @Test
   void multiSelectPropertySerializesCorrectly() throws Exception {
-    PrimitiveSchemaDefinition schema = ChooseManyBuilder.from(List.of("java", "python")).build();
+    PrimitiveSchemaDefinition schema =
+        MultiSelectEnumSchemaBuilder.from(List.of("java", "python")).build();
 
     String json = mapper.writeValueAsString(schema);
 
@@ -119,7 +122,9 @@ class PropertySchemaSerializationTest {
   @Test
   void titledMultiSelectPropertySerializesCorrectly() throws Exception {
     PrimitiveSchemaDefinition schema =
-        ChooseManyBuilder.from(List.of("a", "b"), s -> s).titleFn(s -> s.toUpperCase()).build();
+        MultiSelectEnumSchemaBuilder.from(List.of("a", "b"), s -> s)
+            .titled(s -> s.toUpperCase())
+            .build();
 
     String json = mapper.writeValueAsString(schema);
 
@@ -131,7 +136,8 @@ class PropertySchemaSerializationTest {
 
   @Test
   void legacyEnumPropertySerializesCorrectly() throws Exception {
-    var schema = new ChooseLegacyBuilder(List.of("a", "b"), List.of("Alpha", "Beta")).build();
+    var schema =
+        new LegacyTitledEnumSchemaBuilder(List.of("a", "b"), List.of("Alpha", "Beta")).build();
 
     String json = mapper.writeValueAsString(schema);
 
@@ -142,7 +148,7 @@ class PropertySchemaSerializationTest {
 
   @Test
   void defaultValueUsesJsonPropertyAnnotation() throws Exception {
-    var schema = new StringPropertyBuilder().description("Name").defaultValue("Alice").build();
+    var schema = new StringSchemaBuilder().description("Name").defaultValue("Alice").build();
 
     String json = mapper.writeValueAsString(schema);
 
@@ -152,7 +158,7 @@ class PropertySchemaSerializationTest {
 
   @Test
   void enumFieldUsesJsonPropertyAnnotation() throws Exception {
-    PrimitiveSchemaDefinition schema = ChooseOneBuilder.from(List.of("x")).build();
+    PrimitiveSchemaDefinition schema = SingleSelectEnumSchemaBuilder.from(List.of("x")).build();
 
     String json = mapper.writeValueAsString(schema);
 

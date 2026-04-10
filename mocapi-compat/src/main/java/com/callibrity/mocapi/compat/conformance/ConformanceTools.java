@@ -23,10 +23,13 @@ import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.stream.McpStreamContext;
 import com.callibrity.mocapi.stream.SamplingResult;
+import com.callibrity.mocapi.stream.elicitation.MultiSelectEnumSchemaBuilder;
+import com.callibrity.mocapi.stream.elicitation.SingleSelectEnumSchemaBuilder;
 import com.callibrity.mocapi.tools.annotation.ToolMethod;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import java.util.Base64;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Tools required by the {@code @modelcontextprotocol/conformance} npx suite. Each tool method
@@ -440,18 +443,22 @@ public class ConformanceTools {
       name = "test_elicitation_sep1330_enums",
       description = "Tests elicitation with enum variants for conformance")
   public CallToolResult testElicitationEnums(McpStreamContext<CallToolResult> ctx) {
+    Consumer<SingleSelectEnumSchemaBuilder<TitledOption>> titledSingle =
+        b -> b.titled(TitledOption::toString);
+    Consumer<MultiSelectEnumSchemaBuilder<TitledMultiOption>> titledMulti =
+        b -> b.titled(TitledMultiOption::toString);
     var result =
         ctx.elicit(
             "Enum variants test",
             schema -> {
               schema.choose("untitledSingle", List.of("option1", "option2", "option3"));
-              schema.choose("titledSingle", TitledOption.class);
+              schema.choose("titledSingle", TitledOption.class, titledSingle);
               schema.chooseLegacy(
                   "legacyEnum",
                   List.of("opt1", "opt2", "opt3"),
                   List.of("Option One", "Option Two", "Option Three"));
               schema.chooseMany("untitledMulti", List.of("option1", "option2", "option3"));
-              schema.chooseMany("titledMulti", TitledMultiOption.class);
+              schema.chooseMany("titledMulti", TitledMultiOption.class, titledMulti);
             });
     return new CallToolResult(
         List.of(

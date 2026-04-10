@@ -17,7 +17,7 @@ package com.callibrity.mocapi.stream.elicitation;
 
 import com.callibrity.mocapi.model.EnumItemsSchema;
 import com.callibrity.mocapi.model.EnumOption;
-import com.callibrity.mocapi.model.PrimitiveSchemaDefinition;
+import com.callibrity.mocapi.model.MultiSelectEnumSchema;
 import com.callibrity.mocapi.model.TitledEnumItemsSchema;
 import com.callibrity.mocapi.model.TitledMultiSelectEnumSchema;
 import com.callibrity.mocapi.model.UntitledMultiSelectEnumSchema;
@@ -25,11 +25,12 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Builder for multi-select (choose many) elicitation schema properties.
+ * Builder for {@link MultiSelectEnumSchema} elicitation schema properties. Defaults to untitled;
+ * call {@link #titled(Function)} to produce a titled variant.
  *
  * @param <T> the type of the selectable items
  */
-public final class ChooseManyBuilder<T> {
+public final class MultiSelectEnumSchemaBuilder<T> {
 
   private final List<T> items;
   private final Function<T, String> valueFn;
@@ -37,67 +38,68 @@ public final class ChooseManyBuilder<T> {
   private List<T> defaults;
   private Integer minItems;
   private Integer maxItems;
-  private boolean rawStrings;
   private String description;
   private String title;
   private boolean required = true;
 
-  private ChooseManyBuilder(List<T> items, Function<T, String> valueFn, boolean rawStrings) {
+  private MultiSelectEnumSchemaBuilder(List<T> items, Function<T, String> valueFn) {
     this.items = items;
     this.valueFn = valueFn;
-    this.rawStrings = rawStrings;
   }
 
-  /**
-   * Creates a builder from an enum type. Uses {@code name()} for values, {@code toString()} for
-   * titles.
-   */
-  public static <E extends Enum<E>> ChooseManyBuilder<E> fromEnum(Class<E> enumType) {
-    return new ChooseManyBuilder<>(List.of(enumType.getEnumConstants()), Enum::name, false);
+  /** Creates a builder from an enum type. Uses {@code name()} for values. */
+  public static <E extends Enum<E>> MultiSelectEnumSchemaBuilder<E> fromEnum(Class<E> enumType) {
+    return new MultiSelectEnumSchemaBuilder<>(List.of(enumType.getEnumConstants()), Enum::name);
   }
 
   /** Creates a builder from arbitrary items with an explicit value function. */
-  public static <T> ChooseManyBuilder<T> from(List<T> items, Function<T, String> valueFn) {
-    return new ChooseManyBuilder<>(items, valueFn, false);
+  public static <T> MultiSelectEnumSchemaBuilder<T> from(
+      List<T> items, Function<T, String> valueFn) {
+    return new MultiSelectEnumSchemaBuilder<>(items, valueFn);
   }
 
-  /** Creates a builder from raw string values (produces plain enum array format). */
-  public static ChooseManyBuilder<String> from(List<String> values) {
-    return new ChooseManyBuilder<>(values, Function.identity(), true);
+  /** Creates a builder from raw string values. */
+  public static MultiSelectEnumSchemaBuilder<String> from(List<String> values) {
+    return new MultiSelectEnumSchemaBuilder<>(values, Function.identity());
   }
 
-  public ChooseManyBuilder<T> description(String description) {
+  public MultiSelectEnumSchemaBuilder<T> description(String description) {
     this.description = description;
     return this;
   }
 
-  public ChooseManyBuilder<T> title(String title) {
+  public MultiSelectEnumSchemaBuilder<T> title(String title) {
     this.title = title;
     return this;
   }
 
-  public ChooseManyBuilder<T> optional() {
+  public MultiSelectEnumSchemaBuilder<T> optional() {
     this.required = false;
     return this;
   }
 
-  public ChooseManyBuilder<T> titleFn(Function<T, String> titleFn) {
+  /**
+   * Switches this builder into titled mode. The title function is applied per item at build time.
+   *
+   * @param titleFn function to derive a display title from each item
+   * @return this builder
+   */
+  public MultiSelectEnumSchemaBuilder<T> titled(Function<T, String> titleFn) {
     this.titleFn = titleFn;
-    this.rawStrings = false;
     return this;
   }
 
-  public ChooseManyBuilder<T> defaults(List<T> values) {
+  public MultiSelectEnumSchemaBuilder<T> defaults(List<T> values) {
     this.defaults = values;
     return this;
   }
 
-  public ChooseManyBuilder<T> minItems(int min) {
+  public MultiSelectEnumSchemaBuilder<T> minItems(int min) {
     this.minItems = min;
     return this;
   }
 
-  public ChooseManyBuilder<T> maxItems(int max) {
+  public MultiSelectEnumSchemaBuilder<T> maxItems(int max) {
     this.maxItems = max;
     return this;
   }
@@ -106,21 +108,20 @@ public final class ChooseManyBuilder<T> {
     return required;
   }
 
-  public PrimitiveSchemaDefinition build() {
+  public MultiSelectEnumSchema build() {
     List<String> defaultValues = null;
     if (defaults != null && !defaults.isEmpty()) {
       defaultValues = defaults.stream().map(valueFn).toList();
     }
-    if (rawStrings && titleFn == null) {
+    if (titleFn == null) {
       List<String> values = items.stream().map(valueFn).toList();
       EnumItemsSchema itemsSchema = new EnumItemsSchema(values);
       return new UntitledMultiSelectEnumSchema(
           title, description, minItems, maxItems, itemsSchema, defaultValues);
     }
-    Function<T, String> effectiveTitleFn = titleFn != null ? titleFn : Object::toString;
     List<EnumOption> options =
         items.stream()
-            .map(item -> new EnumOption(valueFn.apply(item), effectiveTitleFn.apply(item)))
+            .map(item -> new EnumOption(valueFn.apply(item), titleFn.apply(item)))
             .toList();
     TitledEnumItemsSchema itemsSchema = new TitledEnumItemsSchema(options);
     return new TitledMultiSelectEnumSchema(

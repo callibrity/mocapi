@@ -34,11 +34,10 @@ import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStream;
 import com.callibrity.mocapi.stream.elicitation.ElicitationAction;
 import com.callibrity.mocapi.stream.elicitation.ElicitationResult;
-import com.callibrity.mocapi.stream.elicitation.ElicitationSchema;
-import com.callibrity.mocapi.stream.elicitation.ElicitationSchemaBuilder;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationTimeoutException;
+import com.callibrity.mocapi.stream.elicitation.RequestedSchemaBuilder;
 import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
@@ -144,11 +143,11 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
   }
 
   @Override
-  public ElicitationResult elicit(String message, Consumer<ElicitationSchemaBuilder> schema) {
+  public ElicitationResult elicit(String message, Consumer<RequestedSchemaBuilder> schema) {
     requireElicitationSupport();
-    ElicitationSchemaBuilder builder = ElicitationSchema.builder();
+    RequestedSchemaBuilder builder = new RequestedSchemaBuilder();
     schema.accept(builder);
-    RequestedSchema requestedSchema = builder.build().toRequestedSchema();
+    RequestedSchema requestedSchema = builder.build();
     ObjectNode schemaNode = (ObjectNode) objectMapper.valueToTree(requestedSchema);
     JsonNode rawResponse = sendElicitationAndWait(message, requestedSchema);
     return parseRawResponse(rawResponse, schemaNode);

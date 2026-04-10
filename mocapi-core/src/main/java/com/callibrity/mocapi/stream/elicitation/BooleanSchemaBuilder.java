@@ -15,47 +15,35 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
-import com.callibrity.mocapi.model.NumberSchema;
+import com.callibrity.mocapi.model.BooleanSchema;
 
-/** Builder for integer-typed elicitation schema properties. */
-public final class IntegerPropertyBuilder {
+/** Builder for {@link BooleanSchema} elicitation schema properties. */
+public final class BooleanSchemaBuilder {
 
   private String description;
   private String title;
   private boolean required = true;
-  private Integer defaultValue;
-  private Number minimum;
-  private Number maximum;
+  private Boolean defaultValue;
 
-  public IntegerPropertyBuilder() {}
+  public BooleanSchemaBuilder() {}
 
-  public IntegerPropertyBuilder description(String description) {
+  public BooleanSchemaBuilder description(String description) {
     this.description = description;
     return this;
   }
 
-  public IntegerPropertyBuilder title(String title) {
+  public BooleanSchemaBuilder title(String title) {
     this.title = title;
     return this;
   }
 
-  public IntegerPropertyBuilder optional() {
+  public BooleanSchemaBuilder optional() {
     this.required = false;
     return this;
   }
 
-  public IntegerPropertyBuilder defaultValue(int value) {
+  public BooleanSchemaBuilder defaultValue(boolean value) {
     this.defaultValue = value;
-    return this;
-  }
-
-  public IntegerPropertyBuilder minimum(Number min) {
-    this.minimum = min;
-    return this;
-  }
-
-  public IntegerPropertyBuilder maximum(Number max) {
-    this.maximum = max;
     return this;
   }
 
@@ -63,7 +51,7 @@ public final class IntegerPropertyBuilder {
     return required;
   }
 
-  public NumberSchema build() {
-    return new NumberSchema("integer", title, description, minimum, maximum, defaultValue);
+  public BooleanSchema build() {
+    return new BooleanSchema(title, description, defaultValue);
   }
 }

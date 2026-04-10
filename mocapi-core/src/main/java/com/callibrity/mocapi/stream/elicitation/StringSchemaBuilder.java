@@ -18,8 +18,8 @@ package com.callibrity.mocapi.stream.elicitation;
 import com.callibrity.mocapi.model.StringFormat;
 import com.callibrity.mocapi.model.StringSchema;
 
-/** Builder for string-typed elicitation schema properties. */
-public final class StringPropertyBuilder {
+/** Builder for {@link StringSchema} elicitation schema properties. */
+public final class StringSchemaBuilder {
 
   private String description;
   private String title;
@@ -29,58 +29,58 @@ public final class StringPropertyBuilder {
   private Integer maxLength;
   private StringFormat format;
 
-  public StringPropertyBuilder() {}
+  public StringSchemaBuilder() {}
 
-  public StringPropertyBuilder description(String description) {
+  public StringSchemaBuilder description(String description) {
     this.description = description;
     return this;
   }
 
-  public StringPropertyBuilder title(String title) {
+  public StringSchemaBuilder title(String title) {
     this.title = title;
     return this;
   }
 
-  public StringPropertyBuilder optional() {
+  public StringSchemaBuilder optional() {
     this.required = false;
     return this;
   }
 
-  public StringPropertyBuilder defaultValue(String value) {
+  public StringSchemaBuilder defaultValue(String value) {
     this.defaultValue = value;
     return this;
   }
 
-  public StringPropertyBuilder minLength(int min) {
+  public StringSchemaBuilder minLength(int min) {
     this.minLength = min;
     return this;
   }
 
-  public StringPropertyBuilder maxLength(int max) {
+  public StringSchemaBuilder maxLength(int max) {
     this.maxLength = max;
     return this;
   }
 
   /** Shorthand for email format. */
-  public StringPropertyBuilder email() {
+  public StringSchemaBuilder email() {
     this.format = StringFormat.EMAIL;
     return this;
   }
 
   /** Shorthand for URI format. */
-  public StringPropertyBuilder uri() {
+  public StringSchemaBuilder uri() {
     this.format = StringFormat.URI;
     return this;
   }
 
   /** Shorthand for date format. */
-  public StringPropertyBuilder date() {
+  public StringSchemaBuilder date() {
     this.format = StringFormat.DATE;
     return this;
   }
 
   /** Shorthand for date-time format. */
-  public StringPropertyBuilder dateTime() {
+  public StringSchemaBuilder dateTime() {
     this.format = StringFormat.DATE_TIME;
     return this;
   }

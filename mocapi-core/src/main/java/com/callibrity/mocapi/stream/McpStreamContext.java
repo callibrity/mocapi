@@ -17,10 +17,10 @@ package com.callibrity.mocapi.stream;
 
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.stream.elicitation.ElicitationResult;
-import com.callibrity.mocapi.stream.elicitation.ElicitationSchemaBuilder;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationTimeoutException;
+import com.callibrity.mocapi.stream.elicitation.RequestedSchemaBuilder;
 import java.util.function.Consumer;
 
 /**
@@ -121,13 +121,13 @@ public interface McpStreamContext<R> {
    * response is received. The caller configures the schema inline via the consumer.
    *
    * @param message the message to display to the user
-   * @param schema a consumer that configures the {@link ElicitationSchemaBuilder}
+   * @param schema a consumer that configures the {@link RequestedSchemaBuilder}
    * @return the elicitation result containing the client's action and typed getters for content
    * @throws McpElicitationTimeoutException if the client does not respond within the timeout
    * @throws McpElicitationException if the response fails schema validation
    * @throws McpElicitationNotSupportedException if the client does not support elicitation
    */
-  ElicitationResult elicit(String message, Consumer<ElicitationSchemaBuilder> schema);
+  ElicitationResult elicit(String message, Consumer<RequestedSchemaBuilder> schema);
 
   /**
    * Sends a {@code sampling/createMessage} request to the client, blocking until a response is
