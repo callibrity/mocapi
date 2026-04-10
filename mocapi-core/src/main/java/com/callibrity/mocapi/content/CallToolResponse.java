@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.prompts;
+package com.callibrity.mocapi.content;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
+import tools.jackson.databind.node.ObjectNode;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record AudioPromptContent(String data, String mimeType, Annotations annotations)
-    implements PromptContent {}
+public record CallToolResponse(
+    List<ContentBlock> content, Boolean isError, ObjectNode structuredContent) {}

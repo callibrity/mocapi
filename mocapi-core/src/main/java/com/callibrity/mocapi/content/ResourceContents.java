@@ -13,10 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.prompts;
+package com.callibrity.mocapi.content;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record Annotations(List<String> audience, Double priority, String lastModified) {}
+@JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = TextResourceContents.class),
+  @JsonSubTypes.Type(value = BlobResourceContents.class)
+})
+public sealed interface ResourceContents permits TextResourceContents, BlobResourceContents {}

@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T23:38:00-04:00
-ITERATION: 82
-SPEC_COMPLETED: 083-tools-descriptor-pattern.md
-WHAT_WAS_DONE: Adopted Descriptor pattern for McpTool — added McpTool.Descriptor record, replaced individual accessor methods (name/title/description/inputSchema/outputSchema) with descriptor() on the interface; updated AnnotationMcpTool to build and return a Descriptor; refactored ToolsRegistry to pre-sort descriptors at construction and use Cursors.paginate() instead of inline cursor encoding; deleted McpToolDescriptor inner class and encodeCursor/decodeCursor methods; updated ListToolsResponse to use McpTool.Descriptor; updated ToolServiceMcpToolProvider, all tests (AnnotationMcpToolTest, ToolsRegistryTest, ToolsRegistryPaginationTest, ToolServiceMcpToolProviderTest).
+LAST_RUN: 2026-04-09T23:46:00-04:00
+ITERATION: 83
+SPEC_COMPLETED: 084-unified-content-block-hierarchy.md
+WHAT_WAS_DONE: Unified three separate content type hierarchies (prompts, tools, resources) into a single shared ContentBlock sealed interface in new com.callibrity.mocapi.content package; created ContentBlock with 5 subtypes (TextContent, ImageContent, AudioContent, ResourceLink, EmbeddedResource) and ResourceContents with 2 subtypes (TextResourceContents, BlobResourceContents); moved CallToolResponse and Annotations to the shared package; fixed ResourceLink type discriminator from "resource" to "resource_link"; updated PromptMessage to use List<ContentBlock>, ReadResourceResponse to use List<ResourceContents>; deleted 11 duplicate type classes; updated all conformance tools/prompts/resources, unit tests, and integration tests.
 VERIFICATION: mvn verify — BUILD SUCCESS, 80 integration tests, all unit tests pass, 0 failures, spotless and license checks pass
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: The out-of-range cursor test was changed from expecting an exception to expecting an empty page with null cursor, since Cursors.paginate() clamps offsets rather than throwing. This is consistent with how PromptsRegistry and ResourcesRegistry handle cursors.
+NOTES: EmbeddedResource now wraps a ResourceContents (TextResourceContents or BlobResourceContents) instead of the old flat structure with uri/mimeType/text/blob fields. ResourceContents uses @JsonTypeInfo(use = DEDUCTION) to discriminate between text and blob variants based on field presence. The old ToolsRegistry inner classes (Content, TextContent, ImageContent, AudioContent, ResourceContent, EmbeddedResource, CallToolResponse) are all removed.

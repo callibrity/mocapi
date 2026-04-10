@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.resources;
 
+import com.callibrity.mocapi.content.ResourceContents;
 import java.util.List;
 
-public record ReadResourceResponse(List<ResourceContent> contents) {}
+public record ReadResourceResponse(List<ResourceContents> contents) {}

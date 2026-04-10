@@ -18,6 +18,7 @@ package com.callibrity.mocapi.prompts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.content.TextContent;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.Map;
@@ -42,9 +43,7 @@ class McpPromptMethodsTest {
           String name = arguments.getOrDefault("name", "World");
           return new GetPromptResponse(
               "A greeting prompt",
-              List.of(
-                  new PromptMessage(
-                      "user", List.of(new TextPromptContent("Hello, " + name + "!")))));
+              List.of(new PromptMessage("user", List.of(new TextContent("Hello, " + name + "!")))));
         }
       };
 
@@ -68,9 +67,8 @@ class McpPromptMethodsTest {
     assertThat(response.messages()).hasSize(1);
     assertThat(response.messages().getFirst().role()).isEqualTo("user");
     assertThat(response.messages().getFirst().content()).hasSize(1);
-    assertThat(response.messages().getFirst().content().getFirst())
-        .isInstanceOf(TextPromptContent.class);
-    assertThat(((TextPromptContent) response.messages().getFirst().content().getFirst()).text())
+    assertThat(response.messages().getFirst().content().getFirst()).isInstanceOf(TextContent.class);
+    assertThat(((TextContent) response.messages().getFirst().content().getFirst()).text())
         .isEqualTo("Hello, Mocapi!");
   }
 
@@ -86,9 +84,9 @@ class McpPromptMethodsTest {
     var response1 = methods.getPrompt("greet", Map.of("name", "Alice"));
     var response2 = methods.getPrompt("greet", Map.of("name", "Bob"));
 
-    assertThat(((TextPromptContent) response1.messages().getFirst().content().getFirst()).text())
+    assertThat(((TextContent) response1.messages().getFirst().content().getFirst()).text())
         .isEqualTo("Hello, Alice!");
-    assertThat(((TextPromptContent) response2.messages().getFirst().content().getFirst()).text())
+    assertThat(((TextContent) response2.messages().getFirst().content().getFirst()).text())
         .isEqualTo("Hello, Bob!");
   }
 

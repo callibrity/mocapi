@@ -13,21 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.prompts;
+package com.callibrity.mocapi.content;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-  @JsonSubTypes.Type(value = TextPromptContent.class, name = "text"),
-  @JsonSubTypes.Type(value = ImagePromptContent.class, name = "image"),
-  @JsonSubTypes.Type(value = AudioPromptContent.class, name = "audio"),
-  @JsonSubTypes.Type(value = ResourcePromptContent.class, name = "resource")
+  @JsonSubTypes.Type(value = TextContent.class, name = "text"),
+  @JsonSubTypes.Type(value = ImageContent.class, name = "image"),
+  @JsonSubTypes.Type(value = AudioContent.class, name = "audio"),
+  @JsonSubTypes.Type(value = ResourceLink.class, name = "resource_link"),
+  @JsonSubTypes.Type(value = EmbeddedResource.class, name = "resource")
 })
-public sealed interface PromptContent
-    permits TextPromptContent,
-        ImagePromptContent,
-        AudioPromptContent,
-        ResourcePromptContent,
-        ResourceLinkContent {}
+public sealed interface ContentBlock
+    permits TextContent, ImageContent, AudioContent, ResourceLink, EmbeddedResource {}

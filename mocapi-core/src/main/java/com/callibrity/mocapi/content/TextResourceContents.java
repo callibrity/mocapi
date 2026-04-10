@@ -13,13 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.prompts;
+package com.callibrity.mocapi.content;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record TextPromptContent(String text, Annotations annotations) implements PromptContent {
-  public TextPromptContent(String text) {
-    this(text, null);
-  }
-}
+public record TextResourceContents(String uri, String mimeType, String text)
+    implements ResourceContents {}

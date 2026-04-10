@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.prompts;
 
+import com.callibrity.mocapi.content.ContentBlock;
 import java.util.List;
 
-public record PromptMessage(String role, List<PromptContent> content) {}
+public record PromptMessage(String role, List<ContentBlock> content) {}

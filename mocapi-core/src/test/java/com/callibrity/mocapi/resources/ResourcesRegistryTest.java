@@ -18,6 +18,7 @@ package com.callibrity.mocapi.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.content.TextResourceContents;
 import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
@@ -37,7 +38,7 @@ class ResourcesRegistryTest {
       @Override
       public ReadResourceResponse read() {
         return new ReadResourceResponse(
-            List.of(new TextResourceContent(uri, mimeType, "content of " + uri)));
+            List.of(new TextResourceContents(uri, mimeType, "content of " + uri)));
       }
     };
   }
@@ -53,7 +54,7 @@ class ResourcesRegistryTest {
       @Override
       public ReadResourceResponse read(Map<String, String> pathVariables) {
         return new ReadResourceResponse(
-            List.of(new TextResourceContent(uriTemplate, mimeType, "template content")));
+            List.of(new TextResourceContents(uriTemplate, mimeType, "template content")));
       }
     };
   }
@@ -118,7 +119,7 @@ class ResourcesRegistryTest {
     var response = registry.readResource("test://hello");
 
     assertThat(response.contents()).hasSize(1);
-    var content = (TextResourceContent) response.contents().getFirst();
+    var content = (TextResourceContents) response.contents().getFirst();
     assertThat(content.uri()).isEqualTo("test://hello");
     assertThat(content.text()).isEqualTo("content of test://hello");
   }
@@ -131,7 +132,7 @@ class ResourcesRegistryTest {
     var response = registry.readResource("test://item/42/data");
 
     assertThat(response.contents()).hasSize(1);
-    assertThat(((TextResourceContent) response.contents().getFirst()).text())
+    assertThat(((TextResourceContents) response.contents().getFirst()).text())
         .isEqualTo("template content");
   }
 
@@ -143,7 +144,7 @@ class ResourcesRegistryTest {
 
     var response = registry.readResource("test://item/special/data");
 
-    assertThat(((TextResourceContent) response.contents().getFirst()).text())
+    assertThat(((TextResourceContents) response.contents().getFirst()).text())
         .isEqualTo("content of test://item/special/data");
   }
 

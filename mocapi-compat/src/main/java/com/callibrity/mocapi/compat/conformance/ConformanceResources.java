@@ -15,11 +15,11 @@
  */
 package com.callibrity.mocapi.compat.conformance;
 
-import com.callibrity.mocapi.resources.BlobResourceContent;
+import com.callibrity.mocapi.content.BlobResourceContents;
+import com.callibrity.mocapi.content.TextResourceContents;
 import com.callibrity.mocapi.resources.McpResource;
 import com.callibrity.mocapi.resources.McpResourceTemplate;
 import com.callibrity.mocapi.resources.ReadResourceResponse;
-import com.callibrity.mocapi.resources.TextResourceContent;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -122,7 +122,7 @@ public class ConformanceResources {
         var d = descriptor();
         return new ReadResourceResponse(
             List.of(
-                new TextResourceContent(
+                new TextResourceContents(
                     d.uri(), d.mimeType(), "This is the content of the static text resource.")));
       }
     };
@@ -144,7 +144,7 @@ public class ConformanceResources {
       public ReadResourceResponse read() {
         var d = descriptor();
         return new ReadResourceResponse(
-            List.of(new BlobResourceContent(d.uri(), d.mimeType(), TINY_PNG)));
+            List.of(new BlobResourceContents(d.uri(), d.mimeType(), TINY_PNG)));
       }
     };
   }
@@ -166,7 +166,7 @@ public class ConformanceResources {
         var d = descriptor();
         return new ReadResourceResponse(
             List.of(
-                new TextResourceContent(
+                new TextResourceContents(
                     d.uri(), d.mimeType(), "This is the content of the watched resource.")));
       }
     };
@@ -192,7 +192,7 @@ public class ConformanceResources {
                 "{\"id\":\"%s\",\"templateTest\":true,\"data\":\"Data for ID: %s\"}", id, id);
         String uri = String.format("test://template/%s/data", id);
         return new ReadResourceResponse(
-            List.of(new TextResourceContent(uri, descriptor().mimeType(), json)));
+            List.of(new TextResourceContents(uri, descriptor().mimeType(), json)));
       }
     };
   }

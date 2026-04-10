@@ -13,10 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.resources;
+package com.callibrity.mocapi.content;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record BlobResourceContent(String uri, String mimeType, String blob)
-    implements ResourceContent {}
+public record EmbeddedResource(ResourceContents resource, Annotations annotations)
+    implements ContentBlock {
+  public EmbeddedResource(ResourceContents resource) {
+    this(resource, null);
+  }
+}

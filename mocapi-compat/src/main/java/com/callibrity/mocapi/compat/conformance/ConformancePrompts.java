@@ -15,14 +15,14 @@
  */
 package com.callibrity.mocapi.compat.conformance;
 
-import com.callibrity.mocapi.prompts.EmbeddedPromptResource;
+import com.callibrity.mocapi.content.EmbeddedResource;
+import com.callibrity.mocapi.content.ImageContent;
+import com.callibrity.mocapi.content.TextContent;
+import com.callibrity.mocapi.content.TextResourceContents;
 import com.callibrity.mocapi.prompts.GetPromptResponse;
-import com.callibrity.mocapi.prompts.ImagePromptContent;
 import com.callibrity.mocapi.prompts.McpPrompt;
 import com.callibrity.mocapi.prompts.PromptArgument;
 import com.callibrity.mocapi.prompts.PromptMessage;
-import com.callibrity.mocapi.prompts.ResourcePromptContent;
-import com.callibrity.mocapi.prompts.TextPromptContent;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -122,8 +122,7 @@ public class ConformancePrompts {
             "A simple test prompt",
             List.of(
                 new PromptMessage(
-                    "user",
-                    List.of(new TextPromptContent("This is a simple prompt for testing.")))));
+                    "user", List.of(new TextContent("This is a simple prompt for testing.")))));
       }
     };
   }
@@ -153,7 +152,7 @@ public class ConformancePrompts {
                 new PromptMessage(
                     "user",
                     List.of(
-                        new TextPromptContent(
+                        new TextContent(
                             String.format(
                                 "Prompt with arguments: arg1='%s', arg2='%s'", arg1, arg2))))));
       }
@@ -182,15 +181,14 @@ public class ConformancePrompts {
                 new PromptMessage(
                     "user",
                     List.of(
-                        new ResourcePromptContent(
-                            new EmbeddedPromptResource(
+                        new EmbeddedResource(
+                            new TextResourceContents(
                                 resourceUri,
                                 "text/plain",
                                 "Embedded resource content for testing.")))),
                 new PromptMessage(
                     "user",
-                    List.of(
-                        new TextPromptContent("Please process the embedded resource above.")))));
+                    List.of(new TextContent("Please process the embedded resource above.")))));
       }
     };
   }
@@ -209,9 +207,9 @@ public class ConformancePrompts {
         return new GetPromptResponse(
             "A test prompt with an image",
             List.of(
-                new PromptMessage("user", List.of(new ImagePromptContent(TINY_PNG, "image/png"))),
+                new PromptMessage("user", List.of(new ImageContent(TINY_PNG, "image/png"))),
                 new PromptMessage(
-                    "user", List.of(new TextPromptContent("Please analyze the image above.")))));
+                    "user", List.of(new TextContent("Please analyze the image above.")))));
       }
     };
   }

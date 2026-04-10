@@ -18,6 +18,7 @@ package com.callibrity.mocapi.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.content.TextResourceContents;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,7 @@ class McpResourceMethodsTest {
         @Override
         public ReadResourceResponse read() {
           return new ReadResourceResponse(
-              List.of(new TextResourceContent("test://greeting", "text/plain", "Hello!")));
+              List.of(new TextResourceContents("test://greeting", "text/plain", "Hello!")));
         }
       };
 
@@ -50,7 +51,7 @@ class McpResourceMethodsTest {
         public ReadResourceResponse read(Map<String, String> pathVariables) {
           return new ReadResourceResponse(
               List.of(
-                  new TextResourceContent(
+                  new TextResourceContents(
                       "test://item/" + pathVariables.get("id"),
                       "application/json",
                       "item " + pathVariables.get("id"))));
@@ -84,8 +85,8 @@ class McpResourceMethodsTest {
     var response = methods.readResource("test://greeting");
 
     assertThat(response.contents()).hasSize(1);
-    assertThat(response.contents().getFirst()).isInstanceOf(TextResourceContent.class);
-    assertThat(((TextResourceContent) response.contents().getFirst()).text()).isEqualTo("Hello!");
+    assertThat(response.contents().getFirst()).isInstanceOf(TextResourceContents.class);
+    assertThat(((TextResourceContents) response.contents().getFirst()).text()).isEqualTo("Hello!");
   }
 
   @Test

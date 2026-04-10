@@ -17,12 +17,12 @@ package com.callibrity.mocapi.tools;
 
 import static java.util.Optional.ofNullable;
 
+import com.callibrity.mocapi.content.CallToolResponse;
+import com.callibrity.mocapi.content.TextContent;
 import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
 import com.github.erosb.jsonsKema.SchemaLoader;
@@ -121,31 +121,6 @@ public class ToolsRegistry {
   }
 
   // -------------------------- INNER CLASSES --------------------------
-
-  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-  @JsonSubTypes({
-    @JsonSubTypes.Type(value = TextContent.class, name = "text"),
-    @JsonSubTypes.Type(value = ImageContent.class, name = "image"),
-    @JsonSubTypes.Type(value = AudioContent.class, name = "audio"),
-    @JsonSubTypes.Type(value = ResourceContent.class, name = "resource")
-  })
-  public sealed interface Content
-      permits TextContent, ImageContent, AudioContent, ResourceContent {}
-
-  public record TextContent(String text) implements Content {}
-
-  public record ImageContent(String data, String mimeType) implements Content {}
-
-  public record AudioContent(String data, String mimeType) implements Content {}
-
-  public record ResourceContent(EmbeddedResource resource) implements Content {}
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record EmbeddedResource(String uri, String mimeType, String text, String blob) {}
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record CallToolResponse(
-      List<Content> content, Boolean isError, ObjectNode structuredContent) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record ListToolsResponse(List<McpTool.Descriptor> tools, String nextCursor) {}

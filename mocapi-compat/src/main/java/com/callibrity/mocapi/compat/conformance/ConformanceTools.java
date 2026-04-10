@@ -15,14 +15,14 @@
  */
 package com.callibrity.mocapi.compat.conformance;
 
+import com.callibrity.mocapi.content.AudioContent;
+import com.callibrity.mocapi.content.CallToolResponse;
+import com.callibrity.mocapi.content.EmbeddedResource;
+import com.callibrity.mocapi.content.ImageContent;
+import com.callibrity.mocapi.content.TextContent;
+import com.callibrity.mocapi.content.TextResourceContents;
 import com.callibrity.mocapi.stream.McpStreamContext;
 import com.callibrity.mocapi.stream.SamplingResult;
-import com.callibrity.mocapi.tools.ToolsRegistry.AudioContent;
-import com.callibrity.mocapi.tools.ToolsRegistry.CallToolResponse;
-import com.callibrity.mocapi.tools.ToolsRegistry.EmbeddedResource;
-import com.callibrity.mocapi.tools.ToolsRegistry.ImageContent;
-import com.callibrity.mocapi.tools.ToolsRegistry.ResourceContent;
-import com.callibrity.mocapi.tools.ToolsRegistry.TextContent;
 import com.callibrity.mocapi.tools.annotation.Tool;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import java.util.Base64;
@@ -219,19 +219,18 @@ public class ConformanceTools {
   public CallToolResponse embeddedResource() {
     return new CallToolResponse(
         List.of(
-            new ResourceContent(
-                new EmbeddedResource(
+            new EmbeddedResource(
+                new TextResourceContents(
                     "test://embedded-resource",
                     "text/plain",
-                    "This is an embedded resource content.",
-                    null))),
+                    "This is an embedded resource content."))),
         null,
         null);
   }
 
   /**
    * Conformance tool for the {@code tools-call-mixed-content} scenario. Returns a response
-   * combining {@link TextContent}, {@link ImageContent}, and {@link ResourceContent}.
+   * combining {@link TextContent}, {@link ImageContent}, and {@link EmbeddedResource}.
    *
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
@@ -244,12 +243,11 @@ public class ConformanceTools {
         List.of(
             new TextContent("Multiple content types test:"),
             new ImageContent(TINY_PNG, "image/png"),
-            new ResourceContent(
-                new EmbeddedResource(
+            new EmbeddedResource(
+                new TextResourceContents(
                     "test://mixed-content-resource",
                     "application/json",
-                    "{\"test\":\"data\",\"value\":123}",
-                    null))),
+                    "{\"test\":\"data\",\"value\":123}"))),
         null,
         null);
   }
