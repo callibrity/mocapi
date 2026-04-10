@@ -208,4 +208,18 @@ class SingleSelectEnumSchemaBuilderTest {
 
     assertThat(builder.isRequired()).isTrue();
   }
+
+  @Test
+  void descriptionAndTitleShouldBeSetOnSchema() {
+    SingleSelectEnumSchema schema =
+        SingleSelectEnumSchemaBuilder.fromEnum(Tag.class)
+            .description("Pick a language")
+            .title("Language")
+            .build();
+
+    assertThat(schema).isInstanceOf(UntitledSingleSelectEnumSchema.class);
+    var untitled = (UntitledSingleSelectEnumSchema) schema;
+    assertThat(untitled.description()).isEqualTo("Pick a language");
+    assertThat(untitled.title()).isEqualTo("Language");
+  }
 }

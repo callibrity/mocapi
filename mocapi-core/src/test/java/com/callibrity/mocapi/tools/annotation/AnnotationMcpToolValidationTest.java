@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.tools.annotation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.stream.McpStreamContext;
@@ -57,6 +58,31 @@ class AnnotationMcpToolValidationTest {
     org.assertj.core.api.Assertions.assertThat(mcpTools.getFirst().isStreamable()).isTrue();
   }
 
+  @Test
+  void streamingToolShouldGenerateOutputSchemaFromTypeArgument() {
+    var tools = factory.create(new ValidStreamingTool());
+    var tool = tools.getMcpTools().getFirst();
+    assertThat(tool.isStreamable()).isTrue();
+    assertThat(tool.descriptor().outputSchema()).isNotNull();
+    assertThat(tool.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
+  }
+
+  @Test
+  void streamingToolWithVoidTypeArgShouldHaveNullOutputSchema() {
+    var tools = factory.create(new VoidStreamingTool());
+    var tool = tools.getMcpTools().getFirst();
+    assertThat(tool.isStreamable()).isTrue();
+    assertThat(tool.descriptor().outputSchema()).isNull();
+  }
+
+  @Test
+  void streamingToolWithRawTypeArgShouldHaveNullOutputSchema() {
+    var tools = factory.create(new RawStreamingTool());
+    var tool = tools.getMcpTools().getFirst();
+    assertThat(tool.isStreamable()).isTrue();
+    assertThat(tool.descriptor().outputSchema()).isNull();
+  }
+
   @ToolService
   static class IllegalStreamingTool {
     @ToolMethod(name = "illegal", description = "Illegally returns a value from a streaming tool")
@@ -71,5 +97,17 @@ class AnnotationMcpToolValidationTest {
     public void doWork(String input, McpStreamContext<Map<String, Object>> ctx) {
       ctx.sendResult(Map.of("result", input));
     }
+  }
+
+  @ToolService
+  static class VoidStreamingTool {
+    @ToolMethod(name = "void-stream", description = "Streaming tool with Void type argument")
+    public void doWork(String input, McpStreamContext<Void> ctx) {}
+  }
+
+  @ToolService
+  static class RawStreamingTool {
+    @ToolMethod(name = "raw-stream", description = "Streaming tool with raw McpStreamContext")
+    public void doWork(String input, McpStreamContext ctx) {}
   }
 }

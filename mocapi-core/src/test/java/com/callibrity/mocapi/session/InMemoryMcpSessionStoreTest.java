@@ -109,6 +109,23 @@ class InMemoryMcpSessionStoreTest {
   }
 
   @Test
+  void updateShouldReplaceExistingSession() {
+    McpSession original = sessionWithId();
+    store.save(original, Duration.ofHours(1));
+    McpSession updated = original.withLogLevel(com.callibrity.mocapi.model.LoggingLevel.DEBUG);
+    store.update(original.sessionId(), updated);
+    var found = store.find(original.sessionId());
+    assertThat(found).isPresent().hasValue(updated);
+  }
+
+  @Test
+  void updateShouldDoNothingForUnknownSession() {
+    McpSession session = sessionWithId();
+    store.update(session.sessionId(), session);
+    assertThat(store.find(session.sessionId())).isEmpty();
+  }
+
+  @Test
   void getSessionCountShouldReturnCorrectCount() {
     assertThat(store.getSessionCount()).isZero();
     store.save(sessionWithId(), Duration.ofHours(1));

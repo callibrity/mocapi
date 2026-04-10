@@ -196,4 +196,26 @@ class MultiSelectEnumSchemaBuilderTest {
 
     assertThat(builder.isRequired()).isTrue();
   }
+
+  @Test
+  void descriptionAndTitleShouldBeSetOnSchema() {
+    MultiSelectEnumSchema schema =
+        MultiSelectEnumSchemaBuilder.fromEnum(Tag.class)
+            .description("Pick languages")
+            .title("Languages")
+            .build();
+
+    assertThat(schema).isInstanceOf(UntitledMultiSelectEnumSchema.class);
+    var untitled = (UntitledMultiSelectEnumSchema) schema;
+    assertThat(untitled.description()).isEqualTo("Pick languages");
+    assertThat(untitled.title()).isEqualTo("Languages");
+  }
+
+  @Test
+  void buildWithoutDefaultsShouldLeaveDefaultValuesNull() {
+    MultiSelectEnumSchema schema = MultiSelectEnumSchemaBuilder.fromEnum(Tag.class).build();
+
+    assertThat(schema).isInstanceOf(UntitledMultiSelectEnumSchema.class);
+    assertThat(((UntitledMultiSelectEnumSchema) schema).defaultValues()).isNull();
+  }
 }

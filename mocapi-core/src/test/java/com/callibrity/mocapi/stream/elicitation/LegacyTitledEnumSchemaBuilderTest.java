@@ -54,4 +54,16 @@ class LegacyTitledEnumSchemaBuilderTest {
 
     assertThat(builder.isRequired()).isFalse();
   }
+
+  @Test
+  void descriptionAndTitleShouldBeSetOnSchema() {
+    LegacyTitledEnumSchema schema =
+        new LegacyTitledEnumSchemaBuilder(List.of("a", "b"), List.of("A", "B"))
+            .description("Pick one")
+            .title("Choice")
+            .build();
+
+    assertThat(schema.description()).isEqualTo("Pick one");
+    assertThat(schema.title()).isEqualTo("Choice");
+  }
 }

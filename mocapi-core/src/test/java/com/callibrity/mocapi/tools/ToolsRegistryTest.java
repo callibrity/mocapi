@@ -142,6 +142,31 @@ class ToolsRegistryTest {
   }
 
   @Test
+  void toCallToolResultShouldHandleNullResult() {
+    var result = ToolsRegistry.toCallToolResult(null, mapper);
+    assertThat(result.isError()).isNull();
+    assertThat(result.structuredContent()).isNull();
+    assertThat(result.content()).hasSize(1);
+    assertThat(((TextContent) result.content().getFirst()).text()).isEmpty();
+  }
+
+  @Test
+  void toCallToolResultShouldHandleNonObjectJsonResult() {
+    var result = ToolsRegistry.toCallToolResult("plain string", mapper);
+    assertThat(result.structuredContent()).isNull();
+    assertThat(result.content()).hasSize(1);
+    assertThat(((TextContent) result.content().getFirst()).text()).isEqualTo("\"plain string\"");
+  }
+
+  @Test
+  void toErrorCallToolResultShouldUseToStringWhenMessageIsNull() {
+    var ex = new RuntimeException((String) null);
+    var result = ToolsRegistry.toErrorCallToolResult(ex);
+    assertThat(result.isError()).isTrue();
+    assertThat(((TextContent) result.content().getFirst()).text()).isEqualTo(ex.toString());
+  }
+
+  @Test
   void toolReturningCallToolResultWithIsErrorTrueShouldPassThrough() {
     var provider = factory.create(new ErrorReturningTool());
     var registry = new ToolsRegistry(List.of(provider), mapper);

@@ -54,6 +54,8 @@ public class ResourcesRegistry {
                 Collectors.toMap(
                     t -> new UriTemplate(t.descriptor().uriTemplate()),
                     t -> t,
+                    // coverage: unreachable — UriTemplate uses identity equality so keys never
+                    // collide
                     (a, b) -> {
                       throw new IllegalArgumentException(
                           "Duplicate URI template: " + a.descriptor().uriTemplate());
