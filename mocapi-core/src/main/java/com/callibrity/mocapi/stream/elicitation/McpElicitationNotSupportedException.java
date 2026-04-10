@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
-/** Thrown when elicitForm() is called but the client did not declare elicitation support. */
+/** Thrown when elicit() is called but the client did not declare elicitation support. */
 public class McpElicitationNotSupportedException extends RuntimeException {
 
   public McpElicitationNotSupportedException(String message) {

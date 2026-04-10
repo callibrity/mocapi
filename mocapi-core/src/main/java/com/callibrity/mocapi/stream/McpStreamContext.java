@@ -16,14 +16,12 @@
 package com.callibrity.mocapi.stream;
 
 import com.callibrity.mocapi.model.LoggingLevel;
-import com.callibrity.mocapi.stream.elicitation.BeanElicitationResult;
 import com.callibrity.mocapi.stream.elicitation.ElicitationResult;
 import com.callibrity.mocapi.stream.elicitation.ElicitationSchemaBuilder;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationTimeoutException;
 import java.util.function.Consumer;
-import tools.jackson.core.type.TypeReference;
 
 /**
  * Handle that MCP handler methods can declare as a parameter to opt into SSE streaming. Provides
@@ -117,34 +115,6 @@ public interface McpStreamContext<R> {
   default void emergency(String logger, Object data) {
     log(LoggingLevel.EMERGENCY, logger, data);
   }
-
-  /**
-   * Sends an elicitation request to the client, blocking until a response is received. The client
-   * is asked to fill out a form whose schema is generated from the given type.
-   *
-   * @param message the message to display to the user
-   * @param type the class to generate the form schema from
-   * @param <T> the expected response type
-   * @return the elicitation result containing the client's action and typed content
-   * @throws McpElicitationTimeoutException if the client does not respond within the timeout
-   * @throws McpElicitationException if the response fails schema validation
-   * @throws McpElicitationNotSupportedException if the client does not support elicitation
-   */
-  <T> BeanElicitationResult<T> elicitForm(String message, Class<T> type);
-
-  /**
-   * Sends an elicitation request to the client, blocking until a response is received. The client
-   * is asked to fill out a form whose schema is generated from the given type reference.
-   *
-   * @param message the message to display to the user
-   * @param type the type reference to generate the form schema from
-   * @param <T> the expected response type
-   * @return the elicitation result containing the client's action and typed content
-   * @throws McpElicitationTimeoutException if the client does not respond within the timeout
-   * @throws McpElicitationException if the response fails schema validation
-   * @throws McpElicitationNotSupportedException if the client does not support elicitation
-   */
-  <T> BeanElicitationResult<T> elicitForm(String message, TypeReference<T> type);
 
   /**
    * Sends an elicitation request to the client using a builder-constructed schema, blocking until a

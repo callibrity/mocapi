@@ -45,7 +45,6 @@ import com.callibrity.ripcurl.core.annotation.JsonRpcParamsResolver;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
-import com.github.victools.jsonschema.generator.SchemaGenerator;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.List;
@@ -105,7 +104,6 @@ class StreamableHttpControllerTest {
             toolsCapability,
             objectMapper,
             mock(MailboxFactory.class),
-            mock(SchemaGenerator.class),
             sessionService,
             Duration.ofSeconds(30));
 

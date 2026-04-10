@@ -30,17 +30,10 @@ import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStream;
-import com.callibrity.mocapi.stream.elicitation.BeanElicitationResult;
 import com.callibrity.mocapi.stream.elicitation.ElicitationResult;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationTimeoutException;
-import com.github.victools.jsonschema.generator.OptionPreset;
-import com.github.victools.jsonschema.generator.SchemaGenerator;
-import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
-import com.github.victools.jsonschema.generator.SchemaVersion;
-import com.github.victools.jsonschema.module.jackson.JacksonSchemaModule;
-import com.github.victools.jsonschema.module.jakarta.validation.JakartaValidationModule;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -59,7 +52,6 @@ class DefaultMcpStreamContextTest {
   private McpSessionStream stream;
   private ObjectMapper objectMapper;
   private MailboxFactory mailboxFactory;
-  private SchemaGenerator schemaGenerator;
   private McpSessionService sessionService;
 
   @BeforeEach
@@ -68,13 +60,6 @@ class DefaultMcpStreamContextTest {
     objectMapper = new ObjectMapper();
     mailboxFactory = mock(MailboxFactory.class);
     sessionService = mock(McpSessionService.class);
-    schemaGenerator =
-        new SchemaGenerator(
-            new SchemaGeneratorConfigBuilder(
-                    objectMapper, SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON)
-                .with(new JacksonSchemaModule())
-                .with(new JakartaValidationModule())
-                .build());
   }
 
   private DefaultMcpStreamContext<?> createContext(String progressToken) {
@@ -88,7 +73,6 @@ class DefaultMcpStreamContextTest {
         objectMapper,
         tokenNode,
         mailboxFactory,
-        schemaGenerator,
         sessionService,
         sessionId,
         Duration.ofSeconds(5),
@@ -281,24 +265,6 @@ class DefaultMcpStreamContextTest {
 
   // --- Elicitation tests ---
 
-  record UserForm(String name, int age) {}
-
-  record NestedForm(String name, UserForm nested) {}
-
-  // --- Schema validation tests ---
-
-  @Test
-  void elicitFormShouldRejectNestedObjectProperty() {
-    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
-    var context = createContext(null, "sess-1");
-
-    assertThatThrownBy(() -> context.elicitForm("Enter info", NestedForm.class))
-        .isInstanceOf(McpElicitationException.class)
-        .hasMessageContaining("Property 'nested'")
-        .hasMessageContaining("type 'object'")
-        .hasMessageContaining("not allowed");
-  }
-
   private McpSession sessionWithElicitation() {
     return new McpSession(
         "2025-11-25", new ClientCapabilities(null, null, new ElicitationCapability()), null);
@@ -310,153 +276,6 @@ class DefaultMcpStreamContextTest {
 
   private Mailbox<JsonNode> mockMailbox() {
     return (Mailbox<JsonNode>) (Mailbox<?>) mock(Mailbox.class);
-  }
-
-  @Test
-  void elicitShouldThrowWhenClientDoesNotSupportElicitation() {
-    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithoutElicitation()));
-    var context = createContext(null, "sess-1");
-    assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
-        .isInstanceOf(McpElicitationNotSupportedException.class);
-  }
-
-  @Test
-  void elicitShouldThrowWhenSessionIdIsNull() {
-    var context = createContext(null, null);
-    assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
-        .isInstanceOf(McpElicitationNotSupportedException.class);
-  }
-
-  @Test
-  void elicitShouldPublishJsonRpcRequestAndBlockOnMailbox() {
-    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
-    var context = createContext(null, "sess-1");
-    Mailbox<JsonNode> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
-
-    JsonNode responseNode =
-        objectMapper.valueToTree(
-            Map.of("action", "accept", "content", Map.of("name", "Alice", "age", 30)));
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
-
-    BeanElicitationResult<UserForm> result = context.elicitForm("Enter your info", UserForm.class);
-
-    assertThat(result.accepted()).isTrue();
-    assertThat(result.content().name()).isEqualTo("Alice");
-    assertThat(result.content().age()).isEqualTo(30);
-
-    ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
-    verify(stream).publishJson(captor.capture());
-    JsonNode request = captor.getValue();
-    assertThat(request.get("jsonrpc").asString()).isEqualTo(VERSION);
-    assertThat(request.get("method").asString()).isEqualTo("elicitation/create");
-    assertThat(request.get("id")).isNotNull();
-    assertThat(request.get("params").get("mode").asString()).isEqualTo("form");
-    assertThat(request.get("params").get("message").asString()).isEqualTo("Enter your info");
-    assertThat(request.get("params").get("requestedSchema")).isNotNull();
-    assertThat(request.get("params").get("requestedSchema").get("type").asString())
-        .isEqualTo("object");
-
-    verify(mailbox).delete();
-  }
-
-  @Test
-  void elicitShouldReturnDeclineWithNullContent() {
-    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
-    var context = createContext(null, "sess-1");
-    Mailbox<JsonNode> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
-
-    JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "decline"));
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
-
-    BeanElicitationResult<UserForm> result = context.elicitForm("Enter your info", UserForm.class);
-
-    assertThat(result.declined()).isTrue();
-    assertThat(result.content()).isNull();
-    verify(mailbox).delete();
-  }
-
-  @Test
-  void elicitShouldReturnCancelWithNullContent() {
-    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
-    var context = createContext(null, "sess-1");
-    Mailbox<JsonNode> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
-
-    JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "cancel"));
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
-
-    BeanElicitationResult<UserForm> result = context.elicitForm("Enter your info", UserForm.class);
-
-    assertThat(result.cancelled()).isTrue();
-    assertThat(result.content()).isNull();
-    verify(mailbox).delete();
-  }
-
-  @Test
-  void elicitShouldThrowOnTimeout() {
-    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
-    var context = createContext(null, "sess-1");
-    Mailbox<JsonNode> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.empty());
-
-    assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
-        .isInstanceOf(McpElicitationTimeoutException.class);
-
-    verify(mailbox).delete();
-  }
-
-  @Test
-  void elicitShouldThrowOnInvalidContent() {
-    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
-    var context = createContext(null, "sess-1");
-    Mailbox<JsonNode> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
-
-    JsonNode responseNode =
-        objectMapper.valueToTree(
-            Map.of("action", "accept", "content", Map.of("name", "Alice", "age", "not-a-number")));
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
-
-    assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
-        .isInstanceOf(McpElicitationException.class)
-        .hasMessageContaining("schema validation");
-
-    verify(mailbox).delete();
-  }
-
-  @Test
-  void elicitShouldThrowOnJsonRpcError() {
-    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
-    var context = createContext(null, "sess-1");
-    Mailbox<JsonNode> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
-
-    JsonNode responseNode =
-        objectMapper.valueToTree(Map.of("error", Map.of("code", -32600, "message", "Bad request")));
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
-
-    assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
-        .isInstanceOf(McpElicitationException.class)
-        .hasMessageContaining("JSON-RPC error");
-
-    verify(mailbox).delete();
-  }
-
-  @Test
-  void elicitShouldCleanUpMailboxEvenOnException() {
-    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
-    var context = createContext(null, "sess-1");
-    Mailbox<JsonNode> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
-    when(mailbox.poll(any(Duration.class))).thenThrow(new RuntimeException("Unexpected"));
-
-    assertThatThrownBy(() -> context.elicitForm("Enter info", UserForm.class))
-        .isInstanceOf(RuntimeException.class);
-
-    verify(mailbox).delete();
   }
 
   // --- Builder-based elicit tests ---

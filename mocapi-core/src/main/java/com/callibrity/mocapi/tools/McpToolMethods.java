@@ -31,7 +31,6 @@ import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
-import com.github.victools.jsonschema.generator.SchemaGenerator;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,7 +51,6 @@ public class McpToolMethods {
   private final ToolsRegistry toolsRegistry;
   private final ObjectMapper objectMapper;
   private final MailboxFactory mailboxFactory;
-  private final SchemaGenerator schemaGenerator;
   private final McpSessionService sessionService;
   private final Duration elicitationTimeout;
 
@@ -85,7 +83,6 @@ public class McpToolMethods {
             objectMapper,
             progressToken,
             mailboxFactory,
-            schemaGenerator,
             sessionService,
             sessionId,
             elicitationTimeout,

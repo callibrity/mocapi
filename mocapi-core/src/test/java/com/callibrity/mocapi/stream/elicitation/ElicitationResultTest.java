@@ -178,35 +178,6 @@ class ElicitationResultTest {
         .hasMessageContaining("not accepted");
   }
 
-  // --- BeanElicitationResult tests ---
-
-  @Test
-  void beanAcceptedResultShouldHaveContent() {
-    var result = new BeanElicitationResult<>(ElicitationAction.ACCEPT, "hello");
-    assertThat(result.accepted()).isTrue();
-    assertThat(result.declined()).isFalse();
-    assertThat(result.cancelled()).isFalse();
-    assertThat(result.content()).isEqualTo("hello");
-  }
-
-  @Test
-  void beanDeclinedResultShouldHaveNullContent() {
-    var result = new BeanElicitationResult<String>(ElicitationAction.DECLINE, null);
-    assertThat(result.declined()).isTrue();
-    assertThat(result.accepted()).isFalse();
-    assertThat(result.cancelled()).isFalse();
-    assertThat(result.content()).isNull();
-  }
-
-  @Test
-  void beanCancelledResultShouldHaveNullContent() {
-    var result = new BeanElicitationResult<String>(ElicitationAction.CANCEL, null);
-    assertThat(result.cancelled()).isTrue();
-    assertThat(result.accepted()).isFalse();
-    assertThat(result.declined()).isFalse();
-    assertThat(result.content()).isNull();
-  }
-
   // --- ElicitationAction tests ---
 
   @Test

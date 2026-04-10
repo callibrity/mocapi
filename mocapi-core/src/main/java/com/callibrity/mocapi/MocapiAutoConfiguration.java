@@ -38,12 +38,6 @@ import com.callibrity.mocapi.session.McpSessionStore;
 import com.callibrity.mocapi.tools.McpToolMethods;
 import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
-import com.github.victools.jsonschema.generator.OptionPreset;
-import com.github.victools.jsonschema.generator.SchemaGenerator;
-import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
-import com.github.victools.jsonschema.generator.SchemaVersion;
-import com.github.victools.jsonschema.module.jackson.JacksonSchemaModule;
-import com.github.victools.jsonschema.module.jakarta.validation.JakartaValidationModule;
 import java.util.Base64;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -172,26 +166,13 @@ public class MocapiAutoConfiguration {
       ToolsRegistry toolsRegistry,
       ObjectMapper objectMapper,
       MailboxFactory mailboxFactory,
-      SchemaGenerator schemaGenerator,
       McpSessionService sessionService) {
     return new McpToolMethods(
         toolsRegistry,
         objectMapper,
         mailboxFactory,
-        schemaGenerator,
         sessionService,
         props.getElicitation().getTimeout());
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(SchemaGenerator.class)
-  public SchemaGenerator elicitationSchemaGenerator(ObjectMapper mapper) {
-    return new SchemaGenerator(
-        new SchemaGeneratorConfigBuilder(
-                mapper, SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON)
-            .with(new JacksonSchemaModule())
-            .with(new JakartaValidationModule())
-            .build());
   }
 
   @Bean
