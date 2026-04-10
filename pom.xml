@@ -58,6 +58,7 @@
         <module>mocapi-spring-boot-starter</module>
         <module>mocapi-example</module>
         <module>mocapi-compat</module>
+        <module>mocapi-session-store-redis</module>
     </modules>
 
     <properties>

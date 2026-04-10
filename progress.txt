@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T07:33:00-04:00
-ITERATION: 19
-SPEC_COMPLETED: 112-fix-promptmessage-content-to-single-contentblock.md
-WHAT_WAS_DONE: Changed PromptMessage.content from List<ContentBlock> to single ContentBlock to match MCP schema.ts, updated all call sites (model, core, compat tests and conformance prompts), and fixed IT jsonPath assertions from array to object shape.
-VERIFICATION: mvn verify — BUILD SUCCESS, 80 tests pass, 0 failures. All four PromptsGet*IT tests (Simple, WithArgs, EmbeddedResource, WithImage) pass with the new single-object content shape.
-STATUS: DONE
-NEXT_SPEC: none
-NOTES: Breaking change to PromptMessage record — any external code constructing PromptMessage(role, List.of(block)) must change to PromptMessage(role, block). The compiler catches every site. CallToolResult.content remains List<ContentBlock> per spec — not touched.
+LAST_RUN: 2026-04-10T07:45:00-04:00
+ITERATION: 20
+SPEC_COMPLETED: 113-mocapi-session-store-redis.md
+WHAT_WAS_DONE: Created new mocapi-session-store-redis module with RedisMcpSessionStore (all 5 McpSessionStore methods via Redis primitives, KEEPTTL for update, configurable key prefix) and RedisMcpSessionStoreAutoConfiguration (conditional on RedisConnectionFactory, before MocapiAutoConfiguration).
+VERIFICATION: mvn verify — BUILD SUCCESS, full reactor green. Module tests: 10 passed (7 Testcontainers integration tests for RedisMcpSessionStore + 3 ApplicationContextRunner tests for auto-configuration). Spotless and license checks pass.
+STATUS: MORE_WORK
+NEXT_SPEC: 114-mocapi-session-store-hazelcast.md
+NOTES: Used GenericContainer with redis:7-alpine instead of com.redis:testcontainers-redis to avoid unmanaged dependency. Testcontainers 1.20.4 version added explicitly since Spring Boot BOM does not manage it. Jackson 3 (tools.jackson) ObjectMapper used for serialization. The LettuceConnectionFactory reconnect warnings in test output are expected — container shutdown during test teardown.
