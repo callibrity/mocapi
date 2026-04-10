@@ -61,10 +61,12 @@
         <module>mocapi-session-store-redis</module>
         <module>mocapi-session-store-hazelcast</module>
         <module>mocapi-session-store-jdbc</module>
+        <module>mocapi-redis-spring-boot-starter</module>
     </modules>
 
     <properties>
         <java.version>25</java.version>
+        <substrate.version>1.0.0-SNAPSHOT</substrate.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <required.maven.version>3.6</required.maven.version>
 
@@ -161,6 +163,13 @@
                 <groupId>org.jwcarman.methodical</groupId>
                 <artifactId>methodical-bom</artifactId>
                 <version>${methodical.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.jwcarman.substrate</groupId>
+                <artifactId>substrate-bom</artifactId>
+                <version>${substrate.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

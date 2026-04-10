@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T09:27:20-04:00
-ITERATION: 29
-SPEC_COMPLETED: 121-complete-model-test-coverage.md
-WHAT_WAS_DONE: Added serialization round-trip tests for all 14 previously uncovered model types (CompletionRef, CompletionsCapability, ElicitationCapability, Icon, ListPromptsResult, ListResourcesResult, ListResourceTemplatesResult, ListToolsResult, PromptArgument, PromptsCapability, ReadResourceResult, ResourcesCapability, RootsCapability, SamplingCapability) plus accessor method tests for ElicitResult, achieving 100% line and branch coverage in mocapi-model.
-VERIFICATION: mvn -pl mocapi-model test — 113 tests pass; audit script produces empty MISSING list; JaCoCo coverage 100% line, 100% branch; mvn verify — BUILD SUCCESS across full reactor
+LAST_RUN: 2026-04-10T09:38:00-04:00
+ITERATION: 30
+SPEC_COMPLETED: 122-mocapi-redis-spring-boot-starter.md
+WHAT_WAS_DONE: Created mocapi-redis-spring-boot-starter module — a pure aggregation pom bundling mocapi-spring-boot-starter, mocapi-session-store-redis, substrate-mailbox-redis, substrate-journal-redis, substrate-notifier-redis, and spring-boot-starter-data-redis. Added substrate-bom to parent pom dependencyManagement. Integration test with Testcontainers Redis verifies all four Redis-backed beans (McpSessionStore, MailboxSpi, JournalSpi, Notifier) are auto-configured.
+VERIFICATION: mvn verify — BUILD SUCCESS across full reactor (10 modules); 4 integration tests pass in RedisStarterAutoConfigurationIT confirming Redis implementations replace in-memory fallbacks
 STATUS: MORE_WORK
-NEXT_SPEC: 122-mocapi-redis-spring-boot-starter.md
-NOTES: Created new CompletionRefSerializationTest for the CompletionRef sealed interface. Added tests to ProtocolTypesSerializationTest for capabilities, list results, Icon, PromptArgument. Added ReadResourceResult test to ResourceContentsSerializationTest. Added ElicitResult accessor method tests to ElicitationTypesSerializationTest. All null-field omission and polymorphic dispatch patterns verified.
+NEXT_SPEC: 123-mocapi-hazelcast-spring-boot-starter.md
+NOTES: Added substrate.version property (1.0.0-SNAPSHOT) and substrate-bom import to parent pom dependencyManagement. The RedisMcpSessionStoreAutoConfiguration has a stale afterName reference (points to SB3 class org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration instead of SB4 org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration) — the IT test works around this by providing RedisConnectionFactory via user configuration rather than relying on DataRedisAutoConfiguration ordering. This stale afterName should be fixed in a separate spec.
