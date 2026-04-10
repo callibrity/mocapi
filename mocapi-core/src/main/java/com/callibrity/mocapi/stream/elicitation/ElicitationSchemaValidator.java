@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.stream;
+package com.callibrity.mocapi.stream.elicitation;
 
 import java.util.Set;
 import tools.jackson.databind.JsonNode;
@@ -23,7 +23,7 @@ import tools.jackson.databind.node.ObjectNode;
  * Validates that a JSON Schema generated from a Java bean conforms to the MCP elicitation spec's
  * {@code PrimitiveSchemaDefinition} constraints.
  */
-final class ElicitationSchemaValidator {
+public final class ElicitationSchemaValidator {
 
   private static final Set<String> ALLOWED_PRIMITIVE_TYPES =
       Set.of("string", "integer", "number", "boolean");
@@ -36,7 +36,7 @@ final class ElicitationSchemaValidator {
 
   private ElicitationSchemaValidator() {}
 
-  static void validate(ObjectNode schema) {
+  public static void validate(ObjectNode schema) {
     validateNoDisallowedKeywords(schema, null);
     JsonNode properties = schema.get("properties");
     if (properties == null || !properties.isObject()) {

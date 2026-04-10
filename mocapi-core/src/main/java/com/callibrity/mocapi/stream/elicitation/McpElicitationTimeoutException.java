@@ -13,16 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.stream;
+package com.callibrity.mocapi.stream.elicitation;
 
-/** Thrown when an elicitation response fails validation or cannot be processed. */
-public class McpElicitationException extends RuntimeException {
+/** Thrown when an elicitation request times out waiting for the client's response. */
+public class McpElicitationTimeoutException extends RuntimeException {
 
-  public McpElicitationException(String message) {
+  public McpElicitationTimeoutException(String message) {
     super(message);
-  }
-
-  public McpElicitationException(String message, Throwable cause) {
-    super(message, cause);
   }
 }

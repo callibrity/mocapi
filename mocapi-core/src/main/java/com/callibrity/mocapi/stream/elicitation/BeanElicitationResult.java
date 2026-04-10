@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.stream;
+package com.callibrity.mocapi.stream.elicitation;
 
 /**
  * The result of a bean-typed MCP elicitation request. Contains the client's action and, for
  * accepted responses, the typed content deserialized from the client's form data. This is the
- * return type of {@link McpStreamContext#elicitForm(String, Class)}.
+ * return type of {@link com.callibrity.mocapi.stream.McpStreamContext#elicitForm(String, Class)}.
  *
  * @param action the action taken by the client
  * @param content the typed content (null for decline/cancel actions)

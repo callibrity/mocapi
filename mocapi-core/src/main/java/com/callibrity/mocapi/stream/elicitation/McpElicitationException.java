@@ -13,12 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.stream;
+package com.callibrity.mocapi.stream.elicitation;
 
-/** Thrown when elicitForm() is called but the client did not declare elicitation support. */
-public class McpElicitationNotSupportedException extends RuntimeException {
+/** Thrown when an elicitation response fails validation or cannot be processed. */
+public class McpElicitationException extends RuntimeException {
 
-  public McpElicitationNotSupportedException(String message) {
+  public McpElicitationException(String message) {
     super(message);
+  }
+
+  public McpElicitationException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

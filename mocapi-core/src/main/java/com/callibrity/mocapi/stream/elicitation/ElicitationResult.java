@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.stream;
+package com.callibrity.mocapi.stream.elicitation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +22,8 @@ import tools.jackson.databind.JsonNode;
 /**
  * The result of a builder-based MCP elicitation request. Contains the client's action and provides
  * typed getters for accessing individual fields from the response content. This is the return type
- * of {@link McpStreamContext#elicit(String, java.util.function.Consumer)}.
+ * of {@link com.callibrity.mocapi.stream.McpStreamContext#elicit(String,
+ * java.util.function.Consumer)}.
  */
 public final class ElicitationResult {
 

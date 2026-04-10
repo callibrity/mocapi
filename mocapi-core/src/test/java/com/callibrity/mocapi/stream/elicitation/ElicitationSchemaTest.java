@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.stream;
+package com.callibrity.mocapi.stream.elicitation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -138,7 +138,7 @@ class ElicitationSchemaTest {
   void chooseWithItemsAndTitleCustomizerShouldProduceOneOfSchema() {
     record Status(String code, String label) {}
     List<Status> statuses = List.of(new Status("active", "Active"), new Status("inactive", "Gone"));
-    Consumer<ElicitationSchema.ChoiceConstraints<Status>> customizer = c -> c.title(Status::label);
+    Consumer<ChooseOneBuilder<Status>> customizer = c -> c.titleFn(Status::label);
     ElicitationSchema schema =
         ElicitationSchema.builder().choose("status", statuses, Status::code, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
@@ -173,7 +173,7 @@ class ElicitationSchemaTest {
   void chooseManyWithItemsAndTitleCustomizerShouldProduceArrayOfAnyOfSchema() {
     record Role(String code, String label) {}
     List<Role> roles = List.of(new Role("admin", "Administrator"), new Role("user", "User"));
-    Consumer<ElicitationSchema.MultiChoiceConstraints<Role>> customizer = c -> c.title(Role::label);
+    Consumer<ChooseManyBuilder<Role>> customizer = c -> c.titleFn(Role::label);
     ElicitationSchema schema =
         ElicitationSchema.builder().chooseMany("roles", roles, Role::code, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
@@ -211,7 +211,7 @@ class ElicitationSchemaTest {
 
   @Test
   void duplicatePropertyNameShouldThrow() {
-    ElicitationSchema.Builder builder = ElicitationSchema.builder().string("name", "Name");
+    ElicitationSchemaBuilder builder = ElicitationSchema.builder().string("name", "Name");
 
     assertThatThrownBy(() -> builder.string("name", "Name again"))
         .isInstanceOf(IllegalArgumentException.class)
@@ -559,8 +559,7 @@ class ElicitationSchemaTest {
 
   @Test
   void chooseEnumWithTitleCustomizerShouldUseCustomTitles() {
-    Function<Tag, String> titleFn = t -> t.name().toLowerCase();
-    Consumer<ElicitationSchema.ChoiceConstraints<Tag>> customizer = c -> c.title(titleFn);
+    Consumer<ChooseOneBuilder<Tag>> customizer = c -> c.titleFn(t -> t.name().toLowerCase());
     ElicitationSchema schema =
         ElicitationSchema.builder().choose("tag", Tag.class, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
@@ -574,9 +573,8 @@ class ElicitationSchemaTest {
 
   @Test
   void chooseEnumWithTitleAndDefaultCustomizerShouldWork() {
-    Function<Tag, String> titleFn = t -> t.name().toLowerCase();
-    Consumer<ElicitationSchema.ChoiceConstraints<Tag>> customizer =
-        c -> c.title(titleFn).defaultValue(Tag.PYTHON);
+    Consumer<ChooseOneBuilder<Tag>> customizer =
+        c -> c.titleFn(t -> t.name().toLowerCase()).defaultValue(Tag.PYTHON);
     ElicitationSchema schema =
         ElicitationSchema.builder().choose("tag", Tag.class, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
@@ -590,8 +588,7 @@ class ElicitationSchemaTest {
 
   @Test
   void chooseManyEnumWithDefaultsCustomizerShouldIncludeDefaults() {
-    Consumer<ElicitationSchema.MultiChoiceConstraints<Tag>> customizer =
-        c -> c.defaults(List.of(Tag.JAVA, Tag.GO));
+    Consumer<ChooseManyBuilder<Tag>> customizer = c -> c.defaults(List.of(Tag.JAVA, Tag.GO));
     ElicitationSchema schema =
         ElicitationSchema.builder().chooseMany("tags", Tag.class, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
@@ -605,9 +602,8 @@ class ElicitationSchemaTest {
 
   @Test
   void chooseManyEnumWithTitleAndDefaultsCustomizerShouldWork() {
-    Function<Tag, String> titleFn = t -> t.name().toLowerCase();
-    Consumer<ElicitationSchema.MultiChoiceConstraints<Tag>> customizer =
-        c -> c.title(titleFn).defaults(List.of(Tag.PYTHON));
+    Consumer<ChooseManyBuilder<Tag>> customizer =
+        c -> c.titleFn(t -> t.name().toLowerCase()).defaults(List.of(Tag.PYTHON));
     ElicitationSchema schema =
         ElicitationSchema.builder().chooseMany("tags", Tag.class, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
@@ -621,8 +617,7 @@ class ElicitationSchemaTest {
 
   @Test
   void chooseManyEnumWithTitleCustomizerShouldUseCustomTitles() {
-    Function<Tag, String> titleFn = t -> t.name().toLowerCase();
-    Consumer<ElicitationSchema.MultiChoiceConstraints<Tag>> customizer = c -> c.title(titleFn);
+    Consumer<ChooseManyBuilder<Tag>> customizer = c -> c.titleFn(t -> t.name().toLowerCase());
     ElicitationSchema schema =
         ElicitationSchema.builder().chooseMany("tags", Tag.class, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);
@@ -761,8 +756,8 @@ class ElicitationSchemaTest {
   void chooseWithArbitraryItemsTitleAndDefaultCustomizerShouldWork() {
     record Status(String code, String label) {}
     List<Status> statuses = List.of(new Status("active", "Active"), new Status("inactive", "Gone"));
-    Consumer<ElicitationSchema.ChoiceConstraints<Status>> customizer =
-        c -> c.title(Status::label).defaultValue(statuses.get(0));
+    Consumer<ChooseOneBuilder<Status>> customizer =
+        c -> c.titleFn(Status::label).defaultValue(statuses.get(0));
     ElicitationSchema schema =
         ElicitationSchema.builder().choose("status", statuses, Status::code, customizer).build();
     ObjectNode node = schema.toObjectNode(objectMapper);

@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.stream;
+package com.callibrity.mocapi.stream.elicitation;
 
-/** Thrown when an elicitation request times out waiting for the client's response. */
-public class McpElicitationTimeoutException extends RuntimeException {
+/** Thrown when elicitForm() is called but the client did not declare elicitation support. */
+public class McpElicitationNotSupportedException extends RuntimeException {
 
-  public McpElicitationTimeoutException(String message) {
+  public McpElicitationNotSupportedException(String message) {
     super(message);
   }
 }
