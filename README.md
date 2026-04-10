@@ -52,21 +52,27 @@ public class HelloTool {
 
 ## Streaming and Progress
 
-To send progress updates or use interactive features (elicitation, sampling), add an `McpStreamContext<R>` parameter to your tool method:
+To send progress updates or use interactive features (elicitation, sampling), add an `McpStreamContext<R>` parameter to your tool method. **Streaming tool methods must return `void`** — the final result is sent explicitly via `ctx.sendResult(...)` rather than returned from the method:
 
 ```java
 import com.callibrity.mocapi.stream.McpStreamContext;
 
 @ToolMethod(name = "countdown", description = "Counts down with progress updates")
-public CountdownResponse countdown(int from, McpStreamContext<CountdownResponse> ctx) {
+public void countdown(int from, McpStreamContext<CountdownResponse> ctx) {
     for (int i = from; i > 0; i--) {
-        ctx.sendProgress(from - i, from);
+        ctx.sendProgress((double) (from - i), from);
     }
-    return new CountdownResponse("Done!");
+    ctx.sendResult(new CountdownResponse("Done!"));
 }
 ```
 
-The context provides `sendProgress(double, double)` for progress notifications and `log(LoggingLevel, String)` for structured logging.
+The context provides:
+
+- `sendProgress(double, double)` for progress notifications
+- `sendResult(R)` to publish the final result on the SSE stream (terminal — call exactly once)
+- `log(LoggingLevel, String)` for structured logging
+
+Non-streaming tool methods (those without an `McpStreamContext` parameter) return their result directly as shown in the "Defining Tools" section above.
 
 ## Elicitation
 
