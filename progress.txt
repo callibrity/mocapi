@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T20:43:45-04:00
-ITERATION: 74
-SPEC_COMPLETED: 075-merge-compat-tests.md
-WHAT_WAS_DONE: Flattened compat test structure by moving all 30 conformance ITs from com.callibrity.mocapi.compat.conformance up to com.callibrity.mocapi.compat, merging unique tests from original ITs into the moved conformance ITs, and deleting 7 duplicate/dead IT classes (SmokeIT, PingIT, InitializationIT, ToolInvocationIT, StreamingToolIT, OriginValidationIT, ServerSseMultipleStreamsIT). Merged methods: 2 into ServerInitializeIT, 5 into DnsRebindingProtectionIT, 2 into SseStreamIT, 2 into ContentNegotiationIT. CompatApplication and CompatTools kept because ContentNegotiationIT and FullConversationIT still need "echo"/"stream" tools.
-VERIFICATION: mvn clean verify — BUILD SUCCESS, all 80 tests pass (down from 92 due to duplicate removal), 0 failures, spotless and license checks pass
-STATUS: MORE_WORK
-NEXT_SPEC: 076-simplify-duplicate-property-check.md
-NOTES: Test count reduced from 92 to 80 is expected: 23 tests deleted from 7 dead IT classes, 11 unique methods merged into existing ITs. The conformance src/main/java classes (ConformanceApplication, ConformanceTools, ConformanceResources, ConformancePrompts) remain in the conformance sub-package as instructed.
+LAST_RUN: 2026-04-09T20:47:23-04:00
+ITERATION: 75
+SPEC_COMPLETED: 076-simplify-duplicate-property-check.md
+WHAT_WAS_DONE: Replaced scattered requireUniqueName(name) + properties.put(name, ...) pairs with a single addProperty(name, schema) helper that checks for duplicates via Map.put() return value. Deleted requireUniqueName method. Updated all 24 builder methods (string, integer, number, bool, choose, chooseMany, chooseLegacy) to use addProperty. Updated test assertion to match new error message.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 80 tests pass, 0 failures, spotless and license checks pass
+STATUS: DONE
+NEXT_SPEC: none
+NOTES: Error message changed from "Duplicate property name: " to "Duplicate property: " per spec. Test in ElicitationSchemaTest updated accordingly.

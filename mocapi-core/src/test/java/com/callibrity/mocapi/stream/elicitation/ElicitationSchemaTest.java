@@ -225,7 +225,7 @@ class ElicitationSchemaTest {
 
     assertThatThrownBy(() -> builder.string("name", "Name again"))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Duplicate property name: name");
+        .hasMessageContaining("Duplicate property: name");
   }
 
   // --- Customizer constraint tests ---
