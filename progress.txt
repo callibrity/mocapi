@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T21:11:25-04:00
-ITERATION: 76
-SPEC_COMPLETED: 077-refactor-prompts-with-registry-lookup.md
-WHAT_WAS_DONE: Refactored prompts to match tools pattern: McpPrompt changed from record to interface with get(Map<String,String>), McpPromptProvider simplified to just getMcpPrompts() (removed get() method), PromptsRegistry now builds Map<String,McpPrompt> at init with lookup(name) instead of iterating providers, added McpPromptDescriptor record for list serialization, McpPromptMethods uses registry.lookup(name).get(arguments), ConformancePrompts updated with McpPrompt anonymous implementations.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 80 tests pass, 0 failures, spotless and license checks pass
+LAST_RUN: 2026-04-09T21:17:00-04:00
+ITERATION: 77
+SPEC_COMPLETED: 078-unit-tests-for-prompts-and-resources.md
+WHAT_WAS_DONE: Added 32 unit tests across 4 new test classes: ResourcesRegistryTest (11 tests covering list, aggregate, read, unknown URI, pagination, cursor encoding, subscribe/unsubscribe), McpResourceMethodsTest (6 tests covering list resources, list templates, read, unknown URI, subscribe, unsubscribe), PromptsRegistryTest (10 tests covering list, aggregate, lookup, unknown name, pagination, cursor encoding, arguments), McpPromptMethodsTest (5 tests covering list, get, unknown name, argument passthrough, arguments in listing).
+VERIFICATION: mvn verify — BUILD SUCCESS, all 385 tests pass (32 new), 0 failures, spotless and license checks pass
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: @Argument annotation does not exist in any available Methodical version (checked 0.2.1 and 1.0.0-SNAPSHOT). The @Prompt/@PromptService annotations don't exist on main yet (only in worktrees). The interface contract McpPrompt.get(Map<String,String>) enables future annotation-based prompts to use Map<String,String> arguments. No Methodical version bump was needed for this iteration.
+NOTES: All tests are pure unit tests with no Spring context. Used anonymous implementations of McpResourceProvider, McpPromptProvider, and McpPrompt interfaces as stubs. No annotation-based provider tests were written because @Resource/@Prompt annotations don't exist on main yet. The spec mentioned provider annotation tests but the codebase only has interface-based providers currently.
