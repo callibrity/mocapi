@@ -13,19 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.example.tools;
+package com.callibrity.mocapi.examples;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import org.junit.jupiter.api.Test;
+@SpringBootApplication
+public class ExampleApplication {
 
-class HelloToolTest {
-
-  @Test
-  void helloShouldReturnMessage() {
-    var tool = new HelloTool();
-    var response = tool.sayHello("Mocapi");
-    assertThat(response).isNotNull();
-    assertThat(response.message()).isEqualTo("Hello, Mocapi!");
+  public static void main(String[] args) {
+    SpringApplication.run(ExampleApplication.class, args);
   }
 }

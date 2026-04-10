@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T09:51:00-04:00
-ITERATION: 32
-SPEC_COMPLETED: 124-consolidate-compat-applications.md
-WHAT_WAS_DONE: Consolidated all IT tests onto CompatibilityApplication — replaced CompatApplication references in 9 test files, deleted the test-only CompatApplication stub, and fixed CompatibilityApplication.main() visibility from package-private to public.
-VERIFICATION: mvn -pl mocapi-compat verify — 80 tests run, 0 failures; mvn verify — full reactor BUILD SUCCESS (11 modules)
+LAST_RUN: 2026-04-10T09:55:35-04:00
+ITERATION: 33
+SPEC_COMPLETED: 125-examples-module-scaffolding.md
+WHAT_WAS_DONE: Created examples/ aggregator with examples-lib module, migrated all tools (HelloTool, Rot13Tool, CountdownTool), ExampleApplication, and tests from mocapi-example/ with package rename from com.callibrity.mocapi.example to com.callibrity.mocapi.examples, deleted old mocapi-example/ module.
+VERIFICATION: mvn verify — full reactor BUILD SUCCESS (12 modules); mvn -pl examples/examples-lib test — 2 tests run, 0 failures
 STATUS: MORE_WORK
-NEXT_SPEC: 125-examples-module-scaffolding.md
-NOTES: No test helpers needed to be moved from src/test to src/main — all CompatApplication-using tests were straightforward IT tests with RandomMasterKeyInitializer already in place. Test count unchanged at 80.
+NEXT_SPEC: 126-example-in-memory-app.md
+NOTES: The examples-lib pom parents to mocapi-examples (the aggregator), not directly to mocapi-parent. IT tests (HelloToolIT, Rot13ToolIT) ran as part of verify via failsafe. The application.properties with the dev-only encryption key was carried over to examples-lib/src/main/resources/.

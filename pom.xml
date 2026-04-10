@@ -56,7 +56,7 @@
         <module>mocapi-model</module>
         <module>mocapi-core</module>
         <module>mocapi-spring-boot-starter</module>
-        <module>mocapi-example</module>
+        <module>examples</module>
         <module>mocapi-compat</module>
         <module>mocapi-session-store-redis</module>
         <module>mocapi-session-store-hazelcast</module>

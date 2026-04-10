@@ -13,30 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.example.tools;
+package com.callibrity.mocapi.examples.tools;
 
-import com.callibrity.mocapi.stream.McpStreamContext;
 import com.callibrity.mocapi.tools.annotation.ToolMethod;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 
 @ToolService
-public class CountdownTool {
+public class HelloTool {
 
-  @ToolMethod(
-      name = "countdown",
-      description = "Counts down from the given number, sending progress updates via SSE")
-  public CountdownResponse countdown(int from, McpStreamContext<CountdownResponse> ctx) {
-    for (int i = from; i > 0; i--) {
-      ctx.sendProgress((double) (from - i), from);
-      try {
-        Thread.sleep(500);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        break;
-      }
-    }
-    return new CountdownResponse("Countdown from " + from + " complete!");
+  @ToolMethod(name = "hello", description = "Returns a greeting message")
+  public HelloResponse sayHello(String name) {
+    return new HelloResponse(String.format("Hello, %s!", name));
   }
 
-  public record CountdownResponse(String message) {}
+  public record HelloResponse(String message) {}
 }

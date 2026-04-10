@@ -13,18 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.example.tools;
+package com.callibrity.mocapi.examples.tools;
 
-import com.callibrity.mocapi.tools.annotation.ToolMethod;
-import com.callibrity.mocapi.tools.annotation.ToolService;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@ToolService
-public class HelloTool {
+import org.junit.jupiter.api.Test;
 
-  @ToolMethod(name = "hello", description = "Returns a greeting message")
-  public HelloResponse sayHello(String name) {
-    return new HelloResponse(String.format("Hello, %s!", name));
+class Rot13ToolTest {
+
+  @Test
+  void encodingShouldRotateChars() {
+    var tool = new Rot13Tool();
+    var response = tool.encode("(A-b]}");
+    assertThat(response).isNotNull();
+    assertThat(response.encoded()).isEqualTo("(N-o]}");
   }
-
-  public record HelloResponse(String message) {}
 }

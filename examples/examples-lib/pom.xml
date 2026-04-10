@@ -21,36 +21,25 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.callibrity.mocapi</groupId>
-        <artifactId>mocapi-parent</artifactId>
+        <artifactId>mocapi-examples</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>mocapi-example</artifactId>
+
+    <artifactId>mocapi-examples-lib</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Mocapi - Example</name>
-    <description>An example application highlighting Mocapi&apos;s capabilities</description>
+    <name>Mocapi - Examples Library</name>
+    <description>Shared example tools, prompts, and resources for mocapi example applications</description>
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
-        <sonar.exclusions>src/main/java/**/MocapiExampleApplication.java</sonar.exclusions>
+        <sonar.exclusions>src/main/java/**/ExampleApplication.java</sonar.exclusions>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webmvc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.callibrity.mocapi</groupId>
             <artifactId>mocapi-spring-boot-starter</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -73,20 +62,9 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring-boot.version}</version>
-                <executions>
-                    <execution>
-                        <goals><goal>build-info</goal></goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
             </plugin>
-
         </plugins>
     </build>
 </project>
