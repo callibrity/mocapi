@@ -15,6 +15,4 @@
  */
 package com.callibrity.mocapi.model;
 
-import java.util.List;
-
-public record PromptMessage(Role role, List<ContentBlock> content) {}
+public record PromptMessage(Role role, ContentBlock content) {}

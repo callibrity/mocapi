@@ -54,9 +54,7 @@ class PromptsRegistryTest {
       public GetPromptResult get(Map<String, String> arguments) {
         return new GetPromptResult(
             descriptor().description(),
-            List.of(
-                new PromptMessage(
-                    Role.USER, List.of(new TextContent("Hello from " + name, null)))));
+            List.of(new PromptMessage(Role.USER, new TextContent("Hello from " + name, null))));
       }
     };
   }

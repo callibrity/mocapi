@@ -124,8 +124,7 @@ public class ConformancePrompts {
             "A simple test prompt",
             List.of(
                 new PromptMessage(
-                    Role.USER,
-                    List.of(new TextContent("This is a simple prompt for testing.", null)))));
+                    Role.USER, new TextContent("This is a simple prompt for testing.", null))));
       }
     };
   }
@@ -154,11 +153,9 @@ public class ConformancePrompts {
             List.of(
                 new PromptMessage(
                     Role.USER,
-                    List.of(
-                        new TextContent(
-                            String.format(
-                                "Prompt with arguments: arg1='%s', arg2='%s'", arg1, arg2),
-                            null)))));
+                    new TextContent(
+                        String.format("Prompt with arguments: arg1='%s', arg2='%s'", arg1, arg2),
+                        null))));
       }
     };
   }
@@ -184,17 +181,13 @@ public class ConformancePrompts {
             List.of(
                 new PromptMessage(
                     Role.USER,
-                    List.of(
-                        new EmbeddedResource(
-                            new TextResourceContents(
-                                resourceUri,
-                                "text/plain",
-                                "Embedded resource content for testing."),
-                            null))),
+                    new EmbeddedResource(
+                        new TextResourceContents(
+                            resourceUri, "text/plain", "Embedded resource content for testing."),
+                        null)),
                 new PromptMessage(
                     Role.USER,
-                    List.of(
-                        new TextContent("Please process the embedded resource above.", null)))));
+                    new TextContent("Please process the embedded resource above.", null))));
       }
     };
   }
@@ -213,10 +206,9 @@ public class ConformancePrompts {
         return new GetPromptResult(
             "A test prompt with an image",
             List.of(
+                new PromptMessage(Role.USER, new ImageContent(TINY_PNG, "image/png", null)),
                 new PromptMessage(
-                    Role.USER, List.of(new ImageContent(TINY_PNG, "image/png", null))),
-                new PromptMessage(
-                    Role.USER, List.of(new TextContent("Please analyze the image above.", null)))));
+                    Role.USER, new TextContent("Please analyze the image above.", null))));
       }
     };
   }

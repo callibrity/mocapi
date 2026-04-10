@@ -55,17 +55,15 @@ class PromptsGetWithImageIT {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result.messages").isArray())
         .andExpect(jsonPath("$.result.messages[0].role").value("user"))
-        .andExpect(jsonPath("$.result.messages[0].content").isArray())
-        .andExpect(jsonPath("$.result.messages[0].content[0].type").value("image"))
-        .andExpect(jsonPath("$.result.messages[0].content[0].mimeType").value("image/png"))
+        .andExpect(jsonPath("$.result.messages[0].content.type").value("image"))
+        .andExpect(jsonPath("$.result.messages[0].content.mimeType").value("image/png"))
         .andExpect(
-            jsonPath("$.result.messages[0].content[0].data")
+            jsonPath("$.result.messages[0].content.data")
                 .value(
                     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwzAAAAAElFTkSuQmCC"))
         .andExpect(jsonPath("$.result.messages[1].role").value("user"))
-        .andExpect(jsonPath("$.result.messages[1].content[0].type").value("text"))
+        .andExpect(jsonPath("$.result.messages[1].content.type").value("text"))
         .andExpect(
-            jsonPath("$.result.messages[1].content[0].text")
-                .value("Please analyze the image above."));
+            jsonPath("$.result.messages[1].content.text").value("Please analyze the image above."));
   }
 }

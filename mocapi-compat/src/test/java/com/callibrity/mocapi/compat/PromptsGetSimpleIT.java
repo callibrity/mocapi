@@ -55,10 +55,9 @@ class PromptsGetSimpleIT {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result.messages").isArray())
         .andExpect(jsonPath("$.result.messages[0].role").value("user"))
-        .andExpect(jsonPath("$.result.messages[0].content").isArray())
-        .andExpect(jsonPath("$.result.messages[0].content[0].type").value("text"))
+        .andExpect(jsonPath("$.result.messages[0].content.type").value("text"))
         .andExpect(
-            jsonPath("$.result.messages[0].content[0].text")
+            jsonPath("$.result.messages[0].content.text")
                 .value("This is a simple prompt for testing."));
   }
 }

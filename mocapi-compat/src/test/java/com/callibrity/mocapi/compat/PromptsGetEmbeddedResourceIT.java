@@ -57,20 +57,17 @@ class PromptsGetEmbeddedResourceIT {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result.messages").isArray())
         .andExpect(jsonPath("$.result.messages[0].role").value("user"))
-        .andExpect(jsonPath("$.result.messages[0].content").isArray())
-        .andExpect(jsonPath("$.result.messages[0].content[0].type").value("resource"))
+        .andExpect(jsonPath("$.result.messages[0].content.type").value("resource"))
         .andExpect(
-            jsonPath("$.result.messages[0].content[0].resource.uri")
-                .value("test://example-resource"))
+            jsonPath("$.result.messages[0].content.resource.uri").value("test://example-resource"))
+        .andExpect(jsonPath("$.result.messages[0].content.resource.mimeType").value("text/plain"))
         .andExpect(
-            jsonPath("$.result.messages[0].content[0].resource.mimeType").value("text/plain"))
-        .andExpect(
-            jsonPath("$.result.messages[0].content[0].resource.text")
+            jsonPath("$.result.messages[0].content.resource.text")
                 .value("Embedded resource content for testing."))
         .andExpect(jsonPath("$.result.messages[1].role").value("user"))
-        .andExpect(jsonPath("$.result.messages[1].content[0].type").value("text"))
+        .andExpect(jsonPath("$.result.messages[1].content.type").value("text"))
         .andExpect(
-            jsonPath("$.result.messages[1].content[0].text")
+            jsonPath("$.result.messages[1].content.text")
                 .value("Please process the embedded resource above."));
   }
 }

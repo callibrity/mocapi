@@ -50,9 +50,7 @@ class McpPromptMethodsTest {
           String name = arguments.getOrDefault("name", "World");
           return new GetPromptResult(
               "A greeting prompt",
-              List.of(
-                  new PromptMessage(
-                      Role.USER, List.of(new TextContent("Hello, " + name + "!", null)))));
+              List.of(new PromptMessage(Role.USER, new TextContent("Hello, " + name + "!", null))));
         }
       };
 
@@ -83,9 +81,8 @@ class McpPromptMethodsTest {
 
     assertThat(response.messages()).hasSize(1);
     assertThat(response.messages().getFirst().role()).isEqualTo(Role.USER);
-    assertThat(response.messages().getFirst().content()).hasSize(1);
-    assertThat(response.messages().getFirst().content().getFirst()).isInstanceOf(TextContent.class);
-    assertThat(((TextContent) response.messages().getFirst().content().getFirst()).text())
+    assertThat(response.messages().getFirst().content()).isInstanceOf(TextContent.class);
+    assertThat(((TextContent) response.messages().getFirst().content()).text())
         .isEqualTo("Hello, Mocapi!");
   }
 
@@ -104,9 +101,9 @@ class McpPromptMethodsTest {
     var response2 =
         methods.getPrompt(new GetPromptRequestParams("greet", Map.of("name", "Bob"), null));
 
-    assertThat(((TextContent) response1.messages().getFirst().content().getFirst()).text())
+    assertThat(((TextContent) response1.messages().getFirst().content()).text())
         .isEqualTo("Hello, Alice!");
-    assertThat(((TextContent) response2.messages().getFirst().content().getFirst()).text())
+    assertThat(((TextContent) response2.messages().getFirst().content()).text())
         .isEqualTo("Hello, Bob!");
   }
 

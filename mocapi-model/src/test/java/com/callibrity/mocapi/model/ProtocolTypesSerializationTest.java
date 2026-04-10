@@ -28,19 +28,19 @@ class ProtocolTypesSerializationTest {
 
   @Test
   void promptMessageRoundTrip() throws Exception {
-    var msg = new PromptMessage(Role.USER, List.of(new TextContent("What is the weather?", null)));
+    var msg = new PromptMessage(Role.USER, new TextContent("What is the weather?", null));
     String json = mapper.writeValueAsString(msg);
     assertThat(json).contains("\"role\":\"user\"");
+    assertThat(json).contains("\"content\":{\"type\":\"text\"");
 
     var deserialized = mapper.readValue(json, PromptMessage.class);
     assertThat(deserialized.role()).isEqualTo(Role.USER);
-    assertThat(deserialized.content()).hasSize(1);
-    assertThat(deserialized.content().getFirst()).isInstanceOf(TextContent.class);
+    assertThat(deserialized.content()).isInstanceOf(TextContent.class);
   }
 
   @Test
   void getPromptResultRoundTrip() throws Exception {
-    var msg = new PromptMessage(Role.ASSISTANT, List.of(new TextContent("Hello!", null)));
+    var msg = new PromptMessage(Role.ASSISTANT, new TextContent("Hello!", null));
     var result = new GetPromptResult("A greeting prompt", List.of(msg));
     String json = mapper.writeValueAsString(result);
 
