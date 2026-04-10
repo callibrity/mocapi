@@ -17,5 +17,5 @@ package com.callibrity.mocapi.model;
 
 public record ProgressNotification(String method, ProgressNotificationParams params) {
 
-  public static final String METHOD = "notifications/progress";
+  public static final String METHOD_NAME = "notifications/progress";
 }

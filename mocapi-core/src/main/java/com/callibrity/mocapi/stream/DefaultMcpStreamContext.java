@@ -127,7 +127,7 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
       return;
     }
     var params = new ProgressNotificationParams(progressToken, progress, total, null);
-    publishNotification(ProgressNotification.METHOD, objectMapper.valueToTree(params));
+    publishNotification(ProgressNotification.METHOD_NAME, objectMapper.valueToTree(params));
   }
 
   @Override

@@ -87,7 +87,7 @@ class RequestMetaAndProgressSerializationTest {
   @Test
   void progressNotificationRoundTrip() throws Exception {
     var params = new ProgressNotificationParams(StringNode.valueOf("tok"), 0.3, 1.0, "working");
-    var notification = new ProgressNotification(ProgressNotification.METHOD, params);
+    var notification = new ProgressNotification(ProgressNotification.METHOD_NAME, params);
     String json = mapper.writeValueAsString(notification);
     assertThat(json).contains("\"method\":\"notifications/progress\"");
     assertThat(json).contains("\"params\":");
