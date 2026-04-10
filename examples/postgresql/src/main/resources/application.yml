@@ -14,14 +14,7 @@
 # limitations under the License.
 #
 
-mocapi:
-  session-encryption-master-key: ${MOCAPI_MASTER_KEY:ChangeMeForProduction1234567890abcd}
-
 spring:
-  datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/mocapi}
-    username: ${DB_USER:mocapi}
-    password: ${DB_PASSWORD:mocapi}
   sql:
     init:
       mode: always

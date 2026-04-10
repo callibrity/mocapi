@@ -14,15 +14,6 @@
 # limitations under the License.
 #
 
-mocapi:
-  session-encryption-master-key: ${MOCAPI_MASTER_KEY:ChangeMeForProduction1234567890abcd}
-
-spring:
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-
 server:
   port: 8080
 

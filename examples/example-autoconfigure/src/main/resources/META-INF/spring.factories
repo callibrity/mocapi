@@ -1,2 +1,2 @@
 org.springframework.boot.env.EnvironmentPostProcessor=\
-  com.callibrity.mocapi.examples.ExampleAutoConfiguration$EphemeralMasterKey
+  com.callibrity.mocapi.examples.EphemeralMasterKeyEnvironmentPostProcessor

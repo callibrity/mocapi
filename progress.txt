@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T10:17:38-04:00
-ITERATION: 38
-SPEC_COMPLETED: 130-mocapi-session-store-cassandra.md
-WHAT_WAS_DONE: Created mocapi-session-store-cassandra module with CassandraMcpSessionStore using native per-row TTL via prepared CqlSession statements, CassandraMcpSessionStoreAutoConfiguration with conditional activation on CqlSession bean, configurable keyspace/table/consistency properties, CQL schema file, and full test suite (Testcontainers Cassandra + ApplicationContextRunner auto-config tests).
-VERIFICATION: mvn verify — full reactor BUILD SUCCESS (17 modules including mocapi-session-store-cassandra), 11 tests passed (8 functional + 3 auto-config)
+LAST_RUN: 2026-04-10T10:25:19-04:00
+ITERATION: 39
+SPEC_COMPLETED: 131-mocapi-session-store-mongodb.md
+WHAT_WAS_DONE: Created mocapi-session-store-mongodb module with MongoMcpSessionStore using MongoTemplate/MongoCollection APIs, TTL index on expiresAt with expireAfterSeconds:0, read-time expiration filtering (expiresAt > now), MongoMcpSessionStoreAutoConfiguration with conditional activation on MongoTemplate bean, and full test suite (Testcontainers MongoDB + ApplicationContextRunner auto-config tests).
+VERIFICATION: mvn verify — full reactor BUILD SUCCESS (18 modules including mocapi-session-store-mongodb), 12 tests passed (9 functional + 3 auto-config)
 STATUS: MORE_WORK
-NEXT_SPEC: 131-mocapi-session-store-mongodb.md
-NOTES: Uses Cassandra's native TTL (INSERT ... USING TTL) instead of application-managed expiration. The update method preserves TTL via a two-step SELECT TTL(payload) + UPDATE USING TTL pattern. The touch method reads current payload then re-writes with new TTL. Consistency levels default to LOCAL_ONE reads / LOCAL_QUORUM writes, configurable via properties. Single-node Testcontainers test uses LOCAL_ONE for both to avoid quorum issues with RF=1.
+NEXT_SPEC: 132-enforce-void-return-for-streaming-tools.md
+NOTES: Uses MongoDB TTL index with expireAfterSeconds:0 so each document's expiresAt field controls its own expiration. The find() method includes an expiresAt > now filter to handle the ~60-second window between logical expiration and TTL monitor cleanup. The update() method uses $set on only the payload field, naturally preserving expiresAt. Collection name configurable via mocapi.session.mongodb.collection property (default: mocapi_sessions).

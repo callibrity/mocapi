@@ -40,7 +40,7 @@
     <dependencies>
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-examples-lib</artifactId>
+            <artifactId>mocapi-example-autoconfigure</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -48,6 +48,13 @@
             <groupId>com.callibrity.mocapi</groupId>
             <artifactId>mocapi-redis-spring-boot-starter</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <!-- Auto-starts docker-compose.yml on application startup -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-docker-compose</artifactId>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 

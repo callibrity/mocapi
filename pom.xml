@@ -62,6 +62,7 @@
         <module>mocapi-session-store-hazelcast</module>
         <module>mocapi-session-store-jdbc</module>
         <module>mocapi-session-store-cassandra</module>
+        <module>mocapi-session-store-mongodb</module>
         <module>mocapi-redis-spring-boot-starter</module>
         <module>mocapi-hazelcast-spring-boot-starter</module>
     </modules>

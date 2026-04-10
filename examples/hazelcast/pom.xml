@@ -40,7 +40,7 @@
     <dependencies>
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-examples-lib</artifactId>
+            <artifactId>mocapi-example-autoconfigure</artifactId>
             <version>${project.version}</version>
         </dependency>
 

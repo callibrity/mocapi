@@ -15,11 +15,13 @@
  */
 package com.callibrity.mocapi.examples.postgresql;
 
-import com.callibrity.mocapi.examples.ExampleApplication;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+@SpringBootApplication
 public class PostgreSqlExampleApplication {
 
   public static void main(String[] args) {
-    ExampleApplication.main(args);
+    SpringApplication.run(PostgreSqlExampleApplication.class, args);
   }
 }
