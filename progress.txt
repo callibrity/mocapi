@@ -1,8 +1,10 @@
-LAST_RUN: 2026-04-10T08:35:00-04:00
-ITERATION: 24
-SPEC_COMPLETED: 117-fix-sonar-critical-code-smells.md
-WHAT_WAS_DONE: Fixed 13 CRITICAL Sonar code smells: deleted 5 empty constructors (S1186) in schema builders, renamed 6 enum constants to UPPER_SNAKE_CASE (S115) in CompatibilityTools with wire-value preservation via explicit value fields, extracted 2 duplicated string literals (S1192) into constants in CompatibilityTools and StreamableHttpController.
-VERIFICATION: mvn verify — BUILD SUCCESS, full reactor green (all 9 modules).
-STATUS: MORE_WORK
+LAST_RUN: 2026-04-10T09:00:00-04:00
+ITERATION: 25
+SPEC_COMPLETED: none
+WHAT_WAS_DONE: Identified a conflict between spec 118 and project guidelines before starting implementation.
+VERIFICATION: No code changes made — conflict identified during planning.
+STATUS: NEEDS_HUMAN
 NEXT_SPEC: 118-fix-sonar-deprecation-hygiene.md
-NOTES: ConformanceTools.java was renamed to CompatibilityTools.java (and moved from conformance/ to compat/ package) in a prior iteration — spec file paths were stale. Enum renames required switching from Class<E>-based choose/chooseMany to list-based overloads with custom value functions to preserve "value1"/"value2"/"value3" wire values.
+REASON: Spec 118 requires adding @SuppressWarnings("deprecation") annotations (19 occurrences for S1874), but both CLAUDE.md and PRD.md explicitly prohibit @SuppressWarnings ("Never suppress warnings. Do not use @SuppressWarnings annotations or any equivalent suppression mechanism. Instead, fix the underlying issue."). The S6355/S1133/S1123 fixes (adding since/forRemoval metadata and @deprecated javadoc tags) are fine, but the 19 S1874 suppressions directly violate project constraints. Need human decision: (1) follow the spec and override the convention for deprecation suppressions, (2) find an alternative approach to silence S1874 without @SuppressWarnings, or (3) update CLAUDE.md/PRD.md to allow @SuppressWarnings("deprecation") as a documented exception.
+ATTEMPTS: Read spec, read PRD.md, identified the conflict before writing any code.
+NOTES: The non-conflicting parts of the spec (S6355, S1133, S1123 — 7 issues) can be implemented independently. Only the S1874 portion (19 issues) is blocked. If the human approves suppressions for deprecation specifically, the next iteration can complete the full spec.
