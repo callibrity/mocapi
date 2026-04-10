@@ -17,6 +17,8 @@ package com.callibrity.mocapi.tools.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.mocapi.stream.McpStreamContext;
+import com.callibrity.mocapi.tools.annotation.McpToolParams;
 import com.callibrity.mocapi.tools.annotation.ToolMethod;
 import com.callibrity.mocapi.tools.util.HelloResponse;
 import com.callibrity.mocapi.tools.util.HelloTool;
@@ -60,6 +62,48 @@ class DefaultMethodSchemaGeneratorTest {
     var schema = generator.generateInputSchema(new TestTools(), method);
     assertThat(schema.get("required")).hasSize(1);
     assertThat(schema.get("required")).containsExactly(StringNode.valueOf("name"));
+  }
+
+  @Test
+  void mcpToolParamsOnRecordShouldProduceCorrectInputSchema() throws Exception {
+    var generator = new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
+
+    var method = RecordParamTools.class.getMethod("greet", GreetRequest.class);
+    var schema = generator.generateInputSchema(new RecordParamTools(), method);
+
+    assertThat(schema.get("type").asString()).isEqualTo("object");
+    assertThat(schema.get("properties")).isNotNull();
+    assertThat(schema.get("properties").has("name")).isTrue();
+    assertThat(schema.get("properties").has("volume")).isTrue();
+  }
+
+  @Test
+  void mcpToolParamsWithStreamContextShouldProduceCorrectInputSchema() throws Exception {
+    var generator = new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
+
+    var method =
+        RecordParamTools.class.getMethod(
+            "greetStreaming", GreetRequest.class, McpStreamContext.class);
+    var schema = generator.generateInputSchema(new RecordParamTools(), method);
+
+    assertThat(schema.get("type").asString()).isEqualTo("object");
+    assertThat(schema.get("properties")).isNotNull();
+    assertThat(schema.get("properties").has("name")).isTrue();
+    assertThat(schema.get("properties").has("volume")).isTrue();
+  }
+
+  public record GreetRequest(String name, int volume) {}
+
+  public static class RecordParamTools {
+
+    @ToolMethod(name = "greet")
+    public HelloResponse greet(@McpToolParams GreetRequest request) {
+      return null;
+    }
+
+    @ToolMethod(name = "greet-streaming")
+    public void greetStreaming(
+        @McpToolParams GreetRequest request, McpStreamContext<HelloResponse> ctx) {}
   }
 
   public static class TestTools {

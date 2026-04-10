@@ -62,6 +62,7 @@ public class AnnotationMcpTool implements McpTool {
       MethodInvokerFactory invokerFactory,
       Object targetObject,
       Method method) {
+    validateMcpToolParams(targetObject, method);
     var annotation = method.getAnnotation(ToolMethod.class);
     String name = nameOf(targetObject, method, annotation);
     String title = titleOf(targetObject, method, annotation);
@@ -124,6 +125,25 @@ public class AnnotationMcpTool implements McpTool {
   private static String descriptionOf(Object targetObject, Method method, ToolMethod annotation) {
     return ofNullable(StringUtils.trimToNull(annotation.description()))
         .orElseGet(() -> humanReadableName(targetObject, method));
+  }
+
+  private static void validateMcpToolParams(Object targetObject, Method method) {
+    boolean hasMcpToolParams = false;
+    int nonContextParamCount = 0;
+    for (Parameter param : method.getParameters()) {
+      if (param.isAnnotationPresent(McpToolParams.class)) {
+        hasMcpToolParams = true;
+      } else if (!McpStreamContext.class.isAssignableFrom(param.getType())) {
+        nonContextParamCount++;
+      }
+    }
+    if (hasMcpToolParams && nonContextParamCount > 0) {
+      throw new IllegalStateException(
+          "@McpToolParams must be the only non-context parameter on the tool method "
+              + targetObject.getClass().getName()
+              + "."
+              + method.getName());
+    }
   }
 
   private static boolean isVoid(Method method) {

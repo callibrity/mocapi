@@ -36,7 +36,9 @@ class AnnotationMcpToolValidationTest {
   private final MethodInvokerFactory invokerFactory =
       new DefaultMethodInvokerFactory(
           List.of(
-              new Jackson3ParameterResolver(mapper), new McpStreamContextScopedValueResolver()));
+              new McpToolParamsResolver(mapper),
+              new Jackson3ParameterResolver(mapper),
+              new McpStreamContextScopedValueResolver()));
   private final AnnotationMcpToolProviderFactory factory =
       new DefaultAnnotationMcpToolProviderFactory(
           new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7), invokerFactory);
@@ -109,5 +111,54 @@ class AnnotationMcpToolValidationTest {
   static class RawStreamingTool {
     @ToolMethod(name = "raw-stream", description = "Streaming tool with raw McpStreamContext")
     public void doWork(String input, McpStreamContext ctx) {}
+  }
+
+  @Test
+  void mcpToolParamsMixedWithOtherParametersShouldBeRejected() {
+    assertThatThrownBy(() -> factory.create(new InvalidMcpToolParamsTool()))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("@McpToolParams must be the only non-context parameter");
+  }
+
+  @Test
+  void mcpToolParamsAloneShouldBeAccepted() {
+    var tools = factory.create(new ValidMcpToolParamsTool());
+    assertThat(tools.getMcpTools()).hasSize(1);
+  }
+
+  @Test
+  void mcpToolParamsWithStreamContextShouldBeAccepted() {
+    var tools = factory.create(new ValidMcpToolParamsStreamingTool());
+    assertThat(tools.getMcpTools()).hasSize(1);
+    assertThat(tools.getMcpTools().getFirst().isStreamable()).isTrue();
+  }
+
+  public record GreetRequest(String name, int volume) {}
+
+  @ToolService
+  static class InvalidMcpToolParamsTool {
+    @ToolMethod(name = "invalid-params", description = "Mixes @McpToolParams with extra params")
+    public Map<String, Object> doWork(@McpToolParams GreetRequest request, String extra) {
+      return Map.of();
+    }
+  }
+
+  @ToolService
+  static class ValidMcpToolParamsTool {
+    @ToolMethod(name = "valid-params", description = "Uses @McpToolParams alone")
+    public Map<String, Object> doWork(@McpToolParams GreetRequest request) {
+      return Map.of("name", request.name());
+    }
+  }
+
+  @ToolService
+  static class ValidMcpToolParamsStreamingTool {
+    @ToolMethod(
+        name = "valid-params-streaming",
+        description = "Uses @McpToolParams with McpStreamContext")
+    public void doWork(
+        @McpToolParams GreetRequest request, McpStreamContext<Map<String, Object>> ctx) {
+      ctx.sendResult(Map.of("name", request.name()));
+    }
   }
 }

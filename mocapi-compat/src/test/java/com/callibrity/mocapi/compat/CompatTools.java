@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.compat;
 
 import com.callibrity.mocapi.stream.McpStreamContext;
+import com.callibrity.mocapi.tools.annotation.McpToolParams;
 import com.callibrity.mocapi.tools.annotation.ToolMethod;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
@@ -39,5 +40,12 @@ public class CompatTools {
   public void stream(String message, McpStreamContext<Map<String, Object>> ctx) {
     ctx.sendProgress(1, 2);
     ctx.sendResult(Map.of("message", message));
+  }
+
+  public record GreetRequest(String name, int volume) {}
+
+  @ToolMethod(name = "greet-record", description = "A tool that uses @McpToolParams record binding")
+  public Map<String, Object> greetRecord(@McpToolParams GreetRequest request) {
+    return Map.of("greeting", request.name().repeat(request.volume()));
   }
 }

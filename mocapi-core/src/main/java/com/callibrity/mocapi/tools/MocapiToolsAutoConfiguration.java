@@ -20,6 +20,7 @@ import com.callibrity.mocapi.MocapiProperties;
 import com.callibrity.mocapi.stream.McpStreamContextScopedValueResolver;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.tools.annotation.DefaultAnnotationMcpToolProviderFactory;
+import com.callibrity.mocapi.tools.annotation.McpToolParamsResolver;
 import com.callibrity.mocapi.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
 import java.util.List;
@@ -33,6 +34,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration
@@ -52,6 +55,13 @@ public class MocapiToolsAutoConfiguration {
   @ConditionalOnMissingBean
   public McpStreamContextScopedValueResolver mcpStreamContextScopedValueResolver() {
     return new McpStreamContextScopedValueResolver();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @Order(Ordered.HIGHEST_PRECEDENCE)
+  public McpToolParamsResolver mcpToolParamsResolver(ObjectMapper objectMapper) {
+    return new McpToolParamsResolver(objectMapper);
   }
 
   @Bean

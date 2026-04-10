@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.tools.schema;
 
 import com.callibrity.mocapi.stream.McpStreamContext;
+import com.callibrity.mocapi.tools.annotation.McpToolParams;
 import com.github.victools.jsonschema.generator.OptionPreset;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
@@ -24,6 +25,7 @@ import com.github.victools.jsonschema.module.jackson.JacksonSchemaModule;
 import com.github.victools.jsonschema.module.jakarta.validation.JakartaValidationModule;
 import com.github.victools.jsonschema.module.swagger2.Swagger2Module;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import org.apache.commons.lang3.reflect.TypeUtils;
@@ -56,6 +58,44 @@ public class DefaultMethodSchemaGenerator implements MethodSchemaGenerator {
 
   @Override
   public ObjectNode generateInputSchema(Object targetObject, Method method) {
+    Parameter mcpToolParamsParam = findMcpToolParamsParameter(method);
+    if (mcpToolParamsParam != null) {
+      return generateInputSchemaFromRecord(targetObject, mcpToolParamsParam);
+    }
+    return generateInputSchemaFromParameters(targetObject, method);
+  }
+
+  private Parameter findMcpToolParamsParameter(Method method) {
+    Parameter found = null;
+    for (Parameter param : method.getParameters()) {
+      if (param.isAnnotationPresent(McpToolParams.class)) {
+        found = param;
+        break;
+      }
+    }
+    return found;
+  }
+
+  private ObjectNode generateInputSchemaFromRecord(Object targetObject, Parameter recordParam) {
+    Class<?> recordType = getRawType(recordParam.getParameterizedType(), targetObject.getClass());
+    var schema = generator.generateSchema(recordType);
+    schema.remove(SCHEMA_PROPERTY_NAME);
+    var mapper = generator.getConfig().getObjectMapper();
+    var schemaNode = mapper.createObjectNode();
+    schemaNode.set(
+        SCHEMA_PROPERTY_NAME,
+        StringNode.valueOf(generator.getConfig().getSchemaVersion().getIdentifier()));
+    schemaNode.put("type", "object");
+    if (schema.has("properties")) {
+      schemaNode.set("properties", schema.get("properties"));
+    }
+    if (schema.has("required")) {
+      schemaNode.set("required", schema.get("required"));
+    }
+    return schemaNode;
+  }
+
+  private ObjectNode generateInputSchemaFromParameters(Object targetObject, Method method) {
     var mapper = generator.getConfig().getObjectMapper();
 
     var schemaNode = mapper.createObjectNode();

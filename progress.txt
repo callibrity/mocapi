@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T12:08:00-04:00
-ITERATION: 51
-SPEC_COMPLETED: 143-remove-debug-println-from-schema-generator-test.md
-WHAT_WAS_DONE: Removed leftover debug System.out.println(schema.toPrettyString()) from DefaultMethodSchemaGeneratorTest line 40.
-VERIFICATION: grep for System.out.println/System.err.println across all mocapi-*/src/test and mocapi-*/src/main returned zero matches. mvn -pl mocapi-core test passed. mvn verify -Dmaven.test.failure.ignore=true — full reactor BUILD SUCCESS. Pre-existing userProvidedBeanTakesPrecedence failures in Redis/Hazelcast/JDBC/Cassandra/MongoDB auto-configuration tests remain (unrelated to this spec).
+LAST_RUN: 2026-04-10T12:30:00-04:00
+ITERATION: 52
+SPEC_COMPLETED: 144-add-mcp-tool-params-annotation.md
+WHAT_WAS_DONE: Added @McpToolParams annotation, McpToolParamsResolver, schema generator support for record-based tool parameters, validation in AnnotationMcpTool, auto-configuration registration, unit tests, and integration test.
+VERIFICATION: mvn verify -Dmaven.test.failure.ignore=true — full reactor BUILD SUCCESS. All new tests pass: McpToolParamsResolverTest (6 tests), DefaultMethodSchemaGeneratorTest (5 tests), AnnotationMcpToolValidationTest (8 tests), ToolsCallMcpToolParamsIT (1 test). Pre-existing userProvidedBeanTakesPrecedence failures in Redis/MongoDB auto-configuration tests remain (unrelated).
 STATUS: MORE_WORK
-NEXT_SPEC: 144-add-mcp-tool-params-annotation.md
-NOTES: One-line delete, no other System.out/err calls found anywhere in the reactor.
+NEXT_SPEC: 145-use-model-types-in-it-test-request-construction.md
+NOTES: The @McpToolParams resolver is registered at HIGHEST_PRECEDENCE so it runs before Jackson3ParameterResolver. The schema generator delegates to VicTools when @McpToolParams is detected, generating the schema from the record type's components. Validation rejects methods that mix @McpToolParams with other non-McpStreamContext parameters.
