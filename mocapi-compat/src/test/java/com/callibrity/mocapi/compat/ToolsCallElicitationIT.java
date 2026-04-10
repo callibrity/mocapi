@@ -109,7 +109,6 @@ class ToolsCallElicitationIT {
     mvcResult.getAsyncResult(5000);
     String body = mvcResult.getResponse().getContentAsString();
 
-    assertThat(body).contains("action=accept");
-    assertThat(body).contains("content=testuser");
+    assertThat(body).contains("action=accept").contains("content=testuser");
   }
 }

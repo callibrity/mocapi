@@ -32,9 +32,10 @@ class PropertySchemaSerializationTest {
 
     String json = mapper.writeValueAsString(schema);
 
-    assertThat(json).contains("\"type\":\"string\"");
-    assertThat(json).contains("\"format\":\"email\"");
-    assertThat(json).contains("\"description\":\"Email\"");
+    assertThat(json)
+        .contains("\"type\":\"string\"")
+        .contains("\"format\":\"email\"")
+        .contains("\"description\":\"Email\"");
   }
 
   @Test
@@ -43,11 +44,12 @@ class PropertySchemaSerializationTest {
 
     String json = mapper.writeValueAsString(schema);
 
-    assertThat(json).doesNotContain("title");
-    assertThat(json).doesNotContain("default");
-    assertThat(json).doesNotContain("minLength");
-    assertThat(json).doesNotContain("maxLength");
-    assertThat(json).doesNotContain("format");
+    assertThat(json)
+        .doesNotContain("title")
+        .doesNotContain("default")
+        .doesNotContain("minLength")
+        .doesNotContain("maxLength")
+        .doesNotContain("format");
   }
 
   @Test
@@ -56,9 +58,10 @@ class PropertySchemaSerializationTest {
 
     String json = mapper.writeValueAsString(schema);
 
-    assertThat(json).contains("\"type\":\"integer\"");
-    assertThat(json).contains("\"minimum\":");
-    assertThat(json).contains("\"maximum\":");
+    assertThat(json)
+        .contains("\"type\":\"integer\"")
+        .contains("\"minimum\":")
+        .contains("\"maximum\":");
   }
 
   @Test
@@ -67,8 +70,7 @@ class PropertySchemaSerializationTest {
 
     String json = mapper.writeValueAsString(schema);
 
-    assertThat(json).contains("\"type\":\"number\"");
-    assertThat(json).contains("\"default\":95.5");
+    assertThat(json).contains("\"type\":\"number\"").contains("\"default\":95.5");
   }
 
   @Test
@@ -77,8 +79,7 @@ class PropertySchemaSerializationTest {
 
     String json = mapper.writeValueAsString(schema);
 
-    assertThat(json).contains("\"type\":\"boolean\"");
-    assertThat(json).contains("\"default\":true");
+    assertThat(json).contains("\"type\":\"boolean\"").contains("\"default\":true");
   }
 
   @Test
@@ -88,8 +89,9 @@ class PropertySchemaSerializationTest {
 
     String json = mapper.writeValueAsString(schema);
 
-    assertThat(json).contains("\"type\":\"string\"");
-    assertThat(json).contains("\"enum\":[\"red\",\"green\",\"blue\"]");
+    assertThat(json)
+        .contains("\"type\":\"string\"")
+        .contains("\"enum\":[\"red\",\"green\",\"blue\"]");
   }
 
   @Test
@@ -101,10 +103,11 @@ class PropertySchemaSerializationTest {
 
     String json = mapper.writeValueAsString(schema);
 
-    assertThat(json).contains("\"type\":\"string\"");
-    assertThat(json).contains("\"oneOf\":");
-    assertThat(json).contains("\"const\":\"a\"");
-    assertThat(json).contains("\"title\":\"A\"");
+    assertThat(json)
+        .contains("\"type\":\"string\"")
+        .contains("\"oneOf\":")
+        .contains("\"const\":\"a\"")
+        .contains("\"title\":\"A\"");
   }
 
   @Test
@@ -114,9 +117,10 @@ class PropertySchemaSerializationTest {
 
     String json = mapper.writeValueAsString(schema);
 
-    assertThat(json).contains("\"type\":\"array\"");
-    assertThat(json).contains("\"items\":");
-    assertThat(json).contains("\"enum\":[\"java\",\"python\"]");
+    assertThat(json)
+        .contains("\"type\":\"array\"")
+        .contains("\"items\":")
+        .contains("\"enum\":[\"java\",\"python\"]");
   }
 
   @Test
@@ -128,10 +132,11 @@ class PropertySchemaSerializationTest {
 
     String json = mapper.writeValueAsString(schema);
 
-    assertThat(json).contains("\"type\":\"array\"");
-    assertThat(json).contains("\"anyOf\":");
-    assertThat(json).contains("\"const\":\"a\"");
-    assertThat(json).contains("\"title\":\"A\"");
+    assertThat(json)
+        .contains("\"type\":\"array\"")
+        .contains("\"anyOf\":")
+        .contains("\"const\":\"a\"")
+        .contains("\"title\":\"A\"");
   }
 
   @Test
@@ -144,9 +149,10 @@ class PropertySchemaSerializationTest {
 
     String json = mapper.writeValueAsString(schema);
 
-    assertThat(json).contains("\"type\":\"string\"");
-    assertThat(json).contains("\"enum\":[\"a\",\"b\"]");
-    assertThat(json).contains("\"enumNames\":[\"Alpha\",\"Beta\"]");
+    assertThat(json)
+        .contains("\"type\":\"string\"")
+        .contains("\"enum\":[\"a\",\"b\"]")
+        .contains("\"enumNames\":[\"Alpha\",\"Beta\"]");
   }
 
   @Test
@@ -155,8 +161,7 @@ class PropertySchemaSerializationTest {
 
     String json = mapper.writeValueAsString(schema);
 
-    assertThat(json).contains("\"default\":\"Alice\"");
-    assertThat(json).doesNotContain("defaultValue");
+    assertThat(json).contains("\"default\":\"Alice\"").doesNotContain("defaultValue");
   }
 
   @Test
@@ -165,7 +170,6 @@ class PropertySchemaSerializationTest {
 
     String json = mapper.writeValueAsString(schema);
 
-    assertThat(json).contains("\"enum\":");
-    assertThat(json).doesNotContain("\"values\"");
+    assertThat(json).contains("\"enum\":").doesNotContain("\"values\"");
   }
 }

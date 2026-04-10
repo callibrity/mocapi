@@ -32,8 +32,7 @@ class RequestAndNotificationTypesSerializationTest {
   void requestParamsRoundTrip() throws Exception {
     var params = new RequestParams(new RequestMeta(StringNode.valueOf("tok")));
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"_meta\"");
-    assertThat(json).contains("\"progressToken\":\"tok\"");
+    assertThat(json).contains("\"_meta\"").contains("\"progressToken\":\"tok\"");
 
     var deserialized = mapper.readValue(json, RequestParams.class);
     assertThat(deserialized.meta().progressToken().asString()).isEqualTo("tok");
@@ -51,8 +50,7 @@ class RequestAndNotificationTypesSerializationTest {
     var params =
         new PaginatedRequestParams("cursor-123", new RequestMeta(StringNode.valueOf("tok")));
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"cursor\":\"cursor-123\"");
-    assertThat(json).contains("\"_meta\"");
+    assertThat(json).contains("\"cursor\":\"cursor-123\"").contains("\"_meta\"");
 
     var deserialized = mapper.readValue(json, PaginatedRequestParams.class);
     assertThat(deserialized.cursor()).isEqualTo("cursor-123");
@@ -92,8 +90,7 @@ class RequestAndNotificationTypesSerializationTest {
             new Implementation("test-client", null, "1.0"),
             null);
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"protocolVersion\":\"2025-11-25\"");
-    assertThat(json).contains("\"clientInfo\"");
+    assertThat(json).contains("\"protocolVersion\":\"2025-11-25\"").contains("\"clientInfo\"");
 
     var deserialized = mapper.readValue(json, InitializeRequestParams.class);
     assertThat(deserialized.protocolVersion()).isEqualTo("2025-11-25");
@@ -105,8 +102,7 @@ class RequestAndNotificationTypesSerializationTest {
     var argsNode = mapper.readTree("{\"key\":\"value\"}");
     var params = new CallToolRequestParams("myTool", argsNode, null, null);
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"name\":\"myTool\"");
-    assertThat(json).contains("\"arguments\":{\"key\":\"value\"}");
+    assertThat(json).contains("\"name\":\"myTool\"").contains("\"arguments\":{\"key\":\"value\"}");
 
     var deserialized = mapper.readValue(json, CallToolRequestParams.class);
     assertThat(deserialized.name()).isEqualTo("myTool");
@@ -122,8 +118,7 @@ class RequestAndNotificationTypesSerializationTest {
             new TaskMetadata("t1"),
             new RequestMeta(StringNode.valueOf("progress-tok")));
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"task\":{\"taskId\":\"t1\"}");
-    assertThat(json).contains("\"_meta\"");
+    assertThat(json).contains("\"task\":{\"taskId\":\"t1\"}").contains("\"_meta\"");
 
     var deserialized = mapper.readValue(json, CallToolRequestParams.class);
     assertThat(deserialized.task().taskId()).isEqualTo("t1");
@@ -133,8 +128,7 @@ class RequestAndNotificationTypesSerializationTest {
   void getPromptRequestParamsRoundTrip() throws Exception {
     var params = new GetPromptRequestParams("myPrompt", Map.of("arg1", "val1"), null);
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"name\":\"myPrompt\"");
-    assertThat(json).contains("\"arg1\":\"val1\"");
+    assertThat(json).contains("\"name\":\"myPrompt\"").contains("\"arg1\":\"val1\"");
 
     var deserialized = mapper.readValue(json, GetPromptRequestParams.class);
     assertThat(deserialized.name()).isEqualTo("myPrompt");
@@ -165,9 +159,10 @@ class RequestAndNotificationTypesSerializationTest {
   void modelPreferencesRoundTrip() throws Exception {
     var prefs = new ModelPreferences(List.of(new ModelHint("claude-3")), 0.5, 0.8, 0.9);
     String json = mapper.writeValueAsString(prefs);
-    assertThat(json).contains("\"hints\"");
-    assertThat(json).contains("\"name\":\"claude-3\"");
-    assertThat(json).contains("\"costPriority\":0.5");
+    assertThat(json)
+        .contains("\"hints\"")
+        .contains("\"name\":\"claude-3\"")
+        .contains("\"costPriority\":0.5");
 
     var deserialized = mapper.readValue(json, ModelPreferences.class);
     assertThat(deserialized.hints()).hasSize(1);
@@ -192,9 +187,10 @@ class RequestAndNotificationTypesSerializationTest {
             null,
             null);
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"systemPrompt\":\"You are helpful\"");
-    assertThat(json).contains("\"includeContext\":\"thisServer\"");
-    assertThat(json).contains("\"maxTokens\":1024");
+    assertThat(json)
+        .contains("\"systemPrompt\":\"You are helpful\"")
+        .contains("\"includeContext\":\"thisServer\"")
+        .contains("\"maxTokens\":1024");
 
     var deserialized = mapper.readValue(json, CreateMessageRequestParams.class);
     assertThat(deserialized.messages()).hasSize(1);
@@ -211,8 +207,7 @@ class RequestAndNotificationTypesSerializationTest {
             null,
             null);
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"type\":\"ref/prompt\"");
-    assertThat(json).contains("\"name\":\"myPrompt\"");
+    assertThat(json).contains("\"type\":\"ref/prompt\"").contains("\"name\":\"myPrompt\"");
 
     var deserialized = mapper.readValue(json, CompleteRequestParams.class);
     assertThat(deserialized.ref()).isInstanceOf(PromptReference.class);
@@ -229,8 +224,7 @@ class RequestAndNotificationTypesSerializationTest {
             new CompletionContext(Map.of("key", "value")),
             null);
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"type\":\"ref/resource\"");
-    assertThat(json).contains("\"uri\":\"file:///{path}\"");
+    assertThat(json).contains("\"type\":\"ref/resource\"").contains("\"uri\":\"file:///{path}\"");
 
     var deserialized = mapper.readValue(json, CompleteRequestParams.class);
     assertThat(deserialized.ref()).isInstanceOf(ResourceTemplateReference.class);
@@ -252,8 +246,7 @@ class RequestAndNotificationTypesSerializationTest {
   void elicitRequestFormParamsRoundTrip() throws Exception {
     var params = new ElicitRequestFormParams("form", "Please fill", null, null, null);
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"mode\":\"form\"");
-    assertThat(json).contains("\"message\":\"Please fill\"");
+    assertThat(json).contains("\"mode\":\"form\"").contains("\"message\":\"Please fill\"");
 
     var deserialized = mapper.readValue(json, ElicitRequestFormParams.class);
     assertThat(deserialized.mode()).isEqualTo("form");
@@ -266,8 +259,7 @@ class RequestAndNotificationTypesSerializationTest {
         new ElicitRequestURLParams(
             "url", "Click link", "elicit-1", "https://example.com", null, null);
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"mode\":\"url\"");
-    assertThat(json).contains("\"elicitationId\":\"elicit-1\"");
+    assertThat(json).contains("\"mode\":\"url\"").contains("\"elicitationId\":\"elicit-1\"");
 
     var deserialized = mapper.readValue(json, ElicitRequestURLParams.class);
     assertThat(deserialized.mode()).isEqualTo("url");
@@ -285,8 +277,7 @@ class RequestAndNotificationTypesSerializationTest {
   void cancelledNotificationParamsRoundTrip() throws Exception {
     var params = new CancelledNotificationParams("req-1", "timeout", null);
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"requestId\":\"req-1\"");
-    assertThat(json).contains("\"reason\":\"timeout\"");
+    assertThat(json).contains("\"requestId\":\"req-1\"").contains("\"reason\":\"timeout\"");
 
     var deserialized = mapper.readValue(json, CancelledNotificationParams.class);
     assertThat(deserialized.requestId()).isEqualTo("req-1");
@@ -305,9 +296,10 @@ class RequestAndNotificationTypesSerializationTest {
     var params =
         new LoggingMessageNotificationParams(LoggingLevel.ERROR, "myLogger", "error msg", null);
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"level\":\"error\"");
-    assertThat(json).contains("\"logger\":\"myLogger\"");
-    assertThat(json).contains("\"data\":\"error msg\"");
+    assertThat(json)
+        .contains("\"level\":\"error\"")
+        .contains("\"logger\":\"myLogger\"")
+        .contains("\"data\":\"error msg\"");
 
     var deserialized = mapper.readValue(json, LoggingMessageNotificationParams.class);
     assertThat(deserialized.level()).isEqualTo(LoggingLevel.ERROR);

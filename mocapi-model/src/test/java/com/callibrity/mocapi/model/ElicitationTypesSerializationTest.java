@@ -49,8 +49,7 @@ class ElicitationTypesSerializationTest {
     content.put("name", "Alice");
     var result = new ElicitResult(ElicitAction.ACCEPT, content);
     String json = mapper.writeValueAsString(result);
-    assertThat(json).contains("\"action\":\"accept\"");
-    assertThat(json).contains("\"name\":\"Alice\"");
+    assertThat(json).contains("\"action\":\"accept\"").contains("\"name\":\"Alice\"");
 
     var deserialized = mapper.readValue(json, ElicitResult.class);
     assertThat(deserialized.action()).isEqualTo(ElicitAction.ACCEPT);
@@ -83,12 +82,13 @@ class ElicitationTypesSerializationTest {
   void stringSchemaSerializesToJsonSchema() throws Exception {
     var schema = new StringSchema("Name", "Your name", 1, 100, null, null);
     String json = mapper.writeValueAsString(schema);
-    assertThat(json).contains("\"type\":\"string\"");
-    assertThat(json).contains("\"title\":\"Name\"");
-    assertThat(json).contains("\"minLength\":1");
-    assertThat(json).contains("\"maxLength\":100");
-    assertThat(json).doesNotContain("\"format\"");
-    assertThat(json).doesNotContain("\"default\"");
+    assertThat(json)
+        .contains("\"type\":\"string\"")
+        .contains("\"title\":\"Name\"")
+        .contains("\"minLength\":1")
+        .contains("\"maxLength\":100")
+        .doesNotContain("\"format\"")
+        .doesNotContain("\"default\"");
   }
 
   @Test
@@ -102,26 +102,25 @@ class ElicitationTypesSerializationTest {
   void numberSchemaSerializesToJsonSchema() throws Exception {
     var schema = new NumberSchema("number", "Rating", "A rating", 1, 10, 5);
     String json = mapper.writeValueAsString(schema);
-    assertThat(json).contains("\"type\":\"number\"");
-    assertThat(json).contains("\"minimum\":1");
-    assertThat(json).contains("\"maximum\":10");
-    assertThat(json).contains("\"default\":5");
+    assertThat(json)
+        .contains("\"type\":\"number\"")
+        .contains("\"minimum\":1")
+        .contains("\"maximum\":10")
+        .contains("\"default\":5");
   }
 
   @Test
   void integerSchemaUsesIntegerType() throws Exception {
     var schema = new NumberSchema("integer", "Count", null, 0, null, null);
     String json = mapper.writeValueAsString(schema);
-    assertThat(json).contains("\"type\":\"integer\"");
-    assertThat(json).doesNotContain("\"maximum\"");
+    assertThat(json).contains("\"type\":\"integer\"").doesNotContain("\"maximum\"");
   }
 
   @Test
   void booleanSchemaSerializesToJsonSchema() throws Exception {
     var schema = new BooleanSchema("Agree", "Do you agree?", true);
     String json = mapper.writeValueAsString(schema);
-    assertThat(json).contains("\"type\":\"boolean\"");
-    assertThat(json).contains("\"default\":true");
+    assertThat(json).contains("\"type\":\"boolean\"").contains("\"default\":true");
   }
 
   @Test
@@ -130,9 +129,10 @@ class ElicitationTypesSerializationTest {
         new UntitledSingleSelectEnumSchema(
             "Color", "Pick a color", List.of("red", "green", "blue"), "red");
     String json = mapper.writeValueAsString(schema);
-    assertThat(json).contains("\"type\":\"string\"");
-    assertThat(json).contains("\"enum\":[\"red\",\"green\",\"blue\"]");
-    assertThat(json).contains("\"default\":\"red\"");
+    assertThat(json)
+        .contains("\"type\":\"string\"")
+        .contains("\"enum\":[\"red\",\"green\",\"blue\"]")
+        .contains("\"default\":\"red\"");
   }
 
   @Test
@@ -144,10 +144,11 @@ class ElicitationTypesSerializationTest {
             List.of(new EnumOption("high", "High"), new EnumOption("low", "Low")),
             null);
     String json = mapper.writeValueAsString(schema);
-    assertThat(json).contains("\"type\":\"string\"");
-    assertThat(json).contains("\"oneOf\":");
-    assertThat(json).contains("\"const\":\"high\"");
-    assertThat(json).contains("\"title\":\"High\"");
+    assertThat(json)
+        .contains("\"type\":\"string\"")
+        .contains("\"oneOf\":")
+        .contains("\"const\":\"high\"")
+        .contains("\"title\":\"High\"");
   }
 
   @Test
@@ -155,19 +156,19 @@ class ElicitationTypesSerializationTest {
     var items = new EnumItemsSchema(List.of("a", "b", "c"));
     var schema = new UntitledMultiSelectEnumSchema("Tags", null, 1, 3, items, null);
     String json = mapper.writeValueAsString(schema);
-    assertThat(json).contains("\"type\":\"array\"");
-    assertThat(json).contains("\"minItems\":1");
-    assertThat(json).contains("\"maxItems\":3");
-    assertThat(json).contains("\"items\":");
-    assertThat(json).contains("\"enum\":[\"a\",\"b\",\"c\"]");
+    assertThat(json)
+        .contains("\"type\":\"array\"")
+        .contains("\"minItems\":1")
+        .contains("\"maxItems\":3")
+        .contains("\"items\":")
+        .contains("\"enum\":[\"a\",\"b\",\"c\"]");
   }
 
   @Test
   void enumItemsSchemaIncludesType() throws Exception {
     var items = new EnumItemsSchema(List.of("x", "y"));
     String json = mapper.writeValueAsString(items);
-    assertThat(json).contains("\"type\":\"string\"");
-    assertThat(json).contains("\"enum\":[\"x\",\"y\"]");
+    assertThat(json).contains("\"type\":\"string\"").contains("\"enum\":[\"x\",\"y\"]");
   }
 
   @Test
@@ -178,10 +179,11 @@ class ElicitationTypesSerializationTest {
     var schema =
         new TitledMultiSelectEnumSchema("Options", "Pick options", null, null, items, null);
     String json = mapper.writeValueAsString(schema);
-    assertThat(json).contains("\"type\":\"array\"");
-    assertThat(json).contains("\"anyOf\":");
-    assertThat(json).contains("\"const\":\"a\"");
-    assertThat(json).contains("\"title\":\"Alpha\"");
+    assertThat(json)
+        .contains("\"type\":\"array\"")
+        .contains("\"anyOf\":")
+        .contains("\"const\":\"a\"")
+        .contains("\"title\":\"Alpha\"");
   }
 
   @Test
@@ -192,10 +194,11 @@ class ElicitationTypesSerializationTest {
         new LegacyTitledEnumSchema(
             "Status", null, List.of("active", "inactive"), List.of("Active", "Inactive"), "active");
     String json = mapper.writeValueAsString(schema);
-    assertThat(json).contains("\"type\":\"string\"");
-    assertThat(json).contains("\"enum\":[\"active\",\"inactive\"]");
-    assertThat(json).contains("\"enumNames\":[\"Active\",\"Inactive\"]");
-    assertThat(json).contains("\"default\":\"active\"");
+    assertThat(json)
+        .contains("\"type\":\"string\"")
+        .contains("\"enum\":[\"active\",\"inactive\"]")
+        .contains("\"enumNames\":[\"Active\",\"Inactive\"]")
+        .contains("\"default\":\"active\"");
   }
 
   @Test
@@ -205,18 +208,18 @@ class ElicitationTypesSerializationTest {
     props.put("age", new NumberSchema("integer", "Age", null, 0, 150, null));
     var schema = new RequestedSchema(props, List.of("name"));
     String json = mapper.writeValueAsString(schema);
-    assertThat(json).contains("\"type\":\"object\"");
-    assertThat(json).contains("\"required\":[\"name\"]");
-    assertThat(json).contains("\"properties\":{");
-    assertThat(json).contains("\"name\":{");
-    assertThat(json).contains("\"age\":{");
+    assertThat(json)
+        .contains("\"type\":\"object\"")
+        .contains("\"required\":[\"name\"]")
+        .contains("\"properties\":{")
+        .contains("\"name\":{")
+        .contains("\"age\":{");
   }
 
   @Test
   void enumOptionSerialization() throws Exception {
     var option = new EnumOption("val", "Display Value");
     String json = mapper.writeValueAsString(option);
-    assertThat(json).contains("\"const\":\"val\"");
-    assertThat(json).contains("\"title\":\"Display Value\"");
+    assertThat(json).contains("\"const\":\"val\"").contains("\"title\":\"Display Value\"");
   }
 }

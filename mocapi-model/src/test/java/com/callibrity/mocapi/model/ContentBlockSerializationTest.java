@@ -30,9 +30,10 @@ class ContentBlockSerializationTest {
   void textContentRoundTrip() throws Exception {
     var original = new TextContent("hello", null);
     String json = mapper.writeValueAsString(original);
-    assertThat(json).contains("\"type\":\"text\"");
-    assertThat(json).contains("\"text\":\"hello\"");
-    assertThat(json).doesNotContain("annotations");
+    assertThat(json)
+        .contains("\"type\":\"text\"")
+        .contains("\"text\":\"hello\"")
+        .doesNotContain("annotations");
 
     ContentBlock deserialized = mapper.readValue(json, ContentBlock.class);
     assertThat(deserialized).isInstanceOf(TextContent.class);
@@ -92,8 +93,7 @@ class ContentBlockSerializationTest {
     var annotations = new Annotations(List.of(Role.USER), 0.8, "2025-01-01T00:00:00Z");
     var original = new TextContent("annotated", annotations);
     String json = mapper.writeValueAsString(original);
-    assertThat(json).contains("\"audience\":[\"user\"]");
-    assertThat(json).contains("\"priority\":0.8");
+    assertThat(json).contains("\"audience\":[\"user\"]").contains("\"priority\":0.8");
 
     ContentBlock deserialized = mapper.readValue(json, ContentBlock.class);
     assertThat(deserialized).isInstanceOf(TextContent.class);

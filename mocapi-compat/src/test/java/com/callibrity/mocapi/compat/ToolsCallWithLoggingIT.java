@@ -73,7 +73,8 @@ class ToolsCallWithLoggingIT {
     mvcResult.getAsyncResult(5000);
     String body = mvcResult.getResponse().getContentAsString();
 
-    assertThat(body).contains("notifications/message");
-    assertThat(body).contains("Logging test completed successfully");
+    assertThat(body)
+        .contains("notifications/message")
+        .contains("Logging test completed successfully");
   }
 }

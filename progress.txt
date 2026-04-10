@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T08:47:00-04:00
-ITERATION: 26
-SPEC_COMPLETED: 118-fix-sonar-deprecation-hygiene.md
-WHAT_WAS_DONE: Added @Deprecated(since/forRemoval) metadata, @deprecated javadoc tags, and @SuppressWarnings("deprecation") with explanatory comments to all files that legitimately use deprecated MCP backward-compatibility APIs.
+LAST_RUN: 2026-04-10T08:53:00-04:00
+ITERATION: 27
+SPEC_COMPLETED: 119-chain-assertj-assertions.md
+WHAT_WAS_DONE: Chained consecutive assertThat calls on the same subject across all 11 affected test files (56 Sonar S5853 occurrences), using fluent .contains()/.doesNotContain()/.isInstanceOf() chains instead of separate assertThat() calls.
 VERIFICATION: mvn verify — BUILD SUCCESS, all tests pass across full reactor
 STATUS: MORE_WORK
-NEXT_SPEC: 119-chain-assertj-assertions.md
-NOTES: Two files from the spec (MocapiAutoConfiguration.java and RequestAndNotificationTypesSerializationTest.java) had no actual deprecated API usage — the Sonar data in the spec was stale. All other files were addressed. Spotless reformatted some long @SuppressWarnings comments into multi-line form, which is fine.
+NEXT_SPEC: 120-fix-sonar-remaining-minor-issues.md
+NOTES: All changes were mechanical — no test behavior changed. Spotless reformatted some long chains into multi-line form. The three compat IT files each had a single pair of assertThat(body) calls chained. The PrimitiveSchemaDefinitionHierarchyTest had isInstanceOf chains. All other files were assertThat(json) contains/doesNotContain chains.

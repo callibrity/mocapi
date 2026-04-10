@@ -54,10 +54,11 @@ class McpServerTest {
             null);
 
     String json = objectMapper.writeValueAsString(result);
-    assertThat(json).doesNotContain("\"tools\"");
-    assertThat(json).doesNotContain("\"instructions\"");
-    assertThat(json).contains("\"protocolVersion\"");
-    assertThat(json).contains("\"serverInfo\"");
+    assertThat(json)
+        .doesNotContain("\"tools\"")
+        .doesNotContain("\"instructions\"")
+        .contains("\"protocolVersion\"")
+        .contains("\"serverInfo\"");
   }
 
   @Test
@@ -70,8 +71,7 @@ class McpServerTest {
             null);
 
     String json = objectMapper.writeValueAsString(result);
-    assertThat(json).contains("\"tools\"");
-    assertThat(json).contains("\"listChanged\"");
+    assertThat(json).contains("\"tools\"").contains("\"listChanged\"");
   }
 
   @Test

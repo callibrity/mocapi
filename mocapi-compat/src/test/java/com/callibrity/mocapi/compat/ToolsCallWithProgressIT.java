@@ -66,7 +66,8 @@ class ToolsCallWithProgressIT {
     mvcResult.getAsyncResult(5000);
     String body = mvcResult.getResponse().getContentAsString();
 
-    assertThat(body).contains("notifications/progress");
-    assertThat(body).contains("Progress test completed successfully");
+    assertThat(body)
+        .contains("notifications/progress")
+        .contains("Progress test completed successfully");
   }
 }

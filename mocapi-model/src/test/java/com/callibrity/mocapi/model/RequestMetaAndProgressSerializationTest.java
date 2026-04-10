@@ -56,10 +56,11 @@ class RequestMetaAndProgressSerializationTest {
   void progressNotificationParamsRoundTrip() throws Exception {
     var params = new ProgressNotificationParams(StringNode.valueOf("token-1"), 0.5, 1.0, "halfway");
     String json = mapper.writeValueAsString(params);
-    assertThat(json).contains("\"progressToken\":\"token-1\"");
-    assertThat(json).contains("\"progress\":0.5");
-    assertThat(json).contains("\"total\":1.0");
-    assertThat(json).contains("\"message\":\"halfway\"");
+    assertThat(json)
+        .contains("\"progressToken\":\"token-1\"")
+        .contains("\"progress\":0.5")
+        .contains("\"total\":1.0")
+        .contains("\"message\":\"halfway\"");
 
     var deserialized = mapper.readValue(json, ProgressNotificationParams.class);
     assertThat(deserialized.progressToken().asString()).isEqualTo("token-1");
@@ -80,8 +81,7 @@ class RequestMetaAndProgressSerializationTest {
   void progressNotificationParamsNullFieldsOmitted() throws Exception {
     var params = new ProgressNotificationParams(StringNode.valueOf("t"), 0.0, null, null);
     String json = mapper.writeValueAsString(params);
-    assertThat(json).doesNotContain("total");
-    assertThat(json).doesNotContain("message");
+    assertThat(json).doesNotContain("total").doesNotContain("message");
   }
 
   @Test
@@ -89,8 +89,7 @@ class RequestMetaAndProgressSerializationTest {
     var params = new ProgressNotificationParams(StringNode.valueOf("tok"), 0.3, 1.0, "working");
     var notification = new ProgressNotification(ProgressNotification.METHOD_NAME, params);
     String json = mapper.writeValueAsString(notification);
-    assertThat(json).contains("\"method\":\"notifications/progress\"");
-    assertThat(json).contains("\"params\":");
+    assertThat(json).contains("\"method\":\"notifications/progress\"").contains("\"params\":");
 
     var deserialized = mapper.readValue(json, ProgressNotification.class);
     assertThat(deserialized.method()).isEqualTo("notifications/progress");

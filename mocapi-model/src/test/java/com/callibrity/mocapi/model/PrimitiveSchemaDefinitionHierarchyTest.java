@@ -29,16 +29,18 @@ class PrimitiveSchemaDefinitionHierarchyTest {
   @Test
   void singleSelectBranchInstanceofChain() {
     var untitled = new UntitledSingleSelectEnumSchema("Color", null, List.of("red", "blue"), null);
-    assertThat(untitled).isInstanceOf(SingleSelectEnumSchema.class);
-    assertThat(untitled).isInstanceOf(EnumSchema.class);
-    assertThat(untitled).isInstanceOf(PrimitiveSchemaDefinition.class);
+    assertThat(untitled)
+        .isInstanceOf(SingleSelectEnumSchema.class)
+        .isInstanceOf(EnumSchema.class)
+        .isInstanceOf(PrimitiveSchemaDefinition.class);
 
     var titled =
         new TitledSingleSelectEnumSchema(
             "Priority", null, List.of(new EnumOption("high", "High")), null);
-    assertThat(titled).isInstanceOf(SingleSelectEnumSchema.class);
-    assertThat(titled).isInstanceOf(EnumSchema.class);
-    assertThat(titled).isInstanceOf(PrimitiveSchemaDefinition.class);
+    assertThat(titled)
+        .isInstanceOf(SingleSelectEnumSchema.class)
+        .isInstanceOf(EnumSchema.class)
+        .isInstanceOf(PrimitiveSchemaDefinition.class);
   }
 
   @Test
@@ -46,9 +48,10 @@ class PrimitiveSchemaDefinitionHierarchyTest {
     var untitled =
         new UntitledMultiSelectEnumSchema(
             "Tags", null, 1, 3, new EnumItemsSchema(List.of("a", "b")), null);
-    assertThat(untitled).isInstanceOf(MultiSelectEnumSchema.class);
-    assertThat(untitled).isInstanceOf(EnumSchema.class);
-    assertThat(untitled).isInstanceOf(PrimitiveSchemaDefinition.class);
+    assertThat(untitled)
+        .isInstanceOf(MultiSelectEnumSchema.class)
+        .isInstanceOf(EnumSchema.class)
+        .isInstanceOf(PrimitiveSchemaDefinition.class);
 
     var titled =
         new TitledMultiSelectEnumSchema(
@@ -58,9 +61,10 @@ class PrimitiveSchemaDefinitionHierarchyTest {
             null,
             new TitledEnumItemsSchema(List.of(new EnumOption("a", "Alpha"))),
             null);
-    assertThat(titled).isInstanceOf(MultiSelectEnumSchema.class);
-    assertThat(titled).isInstanceOf(EnumSchema.class);
-    assertThat(titled).isInstanceOf(PrimitiveSchemaDefinition.class);
+    assertThat(titled)
+        .isInstanceOf(MultiSelectEnumSchema.class)
+        .isInstanceOf(EnumSchema.class)
+        .isInstanceOf(PrimitiveSchemaDefinition.class);
   }
 
   @Test
@@ -70,8 +74,7 @@ class PrimitiveSchemaDefinitionHierarchyTest {
   void legacyTitledEnumInstanceofChain() {
     var legacy =
         new LegacyTitledEnumSchema("Status", null, List.of("active"), List.of("Active"), null);
-    assertThat(legacy).isInstanceOf(EnumSchema.class);
-    assertThat(legacy).isInstanceOf(PrimitiveSchemaDefinition.class);
+    assertThat(legacy).isInstanceOf(EnumSchema.class).isInstanceOf(PrimitiveSchemaDefinition.class);
   }
 
   @Test

@@ -30,8 +30,7 @@ class ProtocolTypesSerializationTest {
   void promptMessageRoundTrip() throws Exception {
     var msg = new PromptMessage(Role.USER, new TextContent("What is the weather?", null));
     String json = mapper.writeValueAsString(msg);
-    assertThat(json).contains("\"role\":\"user\"");
-    assertThat(json).contains("\"content\":{\"type\":\"text\"");
+    assertThat(json).contains("\"role\":\"user\"").contains("\"content\":{\"type\":\"text\"");
 
     var deserialized = mapper.readValue(json, PromptMessage.class);
     assertThat(deserialized.role()).isEqualTo(Role.USER);
@@ -91,9 +90,10 @@ class ProtocolTypesSerializationTest {
   void nullFieldsOmitted() throws Exception {
     var result = new InitializeResult("2025-11-25", null, null, null);
     String json = mapper.writeValueAsString(result);
-    assertThat(json).doesNotContain("capabilities");
-    assertThat(json).doesNotContain("serverInfo");
-    assertThat(json).doesNotContain("instructions");
+    assertThat(json)
+        .doesNotContain("capabilities")
+        .doesNotContain("serverInfo")
+        .doesNotContain("instructions");
   }
 
   @Test
