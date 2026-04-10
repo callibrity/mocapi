@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T09:38:00-04:00
-ITERATION: 30
-SPEC_COMPLETED: 122-mocapi-redis-spring-boot-starter.md
-WHAT_WAS_DONE: Created mocapi-redis-spring-boot-starter module — a pure aggregation pom bundling mocapi-spring-boot-starter, mocapi-session-store-redis, substrate-mailbox-redis, substrate-journal-redis, substrate-notifier-redis, and spring-boot-starter-data-redis. Added substrate-bom to parent pom dependencyManagement. Integration test with Testcontainers Redis verifies all four Redis-backed beans (McpSessionStore, MailboxSpi, JournalSpi, Notifier) are auto-configured.
-VERIFICATION: mvn verify — BUILD SUCCESS across full reactor (10 modules); 4 integration tests pass in RedisStarterAutoConfigurationIT confirming Redis implementations replace in-memory fallbacks
+LAST_RUN: 2026-04-10T09:47:00-04:00
+ITERATION: 31
+SPEC_COMPLETED: 123-mocapi-hazelcast-spring-boot-starter.md
+WHAT_WAS_DONE: Created mocapi-hazelcast-spring-boot-starter module — a pure aggregation pom bundling mocapi-spring-boot-starter, mocapi-session-store-hazelcast, substrate-mailbox-hazelcast, substrate-journal-hazelcast, substrate-notifier-hazelcast, and hazelcast-spring. Added module to parent pom. Integration test with embedded Hazelcast instance verifies all four beans (McpSessionStore, MailboxSpi, JournalSpi, Notifier) are auto-configured as Hazelcast-backed implementations.
+VERIFICATION: mvn verify — BUILD SUCCESS across full reactor (11 modules); 4 integration tests pass in HazelcastStarterAutoConfigurationIT confirming Hazelcast implementations are auto-configured
 STATUS: MORE_WORK
-NEXT_SPEC: 123-mocapi-hazelcast-spring-boot-starter.md
-NOTES: Added substrate.version property (1.0.0-SNAPSHOT) and substrate-bom import to parent pom dependencyManagement. The RedisMcpSessionStoreAutoConfiguration has a stale afterName reference (points to SB3 class org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration instead of SB4 org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration) — the IT test works around this by providing RedisConnectionFactory via user configuration rather than relying on DataRedisAutoConfiguration ordering. This stale afterName should be fixed in a separate spec.
+NEXT_SPEC: 124-consolidate-compat-applications.md
+NOTES: Used @Bean(destroyMethod = "") for the HazelcastInstance in the test config to prevent ApplicationContextRunner from shutting down the shared embedded instance between test runs. No Testcontainers needed — Hazelcast runs embedded in the JVM.
