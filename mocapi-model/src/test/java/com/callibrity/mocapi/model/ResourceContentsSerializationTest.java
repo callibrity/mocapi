@@ -17,6 +17,7 @@ package com.callibrity.mocapi.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -47,5 +48,23 @@ class ResourceContentsSerializationTest {
     var blob = (BlobResourceContents) deserialized;
     assertThat(blob.uri()).isEqualTo("file:///test.bin");
     assertThat(blob.blob()).isEqualTo("YmFz");
+  }
+
+  @Test
+  void readResourceResultRoundTrip() throws Exception {
+    var text = new TextResourceContents("file:///a.txt", "text/plain", "hello");
+    var blob = new BlobResourceContents("file:///b.bin", "application/octet-stream", "YmFz");
+    var original = new ReadResourceResult(List.of(text, blob));
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).contains("\"contents\":[");
+
+    var deserialized = mapper.readValue(json, ReadResourceResult.class);
+    assertThat(deserialized.contents())
+        .satisfies(
+            contents -> {
+              assertThat(contents).hasSize(2);
+              assertThat(contents.get(0)).isInstanceOf(TextResourceContents.class);
+              assertThat(contents.get(1)).isInstanceOf(BlobResourceContents.class);
+            });
   }
 }

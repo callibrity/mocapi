@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T09:18:50-04:00
-ITERATION: 28
-SPEC_COMPLETED: 120-fix-sonar-remaining-minor-issues.md
-WHAT_WAS_DONE: Fixed remaining Sonar minor issues across 12 rules: S1612 (3 lambda→method ref), S7467 (1 unnamed catch), S6068 (1 unnecessary eq()), S2094 (2 empty classes), S3400 (1 constant-returning method removed), S8432 (1 ScopedValue.Carrier restructured), S107 (9-param constructor→Dependencies record), S4144 (1 duplicate elicit overload extracted), S5976 (3 cursor tests parameterized), S1130 (2 unnecessary throws removed), S1659 (1 split variable declaration). S5778 and S5838 had zero remaining violations (already fixed by prior specs or not applicable to Number types).
-VERIFICATION: mvn verify — BUILD SUCCESS, all tests pass across full reactor (mocapi-model, mocapi-core, mocapi-example, mocapi-compat, session-store-redis, session-store-hazelcast, session-store-jdbc)
+LAST_RUN: 2026-04-10T09:27:20-04:00
+ITERATION: 29
+SPEC_COMPLETED: 121-complete-model-test-coverage.md
+WHAT_WAS_DONE: Added serialization round-trip tests for all 14 previously uncovered model types (CompletionRef, CompletionsCapability, ElicitationCapability, Icon, ListPromptsResult, ListResourcesResult, ListResourceTemplatesResult, ListToolsResult, PromptArgument, PromptsCapability, ReadResourceResult, ResourcesCapability, RootsCapability, SamplingCapability) plus accessor method tests for ElicitResult, achieving 100% line and branch coverage in mocapi-model.
+VERIFICATION: mvn -pl mocapi-model test — 113 tests pass; audit script produces empty MISSING list; JaCoCo coverage 100% line, 100% branch; mvn verify — BUILD SUCCESS across full reactor
 STATUS: MORE_WORK
-NEXT_SPEC: 121-complete-model-test-coverage.md
-NOTES: S5838 (isEqualTo(0)→isZero()) turned out to be inapplicable — schema.minimum() returns Number, not int, so assertThat(Number) yields ObjectAssert which lacks isZero(). S5778 (multi-statement assertThatThrownBy lambdas) had zero remaining violations — all lambdas contain single invocations. The DefaultMcpStreamContext.Dependencies record groups objectMapper, mailboxFactory, sessionService, elicitationTimeout, and samplingTimeout to bring the constructor down from 9 to 5 parameters. McpSession.supportsElicitationUrl() was removed entirely (unused in production, only had a trivial test).
+NEXT_SPEC: 122-mocapi-redis-spring-boot-starter.md
+NOTES: Created new CompletionRefSerializationTest for the CompletionRef sealed interface. Added tests to ProtocolTypesSerializationTest for capabilities, list results, Icon, PromptArgument. Added ReadResourceResult test to ResourceContentsSerializationTest. Added ElicitResult accessor method tests to ElicitationTypesSerializationTest. All null-field omission and polymorphic dispatch patterns verified.

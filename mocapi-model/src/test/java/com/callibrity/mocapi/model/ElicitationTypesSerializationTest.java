@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -221,5 +222,87 @@ class ElicitationTypesSerializationTest {
     var option = new EnumOption("val", "Display Value");
     String json = mapper.writeValueAsString(option);
     assertThat(json).contains("\"const\":\"val\"").contains("\"title\":\"Display Value\"");
+  }
+
+  @Test
+  void elicitResultIsAccepted() {
+    ObjectNode content = mapper.createObjectNode();
+    content.put("name", "Alice");
+    assertThat(new ElicitResult(ElicitAction.ACCEPT, content).isAccepted()).isTrue();
+    assertThat(new ElicitResult(ElicitAction.DECLINE, null).isAccepted()).isFalse();
+    assertThat(new ElicitResult(ElicitAction.CANCEL, null).isAccepted()).isFalse();
+  }
+
+  @Test
+  void elicitResultGetString() {
+    ObjectNode content = mapper.createObjectNode();
+    content.put("name", "Alice");
+    var result = new ElicitResult(ElicitAction.ACCEPT, content);
+    assertThat(result.getString("name")).isEqualTo("Alice");
+  }
+
+  @Test
+  void elicitResultGetInteger() {
+    ObjectNode content = mapper.createObjectNode();
+    content.put("age", 30);
+    var result = new ElicitResult(ElicitAction.ACCEPT, content);
+    assertThat(result.getInteger("age")).isEqualTo(30);
+  }
+
+  @Test
+  void elicitResultGetNumber() {
+    ObjectNode content = mapper.createObjectNode();
+    content.put("rating", 4.5);
+    var result = new ElicitResult(ElicitAction.ACCEPT, content);
+    assertThat(result.getNumber("rating")).isEqualTo(4.5);
+  }
+
+  @Test
+  void elicitResultGetBool() {
+    ObjectNode content = mapper.createObjectNode();
+    content.put("agree", true);
+    var result = new ElicitResult(ElicitAction.ACCEPT, content);
+    assertThat(result.getBool("agree")).isTrue();
+  }
+
+  @Test
+  void elicitResultGetChoice() {
+    ObjectNode content = mapper.createObjectNode();
+    content.put("color", "red");
+    var result = new ElicitResult(ElicitAction.ACCEPT, content);
+    assertThat(result.getChoice("color")).isEqualTo("red");
+  }
+
+  @Test
+  void elicitResultGetChoiceEnum() {
+    ObjectNode content = mapper.createObjectNode();
+    content.put("level", "INFO");
+    var result = new ElicitResult(ElicitAction.ACCEPT, content);
+    assertThat(result.getChoice("level", LoggingLevel.class)).isEqualTo(LoggingLevel.INFO);
+  }
+
+  @Test
+  void elicitResultGetChoices() {
+    ObjectNode content = mapper.createObjectNode();
+    content.putArray("tags").add("a").add("b").add("c");
+    var result = new ElicitResult(ElicitAction.ACCEPT, content);
+    assertThat(result.getChoices("tags")).containsExactly("a", "b", "c");
+  }
+
+  @Test
+  void elicitResultGetChoicesEnum() {
+    ObjectNode content = mapper.createObjectNode();
+    content.putArray("levels").add("INFO").add("WARNING");
+    var result = new ElicitResult(ElicitAction.ACCEPT, content);
+    assertThat(result.getChoices("levels", LoggingLevel.class))
+        .containsExactly(LoggingLevel.INFO, LoggingLevel.WARNING);
+  }
+
+  @Test
+  void elicitResultAccessorsThrowWhenNotAccepted() {
+    var result = new ElicitResult(ElicitAction.DECLINE, null);
+    assertThatThrownBy(() -> result.getString("name"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("not accepted");
   }
 }

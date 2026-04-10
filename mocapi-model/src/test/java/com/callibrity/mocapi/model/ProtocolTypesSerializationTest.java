@@ -21,6 +21,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 class ProtocolTypesSerializationTest {
 
@@ -113,5 +114,233 @@ class ProtocolTypesSerializationTest {
     var deserialized = mapper.readValue(json, JsonRpcError.class);
     assertThat(deserialized.code()).isEqualTo(-32600);
     assertThat(deserialized.message()).isEqualTo("Invalid Request");
+  }
+
+  @Test
+  void completionsCapabilityRoundTrip() throws Exception {
+    var original = new CompletionsCapability();
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).isEqualTo("{}");
+
+    var deserialized = mapper.readValue(json, CompletionsCapability.class);
+    assertThat(deserialized).isEqualTo(original);
+  }
+
+  @Test
+  void elicitationCapabilityRoundTrip() throws Exception {
+    var original = new ElicitationCapability();
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).isEqualTo("{}");
+
+    var deserialized = mapper.readValue(json, ElicitationCapability.class);
+    assertThat(deserialized).isEqualTo(original);
+  }
+
+  @Test
+  void samplingCapabilityRoundTrip() throws Exception {
+    var original = new SamplingCapability();
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).isEqualTo("{}");
+
+    var deserialized = mapper.readValue(json, SamplingCapability.class);
+    assertThat(deserialized).isEqualTo(original);
+  }
+
+  @Test
+  void promptsCapabilityRoundTrip() throws Exception {
+    var original = new PromptsCapability(true);
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).contains("\"listChanged\":true");
+
+    var deserialized = mapper.readValue(json, PromptsCapability.class);
+    assertThat(deserialized.listChanged()).isTrue();
+  }
+
+  @Test
+  void promptsCapabilityNullFieldOmitted() throws Exception {
+    var original = new PromptsCapability(null);
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).isEqualTo("{}");
+  }
+
+  @Test
+  void resourcesCapabilityRoundTrip() throws Exception {
+    var original = new ResourcesCapability(true, true);
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).contains("\"subscribe\":true").contains("\"listChanged\":true");
+
+    var deserialized = mapper.readValue(json, ResourcesCapability.class);
+    assertThat(deserialized)
+        .satisfies(
+            r -> {
+              assertThat(r.subscribe()).isTrue();
+              assertThat(r.listChanged()).isTrue();
+            });
+  }
+
+  @Test
+  void resourcesCapabilityNullFieldsOmitted() throws Exception {
+    var original = new ResourcesCapability(null, null);
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).isEqualTo("{}");
+  }
+
+  @Test
+  void rootsCapabilityRoundTrip() throws Exception {
+    var original = new RootsCapability(true);
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).contains("\"listChanged\":true");
+
+    var deserialized = mapper.readValue(json, RootsCapability.class);
+    assertThat(deserialized.listChanged()).isTrue();
+  }
+
+  @Test
+  void rootsCapabilityNullFieldOmitted() throws Exception {
+    var original = new RootsCapability(null);
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).isEqualTo("{}");
+  }
+
+  @Test
+  void iconFullyPopulatedRoundTrip() throws Exception {
+    var original = new Icon("https://example.com/icon.png", "image/png", List.of("32x32"), "light");
+    String json = mapper.writeValueAsString(original);
+    assertThat(json)
+        .contains("\"src\":\"https://example.com/icon.png\"")
+        .contains("\"mimeType\":\"image/png\"")
+        .contains("\"sizes\":[\"32x32\"]")
+        .contains("\"theme\":\"light\"");
+
+    var deserialized = mapper.readValue(json, Icon.class);
+    assertThat(deserialized).isEqualTo(original);
+  }
+
+  @Test
+  void iconNullFieldsOmitted() throws Exception {
+    var original = new Icon("https://example.com/icon.png", null, null, null);
+    String json = mapper.writeValueAsString(original);
+    assertThat(json)
+        .contains("\"src\":")
+        .doesNotContain("mimeType")
+        .doesNotContain("sizes")
+        .doesNotContain("theme");
+  }
+
+  @Test
+  void promptArgumentFullyPopulatedRoundTrip() throws Exception {
+    var original = new PromptArgument("name", "The user's name", true);
+    String json = mapper.writeValueAsString(original);
+    assertThat(json)
+        .contains("\"name\":\"name\"")
+        .contains("\"description\":\"The user's name\"")
+        .contains("\"required\":true");
+
+    var deserialized = mapper.readValue(json, PromptArgument.class);
+    assertThat(deserialized).isEqualTo(original);
+  }
+
+  @Test
+  void promptArgumentMinimalRoundTrip() throws Exception {
+    var original = new PromptArgument("name", null, null);
+    String json = mapper.writeValueAsString(original);
+    assertThat(json)
+        .contains("\"name\":\"name\"")
+        .doesNotContain("description")
+        .doesNotContain("required");
+  }
+
+  @Test
+  void listPromptsResultRoundTrip() throws Exception {
+    var prompt = new Prompt("greeting", "Greeting", "A greeting prompt", null, null);
+    var original = new ListPromptsResult(List.of(prompt), "cursor123");
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).contains("\"prompts\":[").contains("\"nextCursor\":\"cursor123\"");
+
+    var deserialized = mapper.readValue(json, ListPromptsResult.class);
+    assertThat(deserialized)
+        .satisfies(
+            r -> {
+              assertThat(r.prompts()).hasSize(1);
+              assertThat(r.nextCursor()).isEqualTo("cursor123");
+            });
+  }
+
+  @Test
+  void listPromptsResultNullCursorOmitted() throws Exception {
+    var original = new ListPromptsResult(List.of(), null);
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).doesNotContain("nextCursor");
+  }
+
+  @Test
+  void listResourcesResultRoundTrip() throws Exception {
+    var resource = new Resource("file:///test.txt", "test", "A test resource", "text/plain");
+    var original = new ListResourcesResult(List.of(resource), "cursor456");
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).contains("\"resources\":[").contains("\"nextCursor\":\"cursor456\"");
+
+    var deserialized = mapper.readValue(json, ListResourcesResult.class);
+    assertThat(deserialized)
+        .satisfies(
+            r -> {
+              assertThat(r.resources()).hasSize(1);
+              assertThat(r.nextCursor()).isEqualTo("cursor456");
+            });
+  }
+
+  @Test
+  void listResourcesResultNullCursorOmitted() throws Exception {
+    var original = new ListResourcesResult(List.of(), null);
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).doesNotContain("nextCursor");
+  }
+
+  @Test
+  void listResourceTemplatesResultRoundTrip() throws Exception {
+    var template = new ResourceTemplate("file:///{path}", "files", "File access", "text/plain");
+    var original = new ListResourceTemplatesResult(List.of(template), "cursorABC");
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).contains("\"resourceTemplates\":[").contains("\"nextCursor\":\"cursorABC\"");
+
+    var deserialized = mapper.readValue(json, ListResourceTemplatesResult.class);
+    assertThat(deserialized)
+        .satisfies(
+            r -> {
+              assertThat(r.resourceTemplates()).hasSize(1);
+              assertThat(r.nextCursor()).isEqualTo("cursorABC");
+            });
+  }
+
+  @Test
+  void listResourceTemplatesResultNullCursorOmitted() throws Exception {
+    var original = new ListResourceTemplatesResult(List.of(), null);
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).doesNotContain("nextCursor");
+  }
+
+  @Test
+  void listToolsResultRoundTrip() throws Exception {
+    ObjectNode schema = mapper.createObjectNode();
+    schema.put("type", "object");
+    var tool = new Tool("echo", "Echo", "Echoes input", schema, null);
+    var original = new ListToolsResult(List.of(tool), "cursorXYZ");
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).contains("\"tools\":[").contains("\"nextCursor\":\"cursorXYZ\"");
+
+    var deserialized = mapper.readValue(json, ListToolsResult.class);
+    assertThat(deserialized)
+        .satisfies(
+            r -> {
+              assertThat(r.tools()).hasSize(1);
+              assertThat(r.nextCursor()).isEqualTo("cursorXYZ");
+            });
+  }
+
+  @Test
+  void listToolsResultNullCursorOmitted() throws Exception {
+    var original = new ListToolsResult(List.of(), null);
+    String json = mapper.writeValueAsString(original);
+    assertThat(json).doesNotContain("nextCursor");
   }
 }
