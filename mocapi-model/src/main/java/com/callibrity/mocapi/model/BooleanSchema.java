@@ -16,7 +16,14 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ElicitResult(ElicitAction action, Map<String, Object> content) {}
+public record BooleanSchema(
+    String title, String description, @JsonProperty("default") Boolean defaultValue)
+    implements PrimitiveSchemaDefinition {
+  @JsonProperty("type")
+  public String type() {
+    return "boolean";
+  }
+}

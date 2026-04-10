@@ -16,7 +16,18 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ElicitResult(ElicitAction action, Map<String, Object> content) {}
+public record UntitledSingleSelectEnumSchema(
+    String title,
+    String description,
+    @JsonProperty("enum") List<String> values,
+    @JsonProperty("default") String defaultValue)
+    implements PrimitiveSchemaDefinition {
+  @JsonProperty("type")
+  public String type() {
+    return "string";
+  }
+}

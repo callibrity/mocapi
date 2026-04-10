@@ -15,8 +15,22 @@
  */
 package com.callibrity.mocapi.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.Locale;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record ElicitResult(ElicitAction action, Map<String, Object> content) {}
+public enum ElicitAction {
+  ACCEPT,
+  DECLINE,
+  CANCEL;
+
+  @JsonValue
+  public String toJson() {
+    return name().toLowerCase(Locale.ROOT);
+  }
+
+  @JsonCreator
+  public static ElicitAction fromJson(String value) {
+    return valueOf(value.toUpperCase(Locale.ROOT));
+  }
+}

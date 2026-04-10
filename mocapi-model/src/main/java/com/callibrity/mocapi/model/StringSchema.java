@@ -16,7 +16,19 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ElicitResult(ElicitAction action, Map<String, Object> content) {}
+public record StringSchema(
+    String title,
+    String description,
+    Integer minLength,
+    Integer maxLength,
+    StringFormat format,
+    @JsonProperty("default") String defaultValue)
+    implements PrimitiveSchemaDefinition {
+  @JsonProperty("type")
+  public String type() {
+    return "string";
+  }
+}

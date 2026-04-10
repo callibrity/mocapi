@@ -15,8 +15,23 @@
  */
 package com.callibrity.mocapi.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.Locale;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record ElicitResult(ElicitAction action, Map<String, Object> content) {}
+public enum StringFormat {
+  EMAIL,
+  URI,
+  DATE,
+  DATE_TIME;
+
+  @JsonValue
+  public String toJson() {
+    return this == DATE_TIME ? "date-time" : name().toLowerCase(Locale.ROOT);
+  }
+
+  @JsonCreator
+  public static StringFormat fromJson(String value) {
+    return "date-time".equals(value) ? DATE_TIME : valueOf(value.toUpperCase(Locale.ROOT));
+  }
+}

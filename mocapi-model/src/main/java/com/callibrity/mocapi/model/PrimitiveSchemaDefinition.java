@@ -15,8 +15,12 @@
  */
 package com.callibrity.mocapi.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.Map;
-
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record ElicitResult(ElicitAction action, Map<String, Object> content) {}
+public sealed interface PrimitiveSchemaDefinition
+    permits StringSchema,
+        NumberSchema,
+        BooleanSchema,
+        UntitledSingleSelectEnumSchema,
+        TitledSingleSelectEnumSchema,
+        UntitledMultiSelectEnumSchema,
+        TitledMultiSelectEnumSchema,
+        LegacyTitledEnumSchema {}

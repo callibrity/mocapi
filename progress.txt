@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T00:35:00-04:00
-ITERATION: 89
-SPEC_COMPLETED: 090-migrate-core-methods-to-model.md
-WHAT_WAS_DONE: Replaced all session/server data types in mocapi-core with canonical types from mocapi-model: InitializeResponse → InitializeResult, ServerInfo/ClientInfo → Implementation, ServerCapabilities and all capability descriptors → model equivalents, LogLevel → LoggingLevel, PingResponse → Map.of(); updated McpSession, McpSessionMethods, McpLoggingMethods, McpSessionService, MocapiAutoConfiguration, StreamableHttpController, McpRequestValidator, McpStreamContext, DefaultMcpStreamContext, ConformanceTools, and all tests; deleted 17 replaced types from server/ and session/ packages.
+LAST_RUN: 2026-04-10T00:39:00-04:00
+ITERATION: 90
+SPEC_COMPLETED: 091-elicitation-types-in-model.md
+WHAT_WAS_DONE: Added all elicitation types to mocapi-model: ElicitAction enum, updated ElicitResult to use ElicitAction and Map<String,Object>, StringFormat enum, PrimitiveSchemaDefinition sealed interface with 8 subtypes (StringSchema, NumberSchema, BooleanSchema, UntitledSingleSelectEnumSchema, TitledSingleSelectEnumSchema, UntitledMultiSelectEnumSchema, TitledMultiSelectEnumSchema, LegacyTitledEnumSchema), support records (EnumOption, EnumItemsSchema, TitledEnumItemsSchema), and RequestedSchema. Created comprehensive serialization tests for all types.
 VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests, spotless and license checks pass
-STATUS: DONE
-NEXT_SPEC: none
-NOTES: Model types have some structural differences from the old types: Implementation has 3 fields (name/title/version) vs ServerInfo/ClientInfo which had 6; model ElicitationCapability is flat (no form/url sub-capabilities) so supportsElicitationForm() simplified to check elicitation != null and supportsElicitationUrl() now always returns false; model ClientCapabilities lacks tasks/experimental fields; capability types use Boolean instead of primitive boolean. Added PROTOCOL_VERSION constant to InitializeResult since it was previously on InitializeResponse.
+STATUS: MORE_WORK
+NEXT_SPEC: 092-request-meta-and-progress-in-model.md
+NOTES: Updated existing ElicitResult to use ElicitAction enum instead of raw String and Map<String,Object> instead of ObjectNode. No code in mocapi-core references ElicitResult yet so this was a safe change. The PrimitiveSchemaDefinition sealed interface has 8 permits (not 9 as stated in AC — the spec lists 8 subtypes in the permits clause plus support records EnumOption/EnumItemsSchema/TitledEnumItemsSchema which are not subtypes of the sealed interface).
