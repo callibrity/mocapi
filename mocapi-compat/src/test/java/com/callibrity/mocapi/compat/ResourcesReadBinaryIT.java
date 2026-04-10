@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.callibrity.mocapi.model.ResourceRequestParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,8 +47,7 @@ class ResourcesReadBinaryIT {
   void readStaticBinaryResource() throws Exception {
     String sessionId = client.initialize();
 
-    ObjectNode params = client.objectMapper().createObjectNode();
-    params.put("uri", "test://static-binary");
+    var params = new ResourceRequestParams("test://static-binary", null);
 
     String body =
         client

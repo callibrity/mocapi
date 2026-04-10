@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.concurrent.CountDownLatch;
@@ -78,9 +79,8 @@ class ElicitationSep1330EnumsIT {
         .when(mailboxFactory)
         .create(anyString(), any(Class.class));
 
-    ObjectNode params = client.objectMapper().createObjectNode();
-    params.put("name", "test_elicitation_sep1330_enums");
-    params.putObject("arguments");
+    var arguments = client.objectMapper().createObjectNode();
+    var params = new CallToolRequestParams("test_elicitation_sep1330_enums", arguments, null, null);
 
     MvcResult mvcResult =
         client

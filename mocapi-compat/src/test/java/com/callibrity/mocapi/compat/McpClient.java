@@ -64,11 +64,21 @@ public class McpClient {
 
   public ResultActions post(String sessionId, String method, ObjectNode params, JsonNode id)
       throws Exception {
+    return post(sessionId, method, (Object) params, id);
+  }
+
+  public ResultActions post(String sessionId, String method, Object params, JsonNode id)
+      throws Exception {
+    JsonNode paramsNode =
+        params == null
+            ? null
+            : params instanceof JsonNode jn ? jn : objectMapper.valueToTree(params);
+
     ObjectNode request = objectMapper.createObjectNode();
     request.put("jsonrpc", "2.0");
     request.put("method", method);
-    if (params != null) {
-      request.set("params", params);
+    if (paramsNode != null) {
+      request.set("params", paramsNode);
     }
     if (id != null) {
       request.set("id", id);

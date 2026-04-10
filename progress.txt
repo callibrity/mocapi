@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T12:30:00-04:00
-ITERATION: 52
-SPEC_COMPLETED: 144-add-mcp-tool-params-annotation.md
-WHAT_WAS_DONE: Added @McpToolParams annotation, McpToolParamsResolver, schema generator support for record-based tool parameters, validation in AnnotationMcpTool, auto-configuration registration, unit tests, and integration test.
-VERIFICATION: mvn verify -Dmaven.test.failure.ignore=true — full reactor BUILD SUCCESS. All new tests pass: McpToolParamsResolverTest (6 tests), DefaultMethodSchemaGeneratorTest (5 tests), AnnotationMcpToolValidationTest (8 tests), ToolsCallMcpToolParamsIT (1 test). Pre-existing userProvidedBeanTakesPrecedence failures in Redis/MongoDB auto-configuration tests remain (unrelated).
+LAST_RUN: 2026-04-10T12:42:00-04:00
+ITERATION: 53
+SPEC_COMPLETED: 145-use-model-types-in-it-test-request-construction.md
+WHAT_WAS_DONE: Replaced hand-rolled ObjectNode request param construction in all IT tests with typed model records (CallToolRequestParams, GetPromptRequestParams, ResourceRequestParams, CompleteRequestParams, SetLevelRequestParams, RequestMeta). Added Object-typed post() overload to McpClient that accepts model records directly via valueToTree conversion.
+VERIFICATION: mvn verify -pl mocapi-compat -am — BUILD SUCCESS, 81 tests run, 0 failures. Spotless and license checks pass. Pre-existing RedisMcpSessionStoreAutoConfigurationTest.userProvidedBeanTakesPrecedence failure remains (unrelated).
 STATUS: MORE_WORK
-NEXT_SPEC: 145-use-model-types-in-it-test-request-construction.md
-NOTES: The @McpToolParams resolver is registered at HIGHEST_PRECEDENCE so it runs before Jackson3ParameterResolver. The schema generator delegates to VicTools when @McpToolParams is detected, generating the schema from the record type's components. Validation rejects methods that mix @McpToolParams with other non-McpStreamContext parameters.
+NEXT_SPEC: 146-mocapi-session-store-nats.md
+NOTES: Remaining createObjectNode() usages in IT tests are all legitimate: (1) tool arguments (inner JsonNode, tool-specific schema), (2) capabilities ObjectNode passed to initializeWithCapabilities(), (3) mailbox response payloads in elicitation/sampling tests, (4) response parsing in ResourcesReadBinaryIT/ResourcesListIT, (5) McpClient internal JSON-RPC envelope construction. The McpClient.post(ObjectNode) overload is preserved for backward compatibility; the new Object overload handles the conversion.

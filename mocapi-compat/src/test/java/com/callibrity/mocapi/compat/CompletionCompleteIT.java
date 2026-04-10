@@ -18,6 +18,9 @@ package com.callibrity.mocapi.compat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.callibrity.mocapi.model.CompleteRequestParams;
+import com.callibrity.mocapi.model.CompletionArgument;
+import com.callibrity.mocapi.model.PromptReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +28,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -45,13 +47,12 @@ class CompletionCompleteIT {
   void completionReturnsValues() throws Exception {
     String sessionId = client.initialize();
 
-    ObjectNode params = client.objectMapper().createObjectNode();
-    ObjectNode ref = params.putObject("ref");
-    ref.put("type", "ref/prompt");
-    ref.put("name", "test");
-    ObjectNode argument = params.putObject("argument");
-    argument.put("name", "arg");
-    argument.put("value", "t");
+    var params =
+        new CompleteRequestParams(
+            new PromptReference("ref/prompt", "test"),
+            new CompletionArgument("arg", "t"),
+            null,
+            null);
 
     client
         .post(

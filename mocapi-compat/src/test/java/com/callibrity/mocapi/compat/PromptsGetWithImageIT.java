@@ -18,6 +18,7 @@ package com.callibrity.mocapi.compat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.callibrity.mocapi.model.GetPromptRequestParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +26,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -45,8 +45,7 @@ class PromptsGetWithImageIT {
   void getPromptWithImage() throws Exception {
     String sessionId = client.initialize();
 
-    ObjectNode params = client.objectMapper().createObjectNode();
-    params.put("name", "test_prompt_with_image");
+    var params = new GetPromptRequestParams("test_prompt_with_image", null, null);
 
     client
         .post(

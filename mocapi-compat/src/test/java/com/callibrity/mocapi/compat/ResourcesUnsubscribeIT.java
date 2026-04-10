@@ -18,6 +18,7 @@ package com.callibrity.mocapi.compat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.callibrity.mocapi.model.ResourceRequestParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +26,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -46,8 +46,7 @@ class ResourcesUnsubscribeIT {
     String sessionId = client.initialize();
 
     // First subscribe
-    ObjectNode subscribeParams = client.objectMapper().createObjectNode();
-    subscribeParams.put("uri", "test://watched-resource");
+    var subscribeParams = new ResourceRequestParams("test://watched-resource", null);
 
     client
         .post(
@@ -58,8 +57,7 @@ class ResourcesUnsubscribeIT {
         .andExpect(status().isOk());
 
     // Then unsubscribe
-    ObjectNode unsubscribeParams = client.objectMapper().createObjectNode();
-    unsubscribeParams.put("uri", "test://watched-resource");
+    var unsubscribeParams = new ResourceRequestParams("test://watched-resource", null);
 
     client
         .post(

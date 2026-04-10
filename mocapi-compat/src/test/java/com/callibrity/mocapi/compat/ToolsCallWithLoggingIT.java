@@ -18,6 +18,9 @@ package com.callibrity.mocapi.compat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.callibrity.mocapi.model.CallToolRequestParams;
+import com.callibrity.mocapi.model.LoggingLevel;
+import com.callibrity.mocapi.model.SetLevelRequestParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +29,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -47,17 +49,15 @@ class ToolsCallWithLoggingIT {
     String sessionId = client.initialize();
 
     // Set log level to debug so all messages pass through
-    ObjectNode levelParams = client.objectMapper().createObjectNode();
-    levelParams.put("level", "debug");
+    var levelParams = new SetLevelRequestParams(LoggingLevel.DEBUG, null);
     client.post(
         sessionId,
         "logging/setLevel",
         levelParams,
         client.objectMapper().getNodeFactory().numberNode(2));
 
-    ObjectNode params = client.objectMapper().createObjectNode();
-    params.put("name", "test_tool_with_logging");
-    params.putObject("arguments");
+    var arguments = client.objectMapper().createObjectNode();
+    var params = new CallToolRequestParams("test_tool_with_logging", arguments, null, null);
 
     MvcResult mvcResult =
         client

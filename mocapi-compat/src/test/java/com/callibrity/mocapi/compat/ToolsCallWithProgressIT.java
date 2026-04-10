@@ -18,6 +18,8 @@ package com.callibrity.mocapi.compat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.callibrity.mocapi.model.CallToolRequestParams;
+import com.callibrity.mocapi.model.RequestMeta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +28,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -46,11 +47,10 @@ class ToolsCallWithProgressIT {
   void progressToolReturnsSseWithProgressNotifications() throws Exception {
     String sessionId = client.initialize();
 
-    ObjectNode params = client.objectMapper().createObjectNode();
-    params.put("name", "test_tool_with_progress");
-    params.putObject("arguments");
-    ObjectNode meta = params.putObject("_meta");
-    meta.put("progressToken", "test-progress-token");
+    var arguments = client.objectMapper().createObjectNode();
+    var meta =
+        new RequestMeta(client.objectMapper().getNodeFactory().textNode("test-progress-token"));
+    var params = new CallToolRequestParams("test_tool_with_progress", arguments, null, meta);
 
     MvcResult mvcResult =
         client

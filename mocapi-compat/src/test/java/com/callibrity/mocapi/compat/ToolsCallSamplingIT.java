@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.concurrent.CountDownLatch;
@@ -81,10 +82,9 @@ class ToolsCallSamplingIT {
         .create(anyString(), any(Class.class));
 
     // Build tool call params
-    ObjectNode params = client.objectMapper().createObjectNode();
-    params.put("name", "test_sampling");
-    ObjectNode arguments = params.putObject("arguments");
+    var arguments = client.objectMapper().createObjectNode();
     arguments.put("prompt", "What is the meaning of life?");
+    var params = new CallToolRequestParams("test_sampling", arguments, null, null);
 
     // Start tool call — returns immediately since the response is an SseEmitter
     MvcResult mvcResult =

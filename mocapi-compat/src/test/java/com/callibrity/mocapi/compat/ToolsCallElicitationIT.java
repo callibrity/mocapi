@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.concurrent.CountDownLatch;
@@ -78,10 +79,9 @@ class ToolsCallElicitationIT {
         .when(mailboxFactory)
         .create(anyString(), any(Class.class));
 
-    ObjectNode params = client.objectMapper().createObjectNode();
-    params.put("name", "test_elicitation");
-    ObjectNode arguments = params.putObject("arguments");
+    var arguments = client.objectMapper().createObjectNode();
     arguments.put("message", "Please provide your info");
+    var params = new CallToolRequestParams("test_elicitation", arguments, null, null);
 
     MvcResult mvcResult =
         client

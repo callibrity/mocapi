@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.callibrity.mocapi.model.CallToolRequestParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +27,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -70,10 +70,9 @@ class FullConversationIT {
         .andExpect(jsonPath("$.result.tools[0].name").isString());
 
     // 4. tools/call for echo tool — receive structured content result
-    ObjectNode callParams = client.objectMapper().createObjectNode();
-    callParams.put("name", "echo");
-    ObjectNode arguments = callParams.putObject("arguments");
+    var arguments = client.objectMapper().createObjectNode();
     arguments.put("message", "hello world");
+    var callParams = new CallToolRequestParams("echo", arguments, null, null);
 
     client
         .post(
