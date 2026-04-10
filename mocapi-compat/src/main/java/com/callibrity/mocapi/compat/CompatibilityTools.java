@@ -453,6 +453,9 @@ public class CompatibilityTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation">MCP
    *     Elicitation Specification</a>
    */
+  @SuppressWarnings(
+      "deprecation") // Conformance test exercises deprecated chooseLegacy() per MCP spec backward
+  // compatibility
   @ToolMethod(
       name = "test_elicitation_sep1330_enums",
       description = "Tests elicitation with enum variants for conformance")

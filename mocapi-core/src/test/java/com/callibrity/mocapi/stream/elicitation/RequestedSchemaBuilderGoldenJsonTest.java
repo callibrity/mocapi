@@ -35,6 +35,8 @@ class RequestedSchemaBuilderGoldenJsonTest {
   }
 
   @Test
+  @SuppressWarnings(
+      "deprecation") // Tests deprecated chooseLegacy() per MCP spec backward compatibility
   void builderSchemaShouldMatchGoldenFixture() throws Exception {
     RequestedSchema requestedSchema =
         new RequestedSchemaBuilder()

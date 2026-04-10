@@ -599,6 +599,8 @@ class RequestedSchemaBuilderTest {
   }
 
   @Test
+  @SuppressWarnings(
+      "deprecation") // Tests deprecated chooseLegacy() per MCP spec backward compatibility
   void chooseLegacyShouldProduceEnumWithEnumNames() {
     ObjectNode node =
         toNode(

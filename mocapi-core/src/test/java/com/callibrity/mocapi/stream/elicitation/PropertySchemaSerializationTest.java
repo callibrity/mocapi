@@ -135,6 +135,9 @@ class PropertySchemaSerializationTest {
   }
 
   @Test
+  @SuppressWarnings(
+      "deprecation") // Tests deprecated LegacyTitledEnumSchemaBuilder per MCP spec backward
+  // compatibility
   void legacyEnumPropertySerializesCorrectly() throws Exception {
     var schema =
         new LegacyTitledEnumSchemaBuilder(List.of("a", "b"), List.of("Alpha", "Beta")).build();

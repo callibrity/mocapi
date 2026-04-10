@@ -185,6 +185,8 @@ class ElicitationTypesSerializationTest {
   }
 
   @Test
+  @SuppressWarnings(
+      "deprecation") // Tests deprecated LegacyTitledEnumSchema per MCP spec backward compatibility
   void legacyTitledEnumSchema() throws Exception {
     var schema =
         new LegacyTitledEnumSchema(

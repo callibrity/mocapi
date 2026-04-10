@@ -21,6 +21,9 @@ import com.callibrity.mocapi.model.LegacyTitledEnumSchema;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings(
+    "deprecation") // Tests deliberately exercise deprecated LegacyTitledEnumSchemaBuilder per MCP
+// spec backward compatibility
 class LegacyTitledEnumSchemaBuilderTest {
 
   @Test

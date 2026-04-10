@@ -64,6 +64,9 @@ class PrimitiveSchemaDefinitionHierarchyTest {
   }
 
   @Test
+  @SuppressWarnings(
+      "deprecation") // Tests the deprecated LegacyTitledEnumSchema per MCP spec backward
+  // compatibility
   void legacyTitledEnumInstanceofChain() {
     var legacy =
         new LegacyTitledEnumSchema("Status", null, List.of("active"), List.of("Active"), null);
@@ -104,6 +107,9 @@ class PrimitiveSchemaDefinitionHierarchyTest {
   }
 
   @Test
+  @SuppressWarnings(
+      "deprecation") // Switch must cover deprecated LegacyTitledEnumSchema per MCP spec backward
+  // compatibility
   void switchOverEnumSchemaIsExhaustive() {
     List<EnumSchema> enums =
         List.of(
@@ -124,6 +130,9 @@ class PrimitiveSchemaDefinitionHierarchyTest {
   }
 
   @Test
+  @SuppressWarnings(
+      "deprecation") // Tests wire format of deprecated LegacyTitledEnumSchema per MCP spec backward
+  // compatibility
   void wireFormatUnchangedForAllEightLeafTypes() throws Exception {
     List<PrimitiveSchemaDefinition> schemas =
         List.of(

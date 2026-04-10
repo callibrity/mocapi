@@ -15,5 +15,8 @@
  */
 package com.callibrity.mocapi.model;
 
+@SuppressWarnings(
+    "deprecation") // Sealed parent must permit deprecated LegacyTitledEnumSchema per MCP spec
+// backward compatibility
 public sealed interface EnumSchema extends PrimitiveSchemaDefinition
     permits SingleSelectEnumSchema, MultiSelectEnumSchema, LegacyTitledEnumSchema {}

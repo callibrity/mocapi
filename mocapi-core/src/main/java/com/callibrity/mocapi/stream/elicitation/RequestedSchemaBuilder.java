@@ -194,7 +194,17 @@ public final class RequestedSchemaBuilder {
 
   // --- Legacy choose ---
 
-  @Deprecated
+  /**
+   * Adds a legacy titled enum property using the {@code enum} + {@code enumNames} format.
+   *
+   * @deprecated Use {@link #choose(String, Class)} or {@link #choose(String, List)} instead. This
+   *     method exists for backward compatibility with pre-2025-11-25 MCP clients. Not scheduled for
+   *     removal because the MCP spec still defines the legacy variant.
+   */
+  @Deprecated(since = "0.0.1", forRemoval = false)
+  @SuppressWarnings(
+      "deprecation") // Legitimately delegates to deprecated LegacyTitledEnumSchemaBuilder per MCP
+  // spec backward compatibility
   public RequestedSchemaBuilder chooseLegacy(
       String name, List<String> values, List<String> displayNames) {
     LegacyTitledEnumSchemaBuilder builder = new LegacyTitledEnumSchemaBuilder(values, displayNames);

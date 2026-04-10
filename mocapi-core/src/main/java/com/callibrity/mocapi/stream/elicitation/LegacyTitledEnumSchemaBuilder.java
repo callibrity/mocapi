@@ -24,7 +24,7 @@ import java.util.List;
  *
  * @deprecated Use {@link SingleSelectEnumSchemaBuilder} instead.
  */
-@Deprecated
+@Deprecated(since = "0.0.1", forRemoval = false)
 public final class LegacyTitledEnumSchemaBuilder {
 
   private final List<String> values;
@@ -57,6 +57,8 @@ public final class LegacyTitledEnumSchemaBuilder {
     return required;
   }
 
+  @SuppressWarnings("deprecation") // Deprecated builder legitimately constructs the deprecated
+  // LegacyTitledEnumSchema per MCP spec
   public LegacyTitledEnumSchema build() {
     return new LegacyTitledEnumSchema(title, description, values, displayNames, null);
   }
