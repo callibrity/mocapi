@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T08:53:00-04:00
-ITERATION: 27
-SPEC_COMPLETED: 119-chain-assertj-assertions.md
-WHAT_WAS_DONE: Chained consecutive assertThat calls on the same subject across all 11 affected test files (56 Sonar S5853 occurrences), using fluent .contains()/.doesNotContain()/.isInstanceOf() chains instead of separate assertThat() calls.
-VERIFICATION: mvn verify — BUILD SUCCESS, all tests pass across full reactor
+LAST_RUN: 2026-04-10T09:18:50-04:00
+ITERATION: 28
+SPEC_COMPLETED: 120-fix-sonar-remaining-minor-issues.md
+WHAT_WAS_DONE: Fixed remaining Sonar minor issues across 12 rules: S1612 (3 lambda→method ref), S7467 (1 unnamed catch), S6068 (1 unnecessary eq()), S2094 (2 empty classes), S3400 (1 constant-returning method removed), S8432 (1 ScopedValue.Carrier restructured), S107 (9-param constructor→Dependencies record), S4144 (1 duplicate elicit overload extracted), S5976 (3 cursor tests parameterized), S1130 (2 unnecessary throws removed), S1659 (1 split variable declaration). S5778 and S5838 had zero remaining violations (already fixed by prior specs or not applicable to Number types).
+VERIFICATION: mvn verify — BUILD SUCCESS, all tests pass across full reactor (mocapi-model, mocapi-core, mocapi-example, mocapi-compat, session-store-redis, session-store-hazelcast, session-store-jdbc)
 STATUS: MORE_WORK
-NEXT_SPEC: 120-fix-sonar-remaining-minor-issues.md
-NOTES: All changes were mechanical — no test behavior changed. Spotless reformatted some long chains into multi-line form. The three compat IT files each had a single pair of assertThat(body) calls chained. The PrimitiveSchemaDefinitionHierarchyTest had isInstanceOf chains. All other files were assertThat(json) contains/doesNotContain chains.
+NEXT_SPEC: 121-complete-model-test-coverage.md
+NOTES: S5838 (isEqualTo(0)→isZero()) turned out to be inapplicable — schema.minimum() returns Number, not int, so assertThat(Number) yields ObjectAssert which lacks isZero(). S5778 (multi-statement assertThatThrownBy lambdas) had zero remaining violations — all lambdas contain single invocations. The DefaultMcpStreamContext.Dependencies record groups objectMapper, mailboxFactory, sessionService, elicitationTimeout, and samplingTimeout to bring the constructor down from 9 to 5 parameters. McpSession.supportsElicitationUrl() was removed entirely (unused in production, only had a trivial test).

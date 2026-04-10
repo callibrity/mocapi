@@ -29,7 +29,7 @@ class McpServerTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
-  void initializeResultShouldSerializeWithNonNullCapabilities() throws Exception {
+  void initializeResultShouldSerializeWithNonNullCapabilities() {
     var result =
         new InitializeResult(
             InitializeResult.PROTOCOL_VERSION,

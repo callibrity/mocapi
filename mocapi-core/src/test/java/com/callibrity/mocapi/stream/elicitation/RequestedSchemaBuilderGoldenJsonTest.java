@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.RequestedSchema;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -77,7 +78,7 @@ class RequestedSchemaBuilderGoldenJsonTest {
     assertThat(actual).isEqualTo(expected);
 
     ObjectNode actualProps = (ObjectNode) actual.get("properties");
-    List<String> propertyOrder = actualProps.properties().stream().map(e -> e.getKey()).toList();
+    List<String> propertyOrder = actualProps.properties().stream().map(Map.Entry::getKey).toList();
     assertThat(propertyOrder)
         .containsExactly(
             "name",

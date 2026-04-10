@@ -78,13 +78,14 @@ class DefaultMcpStreamContextTest {
     ValueNode tokenNode = progressToken == null ? null : StringNode.valueOf(progressToken);
     return new DefaultMcpStreamContext<>(
         stream,
-        objectMapper,
+        new DefaultMcpStreamContext.Dependencies(
+            objectMapper,
+            mailboxFactory,
+            sessionService,
+            Duration.ofSeconds(5),
+            Duration.ofSeconds(5)),
         tokenNode,
-        mailboxFactory,
-        sessionService,
         sessionId,
-        Duration.ofSeconds(5),
-        Duration.ofSeconds(5),
         null);
   }
 
@@ -92,13 +93,10 @@ class DefaultMcpStreamContextTest {
       String sessionId, Duration elicitationTimeout, Duration samplingTimeout) {
     return new DefaultMcpStreamContext<>(
         stream,
-        objectMapper,
+        new DefaultMcpStreamContext.Dependencies(
+            objectMapper, mailboxFactory, sessionService, elicitationTimeout, samplingTimeout),
         null,
-        mailboxFactory,
-        sessionService,
         sessionId,
-        elicitationTimeout,
-        samplingTimeout,
         null);
   }
 

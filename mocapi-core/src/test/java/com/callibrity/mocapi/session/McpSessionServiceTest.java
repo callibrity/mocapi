@@ -109,7 +109,7 @@ class McpSessionServiceTest {
 
     service.setLogLevel("sess-123", LoggingLevel.DEBUG);
 
-    verify(store).update(eq("sess-123"), eq(session.withLogLevel(LoggingLevel.DEBUG)));
+    verify(store).update("sess-123", session.withLogLevel(LoggingLevel.DEBUG));
   }
 
   @Test

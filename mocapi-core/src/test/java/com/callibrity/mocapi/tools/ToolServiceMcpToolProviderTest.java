@@ -137,7 +137,9 @@ class ToolServiceMcpToolProviderTest {
   }
 
   @ToolService
-  static class EmptyToolService {}
+  static class EmptyToolService {
+    EmptyToolService() {}
+  }
 
   record GreetResult(String message) {}
 

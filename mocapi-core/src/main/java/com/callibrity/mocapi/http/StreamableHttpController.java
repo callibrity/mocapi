@@ -147,7 +147,7 @@ public class StreamableHttpController {
       }
       McpSessionStream channel = sessionService.notificationStream(sessionId);
       return ResponseEntity.ok().body(channel.subscribe());
-    } catch (IllegalArgumentException e) {
+    } catch (IllegalArgumentException _) {
       return ResponseEntity.badRequest().build();
     }
   }
@@ -205,11 +205,16 @@ public class StreamableHttpController {
 
   private ResponseEntity<Object> dispatch(
       boolean isInitialize, JsonRpcCall call, McpSession session) {
-    ScopedValue.Carrier carrier = ScopedValue.where(McpRequestId.CURRENT, call.id());
+    JsonRpcResponse response;
     if (session != null) {
-      carrier = carrier.where(McpSession.CURRENT, session);
+      response =
+          ScopedValue.where(McpRequestId.CURRENT, call.id())
+              .where(McpSession.CURRENT, session)
+              .call(() -> dispatcher.dispatch(call));
+    } else {
+      response =
+          ScopedValue.where(McpRequestId.CURRENT, call.id()).call(() -> dispatcher.dispatch(call));
     }
-    JsonRpcResponse response = carrier.call(() -> dispatcher.dispatch(call));
 
     return switch (response) {
       case null -> ResponseEntity.accepted().build();
@@ -308,7 +313,8 @@ public class StreamableHttpController {
   private static boolean acceptsJsonAndSse(String accept) {
     if (accept == null) return false;
     List<MediaType> types = MediaType.parseMediaTypes(accept);
-    boolean json = false, sse = false;
+    boolean json = false;
+    boolean sse = false;
     for (MediaType mt : types) {
       if (mt.includes(MediaType.APPLICATION_JSON)) json = true;
       if (mt.includes(MediaType.TEXT_EVENT_STREAM)) sse = true;

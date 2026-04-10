@@ -68,17 +68,20 @@ import tools.jackson.databind.node.ValueNode;
  */
 public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
 
+  public record Dependencies(
+      ObjectMapper objectMapper,
+      MailboxFactory mailboxFactory,
+      McpSessionService sessionService,
+      Duration elicitationTimeout,
+      Duration samplingTimeout) {}
+
   private final McpSessionStream stream;
   private final ObjectMapper objectMapper;
   private final ValueNode progressToken;
   private final MailboxFactory mailboxFactory;
   private final McpSessionService sessionService;
   private final String sessionId;
-
-  /** How long to wait for the client to respond to an elicitation/create request (human input). */
   private final Duration elicitationTimeout;
-
-  /** How long to wait for the client to respond to a sampling/createMessage request (LLM). */
   private final Duration samplingTimeout;
 
   private final JsonNode requestId;
@@ -86,22 +89,18 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
 
   public DefaultMcpStreamContext(
       McpSessionStream stream,
-      ObjectMapper objectMapper,
+      Dependencies deps,
       ValueNode progressToken,
-      MailboxFactory mailboxFactory,
-      McpSessionService sessionService,
       String sessionId,
-      Duration elicitationTimeout,
-      Duration samplingTimeout,
       JsonNode requestId) {
     this.stream = stream;
-    this.objectMapper = objectMapper;
+    this.objectMapper = deps.objectMapper();
     this.progressToken = progressToken;
-    this.mailboxFactory = mailboxFactory;
-    this.sessionService = sessionService;
+    this.mailboxFactory = deps.mailboxFactory();
+    this.sessionService = deps.sessionService();
     this.sessionId = sessionId;
-    this.elicitationTimeout = elicitationTimeout;
-    this.samplingTimeout = samplingTimeout;
+    this.elicitationTimeout = deps.elicitationTimeout();
+    this.samplingTimeout = deps.samplingTimeout();
     this.requestId = requestId;
   }
 
@@ -166,21 +165,24 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
   @Override
   public <T> Optional<T> elicit(
       String message, Consumer<RequestedSchemaBuilder> schema, Class<T> resultType) {
-    ElicitResult result = elicit(message, schema);
-    if (!result.isAccepted()) {
-      return Optional.empty();
-    }
-    return Optional.of(objectMapper.treeToValue(result.content(), resultType));
+    return elicitAndConvert(
+        message, schema, content -> objectMapper.treeToValue(content, resultType));
   }
 
   @Override
   public <T> Optional<T> elicit(
       String message, Consumer<RequestedSchemaBuilder> schema, TypeReference<T> resultType) {
+    return elicitAndConvert(
+        message, schema, content -> objectMapper.treeToValue(content, resultType));
+  }
+
+  private <T> Optional<T> elicitAndConvert(
+      String message, Consumer<RequestedSchemaBuilder> schema, Function<JsonNode, T> converter) {
     ElicitResult result = elicit(message, schema);
     if (!result.isAccepted()) {
       return Optional.empty();
     }
-    return Optional.of(objectMapper.treeToValue(result.content(), resultType));
+    return Optional.of(converter.apply(result.content()));
   }
 
   @Override

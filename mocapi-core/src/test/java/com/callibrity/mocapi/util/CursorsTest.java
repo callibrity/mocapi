@@ -22,6 +22,8 @@ import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class CursorsTest {
 
@@ -47,23 +49,10 @@ class CursorsTest {
     assertThat(Cursors.encode(Integer.MAX_VALUE)).hasSize(8);
   }
 
-  @Test
-  void invalidBase64Throws() {
-    assertThatThrownBy(() -> Cursors.decode("not-valid-base64!!!"))
-        .isInstanceOf(JsonRpcException.class)
-        .hasMessageContaining("Invalid cursor");
-  }
-
-  @Test
-  void tamperedCursorThrows() {
-    assertThatThrownBy(() -> Cursors.decode("AAAA"))
-        .isInstanceOf(JsonRpcException.class)
-        .hasMessageContaining("Invalid cursor");
-  }
-
-  @Test
-  void emptyCursorThrows() {
-    assertThatThrownBy(() -> Cursors.decode(""))
+  @ParameterizedTest
+  @ValueSource(strings = {"not-valid-base64!!!", "AAAA", ""})
+  void invalidCursorThrows(String cursor) {
+    assertThatThrownBy(() -> Cursors.decode(cursor))
         .isInstanceOf(JsonRpcException.class)
         .hasMessageContaining("Invalid cursor");
   }

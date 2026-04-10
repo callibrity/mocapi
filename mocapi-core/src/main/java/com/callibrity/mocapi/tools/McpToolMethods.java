@@ -80,13 +80,10 @@ public class McpToolMethods {
     DefaultMcpStreamContext<?> ctx =
         new DefaultMcpStreamContext<>(
             stream,
-            objectMapper,
+            new DefaultMcpStreamContext.Dependencies(
+                objectMapper, mailboxFactory, sessionService, elicitationTimeout, samplingTimeout),
             progressToken,
-            mailboxFactory,
-            sessionService,
             sessionId,
-            elicitationTimeout,
-            samplingTimeout,
             requestId);
 
     SseEmitter emitter = stream.subscribe();

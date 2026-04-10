@@ -98,7 +98,7 @@ class PropertySchemaSerializationTest {
   void titledEnumPropertySerializesWithOneOf() throws Exception {
     PrimitiveSchemaDefinition schema =
         SingleSelectEnumSchemaBuilder.from(List.of("a", "b"), s -> s)
-            .titled(s -> s.toUpperCase())
+            .titled(String::toUpperCase)
             .build();
 
     String json = mapper.writeValueAsString(schema);
@@ -127,7 +127,7 @@ class PropertySchemaSerializationTest {
   void titledMultiSelectPropertySerializesCorrectly() throws Exception {
     PrimitiveSchemaDefinition schema =
         MultiSelectEnumSchemaBuilder.from(List.of("a", "b"), s -> s)
-            .titled(s -> s.toUpperCase())
+            .titled(String::toUpperCase)
             .build();
 
     String json = mapper.writeValueAsString(schema);

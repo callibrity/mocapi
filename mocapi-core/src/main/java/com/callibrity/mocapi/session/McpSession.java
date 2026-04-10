@@ -61,11 +61,6 @@ public record McpSession(
     return capabilities != null && capabilities.elicitation() != null;
   }
 
-  /** Returns true if the client supports URL-based elicitation. */
-  public boolean supportsElicitationUrl() {
-    return false;
-  }
-
   /** Returns true if the client supports sampling. */
   public boolean supportsSampling() {
     return capabilities != null && capabilities.sampling() != null;

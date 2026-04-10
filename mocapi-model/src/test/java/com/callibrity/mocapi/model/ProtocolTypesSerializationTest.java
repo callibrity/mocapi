@@ -97,7 +97,7 @@ class ProtocolTypesSerializationTest {
   }
 
   @Test
-  void loggingLevelValues() throws Exception {
+  void loggingLevelValues() {
     assertThat(LoggingLevel.values())
         .extracting(Enum::name)
         .containsExactly(

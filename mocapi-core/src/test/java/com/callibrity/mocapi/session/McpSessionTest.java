@@ -57,13 +57,6 @@ class McpSessionTest {
   }
 
   @Test
-  void supportsElicitationUrlShouldAlwaysReturnFalse() {
-    var caps = new ClientCapabilities(null, null, new ElicitationCapability());
-    var session = new McpSession("2025-11-25", caps, CLIENT_INFO);
-    assertThat(session.supportsElicitationUrl()).isFalse();
-  }
-
-  @Test
   void supportsSamplingShouldReturnTrueWhenPresent() {
     var caps = new ClientCapabilities(null, new SamplingCapability(), null);
     var session = new McpSession("2025-11-25", caps, CLIENT_INFO);
