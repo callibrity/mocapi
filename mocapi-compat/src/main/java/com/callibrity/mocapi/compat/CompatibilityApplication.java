@@ -24,7 +24,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class CompatibilityApplication {
 
-  static void main(String[] args) {
+  public static void main(String[] args) {
     byte[] key = new byte[32];
     new SecureRandom().nextBytes(key);
     String encoded = Base64.getEncoder().encodeToString(key);

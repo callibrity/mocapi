@@ -27,7 +27,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = CompatApplication.class)
+@SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
 class SessionManagementIT {

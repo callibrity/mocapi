@@ -28,7 +28,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.node.ObjectNode;
 
-@SpringBootTest(classes = CompatApplication.class)
+@SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
 class FullConversationIT {

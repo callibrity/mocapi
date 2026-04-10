@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T09:47:00-04:00
-ITERATION: 31
-SPEC_COMPLETED: 123-mocapi-hazelcast-spring-boot-starter.md
-WHAT_WAS_DONE: Created mocapi-hazelcast-spring-boot-starter module — a pure aggregation pom bundling mocapi-spring-boot-starter, mocapi-session-store-hazelcast, substrate-mailbox-hazelcast, substrate-journal-hazelcast, substrate-notifier-hazelcast, and hazelcast-spring. Added module to parent pom. Integration test with embedded Hazelcast instance verifies all four beans (McpSessionStore, MailboxSpi, JournalSpi, Notifier) are auto-configured as Hazelcast-backed implementations.
-VERIFICATION: mvn verify — BUILD SUCCESS across full reactor (11 modules); 4 integration tests pass in HazelcastStarterAutoConfigurationIT confirming Hazelcast implementations are auto-configured
+LAST_RUN: 2026-04-10T09:51:00-04:00
+ITERATION: 32
+SPEC_COMPLETED: 124-consolidate-compat-applications.md
+WHAT_WAS_DONE: Consolidated all IT tests onto CompatibilityApplication — replaced CompatApplication references in 9 test files, deleted the test-only CompatApplication stub, and fixed CompatibilityApplication.main() visibility from package-private to public.
+VERIFICATION: mvn -pl mocapi-compat verify — 80 tests run, 0 failures; mvn verify — full reactor BUILD SUCCESS (11 modules)
 STATUS: MORE_WORK
-NEXT_SPEC: 124-consolidate-compat-applications.md
-NOTES: Used @Bean(destroyMethod = "") for the HazelcastInstance in the test config to prevent ApplicationContextRunner from shutting down the shared embedded instance between test runs. No Testcontainers needed — Hazelcast runs embedded in the JVM.
+NEXT_SPEC: 125-examples-module-scaffolding.md
+NOTES: No test helpers needed to be moved from src/test to src/main — all CompatApplication-using tests were straightforward IT tests with RandomMasterKeyInitializer already in place. Test count unchanged at 80.
