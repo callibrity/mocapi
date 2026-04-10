@@ -37,6 +37,7 @@ import com.callibrity.mocapi.tools.McpToolMethods;
 import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
+import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.JsonRpcResult;
@@ -59,6 +60,7 @@ import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
 import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -143,6 +145,16 @@ class StreamableHttpControllerTest {
             new Implementation("test", null, "1.0")));
   }
 
+  private ResponseEntity<Object> post(
+      ObjectNode body, String protocolVersion, String sessionId, String accept, String origin) {
+    return controller.handlePost(
+        objectMapper.treeToValue(body, JsonRpcMessage.class),
+        protocolVersion,
+        sessionId,
+        accept,
+        origin);
+  }
+
   @Nested
   class PostRequestValidation {
 
@@ -154,7 +166,7 @@ class StreamableHttpControllerTest {
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      var response = post(request, null, sessionId, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertErrorCode(response, -32600);
     }
@@ -166,7 +178,7 @@ class StreamableHttpControllerTest {
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      var response = post(request, null, sessionId, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertErrorCode(response, -32600);
     }
@@ -178,7 +190,7 @@ class StreamableHttpControllerTest {
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, "invalid-version", null, POST_ACCEPT, null);
+      var response = post(request, "invalid-version", null, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
@@ -189,8 +201,7 @@ class StreamableHttpControllerTest {
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response =
-          controller.handlePost(request, null, null, POST_ACCEPT, "http://evil.example.com");
+      var response = post(request, null, null, POST_ACCEPT, "http://evil.example.com");
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
@@ -201,7 +212,7 @@ class StreamableHttpControllerTest {
       request.put("method", "tools/list");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, "nonexistent-session", POST_ACCEPT, null);
+      var response = post(request, null, "nonexistent-session", POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
   }
@@ -223,7 +234,7 @@ class StreamableHttpControllerTest {
       clientInfo.put("name", "test-client");
       clientInfo.put("version", "1.0");
 
-      var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
+      var response = post(request, null, null, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getFirst("MCP-Session-Id")).isNotNull();
@@ -245,7 +256,7 @@ class StreamableHttpControllerTest {
       clientInfo.put("name", "test-client");
       clientInfo.put("version", "1.0");
 
-      var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
+      var response = post(request, null, null, POST_ACCEPT, null);
       String sessionId = response.getHeaders().getFirst("MCP-Session-Id");
 
       var session = sessionService.find(sessionId);
@@ -262,7 +273,7 @@ class StreamableHttpControllerTest {
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      var response = post(request, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -280,7 +291,7 @@ class StreamableHttpControllerTest {
       request.put("method", "tools/list");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      var response = post(request, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -301,7 +312,7 @@ class StreamableHttpControllerTest {
       params.put("name", "test-tool");
       params.putObject("arguments");
 
-      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      var response = post(request, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -316,7 +327,7 @@ class StreamableHttpControllerTest {
       request.put("method", "unknown/method");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      var response = post(request, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -341,7 +352,7 @@ class StreamableHttpControllerTest {
       params.put("name", "nonexistent");
       params.putObject("arguments");
 
-      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      var response = post(request, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -362,7 +373,7 @@ class StreamableHttpControllerTest {
       params.put("name", "broken");
       params.putObject("arguments");
 
-      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      var response = post(request, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -384,7 +395,7 @@ class StreamableHttpControllerTest {
       params.put("name", "error-tool");
       params.putObject("arguments");
 
-      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      var response = post(request, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -404,7 +415,7 @@ class StreamableHttpControllerTest {
         request.put("method", "ping");
         request.put("id", 1);
 
-        var response = controller.handlePost(request, version, sessionId, POST_ACCEPT, null);
+        var response = post(request, version, sessionId, POST_ACCEPT, null);
         assertThat(response.getStatusCode())
             .as("Protocol version %s should be accepted", version)
             .isNotEqualTo(HttpStatus.BAD_REQUEST);
@@ -423,8 +434,7 @@ class StreamableHttpControllerTest {
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response =
-          controller.handlePost(request, null, sessionId, POST_ACCEPT, "http://localhost:8080");
+      var response = post(request, null, sessionId, POST_ACCEPT, "http://localhost:8080");
       assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.FORBIDDEN);
     }
 
@@ -436,7 +446,7 @@ class StreamableHttpControllerTest {
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      var response = post(request, null, sessionId, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.FORBIDDEN);
     }
 
@@ -447,7 +457,7 @@ class StreamableHttpControllerTest {
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, null, POST_ACCEPT, "not a valid uri {{{");
+      var response = post(request, null, null, POST_ACCEPT, "not a valid uri {{{");
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
   }
@@ -463,7 +473,7 @@ class StreamableHttpControllerTest {
       request.put("method", "ping");
       request.put("id", "string-id");
 
-      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      var response = post(request, null, sessionId, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
@@ -475,7 +485,7 @@ class StreamableHttpControllerTest {
       request.put("method", "ping");
       request.put("id", 42);
 
-      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      var response = post(request, null, sessionId, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
@@ -487,7 +497,7 @@ class StreamableHttpControllerTest {
       request.put("method", "ping");
       request.putNull("id");
 
-      var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+      var response = post(request, null, sessionId, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
   }
@@ -502,7 +512,7 @@ class StreamableHttpControllerTest {
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
+      var response = post(request, null, null, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
       assertErrorCode(response, -32600);
       assertErrorMessage(response, "MCP-Session-Id header is required");
@@ -522,7 +532,7 @@ class StreamableHttpControllerTest {
       clientInfo.put("name", "test-client");
       clientInfo.put("version", "1.0");
 
-      var response = controller.handlePost(request, null, null, POST_ACCEPT, null);
+      var response = post(request, null, null, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getFirst("MCP-Session-Id")).isNotNull();
     }
@@ -533,7 +543,7 @@ class StreamableHttpControllerTest {
       notification.put("jsonrpc", VERSION);
       notification.put("method", "notifications/initialized");
 
-      var response = controller.handlePost(notification, null, null, POST_ACCEPT, null);
+      var response = post(notification, null, null, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
@@ -544,7 +554,7 @@ class StreamableHttpControllerTest {
       jsonRpcResponse.put("id", 1);
       jsonRpcResponse.putObject("result");
 
-      var response = controller.handlePost(jsonRpcResponse, null, null, POST_ACCEPT, null);
+      var response = post(jsonRpcResponse, null, null, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
   }

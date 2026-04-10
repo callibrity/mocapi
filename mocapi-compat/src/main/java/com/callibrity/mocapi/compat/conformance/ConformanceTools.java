@@ -364,7 +364,7 @@ public class ConformanceTools {
     return new CallToolResult(
         List.of(
             new TextContent(
-                "User response: action=" + result.action().getValue() + ", content=" + content,
+                "User response: action=" + result.action().toJson() + ", content=" + content,
                 null)),
         null,
         null);
@@ -392,8 +392,7 @@ public class ConformanceTools {
               schema.bool("verified", "Verified", true);
             });
     return new CallToolResult(
-        List.of(
-            new TextContent("Elicitation completed: action=" + result.action().getValue(), null)),
+        List.of(new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
         null,
         null);
   }
@@ -461,8 +460,7 @@ public class ConformanceTools {
               schema.chooseMany("titledMulti", TitledMultiOption.class, titledMulti);
             });
     return new CallToolResult(
-        List.of(
-            new TextContent("Elicitation completed: action=" + result.action().getValue(), null)),
+        List.of(new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
         null,
         null);
   }

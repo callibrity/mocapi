@@ -25,12 +25,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.model.ClientCapabilities;
+import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.ElicitationCapability;
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStream;
-import com.callibrity.mocapi.stream.elicitation.ElicitationResult;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationTimeoutException;
@@ -292,7 +292,7 @@ class DefaultMcpStreamContextTest {
             Map.of("action", "accept", "content", Map.of("username", "Alice", "email", "a@b.com")));
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
-    ElicitationResult result =
+    ElicitResult result =
         context.elicit(
             "Enter your info",
             schema -> schema.string("username", "User's name").string("email", "User's email"));
@@ -322,8 +322,7 @@ class DefaultMcpStreamContextTest {
     JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "decline"));
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
 
-    ElicitationResult result =
-        context.elicit("Enter info", schema -> schema.string("name", "Name"));
+    ElicitResult result = context.elicit("Enter info", schema -> schema.string("name", "Name"));
 
     assertThat(result.isAccepted()).isFalse();
     verify(mailbox).delete();

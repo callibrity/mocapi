@@ -23,6 +23,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 class ElicitationTypesSerializationTest {
 
@@ -44,14 +45,16 @@ class ElicitationTypesSerializationTest {
 
   @Test
   void elicitResultRoundTrip() throws Exception {
-    var result = new ElicitResult(ElicitAction.ACCEPT, Map.of("name", "Alice"));
+    ObjectNode content = mapper.createObjectNode();
+    content.put("name", "Alice");
+    var result = new ElicitResult(ElicitAction.ACCEPT, content);
     String json = mapper.writeValueAsString(result);
     assertThat(json).contains("\"action\":\"accept\"");
     assertThat(json).contains("\"name\":\"Alice\"");
 
     var deserialized = mapper.readValue(json, ElicitResult.class);
     assertThat(deserialized.action()).isEqualTo(ElicitAction.ACCEPT);
-    assertThat(deserialized.content()).containsEntry("name", "Alice");
+    assertThat(deserialized.content().get("name").asString()).isEqualTo("Alice");
   }
 
   @Test

@@ -32,8 +32,6 @@ import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStream;
-import com.callibrity.mocapi.stream.elicitation.ElicitationAction;
-import com.callibrity.mocapi.stream.elicitation.ElicitationResult;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationTimeoutException;
@@ -143,7 +141,7 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
   }
 
   @Override
-  public ElicitationResult elicit(String message, Consumer<RequestedSchemaBuilder> schema) {
+  public ElicitResult elicit(String message, Consumer<RequestedSchemaBuilder> schema) {
     requireElicitationSupport();
     RequestedSchemaBuilder builder = new RequestedSchemaBuilder();
     schema.accept(builder);
@@ -276,15 +274,13 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
     }
   }
 
-  private ElicitationResult parseRawResponse(JsonNode rawResponse, ObjectNode schemaNode) {
+  private ElicitResult parseRawResponse(JsonNode rawResponse, ObjectNode schemaNode) {
     ElicitResult elicitResult = deserializeElicitResult(rawResponse);
-    ElicitationAction action = toElicitationAction(elicitResult.action());
-    if (action != ElicitationAction.ACCEPT) {
-      return new ElicitationResult(action, null);
+    if (elicitResult.action() != ElicitAction.ACCEPT) {
+      return new ElicitResult(elicitResult.action(), null);
     }
-    JsonNode content = objectMapper.valueToTree(elicitResult.content());
-    validateContent(content, schemaNode);
-    return new ElicitationResult(action, content);
+    validateContent(elicitResult.content(), schemaNode);
+    return elicitResult;
   }
 
   private ElicitResult deserializeElicitResult(JsonNode rawResponse) {
@@ -299,10 +295,6 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
     }
 
     return objectMapper.treeToValue(resultNode, ElicitResult.class);
-  }
-
-  private ElicitationAction toElicitationAction(ElicitAction action) {
-    return ElicitationAction.fromValue(action.toJson());
   }
 
   private void validateContent(JsonNode content, ObjectNode schemaNode) {

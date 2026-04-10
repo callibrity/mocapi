@@ -15,8 +15,8 @@
  */
 package com.callibrity.mocapi.stream;
 
+import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.LoggingLevel;
-import com.callibrity.mocapi.stream.elicitation.ElicitationResult;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationTimeoutException;
@@ -127,7 +127,7 @@ public interface McpStreamContext<R> {
    * @throws McpElicitationException if the response fails schema validation
    * @throws McpElicitationNotSupportedException if the client does not support elicitation
    */
-  ElicitationResult elicit(String message, Consumer<RequestedSchemaBuilder> schema);
+  ElicitResult elicit(String message, Consumer<RequestedSchemaBuilder> schema);
 
   /**
    * Sends a {@code sampling/createMessage} request to the client, blocking until a response is

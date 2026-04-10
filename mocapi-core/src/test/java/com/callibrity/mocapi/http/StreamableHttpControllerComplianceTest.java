@@ -32,6 +32,7 @@ import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionMethods;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
@@ -135,6 +136,16 @@ class StreamableHttpControllerComplianceTest {
             new Implementation("test", null, "1.0")));
   }
 
+  private org.springframework.http.ResponseEntity<Object> post(
+      ObjectNode body, String protocolVersion, String sessionId, String accept, String origin) {
+    return controller.handlePost(
+        objectMapper.treeToValue(body, JsonRpcMessage.class),
+        protocolVersion,
+        sessionId,
+        accept,
+        origin);
+  }
+
   // ---- Gap 1: Notifications must return 202 Accepted ----
 
   @Nested
@@ -148,7 +159,7 @@ class StreamableHttpControllerComplianceTest {
       notification.put("jsonrpc", VERSION);
       notification.put("method", "notifications/initialized");
 
-      var response = controller.handlePost(notification, null, sessionId, POST_ACCEPT, null);
+      var response = post(notification, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
       assertThat(response.getBody()).isNull();
@@ -163,7 +174,7 @@ class StreamableHttpControllerComplianceTest {
       jsonRpcResponse.put("id", 1);
       jsonRpcResponse.putObject("result");
 
-      var response = controller.handlePost(jsonRpcResponse, null, sessionId, POST_ACCEPT, null);
+      var response = post(jsonRpcResponse, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
       assertThat(response.getBody()).isNull();
@@ -180,7 +191,7 @@ class StreamableHttpControllerComplianceTest {
       error.put("code", -32600);
       error.put("message", "Invalid Request");
 
-      var response = controller.handlePost(errorResponse, null, sessionId, POST_ACCEPT, null);
+      var response = post(errorResponse, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
       assertThat(response.getBody()).isNull();
@@ -194,7 +205,7 @@ class StreamableHttpControllerComplianceTest {
       notification.put("jsonrpc", VERSION);
       notification.put("method", "notifications/initialized");
 
-      var response = controller.handlePost(notification, null, sessionId, POST_ACCEPT, null);
+      var response = post(notification, null, sessionId, POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
     }
@@ -274,7 +285,7 @@ class StreamableHttpControllerComplianceTest {
         request.put("method", "ping");
         request.put("id", i);
 
-        var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+        var response = post(request, null, sessionId, POST_ACCEPT, null);
         assertThat(response.getStatusCode())
             .as("POST request %d should succeed", i)
             .isEqualTo(HttpStatus.OK);
@@ -295,7 +306,7 @@ class StreamableHttpControllerComplianceTest {
         request.put("id", i);
 
         String sessionId = createSession();
-        var response = controller.handlePost(request, null, sessionId, POST_ACCEPT, null);
+        var response = post(request, null, sessionId, POST_ACCEPT, null);
 
         assertThat(response.getStatusCode())
             .as("Concurrent request %d should succeed independently", i)
@@ -322,7 +333,7 @@ class StreamableHttpControllerComplianceTest {
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, null, acceptHeader, null);
+      var response = post(request, null, null, acceptHeader, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
 
@@ -334,7 +345,7 @@ class StreamableHttpControllerComplianceTest {
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response = controller.handlePost(request, null, sessionId, "*/*", null);
+      var response = post(request, null, sessionId, "*/*", null);
       assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
 
@@ -367,9 +378,7 @@ class StreamableHttpControllerComplianceTest {
       request.put("method", "ping");
       request.put("id", 1);
 
-      var response =
-          controller.handlePost(
-              request, null, sessionId, "application/json, text/event-stream", null);
+      var response = post(request, null, sessionId, "application/json, text/event-stream", null);
       assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
 

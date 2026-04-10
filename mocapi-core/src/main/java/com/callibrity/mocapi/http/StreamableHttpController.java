@@ -40,7 +40,9 @@ import org.jwcarman.substrate.core.MailboxFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -73,24 +75,15 @@ public class StreamableHttpController {
 
   @PostMapping(produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE})
   public ResponseEntity<Object> handlePost(
-      @RequestBody JsonNode body,
+      @RequestBody JsonRpcMessage message,
       @RequestHeader(value = "MCP-Protocol-Version", required = false) String protocolVersion,
       @RequestHeader(value = "MCP-Session-Id", required = false) String sessionId,
       @RequestHeader(value = "Accept", required = false) String accept,
       @RequestHeader(value = "Origin", required = false) String origin) {
 
-    log.debug("Received POST: {}", body);
+    log.debug("Received POST: {}", message);
     if (!acceptsJsonAndSse(accept)) {
       return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
-    }
-
-    JsonRpcMessage message;
-    try {
-      message = JsonRpcMessage.parse(body);
-    } catch (IllegalArgumentException e) {
-      return ResponseEntity.badRequest()
-          .contentType(MediaType.APPLICATION_JSON)
-          .body(errorResponse(null, -32600, e.getMessage()));
     }
 
     return switch (message) {
@@ -99,6 +92,27 @@ public class StreamableHttpController {
       case JsonRpcResult result -> handleClientResult(result, sessionId);
       case JsonRpcError error -> handleClientError(error, sessionId);
     };
+  }
+
+  /**
+   * Maps Spring's body-read failures (malformed JSON or structurally unrecognizable JSON-RPC
+   * messages) to a JSON-RPC {@code -32600} error response envelope, preserving the wire-format
+   * contract for clients that expect a JSON-RPC error rather than a bare HTTP 400.
+   */
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<Object> handleUnreadableBody(HttpMessageNotReadableException ex) {
+    String message = rootCauseMessage(ex);
+    return ResponseEntity.badRequest()
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(errorResponse(null, -32600, message));
+  }
+
+  private static String rootCauseMessage(Throwable t) {
+    Throwable cause = t;
+    while (cause.getCause() != null && cause.getCause() != cause) {
+      cause = cause.getCause();
+    }
+    return cause.getMessage();
   }
 
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
