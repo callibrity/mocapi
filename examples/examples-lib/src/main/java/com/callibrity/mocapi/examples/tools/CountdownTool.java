@@ -25,9 +25,9 @@ public class CountdownTool {
   @ToolMethod(
       name = "countdown",
       description = "Counts down from the given number, sending progress updates via SSE")
-  public CountdownResponse countdown(int from, McpStreamContext<CountdownResponse> ctx) {
+  public void countdown(int from, McpStreamContext<CountdownResponse> ctx) {
     for (int i = from; i > 0; i--) {
-      ctx.sendProgress((double) (from - i), from);
+      ctx.sendProgress((from - i), from);
       try {
         Thread.sleep(500);
       } catch (InterruptedException e) {
@@ -35,7 +35,7 @@ public class CountdownTool {
         break;
       }
     }
-    return new CountdownResponse("Countdown from " + from + " complete!");
+    ctx.sendResult(new CountdownResponse("Countdown from " + from + " complete!"));
   }
 
   public record CountdownResponse(String message) {}

@@ -33,5 +33,6 @@
     <modules>
         <module>examples-lib</module>
         <module>in-memory</module>
+        <module>redis</module>
     </modules>
 </project>

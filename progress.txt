@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T10:01:00-04:00
-ITERATION: 34
-SPEC_COMPLETED: 126-example-in-memory-app.md
-WHAT_WAS_DONE: Created examples/in-memory module with InMemoryExampleApplication delegating to ExampleApplication, application.yml with master key placeholder and logging config, README.md with curl examples, and spring-boot-maven-plugin for runnable jar. Added module to examples/pom.xml.
-VERIFICATION: mvn verify — full reactor BUILD SUCCESS (13 modules); mvn spring-boot:run -pl examples/in-memory — app starts on port 8080; POST /mcp initialize returns 200 with session ID; POST /mcp tools/call hello returns {"message":"Hello, World!"}
+LAST_RUN: 2026-04-10T10:04:20-04:00
+ITERATION: 35
+SPEC_COMPLETED: 127-example-redis-app.md
+WHAT_WAS_DONE: Created examples/redis module with RedisExampleApplication delegating to ExampleApplication, pom.xml depending on mocapi-examples-lib and mocapi-redis-spring-boot-starter, application.yml with Redis host/port env var defaults, docker-compose.yml with Redis 7 Alpine + healthcheck, and README.md with prerequisites, startup, session persistence verification, and cloud deployment instructions. Added module to examples/pom.xml. Also applied spotless:apply to examples-lib to fix a pre-existing formatting issue.
+VERIFICATION: mvn verify — full reactor BUILD SUCCESS (14 modules including mocapi-example-redis)
 STATUS: MORE_WORK
-NEXT_SPEC: 127-example-redis-app.md
-NOTES: The in-memory module depends only on mocapi-examples-lib (no explicit spring-boot-starter-web since it's transitive via mocapi-spring-boot-starter). The MCP endpoint requires Accept header to include both application/json and text/event-stream. Session ID is returned in the Mcp-Session-Id response header, not in the JSON body.
+NEXT_SPEC: 128-example-hazelcast-app.md
+NOTES: The examples-lib module had a pre-existing spotless formatting violation in CountdownTool.java which was fixed via spotless:apply during this iteration. The Redis example follows the same delegation pattern as the in-memory example. No direct dependencies on substrate-*-redis or spring-boot-starter-data-redis — all come transitively through mocapi-redis-spring-boot-starter. Docker-compose.yml and application.yml both have license headers (required by license-maven-plugin).
