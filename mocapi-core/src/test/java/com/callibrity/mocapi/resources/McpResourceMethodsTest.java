@@ -18,6 +18,7 @@ package com.callibrity.mocapi.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.model.EmptyResult;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
@@ -118,14 +119,14 @@ class McpResourceMethodsTest {
   }
 
   @Test
-  void subscribeShouldReturnEmptyMap() {
+  void subscribeShouldReturnEmptyResult() {
     var result = methods.subscribe(new ResourceRequestParams("test://greeting", null));
-    assertThat(result).isEmpty();
+    assertThat(result).isEqualTo(EmptyResult.INSTANCE);
   }
 
   @Test
-  void unsubscribeShouldReturnEmptyMap() {
+  void unsubscribeShouldReturnEmptyResult() {
     var result = methods.unsubscribe(new ResourceRequestParams("test://greeting", null));
-    assertThat(result).isEmpty();
+    assertThat(result).isEqualTo(EmptyResult.INSTANCE);
   }
 }

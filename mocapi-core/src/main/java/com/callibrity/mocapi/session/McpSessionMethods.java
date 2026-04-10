@@ -15,12 +15,12 @@
  */
 package com.callibrity.mocapi.session;
 
+import com.callibrity.mocapi.model.EmptyResult;
 import com.callibrity.mocapi.model.InitializeRequestParams;
 import com.callibrity.mocapi.model.InitializeResult;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 
 @JsonRpcService
@@ -35,8 +35,8 @@ public class McpSessionMethods {
   }
 
   @JsonRpcMethod("ping")
-  public Map<?, ?> ping() {
-    return Map.of();
+  public EmptyResult ping() {
+    return EmptyResult.INSTANCE;
   }
 
   @JsonRpcMethod("notifications/initialized")

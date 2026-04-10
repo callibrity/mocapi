@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.session;
 
+import com.callibrity.mocapi.model.EmptyResult;
 import com.callibrity.mocapi.model.SetLevelRequestParams;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -30,7 +31,7 @@ public class McpLoggingMethods {
   private final McpSessionService sessionService;
 
   @JsonRpcMethod("logging/setLevel")
-  public Object setLevel(@JsonRpcParams SetLevelRequestParams params) {
+  public EmptyResult setLevel(@JsonRpcParams SetLevelRequestParams params) {
     if (params == null || params.level() == null) {
       throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "Invalid log level: null");
     }
@@ -40,6 +41,6 @@ public class McpLoggingMethods {
     } catch (IllegalArgumentException e) {
       throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, e.getMessage());
     }
-    return new Object() {};
+    return EmptyResult.INSTANCE;
   }
 }

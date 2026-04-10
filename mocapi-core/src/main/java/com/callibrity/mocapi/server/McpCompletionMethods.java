@@ -16,24 +16,18 @@
 package com.callibrity.mocapi.server;
 
 import com.callibrity.mocapi.model.CompleteRequestParams;
+import com.callibrity.mocapi.model.CompleteResult;
+import com.callibrity.mocapi.model.Completion;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
-/** Handles {@code completion/complete} JSON-RPC calls, returning empty completion arrays. */
 @JsonRpcService
 public class McpCompletionMethods {
 
   @JsonRpcMethod("completion/complete")
-  public CompleteResponse complete(@JsonRpcParams CompleteRequestParams params) {
-    return new CompleteResponse(new CompletionResult(List.of(), false));
+  public CompleteResult complete(@JsonRpcParams CompleteRequestParams params) {
+    return new CompleteResult(new Completion(List.of(), null, false));
   }
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record CompleteResponse(CompletionResult completion) {}
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record CompletionResult(List<String> values, Boolean hasMore) {}
 }

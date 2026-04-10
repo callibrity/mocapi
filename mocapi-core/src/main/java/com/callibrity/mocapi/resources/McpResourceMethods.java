@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.resources;
 
+import com.callibrity.mocapi.model.EmptyResult;
 import com.callibrity.mocapi.model.ListResourceTemplatesResult;
 import com.callibrity.mocapi.model.ListResourcesResult;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
@@ -23,7 +24,6 @@ import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 
 @JsonRpcService
@@ -51,12 +51,12 @@ public class McpResourceMethods {
   }
 
   @JsonRpcMethod("resources/subscribe")
-  public Map<String, Object> subscribe(@JsonRpcParams ResourceRequestParams params) {
-    return Map.of();
+  public EmptyResult subscribe(@JsonRpcParams ResourceRequestParams params) {
+    return EmptyResult.INSTANCE;
   }
 
   @JsonRpcMethod("resources/unsubscribe")
-  public Map<String, Object> unsubscribe(@JsonRpcParams ResourceRequestParams params) {
-    return Map.of();
+  public EmptyResult unsubscribe(@JsonRpcParams ResourceRequestParams params) {
+    return EmptyResult.INSTANCE;
   }
 }

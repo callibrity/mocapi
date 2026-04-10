@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T01:44:00-04:00
-ITERATION: 97
-SPEC_COMPLETED: 098-migrate-elicitation-to-model.md
-WHAT_WAS_DONE: Migrated DefaultMcpStreamContext elicitation request construction to use ElicitRequestFormParams record with valueToTree instead of hand-built ObjectNode, and migrated response parsing to deserialize into ElicitResult via objectMapper.treeToValue instead of manual extractAction/extractContent field walking.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests pass, 29 DefaultMcpStreamContextTest tests pass unchanged, spotless and license checks pass
+LAST_RUN: 2026-04-10T01:47:41-04:00
+ITERATION: 98
+SPEC_COMPLETED: 099-empty-result-and-handler-response-cleanup.md
+WHAT_WAS_DONE: Introduced EmptyResult record in mocapi-model with singleton INSTANCE, migrated ping/setLevel/subscribe/unsubscribe handlers to return EmptyResult.INSTANCE, and replaced McpCompletionMethods nested CompleteResponse/CompletionResult records with model-module CompleteResult/Completion types.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests pass, spotless and license checks pass
 STATUS: MORE_WORK
-NEXT_SPEC: 099-empty-result-and-handler-response-cleanup.md
-NOTES: ElicitRequestFormParams is constructed with null requestedSchema (since RequestedSchema's sealed PrimitiveSchemaDefinition hierarchy lacks deserialization support), then the schemaNode ObjectNode is set on the serialized tree — this eliminates createObjectNode field-by-field construction while preserving schema wire format. Response parsing now uses deserializeElicitResult() which checks for JSON-RPC error first, then deserializes the result subtree into ElicitResult, and maps ElicitAction to ElicitationAction via toElicitationAction(). Content is converted back to JsonNode via valueToTree for schema validation and downstream callers. Also fixed pre-existing CursorsTest ambiguous method reference compilation error (null → (String) null for paginate calls).
+NEXT_SPEC: 100-remove-bean-elicitation.md
+NOTES: Also fixed pre-existing spotless violation in StringPropertyBuilder.java (unused import). McpResourceMethodsTest updated to assert EmptyResult.INSTANCE instead of isEmpty() on Map.
