@@ -21,7 +21,7 @@ Mocapi includes a Spring Boot starter, making it easy to get started by simply a
 <dependency>
     <groupId>com.callibrity.mocapi</groupId>
     <artifactId>mocapi-spring-boot-starter</artifactId>
-    <version>${mocapi.version}</version>
+    <version>0.0.1-SNAPSHOT</version>
 </dependency>
 ```
 By default, Mocapi will listen for MCP requests on the `/mcp` endpoint. You can change this by setting the `mocapi.endpoint` property:
@@ -30,20 +30,9 @@ By default, Mocapi will listen for MCP requests on the `/mcp` endpoint. You can 
 mocapi.endpoint=/your-custom-endpoint
 ```
 
-## Creating MCP Tools
+## Defining Tools
 
-To create MCP tools using Mocapi, you first need to import the `mocapi-tools` dependency into your project:
-
-```xml
-<dependency>
-    <groupId>com.callibrity.mocapi</groupId>
-    <artifactId>mocapi-tools</artifactId>
-    <version>${mocapi.version}</version>
-</dependency>
-```
-
-This will automatically activate the `MocapiToolsAutoConfiguration` which will enable MCP tools support. To register a
-tool, you need to create a bean annotated with `@ToolService` having methods annotated with `@Tool`:
+Annotate a Spring bean with `@ToolService` and its methods with `@ToolMethod` to register MCP tools:
 
 ```java
 import com.callibrity.mocapi.tools.annotation.ToolMethod;
@@ -52,14 +41,115 @@ import com.callibrity.mocapi.tools.annotation.ToolService;
 @ToolService
 public class HelloTool {
 
-    @Tool
+    @ToolMethod(name = "hello", description = "Returns a greeting message")
     public HelloResponse sayHello(String name) {
         return new HelloResponse(String.format("Hello, %s!", name));
     }
 
-    public record HelloResponse(String message) { }
+    public record HelloResponse(String message) {}
 }
 ```
+
+## Streaming and Progress
+
+To send progress updates or use interactive features (elicitation, sampling), add an `McpStreamContext<R>` parameter to your tool method:
+
+```java
+import com.callibrity.mocapi.stream.McpStreamContext;
+
+@ToolMethod(name = "countdown", description = "Counts down with progress updates")
+public CountdownResponse countdown(int from, McpStreamContext<CountdownResponse> ctx) {
+    for (int i = from; i > 0; i--) {
+        ctx.sendProgress(from - i, from);
+    }
+    return new CountdownResponse("Done!");
+}
+```
+
+The context provides `sendProgress(double, double)` for progress notifications and `log(LoggingLevel, String)` for structured logging.
+
+## Elicitation
+
+Tools can prompt the user for input during execution using the `elicit` method on `McpStreamContext`. Build a schema using the fluent `RequestedSchemaBuilder` API:
+
+```java
+import com.callibrity.mocapi.model.ElicitResult;
+
+@ToolMethod(name = "greet", description = "Asks for user details")
+public String greet(McpStreamContext<String> ctx) {
+    ElicitResult result = ctx.elicit("Please enter your details", schema -> {
+        schema.string("name", "Your name");
+        schema.integer("age", "Your age");
+        schema.bool("subscribe", "Subscribe to updates?", false);
+        schema.choose("role", List.of("admin", "user", "guest"));
+    });
+
+    if (result.isAccepted()) {
+        return "Hello, " + result.getString("name") + "!";
+    }
+    return "User declined.";
+}
+```
+
+For type-safe results, use the bean-binding overload which deserializes accepted responses into a Java class and returns `Optional.empty()` when the user declines:
+
+```java
+@ToolMethod(name = "register", description = "Registers a new user")
+public String register(McpStreamContext<String> ctx) {
+    Optional<Registration> reg = ctx.elicit("Enter registration info", schema -> {
+        schema.string("name", "Full name");
+        schema.string("email", "Email address");
+    }, Registration.class);
+
+    return reg.map(r -> "Registered: " + r.name())
+              .orElse("Registration cancelled.");
+}
+
+record Registration(String name, String email) {}
+```
+
+## Sampling
+
+Tools can request LLM completions via the `sample` method:
+
+```java
+import com.callibrity.mocapi.model.CreateMessageResult;
+
+@ToolMethod(name = "summarize", description = "Summarizes text using an LLM")
+public String summarize(String text, McpStreamContext<String> ctx) {
+    CreateMessageResult result = ctx.sample("Summarize: " + text, 200);
+    return result.text();
+}
+```
+
+## Tool Errors
+
+Unhandled exceptions thrown from tool methods are automatically caught and returned as `CallToolResult` responses with `isError=true`. The exception message is sent to the LLM as a `TextContent` block, allowing it to understand and recover from the error. This follows the MCP specification's distinction between tool errors (content-level, visible to the LLM) and protocol errors (JSON-RPC errors for transport/protocol failures).
+
+You can also return tool errors explicitly:
+
+```java
+import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.TextContent;
+
+@ToolMethod(name = "validate", description = "Validates input")
+public CallToolResult validate(String input) {
+    if (input.isBlank()) {
+        return new CallToolResult(
+            List.of(new TextContent("Input must not be blank", null)),
+            true,
+            null);
+    }
+    return new CallToolResult(
+        List.of(new TextContent("Valid", null)),
+        null,
+        null);
+}
+```
+
+## HTTP Transport
+
+Mocapi exposes a Streamable HTTP endpoint that accepts `JsonRpcMessage` payloads directly via `@RequestBody`. The controller handles JSON-RPC request dispatch, SSE streaming, and session management automatically. No manual JSON parsing is required — Jackson's `@JsonCreator` on `JsonRpcMessage` handles polymorphic deserialization of calls, notifications, results, and errors.
 
 ## Running the Example Application
 
