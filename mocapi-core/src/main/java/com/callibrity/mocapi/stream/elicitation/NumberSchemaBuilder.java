@@ -27,8 +27,6 @@ public final class NumberSchemaBuilder {
   private Number minimum;
   private Number maximum;
 
-  public NumberSchemaBuilder() {}
-
   public NumberSchemaBuilder description(String description) {
     this.description = description;
     return this;

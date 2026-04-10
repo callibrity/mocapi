@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T08:29:00-04:00
-ITERATION: 23
-SPEC_COMPLETED: 116-fix-sonar-blocker-and-bug.md
-WHAT_WAS_DONE: Renamed ProgressNotification.METHOD to METHOD_NAME (fixes S1845 BLOCKER — constant/accessor case clash) and added explicit double cast in CountdownTool.sendProgress (fixes S2184 BUG — numeric promotion ambiguity). Updated all call sites in DefaultMcpStreamContext and RequestMetaAndProgressSerializationTest.
-VERIFICATION: mvn verify — BUILD SUCCESS, full reactor green (all 9 modules). grep for ProgressNotification.METHOD returns no matches.
+LAST_RUN: 2026-04-10T08:35:00-04:00
+ITERATION: 24
+SPEC_COMPLETED: 117-fix-sonar-critical-code-smells.md
+WHAT_WAS_DONE: Fixed 13 CRITICAL Sonar code smells: deleted 5 empty constructors (S1186) in schema builders, renamed 6 enum constants to UPPER_SNAKE_CASE (S115) in CompatibilityTools with wire-value preservation via explicit value fields, extracted 2 duplicated string literals (S1192) into constants in CompatibilityTools and StreamableHttpController.
+VERIFICATION: mvn verify — BUILD SUCCESS, full reactor green (all 9 modules).
 STATUS: MORE_WORK
-NEXT_SPEC: 117-fix-sonar-critical-code-smells.md
-NOTES: Both fixes are minimal one-line changes. No new tests needed — existing tests cover the renamed constant and the sendProgress behavior is byte-identical.
+NEXT_SPEC: 118-fix-sonar-deprecation-hygiene.md
+NOTES: ConformanceTools.java was renamed to CompatibilityTools.java (and moved from conformance/ to compat/ package) in a prior iteration — spec file paths were stale. Enum renames required switching from Class<E>-based choose/chooseMany to list-based overloads with custom value functions to preserve "value1"/"value2"/"value3" wire values.

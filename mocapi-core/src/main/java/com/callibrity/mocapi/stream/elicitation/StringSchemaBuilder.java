@@ -29,8 +29,6 @@ public final class StringSchemaBuilder {
   private Integer maxLength;
   private StringFormat format;
 
-  public StringSchemaBuilder() {}
-
   public StringSchemaBuilder description(String description) {
     this.description = description;
     return this;

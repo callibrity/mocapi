@@ -27,8 +27,6 @@ public final class IntegerSchemaBuilder {
   private Number minimum;
   private Number maximum;
 
-  public IntegerSchemaBuilder() {}
-
   public IntegerSchemaBuilder description(String description) {
     this.description = description;
     return this;

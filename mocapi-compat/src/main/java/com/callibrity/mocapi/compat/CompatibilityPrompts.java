@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.compat.conformance;
+package com.callibrity.mocapi.compat;
 
 import com.callibrity.mocapi.model.EmbeddedResource;
 import com.callibrity.mocapi.model.GetPromptResult;
@@ -32,7 +32,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class ConformancePrompts {
+public class CompatibilityPrompts {
 
   // 1x1 red pixel PNG
   private static final String TINY_PNG =

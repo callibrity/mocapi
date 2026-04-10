@@ -33,8 +33,6 @@ public final class RequestedSchemaBuilder {
   private final Map<String, PrimitiveSchemaDefinition> properties = new LinkedHashMap<>();
   private final List<String> requiredNames = new ArrayList<>();
 
-  public RequestedSchemaBuilder() {}
-
   // --- String property methods ---
 
   public RequestedSchemaBuilder string(String name, String description) {

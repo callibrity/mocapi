@@ -65,6 +65,7 @@ import tools.jackson.databind.node.ObjectNode;
 public class StreamableHttpController {
 
   private static final String INITIALIZE = "initialize";
+  private static final String ERROR_KEY = "error";
   private static final String SESSION_REQUIRED = "MCP-Session-Id header is required";
 
   private final JsonRpcDispatcher dispatcher;
@@ -157,14 +158,14 @@ public class StreamableHttpController {
       @RequestHeader(value = "Origin", required = false) String origin) {
 
     if (!validator.isValidOrigin(origin)) {
-      return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid origin"));
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(ERROR_KEY, "Invalid origin"));
     }
     if (sessionId == null) {
-      return ResponseEntity.badRequest().body(Map.of("error", SESSION_REQUIRED));
+      return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, SESSION_REQUIRED));
     }
     if (sessionService.find(sessionId).isEmpty()) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
-          .body(Map.of("error", "Session not found or expired"));
+          .body(Map.of(ERROR_KEY, "Session not found or expired"));
     }
     sessionService.delete(sessionId);
     return ResponseEntity.noContent().build();
@@ -241,7 +242,7 @@ public class StreamableHttpController {
     if (sessionId == null) {
       return ResponseEntity.badRequest()
           .contentType(MediaType.APPLICATION_JSON)
-          .body(Map.of("error", SESSION_REQUIRED));
+          .body(Map.of(ERROR_KEY, SESSION_REQUIRED));
     }
     if ("notifications/initialized".equals(notification.method())) {
       sessionService.find(sessionId).ifPresent(_ -> dispatcher.dispatch(notification));
@@ -253,7 +254,7 @@ public class StreamableHttpController {
     if (sessionId == null) {
       return ResponseEntity.badRequest()
           .contentType(MediaType.APPLICATION_JSON)
-          .body(Map.of("error", SESSION_REQUIRED));
+          .body(Map.of(ERROR_KEY, SESSION_REQUIRED));
     }
     JsonNode idNode = result.id();
     if (idNode != null && !idNode.isNull()) {
@@ -268,7 +269,7 @@ public class StreamableHttpController {
     if (sessionId == null) {
       return ResponseEntity.badRequest()
           .contentType(MediaType.APPLICATION_JSON)
-          .body(Map.of("error", SESSION_REQUIRED));
+          .body(Map.of(ERROR_KEY, SESSION_REQUIRED));
     }
     JsonNode idNode = error.id();
     if (idNode != null && !idNode.isNull()) {
@@ -300,7 +301,7 @@ public class StreamableHttpController {
     ObjectNode error = objectMapper.createObjectNode();
     error.put("code", code);
     error.put("message", message);
-    node.set("error", error);
+    node.set(ERROR_KEY, error);
     return node;
   }
 

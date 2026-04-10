@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.compat.conformance;
+package com.callibrity.mocapi.compat;
 
 import com.callibrity.mocapi.model.AudioContent;
 import com.callibrity.mocapi.model.CallToolResult;
@@ -27,6 +27,7 @@ import com.callibrity.mocapi.stream.elicitation.MultiSelectEnumSchemaBuilder;
 import com.callibrity.mocapi.stream.elicitation.SingleSelectEnumSchemaBuilder;
 import com.callibrity.mocapi.tools.annotation.ToolMethod;
 import com.callibrity.mocapi.tools.annotation.ToolService;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.function.Consumer;
@@ -40,7 +41,9 @@ import java.util.function.Consumer;
  *     Specification</a>
  */
 @ToolService
-public class ConformanceTools {
+public class CompatibilityTools {
+
+  private static final String TEST_TOOL_WITH_LOGGING = "test_tool_with_logging";
 
   // 1x1 red pixel PNG
   private static final String TINY_PNG =
@@ -270,23 +273,23 @@ public class ConformanceTools {
    *     Logging Specification</a>
    */
   @ToolMethod(
-      name = "test_tool_with_logging",
+      name = TEST_TOOL_WITH_LOGGING,
       description = "Sends log messages during execution for conformance testing")
   public CallToolResult withLogging(McpStreamContext<CallToolResult> ctx)
       throws InterruptedException {
     ctx.log(
         com.callibrity.mocapi.model.LoggingLevel.INFO,
-        "test_tool_with_logging",
+        TEST_TOOL_WITH_LOGGING,
         "Tool execution started");
     Thread.sleep(50);
     ctx.log(
         com.callibrity.mocapi.model.LoggingLevel.INFO,
-        "test_tool_with_logging",
+        TEST_TOOL_WITH_LOGGING,
         "Tool processing data");
     Thread.sleep(50);
     ctx.log(
         com.callibrity.mocapi.model.LoggingLevel.INFO,
-        "test_tool_with_logging",
+        TEST_TOOL_WITH_LOGGING,
         "Tool execution completed");
     return new CallToolResult(
         List.of(new TextContent("Logging test completed successfully", null)), null, null);
@@ -398,14 +401,20 @@ public class ConformanceTools {
   }
 
   enum TitledOption {
-    value1("First Option"),
-    value2("Second Option"),
-    value3("Third Option");
+    VALUE_1("value1", "First Option"),
+    VALUE_2("value2", "Second Option"),
+    VALUE_3("value3", "Third Option");
 
+    private final String value;
     private final String title;
 
-    TitledOption(String title) {
+    TitledOption(String value, String title) {
+      this.value = value;
       this.title = title;
+    }
+
+    String value() {
+      return value;
     }
 
     @Override
@@ -415,14 +424,20 @@ public class ConformanceTools {
   }
 
   enum TitledMultiOption {
-    value1("First Choice"),
-    value2("Second Choice"),
-    value3("Third Choice");
+    VALUE_1("value1", "First Choice"),
+    VALUE_2("value2", "Second Choice"),
+    VALUE_3("value3", "Third Choice");
 
+    private final String value;
     private final String title;
 
-    TitledMultiOption(String title) {
+    TitledMultiOption(String value, String title) {
+      this.value = value;
       this.title = title;
+    }
+
+    String value() {
+      return value;
     }
 
     @Override
@@ -451,13 +466,21 @@ public class ConformanceTools {
             "Enum variants test",
             schema -> {
               schema.choose("untitledSingle", List.of("option1", "option2", "option3"));
-              schema.choose("titledSingle", TitledOption.class, titledSingle);
+              schema.choose(
+                  "titledSingle",
+                  Arrays.asList(TitledOption.values()),
+                  TitledOption::value,
+                  titledSingle);
               schema.chooseLegacy(
                   "legacyEnum",
                   List.of("opt1", "opt2", "opt3"),
                   List.of("Option One", "Option Two", "Option Three"));
               schema.chooseMany("untitledMulti", List.of("option1", "option2", "option3"));
-              schema.chooseMany("titledMulti", TitledMultiOption.class, titledMulti);
+              schema.chooseMany(
+                  "titledMulti",
+                  Arrays.asList(TitledMultiOption.values()),
+                  TitledMultiOption::value,
+                  titledMulti);
             });
     return new CallToolResult(
         List.of(new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),

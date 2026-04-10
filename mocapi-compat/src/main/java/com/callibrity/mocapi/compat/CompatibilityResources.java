@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.compat.conformance;
+package com.callibrity.mocapi.compat;
 
 import com.callibrity.mocapi.model.BlobResourceContents;
 import com.callibrity.mocapi.model.ReadResourceResult;
@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class ConformanceResources {
+public class CompatibilityResources {
 
   // 1x1 red pixel PNG
   private static final String TINY_PNG =

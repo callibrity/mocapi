@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.compat.conformance;
+package com.callibrity.mocapi.compat;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -22,14 +22,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ConformanceApplication {
+public class CompatibilityApplication {
 
   static void main(String[] args) {
     byte[] key = new byte[32];
     new SecureRandom().nextBytes(key);
     String encoded = Base64.getEncoder().encodeToString(key);
 
-    SpringApplication app = new SpringApplication(ConformanceApplication.class);
+    SpringApplication app = new SpringApplication(CompatibilityApplication.class);
     app.setDefaultProperties(Map.of("mocapi.session-encryption-master-key", encoded));
     app.run(args);
   }

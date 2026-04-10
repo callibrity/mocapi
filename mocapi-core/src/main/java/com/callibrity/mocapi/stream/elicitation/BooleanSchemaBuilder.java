@@ -25,8 +25,6 @@ public final class BooleanSchemaBuilder {
   private boolean required = true;
   private Boolean defaultValue;
 
-  public BooleanSchemaBuilder() {}
-
   public BooleanSchemaBuilder description(String description) {
     this.description = description;
     return this;

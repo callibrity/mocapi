@@ -18,7 +18,6 @@ package com.callibrity.mocapi.compat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.callibrity.mocapi.compat.conformance.ConformanceApplication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +27,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.node.ObjectNode;
 
-@SpringBootTest(classes = ConformanceApplication.class)
+@SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
 class LoggingSetLevelIT {
