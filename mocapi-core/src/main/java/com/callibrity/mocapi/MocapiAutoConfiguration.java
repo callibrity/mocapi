@@ -17,19 +17,19 @@ package com.callibrity.mocapi;
 
 import com.callibrity.mocapi.http.McpRequestValidator;
 import com.callibrity.mocapi.http.StreamableHttpController;
+import com.callibrity.mocapi.model.CompletionsCapability;
+import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.model.InitializeResult;
+import com.callibrity.mocapi.model.LoggingCapability;
+import com.callibrity.mocapi.model.PromptsCapability;
+import com.callibrity.mocapi.model.ResourcesCapability;
+import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.model.ToolsCapability;
 import com.callibrity.mocapi.prompts.McpPromptMethods;
 import com.callibrity.mocapi.prompts.PromptsRegistry;
 import com.callibrity.mocapi.resources.McpResourceMethods;
 import com.callibrity.mocapi.resources.ResourcesRegistry;
-import com.callibrity.mocapi.server.CompletionsCapabilityDescriptor;
-import com.callibrity.mocapi.server.InitializeResponse;
-import com.callibrity.mocapi.server.LoggingCapabilityDescriptor;
 import com.callibrity.mocapi.server.McpCompletionMethods;
-import com.callibrity.mocapi.server.PromptsCapabilityDescriptor;
-import com.callibrity.mocapi.server.ResourcesCapabilityDescriptor;
-import com.callibrity.mocapi.server.ServerCapabilities;
-import com.callibrity.mocapi.server.ServerInfo;
-import com.callibrity.mocapi.server.ToolsCapabilityDescriptor;
 import com.callibrity.mocapi.session.InMemoryMcpSessionStore;
 import com.callibrity.mocapi.session.McpLoggingMethods;
 import com.callibrity.mocapi.session.McpSessionMethods;
@@ -74,27 +74,21 @@ public class MocapiAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public InitializeResponse initializeResponse(
+  public InitializeResult initializeResult(
       ToolsRegistry toolsRegistry,
       ResourcesRegistry resourcesRegistry,
       PromptsRegistry promptsRegistry,
       @Nullable BuildProperties buildProperties) {
     String version = buildProperties != null ? buildProperties.getVersion() : "unknown";
-    ToolsCapabilityDescriptor tools =
-        toolsRegistry.isEmpty() ? null : new ToolsCapabilityDescriptor(false);
-    ResourcesCapabilityDescriptor resources =
-        resourcesRegistry.isEmpty() ? null : new ResourcesCapabilityDescriptor(false, false);
-    PromptsCapabilityDescriptor prompts =
-        promptsRegistry.isEmpty() ? null : new PromptsCapabilityDescriptor(false);
-    return new InitializeResponse(
-        InitializeResponse.PROTOCOL_VERSION,
+    ToolsCapability tools = toolsRegistry.isEmpty() ? null : new ToolsCapability(false);
+    ResourcesCapability resources =
+        resourcesRegistry.isEmpty() ? null : new ResourcesCapability(false, false);
+    PromptsCapability prompts = promptsRegistry.isEmpty() ? null : new PromptsCapability(false);
+    return new InitializeResult(
+        InitializeResult.PROTOCOL_VERSION,
         new ServerCapabilities(
-            tools,
-            new LoggingCapabilityDescriptor(),
-            new CompletionsCapabilityDescriptor(),
-            resources,
-            prompts),
-        new ServerInfo(props.getServerName(), props.getServerTitle(), version, null, null, null),
+            tools, new LoggingCapability(), new CompletionsCapability(), resources, prompts),
+        new Implementation(props.getServerName(), props.getServerTitle(), version),
         props.getInstructions());
   }
 
@@ -141,8 +135,8 @@ public class MocapiAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpSessionMethods mcpSessionMethods(InitializeResponse initializeResponse) {
-    return new McpSessionMethods(initializeResponse);
+  public McpSessionMethods mcpSessionMethods(InitializeResult initializeResult) {
+    return new McpSessionMethods(initializeResult);
   }
 
   @Bean

@@ -15,33 +15,39 @@
  */
 package com.callibrity.mocapi.session;
 
+import com.callibrity.mocapi.model.ClientCapabilities;
+import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.model.LoggingLevel;
+
 /** Immutable record of the client data captured during the MCP initialize handshake. */
 public record McpSession(
     String protocolVersion,
     ClientCapabilities capabilities,
-    ClientInfo clientInfo,
-    LogLevel logLevel,
+    Implementation clientInfo,
+    LoggingLevel logLevel,
     String sessionId) {
 
   public static final ScopedValue<McpSession> CURRENT = ScopedValue.newInstance();
 
-  /** Creates a session with the default log level ({@link LogLevel#WARNING}) and no session ID. */
+  /**
+   * Creates a session with the default log level ({@link LoggingLevel#WARNING}) and no session ID.
+   */
   public McpSession(
-      String protocolVersion, ClientCapabilities capabilities, ClientInfo clientInfo) {
-    this(protocolVersion, capabilities, clientInfo, LogLevel.WARNING, null);
+      String protocolVersion, ClientCapabilities capabilities, Implementation clientInfo) {
+    this(protocolVersion, capabilities, clientInfo, LoggingLevel.WARNING, null);
   }
 
   /** Creates a session with the given log level and no session ID. */
   public McpSession(
       String protocolVersion,
       ClientCapabilities capabilities,
-      ClientInfo clientInfo,
-      LogLevel logLevel) {
+      Implementation clientInfo,
+      LoggingLevel logLevel) {
     this(protocolVersion, capabilities, clientInfo, logLevel, null);
   }
 
   /** Returns a copy of this session with the given log level. */
-  public McpSession withLogLevel(LogLevel logLevel) {
+  public McpSession withLogLevel(LoggingLevel logLevel) {
     return new McpSession(protocolVersion, capabilities, clientInfo, logLevel, sessionId);
   }
 
@@ -52,19 +58,12 @@ public record McpSession(
 
   /** Returns true if the client supports form-based elicitation. */
   public boolean supportsElicitationForm() {
-    if (capabilities == null || capabilities.elicitation() == null) {
-      return false;
-    }
-    // Per spec, empty elicitation object defaults to form-only support.
-    return capabilities.elicitation().form() != null
-        || (capabilities.elicitation().form() == null && capabilities.elicitation().url() == null);
+    return capabilities != null && capabilities.elicitation() != null;
   }
 
   /** Returns true if the client supports URL-based elicitation. */
   public boolean supportsElicitationUrl() {
-    return capabilities != null
-        && capabilities.elicitation() != null
-        && capabilities.elicitation().url() != null;
+    return false;
   }
 
   /** Returns true if the client supports sampling. */

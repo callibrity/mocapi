@@ -17,46 +17,35 @@ package com.callibrity.mocapi.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.mocapi.model.ClientCapabilities;
+import com.callibrity.mocapi.model.ElicitationCapability;
+import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.model.RootsCapability;
+import com.callibrity.mocapi.model.SamplingCapability;
 import org.junit.jupiter.api.Test;
 
 class McpSessionTest {
 
-  private static final ClientInfo CLIENT_INFO =
-      new ClientInfo("test-client", null, "1.0", null, null, null);
+  private static final Implementation CLIENT_INFO = new Implementation("test-client", null, "1.0");
 
   @Test
   void shouldStoreProtocolVersionAndClientInfo() {
     var session =
-        new McpSession(
-            "2025-11-25", new ClientCapabilities(null, null, null, null, null), CLIENT_INFO);
+        new McpSession("2025-11-25", new ClientCapabilities(null, null, null), CLIENT_INFO);
     assertThat(session.protocolVersion()).isEqualTo("2025-11-25");
     assertThat(session.clientInfo().name()).isEqualTo("test-client");
   }
 
   @Test
-  void supportsElicitationFormShouldReturnTrueWhenFormPresent() {
-    var caps =
-        new ClientCapabilities(
-            null,
-            null,
-            new ElicitationCapability(new ElicitationCapability.FormCapability(), null),
-            null,
-            null);
-    var session = new McpSession("2025-11-25", caps, CLIENT_INFO);
-    assertThat(session.supportsElicitationForm()).isTrue();
-  }
-
-  @Test
-  void supportsElicitationFormShouldReturnTrueForEmptyElicitation() {
-    var caps =
-        new ClientCapabilities(null, null, new ElicitationCapability(null, null), null, null);
+  void supportsElicitationFormShouldReturnTrueWhenElicitationPresent() {
+    var caps = new ClientCapabilities(null, null, new ElicitationCapability());
     var session = new McpSession("2025-11-25", caps, CLIENT_INFO);
     assertThat(session.supportsElicitationForm()).isTrue();
   }
 
   @Test
   void supportsElicitationFormShouldReturnFalseWhenElicitationNull() {
-    var caps = new ClientCapabilities(null, null, null, null, null);
+    var caps = new ClientCapabilities(null, null, null);
     var session = new McpSession("2025-11-25", caps, CLIENT_INFO);
     assertThat(session.supportsElicitationForm()).isFalse();
   }
@@ -68,50 +57,36 @@ class McpSessionTest {
   }
 
   @Test
-  void supportsElicitationUrlShouldReturnTrueWhenUrlPresent() {
-    var caps =
-        new ClientCapabilities(
-            null,
-            null,
-            new ElicitationCapability(null, new ElicitationCapability.UrlCapability()),
-            null,
-            null);
-    var session = new McpSession("2025-11-25", caps, CLIENT_INFO);
-    assertThat(session.supportsElicitationUrl()).isTrue();
-  }
-
-  @Test
-  void supportsElicitationUrlShouldReturnFalseWhenUrlAbsent() {
-    var caps =
-        new ClientCapabilities(null, null, new ElicitationCapability(null, null), null, null);
+  void supportsElicitationUrlShouldAlwaysReturnFalse() {
+    var caps = new ClientCapabilities(null, null, new ElicitationCapability());
     var session = new McpSession("2025-11-25", caps, CLIENT_INFO);
     assertThat(session.supportsElicitationUrl()).isFalse();
   }
 
   @Test
   void supportsSamplingShouldReturnTrueWhenPresent() {
-    var caps = new ClientCapabilities(null, new SamplingCapability(), null, null, null);
+    var caps = new ClientCapabilities(null, new SamplingCapability(), null);
     var session = new McpSession("2025-11-25", caps, CLIENT_INFO);
     assertThat(session.supportsSampling()).isTrue();
   }
 
   @Test
   void supportsSamplingShouldReturnFalseWhenAbsent() {
-    var caps = new ClientCapabilities(null, null, null, null, null);
+    var caps = new ClientCapabilities(null, null, null);
     var session = new McpSession("2025-11-25", caps, CLIENT_INFO);
     assertThat(session.supportsSampling()).isFalse();
   }
 
   @Test
   void supportsRootsShouldReturnTrueWhenPresent() {
-    var caps = new ClientCapabilities(new RootsCapability(true), null, null, null, null);
+    var caps = new ClientCapabilities(new RootsCapability(true), null, null);
     var session = new McpSession("2025-11-25", caps, CLIENT_INFO);
     assertThat(session.supportsRoots()).isTrue();
   }
 
   @Test
   void supportsRootsShouldReturnFalseWhenAbsent() {
-    var caps = new ClientCapabilities(null, null, null, null, null);
+    var caps = new ClientCapabilities(null, null, null);
     var session = new McpSession("2025-11-25", caps, CLIENT_INFO);
     assertThat(session.supportsRoots()).isFalse();
   }

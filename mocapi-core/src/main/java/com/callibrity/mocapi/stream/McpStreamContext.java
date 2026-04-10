@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.stream;
 
-import com.callibrity.mocapi.session.LogLevel;
+import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.stream.elicitation.BeanElicitationResult;
 import com.callibrity.mocapi.stream.elicitation.ElicitationResult;
 import com.callibrity.mocapi.stream.elicitation.ElicitationSchemaBuilder;
@@ -66,7 +66,7 @@ public interface McpStreamContext<O> {
    * @param logger the logger name (typically the tool name)
    * @param data the log data (message string or structured object)
    */
-  void log(LogLevel level, String logger, Object data);
+  void log(LoggingLevel level, String logger, Object data);
 
   /**
    * Sends a log notification ({@code notifications/message}) to the client using a default logger.
@@ -75,46 +75,46 @@ public interface McpStreamContext<O> {
    * @param level the log level
    * @param message the log message
    */
-  void log(LogLevel level, String message);
+  void log(LoggingLevel level, String message);
 
-  /** Convenience method for {@link LogLevel#DEBUG}. */
+  /** Convenience method for {@link LoggingLevel#DEBUG}. */
   default void debug(String logger, Object data) {
-    log(LogLevel.DEBUG, logger, data);
+    log(LoggingLevel.DEBUG, logger, data);
   }
 
-  /** Convenience method for {@link LogLevel#INFO}. */
+  /** Convenience method for {@link LoggingLevel#INFO}. */
   default void info(String logger, Object data) {
-    log(LogLevel.INFO, logger, data);
+    log(LoggingLevel.INFO, logger, data);
   }
 
-  /** Convenience method for {@link LogLevel#NOTICE}. */
+  /** Convenience method for {@link LoggingLevel#NOTICE}. */
   default void notice(String logger, Object data) {
-    log(LogLevel.NOTICE, logger, data);
+    log(LoggingLevel.NOTICE, logger, data);
   }
 
-  /** Convenience method for {@link LogLevel#WARNING}. */
+  /** Convenience method for {@link LoggingLevel#WARNING}. */
   default void warning(String logger, Object data) {
-    log(LogLevel.WARNING, logger, data);
+    log(LoggingLevel.WARNING, logger, data);
   }
 
-  /** Convenience method for {@link LogLevel#ERROR}. */
+  /** Convenience method for {@link LoggingLevel#ERROR}. */
   default void error(String logger, Object data) {
-    log(LogLevel.ERROR, logger, data);
+    log(LoggingLevel.ERROR, logger, data);
   }
 
-  /** Convenience method for {@link LogLevel#CRITICAL}. */
+  /** Convenience method for {@link LoggingLevel#CRITICAL}. */
   default void critical(String logger, Object data) {
-    log(LogLevel.CRITICAL, logger, data);
+    log(LoggingLevel.CRITICAL, logger, data);
   }
 
-  /** Convenience method for {@link LogLevel#ALERT}. */
+  /** Convenience method for {@link LoggingLevel#ALERT}. */
   default void alert(String logger, Object data) {
-    log(LogLevel.ALERT, logger, data);
+    log(LoggingLevel.ALERT, logger, data);
   }
 
-  /** Convenience method for {@link LogLevel#EMERGENCY}. */
+  /** Convenience method for {@link LoggingLevel#EMERGENCY}. */
   default void emergency(String logger, Object data) {
-    log(LogLevel.EMERGENCY, logger, data);
+    log(LoggingLevel.EMERGENCY, logger, data);
   }
 
   /**

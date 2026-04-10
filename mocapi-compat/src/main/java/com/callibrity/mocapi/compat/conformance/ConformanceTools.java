@@ -272,17 +272,17 @@ public class ConformanceTools {
   public CallToolResult withLogging(McpStreamContext<CallToolResult> ctx)
       throws InterruptedException {
     ctx.log(
-        com.callibrity.mocapi.session.LogLevel.INFO,
+        com.callibrity.mocapi.model.LoggingLevel.INFO,
         "test_tool_with_logging",
         "Tool execution started");
     Thread.sleep(50);
     ctx.log(
-        com.callibrity.mocapi.session.LogLevel.INFO,
+        com.callibrity.mocapi.model.LoggingLevel.INFO,
         "test_tool_with_logging",
         "Tool processing data");
     Thread.sleep(50);
     ctx.log(
-        com.callibrity.mocapi.session.LogLevel.INFO,
+        com.callibrity.mocapi.model.LoggingLevel.INFO,
         "test_tool_with_logging",
         "Tool execution completed");
     return new CallToolResult(

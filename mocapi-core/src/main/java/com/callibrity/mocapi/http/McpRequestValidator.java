@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.http;
 
-import com.callibrity.mocapi.server.InitializeResponse;
+import com.callibrity.mocapi.model.InitializeResult;
 import java.net.URI;
 import java.util.List;
 import java.util.Set;
@@ -37,8 +37,7 @@ public class McpRequestValidator {
 
   /** Validates the MCP-Protocol-Version header. Defaults to the current version if null. */
   public boolean isValidProtocolVersion(String protocolVersion) {
-    String version =
-        protocolVersion != null ? protocolVersion : InitializeResponse.PROTOCOL_VERSION;
+    String version = protocolVersion != null ? protocolVersion : InitializeResult.PROTOCOL_VERSION;
     return KNOWN_PROTOCOL_VERSIONS.contains(version);
   }
 

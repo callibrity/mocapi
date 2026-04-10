@@ -24,6 +24,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.callibrity.mocapi.model.LoggingLevel;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Optional;
@@ -106,16 +107,16 @@ class McpSessionServiceTest {
     McpSession session = new McpSession("2025-11-25", null, null);
     when(store.find("sess-123")).thenReturn(Optional.of(session));
 
-    service.setLogLevel("sess-123", LogLevel.DEBUG);
+    service.setLogLevel("sess-123", LoggingLevel.DEBUG);
 
-    verify(store).update(eq("sess-123"), eq(session.withLogLevel(LogLevel.DEBUG)));
+    verify(store).update(eq("sess-123"), eq(session.withLogLevel(LoggingLevel.DEBUG)));
   }
 
   @Test
   void setLogLevelThrowsWhenSessionNotFound() {
     when(store.find("sess-missing")).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.setLogLevel("sess-missing", LogLevel.DEBUG))
+    assertThatThrownBy(() -> service.setLogLevel("sess-missing", LoggingLevel.DEBUG))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Session not found");
   }

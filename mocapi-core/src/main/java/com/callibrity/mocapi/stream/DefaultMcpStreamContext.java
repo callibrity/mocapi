@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.stream;
 
-import com.callibrity.mocapi.session.LogLevel;
+import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStream;
@@ -121,8 +121,8 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
   }
 
   @Override
-  public void log(LogLevel level, String logger, Object data) {
-    LogLevel threshold = currentLogLevel();
+  public void log(LoggingLevel level, String logger, Object data) {
+    LoggingLevel threshold = currentLoggingLevel();
     if (level.ordinal() < threshold.ordinal()) {
       return;
     }
@@ -134,7 +134,7 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
   }
 
   @Override
-  public void log(LogLevel level, String message) {
+  public void log(LoggingLevel level, String message) {
     log(level, "mcp", message);
   }
 
@@ -209,11 +209,11 @@ public class DefaultMcpStreamContext<O> implements McpStreamContext<O> {
     return node;
   }
 
-  private LogLevel currentLogLevel() {
+  private LoggingLevel currentLoggingLevel() {
     if (sessionId == null || sessionService == null) {
-      return LogLevel.WARNING;
+      return LoggingLevel.WARNING;
     }
-    return sessionService.find(sessionId).map(McpSession::logLevel).orElse(LogLevel.WARNING);
+    return sessionService.find(sessionId).map(McpSession::logLevel).orElse(LoggingLevel.WARNING);
   }
 
   private McpSession currentSession() {

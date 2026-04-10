@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.session;
 
+import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.security.Ciphers;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -128,7 +129,7 @@ public class McpSessionService {
   }
 
   /** Updates the log level for the given session. */
-  public void setLogLevel(String sessionId, LogLevel level) {
+  public void setLogLevel(String sessionId, LoggingLevel level) {
     McpSession session =
         store
             .find(sessionId)

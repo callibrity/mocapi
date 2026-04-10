@@ -24,9 +24,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.session.ClientCapabilities;
-import com.callibrity.mocapi.session.ElicitationCapability;
-import com.callibrity.mocapi.session.LogLevel;
+import com.callibrity.mocapi.model.ClientCapabilities;
+import com.callibrity.mocapi.model.ElicitationCapability;
+import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStream;
@@ -92,12 +92,11 @@ class DefaultMcpStreamContextTest {
         null);
   }
 
-  private McpSession sessionWithLogLevel(LogLevel level) {
-    return new McpSession(
-        "2025-11-25", new ClientCapabilities(null, null, null, null, null), null, level);
+  private McpSession sessionWithLogLevel(LoggingLevel level) {
+    return new McpSession("2025-11-25", new ClientCapabilities(null, null, null), null, level);
   }
 
-  private void stubSessionWithLogLevel(String sessionId, LogLevel level) {
+  private void stubSessionWithLogLevel(String sessionId, LoggingLevel level) {
     when(sessionService.find(sessionId)).thenReturn(Optional.of(sessionWithLogLevel(level)));
   }
 
@@ -153,9 +152,9 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void logWithLoggerShouldPublishMessageNotification() {
-    stubSessionWithLogLevel("sess-1", LogLevel.DEBUG);
+    stubSessionWithLogLevel("sess-1", LoggingLevel.DEBUG);
     var context = createContext(null, "sess-1");
-    context.log(LogLevel.INFO, "my-tool", "Tool execution started");
+    context.log(LoggingLevel.INFO, "my-tool", "Tool execution started");
 
     ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
     verify(stream).publishJson(captor.capture());
@@ -171,9 +170,9 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void logWithoutLoggerShouldUseDefaultLogger() {
-    stubSessionWithLogLevel("sess-1", LogLevel.DEBUG);
+    stubSessionWithLogLevel("sess-1", LoggingLevel.DEBUG);
     var context = createContext(null, "sess-1");
-    context.log(LogLevel.WARNING, "Something happened");
+    context.log(LoggingLevel.WARNING, "Something happened");
 
     ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
     verify(stream).publishJson(captor.capture());
@@ -186,9 +185,9 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void logWithStructuredDataShouldSerializeAsJson() {
-    stubSessionWithLogLevel("sess-1", LogLevel.DEBUG);
+    stubSessionWithLogLevel("sess-1", LoggingLevel.DEBUG);
     var context = createContext(null, "sess-1");
-    context.log(LogLevel.ERROR, "my-tool", Map.of("key", "value"));
+    context.log(LoggingLevel.ERROR, "my-tool", Map.of("key", "value"));
 
     ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
     verify(stream).publishJson(captor.capture());
@@ -199,9 +198,9 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void logWithNullDataShouldSerializeAsNullNode() {
-    stubSessionWithLogLevel("sess-1", LogLevel.DEBUG);
+    stubSessionWithLogLevel("sess-1", LoggingLevel.DEBUG);
     var context = createContext(null, "sess-1");
-    context.log(LogLevel.INFO, "my-tool", null);
+    context.log(LoggingLevel.INFO, "my-tool", null);
 
     ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
     verify(stream).publishJson(captor.capture());
@@ -212,9 +211,9 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void logWithArrayDataShouldSerializeAsArrayNode() {
-    stubSessionWithLogLevel("sess-1", LogLevel.DEBUG);
+    stubSessionWithLogLevel("sess-1", LoggingLevel.DEBUG);
     var context = createContext(null, "sess-1");
-    context.log(LogLevel.INFO, "my-tool", java.util.List.of("a", "b", "c"));
+    context.log(LoggingLevel.INFO, "my-tool", java.util.List.of("a", "b", "c"));
 
     ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
     verify(stream).publishJson(captor.capture());
@@ -228,27 +227,27 @@ class DefaultMcpStreamContextTest {
 
   @Test
   void logBelowThresholdShouldBeDropped() {
-    stubSessionWithLogLevel("sess-1", LogLevel.WARNING);
+    stubSessionWithLogLevel("sess-1", LoggingLevel.WARNING);
     var context = createContext(null, "sess-1");
-    context.log(LogLevel.DEBUG, "my-tool", "Should be dropped");
+    context.log(LoggingLevel.DEBUG, "my-tool", "Should be dropped");
 
     verify(stream, org.mockito.Mockito.never()).publishJson(org.mockito.ArgumentMatchers.any());
   }
 
   @Test
   void logAtThresholdShouldBePublished() {
-    stubSessionWithLogLevel("sess-1", LogLevel.WARNING);
+    stubSessionWithLogLevel("sess-1", LoggingLevel.WARNING);
     var context = createContext(null, "sess-1");
-    context.log(LogLevel.WARNING, "my-tool", "At threshold");
+    context.log(LoggingLevel.WARNING, "my-tool", "At threshold");
 
     verify(stream).publishJson(org.mockito.ArgumentMatchers.any());
   }
 
   @Test
   void logAboveThresholdShouldBePublished() {
-    stubSessionWithLogLevel("sess-1", LogLevel.WARNING);
+    stubSessionWithLogLevel("sess-1", LoggingLevel.WARNING);
     var context = createContext(null, "sess-1");
-    context.log(LogLevel.ERROR, "my-tool", "Above threshold");
+    context.log(LoggingLevel.ERROR, "my-tool", "Above threshold");
 
     verify(stream).publishJson(org.mockito.ArgumentMatchers.any());
   }
@@ -256,14 +255,14 @@ class DefaultMcpStreamContextTest {
   @Test
   void logWithNullSessionIdShouldDefaultToWarningThreshold() {
     var context = createContext(null, null);
-    context.log(LogLevel.DEBUG, "my-tool", "Should be dropped");
+    context.log(LoggingLevel.DEBUG, "my-tool", "Should be dropped");
 
     verify(stream, org.mockito.Mockito.never()).publishJson(org.mockito.ArgumentMatchers.any());
   }
 
   @Test
   void convenienceMethodsShouldDelegateToLog() {
-    stubSessionWithLogLevel("sess-1", LogLevel.DEBUG);
+    stubSessionWithLogLevel("sess-1", LoggingLevel.DEBUG);
     var context = createContext(null, "sess-1");
     context.debug("my-tool", "debug msg");
     context.info("my-tool", "info msg");
@@ -299,18 +298,11 @@ class DefaultMcpStreamContextTest {
 
   private McpSession sessionWithElicitation() {
     return new McpSession(
-        "2025-11-25",
-        new ClientCapabilities(
-            null,
-            null,
-            new ElicitationCapability(new ElicitationCapability.FormCapability(), null),
-            null,
-            null),
-        null);
+        "2025-11-25", new ClientCapabilities(null, null, new ElicitationCapability()), null);
   }
 
   private McpSession sessionWithoutElicitation() {
-    return new McpSession("2025-11-25", new ClientCapabilities(null, null, null, null, null), null);
+    return new McpSession("2025-11-25", new ClientCapabilities(null, null, null), null);
   }
 
   private Mailbox<JsonNode> mockMailbox() {

@@ -23,11 +23,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.server.InitializeResponse;
-import com.callibrity.mocapi.server.ServerCapabilities;
-import com.callibrity.mocapi.server.ServerInfo;
-import com.callibrity.mocapi.session.ClientCapabilities;
-import com.callibrity.mocapi.session.ClientInfo;
+import com.callibrity.mocapi.model.ClientCapabilities;
+import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.model.InitializeResult;
+import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.session.InMemoryMcpSessionStore;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionMethods;
@@ -78,11 +77,11 @@ class StreamableHttpControllerComplianceTest {
 
   @BeforeEach
   void setUp() {
-    InitializeResponse initializeResponse =
-        new InitializeResponse(
-            InitializeResponse.PROTOCOL_VERSION,
-            new ServerCapabilities(null, null),
-            new ServerInfo("test", null, "1.0", null, null, null),
+    InitializeResult initializeResult =
+        new InitializeResult(
+            InitializeResult.PROTOCOL_VERSION,
+            new ServerCapabilities(null, null, null, null, null),
+            new Implementation("test", null, "1.0"),
             null);
     registry = mock(OdysseyStreamRegistry.class);
 
@@ -104,7 +103,7 @@ class StreamableHttpControllerComplianceTest {
     new SecureRandom().nextBytes(masterKey);
     sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT, registry);
 
-    McpSessionMethods serverMethods = new McpSessionMethods(initializeResponse);
+    McpSessionMethods serverMethods = new McpSessionMethods(initializeResult);
     MethodInvokerFactory invokerFactory =
         new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(objectMapper)));
     JsonRpcMethodProvider serverProvider =
@@ -132,8 +131,8 @@ class StreamableHttpControllerComplianceTest {
     return sessionService.create(
         new McpSession(
             "2025-11-25",
-            new ClientCapabilities(null, null, null, null, null),
-            new ClientInfo("test", null, "1.0", null, null, null)));
+            new ClientCapabilities(null, null, null),
+            new Implementation("test", null, "1.0")));
   }
 
   // ---- Gap 1: Notifications must return 202 Accepted ----

@@ -17,9 +17,9 @@ package com.callibrity.mocapi.http;
 
 import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
 
-import com.callibrity.mocapi.server.InitializeResponse;
-import com.callibrity.mocapi.session.ClientCapabilities;
-import com.callibrity.mocapi.session.ClientInfo;
+import com.callibrity.mocapi.model.ClientCapabilities;
+import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.model.InitializeResult;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStream;
@@ -121,8 +121,7 @@ public class StreamableHttpController {
     if (sessionService.find(sessionId).isEmpty()) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
-    String version =
-        protocolVersion != null ? protocolVersion : InitializeResponse.PROTOCOL_VERSION;
+    String version = protocolVersion != null ? protocolVersion : InitializeResult.PROTOCOL_VERSION;
     if (!validator.isValidProtocolVersion(version)) {
       return ResponseEntity.badRequest().build();
     }
@@ -161,8 +160,7 @@ public class StreamableHttpController {
       JsonRpcCall call, String protocolVersion, String sessionId, String origin) {
     JsonNode id = call.id();
 
-    String version =
-        protocolVersion != null ? protocolVersion : InitializeResponse.PROTOCOL_VERSION;
+    String version = protocolVersion != null ? protocolVersion : InitializeResult.PROTOCOL_VERSION;
     if (!validator.isValidProtocolVersion(version)) {
       return ResponseEntity.badRequest()
           .body(errorResponse(id, -32600, "Invalid MCP-Protocol-Version: " + version));
@@ -273,7 +271,8 @@ public class StreamableHttpController {
     String protocolVersion = params.path("protocolVersion").asString();
     ClientCapabilities capabilities =
         objectMapper.treeToValue(params.get("capabilities"), ClientCapabilities.class);
-    ClientInfo clientInfo = objectMapper.treeToValue(params.get("clientInfo"), ClientInfo.class);
+    Implementation clientInfo =
+        objectMapper.treeToValue(params.get("clientInfo"), Implementation.class);
     McpSession session = new McpSession(protocolVersion, capabilities, clientInfo);
     String newSessionId = sessionService.create(session);
     log.info("Created new session {} for initialize request", newSessionId);

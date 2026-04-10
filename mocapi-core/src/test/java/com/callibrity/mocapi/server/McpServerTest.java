@@ -17,6 +17,10 @@ package com.callibrity.mocapi.server;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.model.InitializeResult;
+import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.model.ToolsCapability;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
@@ -25,31 +29,31 @@ class McpServerTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
-  void initializeResponseShouldSerializeWithNonNullCapabilities() throws Exception {
-    var response =
-        new InitializeResponse(
-            InitializeResponse.PROTOCOL_VERSION,
-            new ServerCapabilities(new ToolsCapabilityDescriptor(false), null),
-            new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
+  void initializeResultShouldSerializeWithNonNullCapabilities() throws Exception {
+    var result =
+        new InitializeResult(
+            InitializeResult.PROTOCOL_VERSION,
+            new ServerCapabilities(new ToolsCapability(false), null, null, null, null),
+            new Implementation("Test Server", "The Test Server", "1.0.0"),
             "Testing instructions");
 
-    assertThat(response.protocolVersion()).isEqualTo("2025-11-25");
-    assertThat(response.capabilities().tools()).isNotNull();
-    assertThat(response.capabilities().tools().listChanged()).isFalse();
-    assertThat(response.serverInfo().name()).isEqualTo("Test Server");
-    assertThat(response.instructions()).isEqualTo("Testing instructions");
+    assertThat(result.protocolVersion()).isEqualTo("2025-11-25");
+    assertThat(result.capabilities().tools()).isNotNull();
+    assertThat(result.capabilities().tools().listChanged()).isFalse();
+    assertThat(result.serverInfo().name()).isEqualTo("Test Server");
+    assertThat(result.instructions()).isEqualTo("Testing instructions");
   }
 
   @Test
-  void initializeResponseShouldOmitNullCapabilities() throws Exception {
-    var response =
-        new InitializeResponse(
-            InitializeResponse.PROTOCOL_VERSION,
-            new ServerCapabilities(null, null),
-            new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
+  void initializeResultShouldOmitNullCapabilities() throws Exception {
+    var result =
+        new InitializeResult(
+            InitializeResult.PROTOCOL_VERSION,
+            new ServerCapabilities(null, null, null, null, null),
+            new Implementation("Test Server", "The Test Server", "1.0.0"),
             null);
 
-    String json = objectMapper.writeValueAsString(response);
+    String json = objectMapper.writeValueAsString(result);
     assertThat(json).doesNotContain("\"tools\"");
     assertThat(json).doesNotContain("\"instructions\"");
     assertThat(json).contains("\"protocolVersion\"");
@@ -57,22 +61,22 @@ class McpServerTest {
   }
 
   @Test
-  void initializeResponseShouldSerializeToolsCapability() throws Exception {
-    var response =
-        new InitializeResponse(
-            InitializeResponse.PROTOCOL_VERSION,
-            new ServerCapabilities(new ToolsCapabilityDescriptor(false), null),
-            new ServerInfo("Test Server", "The Test Server", "1.0.0", null, null, null),
+  void initializeResultShouldSerializeToolsCapability() throws Exception {
+    var result =
+        new InitializeResult(
+            InitializeResult.PROTOCOL_VERSION,
+            new ServerCapabilities(new ToolsCapability(false), null, null, null, null),
+            new Implementation("Test Server", "The Test Server", "1.0.0"),
             null);
 
-    String json = objectMapper.writeValueAsString(response);
+    String json = objectMapper.writeValueAsString(result);
     assertThat(json).contains("\"tools\"");
     assertThat(json).contains("\"listChanged\"");
   }
 
   @Test
   void pingResponseShouldBeEmpty() {
-    var response = new PingResponse();
+    var response = java.util.Map.of();
     assertThat(response).isNotNull();
   }
 }

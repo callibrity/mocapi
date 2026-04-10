@@ -15,26 +15,26 @@
  */
 package com.callibrity.mocapi.session;
 
-import com.callibrity.mocapi.server.InitializeResponse;
-import com.callibrity.mocapi.server.PingResponse;
+import com.callibrity.mocapi.model.InitializeResult;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 
 @JsonRpcService
 @RequiredArgsConstructor
 public class McpSessionMethods {
 
-  private final InitializeResponse initializeResponse;
+  private final InitializeResult initializeResult;
 
   @JsonRpcMethod("initialize")
-  public InitializeResponse initialize() {
-    return initializeResponse;
+  public InitializeResult initialize() {
+    return initializeResult;
   }
 
   @JsonRpcMethod("ping")
-  public PingResponse ping() {
-    return new PingResponse();
+  public Map<?, ?> ping() {
+    return Map.of();
   }
 
   @JsonRpcMethod("notifications/initialized")

@@ -17,7 +17,7 @@ package com.callibrity.mocapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.callibrity.mocapi.server.InitializeResponse;
+import com.callibrity.mocapi.model.InitializeResult;
 import com.callibrity.ripcurl.autoconfigure.RipCurlAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.codec.jackson.JacksonCodecAutoConfiguration;
@@ -45,10 +45,10 @@ class MocapiAutoConfigurationTest {
                   OdysseyAutoConfiguration.class));
 
   @Test
-  void initializeResponseBeanInitializes() {
+  void initializeResultBeanInitializes() {
     contextRunner.run(
         context -> {
-          assertThat(context).hasSingleBean(InitializeResponse.class);
+          assertThat(context).hasSingleBean(InitializeResult.class);
         });
   }
 }

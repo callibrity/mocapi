@@ -30,8 +30,8 @@ class InMemoryMcpSessionStoreTest {
   private static McpSession sessionWithId() {
     return new McpSession(
             "2025-11-25",
-            new ClientCapabilities(null, null, null, null, null),
-            new ClientInfo("test-client", null, "1.0", null, null, null))
+            new com.callibrity.mocapi.model.ClientCapabilities(null, null, null),
+            new com.callibrity.mocapi.model.Implementation("test-client", null, "1.0"))
         .withSessionId(UUID.randomUUID().toString());
   }
 

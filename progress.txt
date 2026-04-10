@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T00:22:10-04:00
-ITERATION: 88
-SPEC_COMPLETED: 089-migrate-tools-to-model.md
-WHAT_WAS_DONE: Replaced tool types in mocapi-core with canonical types from mocapi-model: McpTool.Descriptor → model.Tool, ToolsRegistry.ListToolsResponse → model.ListToolsResult, CallToolResponse → model.CallToolResult; updated McpTool interface, ToolsRegistry, McpToolMethods, AnnotationMcpTool, ConformanceTools, and all tests; deleted content package (CallToolResponse was the only occupant).
+LAST_RUN: 2026-04-10T00:35:00-04:00
+ITERATION: 89
+SPEC_COMPLETED: 090-migrate-core-methods-to-model.md
+WHAT_WAS_DONE: Replaced all session/server data types in mocapi-core with canonical types from mocapi-model: InitializeResponse → InitializeResult, ServerInfo/ClientInfo → Implementation, ServerCapabilities and all capability descriptors → model equivalents, LogLevel → LoggingLevel, PingResponse → Map.of(); updated McpSession, McpSessionMethods, McpLoggingMethods, McpSessionService, MocapiAutoConfiguration, StreamableHttpController, McpRequestValidator, McpStreamContext, DefaultMcpStreamContext, ConformanceTools, and all tests; deleted 17 replaced types from server/ and session/ packages.
 VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests, spotless and license checks pass
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: The model types (Tool, ListToolsResult, CallToolResult) have identical field signatures to the old types they replaced, making this a clean drop-in migration. No new dependencies were needed since mocapi-core already depends on mocapi-model.
+NOTES: Model types have some structural differences from the old types: Implementation has 3 fields (name/title/version) vs ServerInfo/ClientInfo which had 6; model ElicitationCapability is flat (no form/url sub-capabilities) so supportsElicitationForm() simplified to check elicitation != null and supportsElicitationUrl() now always returns false; model ClientCapabilities lacks tasks/experimental fields; capability types use Boolean instead of primitive boolean. Added PROTOCOL_VERSION constant to InitializeResult since it was previously on InitializeResponse.
