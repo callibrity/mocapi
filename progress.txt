@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T03:48:00-04:00
-ITERATION: 16
-SPEC_COMPLETED: 109-update-readme-for-current-api.md
-WHAT_WAS_DONE: Rewrote README.md to reflect the current API — fixed @Tool→@ToolMethod annotation, removed nonexistent mocapi-tools dependency (starter bundles everything), added sections for Streaming/Progress, Elicitation (with builder DSL and bean-binding overload), Sampling (CreateMessageResult), Tool Errors (isError=true pattern), and HTTP Transport (@RequestBody JsonRpcMessage). Pinned Maven version to 0.0.1-SNAPSHOT instead of ${...} placeholders.
-VERIFICATION: grep for all stale references (elicitForm, ChooseOneBuilder, ElicitationResult, SamplingResult, JsonRpcMessage.parse, sendResponse) — zero matches; mvn verify — BUILD SUCCESS, 80 tests pass, all 6 modules green
+LAST_RUN: 2026-04-10T03:50:00-04:00
+ITERATION: 17
+SPEC_COMPLETED: 110-extract-mailbox-jsonrpc-response-helper.md
+WHAT_WAS_DONE: Extracted private sendAndWaitForResult() helper on DefaultMcpStreamContext that encapsulates the mailbox create/publish/poll/close sequence with parameterized exception factories. Both sample() and sendElicitationAndWait() now delegate to the helper with zero inline mailbox plumbing.
+VERIFICATION: mvn verify — BUILD SUCCESS, 80 tests pass, all 6 modules green. No test changes needed — pure internal refactor.
 STATUS: MORE_WORK
-NEXT_SPEC: 110-extract-mailbox-jsonrpc-response-helper.md
-NOTES: The README previously referenced a separate mocapi-tools module that no longer exists — all tools/prompts/streaming code is in mocapi-core, bundled by the starter. The "Creating MCP Tools" section had wrong annotation (@Tool instead of @ToolMethod) and wrong import.
+NEXT_SPEC: 111-split-elicitation-and-sampling-timeouts.md
+NOTES: The helper uses method-name-based timeout messages (e.g., "sampling/createMessage timed out after PT30S") instead of the old flow-specific prefixes ("Sampling timed out after PT30S"). No tests asserted on the old timeout message wording — only the error messages ("JSON-RPC error") were tested, and those are preserved exactly. Both flows still use the same elicitationTimeout field — spec 111 will split them.

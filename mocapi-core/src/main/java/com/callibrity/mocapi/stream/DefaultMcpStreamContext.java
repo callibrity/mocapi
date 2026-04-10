@@ -53,6 +53,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.jwcarman.substrate.core.Mailbox;
 import org.jwcarman.substrate.core.MailboxFactory;
 import tools.jackson.core.type.TypeReference;
@@ -178,8 +179,6 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
   public CreateMessageResult sample(String prompt, int maxTokens) {
     requireSamplingSupport();
 
-    String jsonRpcId = UUID.randomUUID().toString();
-
     var requestParams =
         new CreateMessageRequestParams(
             List.of(new SamplingMessage(Role.USER, new TextContent(prompt, null))),
@@ -195,28 +194,14 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
             null,
             null);
 
-    JsonRpcCall request =
-        JsonRpcCall.of(
+    JsonRpcResult result =
+        sendAndWaitForResult(
             "sampling/createMessage",
             objectMapper.valueToTree(requestParams),
-            objectMapper.valueToTree(jsonRpcId));
-
-    Mailbox<JsonRpcResponse> mailbox = mailboxFactory.create(jsonRpcId, JsonRpcResponse.class);
-    try {
-      stream.publishJson(toJsonTree(request));
-
-      Optional<JsonRpcResponse> raw = mailbox.poll(elicitationTimeout);
-      if (raw.isEmpty()) {
-        throw new McpSamplingTimeoutException("Sampling timed out after " + elicitationTimeout);
-      }
-      return switch (raw.get()) {
-        case JsonRpcError error ->
-            throw new McpSamplingException("Client returned JSON-RPC error: " + error.error());
-        case JsonRpcResult result -> parseSamplingResult(result);
-      };
-    } finally {
-      mailbox.delete();
-    }
+            elicitationTimeout,
+            McpSamplingTimeoutException::new,
+            McpSamplingException::new);
+    return parseSamplingResult(result);
   }
 
   private void publishNotification(String method, JsonNode params) {
@@ -264,27 +249,34 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
   }
 
   private JsonRpcResult sendElicitationAndWait(String message, RequestedSchema requestedSchema) {
-    String jsonRpcId = UUID.randomUUID().toString();
-
     ElicitRequestFormParams formParams =
         new ElicitRequestFormParams("form", message, requestedSchema, null, null);
-    JsonNode params = objectMapper.valueToTree(formParams);
+    return sendAndWaitForResult(
+        "elicitation/create",
+        objectMapper.valueToTree(formParams),
+        elicitationTimeout,
+        McpElicitationTimeoutException::new,
+        McpElicitationException::new);
+  }
 
-    JsonRpcCall request =
-        JsonRpcCall.of("elicitation/create", params, objectMapper.valueToTree(jsonRpcId));
-
+  private JsonRpcResult sendAndWaitForResult(
+      String method,
+      JsonNode params,
+      Duration timeout,
+      Function<String, ? extends RuntimeException> timeoutExceptionFactory,
+      Function<String, ? extends RuntimeException> errorExceptionFactory) {
+    String jsonRpcId = UUID.randomUUID().toString();
+    JsonRpcCall request = JsonRpcCall.of(method, params, objectMapper.valueToTree(jsonRpcId));
     Mailbox<JsonRpcResponse> mailbox = mailboxFactory.create(jsonRpcId, JsonRpcResponse.class);
     try {
       stream.publishJson(toJsonTree(request));
-
-      Optional<JsonRpcResponse> raw = mailbox.poll(elicitationTimeout);
+      Optional<JsonRpcResponse> raw = mailbox.poll(timeout);
       if (raw.isEmpty()) {
-        throw new McpElicitationTimeoutException(
-            "Elicitation timed out after " + elicitationTimeout);
+        throw timeoutExceptionFactory.apply(method + " timed out after " + timeout);
       }
       return switch (raw.get()) {
         case JsonRpcError error ->
-            throw new McpElicitationException("Client returned JSON-RPC error: " + error.error());
+            throw errorExceptionFactory.apply("Client returned JSON-RPC error: " + error.error());
         case JsonRpcResult result -> result;
       };
     } finally {
