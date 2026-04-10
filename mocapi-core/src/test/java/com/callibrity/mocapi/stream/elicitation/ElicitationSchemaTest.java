@@ -18,6 +18,7 @@ package com.callibrity.mocapi.stream.elicitation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.model.RequestedSchema;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -29,10 +30,14 @@ class ElicitationSchemaTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
+  private ObjectNode toNode(ElicitationSchema schema) {
+    return (ObjectNode) objectMapper.valueToTree(schema.toRequestedSchema());
+  }
+
   @Test
   void builderShouldProduceObjectType() {
     ElicitationSchema schema = ElicitationSchema.builder().build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
 
     assertThat(node.get("type").asString()).isEqualTo("object");
     assertThat(node.has("properties")).isTrue();
@@ -41,7 +46,7 @@ class ElicitationSchemaTest {
   @Test
   void stringPropertyShouldProduceCorrectSchema() {
     ElicitationSchema schema = ElicitationSchema.builder().string("name", "User's name").build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("name");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
@@ -53,7 +58,7 @@ class ElicitationSchemaTest {
   void stringPropertyWithDefaultShouldIncludeDefault() {
     ElicitationSchema schema =
         ElicitationSchema.builder().string("name", "User's name", "Alice").build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("name");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
@@ -63,7 +68,7 @@ class ElicitationSchemaTest {
   @Test
   void integerPropertyShouldProduceCorrectSchema() {
     ElicitationSchema schema = ElicitationSchema.builder().integer("age", "User's age").build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("age");
 
     assertThat(prop.get("type").asString()).isEqualTo("integer");
@@ -73,7 +78,7 @@ class ElicitationSchemaTest {
   @Test
   void integerPropertyWithDefaultShouldIncludeDefault() {
     ElicitationSchema schema = ElicitationSchema.builder().integer("age", "User's age", 25).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("age");
 
     assertThat(prop.get("default").asInt()).isEqualTo(25);
@@ -82,7 +87,7 @@ class ElicitationSchemaTest {
   @Test
   void numberPropertyShouldProduceCorrectSchema() {
     ElicitationSchema schema = ElicitationSchema.builder().number("score", "Score value").build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("score");
 
     assertThat(prop.get("type").asString()).isEqualTo("number");
@@ -93,7 +98,7 @@ class ElicitationSchemaTest {
   void numberPropertyWithDefaultShouldIncludeDefault() {
     ElicitationSchema schema =
         ElicitationSchema.builder().number("score", "Score value", 3.14).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("score");
 
     assertThat(prop.get("default").asDouble()).isEqualTo(3.14);
@@ -102,7 +107,7 @@ class ElicitationSchemaTest {
   @Test
   void booleanPropertyShouldProduceCorrectSchema() {
     ElicitationSchema schema = ElicitationSchema.builder().bool("active", "Is active").build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("active");
 
     assertThat(prop.get("type").asString()).isEqualTo("boolean");
@@ -113,7 +118,7 @@ class ElicitationSchemaTest {
   void booleanPropertyWithDefaultShouldIncludeDefault() {
     ElicitationSchema schema =
         ElicitationSchema.builder().bool("active", "Is active", true).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("active");
 
     assertThat(prop.get("default").asBoolean()).isTrue();
@@ -123,7 +128,7 @@ class ElicitationSchemaTest {
   void chooseWithRawStringsShouldProducePlainEnumSchema() {
     ElicitationSchema schema =
         ElicitationSchema.builder().choose("color", List.of("red", "green", "blue")).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("color");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
@@ -141,7 +146,7 @@ class ElicitationSchemaTest {
     Consumer<ChooseOneBuilder<Status>> customizer = c -> c.titleFn(Status::label);
     ElicitationSchema schema =
         ElicitationSchema.builder().choose("status", statuses, Status::code, customizer).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("status");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
@@ -156,7 +161,7 @@ class ElicitationSchemaTest {
   void chooseManyWithRawStringsShouldProduceArrayOfPlainEnumSchema() {
     ElicitationSchema schema =
         ElicitationSchema.builder().chooseMany("tags", List.of("java", "python", "go")).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
     assertThat(prop.get("type").asString()).isEqualTo("array");
@@ -176,7 +181,7 @@ class ElicitationSchemaTest {
     Consumer<ChooseManyBuilder<Role>> customizer = c -> c.titleFn(Role::label);
     ElicitationSchema schema =
         ElicitationSchema.builder().chooseMany("roles", roles, Role::code, customizer).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("roles");
 
     assertThat(prop.get("type").asString()).isEqualTo("array");
@@ -190,7 +195,7 @@ class ElicitationSchemaTest {
   void requiredFieldsShouldBeIncludedByDefault() {
     ElicitationSchema schema =
         ElicitationSchema.builder().string("name", "Name").string("email", "Email").build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
 
     assertThat(node.get("required")).hasSize(2);
     assertThat(node.get("required").get(0).asString()).isEqualTo("name");
@@ -204,7 +209,7 @@ class ElicitationSchemaTest {
             .string("name", "Name")
             .string("nickname", "Nickname", s -> s.optional())
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
 
     assertThat(node.get("required")).hasSize(1);
     assertThat(node.get("required").get(0).asString()).isEqualTo("name");
@@ -214,7 +219,7 @@ class ElicitationSchemaTest {
   void allOptionalFieldsShouldOmitRequiredArray() {
     ElicitationSchema schema =
         ElicitationSchema.builder().string("name", "Name", s -> s.optional()).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
 
     assertThat(node.has("required")).isFalse();
   }
@@ -234,7 +239,7 @@ class ElicitationSchemaTest {
   void stringCustomizerShouldSupportTitle() {
     ElicitationSchema schema =
         ElicitationSchema.builder().string("name", "Name", s -> s.title("Full Name")).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("name");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
@@ -247,7 +252,7 @@ class ElicitationSchemaTest {
         ElicitationSchema.builder()
             .string("code", "Zip code", s -> s.minLength(5).maxLength(5))
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("code");
 
     assertThat(prop.get("minLength").asInt()).isEqualTo(5);
@@ -255,20 +260,10 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void stringCustomizerShouldSupportPattern() {
-    ElicitationSchema schema =
-        ElicitationSchema.builder().string("code", "Zip code", s -> s.pattern("^\\d{5}$")).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
-    ObjectNode prop = (ObjectNode) node.get("properties").get("code");
-
-    assertThat(prop.get("pattern").asString()).isEqualTo("^\\d{5}$");
-  }
-
-  @Test
   void stringCustomizerShouldSupportEmailShorthand() {
     ElicitationSchema schema =
         ElicitationSchema.builder().string("email", "Email address", s -> s.email()).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("email");
 
     assertThat(prop.get("format").asString()).isEqualTo("email");
@@ -278,7 +273,7 @@ class ElicitationSchemaTest {
   void stringCustomizerShouldSupportUriShorthand() {
     ElicitationSchema schema =
         ElicitationSchema.builder().string("url", "Website URL", s -> s.uri()).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("url");
 
     assertThat(prop.get("format").asString()).isEqualTo("uri");
@@ -288,7 +283,7 @@ class ElicitationSchemaTest {
   void stringCustomizerShouldSupportDateShorthand() {
     ElicitationSchema schema =
         ElicitationSchema.builder().string("dob", "Date of birth", s -> s.date()).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("dob");
 
     assertThat(prop.get("format").asString()).isEqualTo("date");
@@ -298,7 +293,7 @@ class ElicitationSchemaTest {
   void stringCustomizerShouldSupportDateTimeShorthand() {
     ElicitationSchema schema =
         ElicitationSchema.builder().string("ts", "Timestamp", s -> s.dateTime()).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("ts");
 
     assertThat(prop.get("format").asString()).isEqualTo("date-time");
@@ -308,12 +303,11 @@ class ElicitationSchemaTest {
   void stringCustomizerShouldChainMultipleConstraints() {
     ElicitationSchema schema =
         ElicitationSchema.builder()
-            .string("code", "Zip code", s -> s.pattern("^\\d{5}$").maxLength(5).title("ZIP"))
+            .string("code", "Zip code", s -> s.maxLength(5).title("ZIP"))
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("code");
 
-    assertThat(prop.get("pattern").asString()).isEqualTo("^\\d{5}$");
     assertThat(prop.get("maxLength").asInt()).isEqualTo(5);
     assertThat(prop.get("title").asString()).isEqualTo("ZIP");
   }
@@ -324,7 +318,7 @@ class ElicitationSchemaTest {
         ElicitationSchema.builder()
             .string("name", "Name", s -> s.defaultValue("John Doe").maxLength(100))
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("name");
 
     assertThat(prop.get("default").asString()).isEqualTo("John Doe");
@@ -337,7 +331,7 @@ class ElicitationSchemaTest {
         ElicitationSchema.builder()
             .integer("age", "Age", n -> n.title("Your Age").minimum(0).maximum(150))
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("age");
 
     assertThat(prop.get("type").asString()).isEqualTo("integer");
@@ -352,7 +346,7 @@ class ElicitationSchemaTest {
         ElicitationSchema.builder()
             .integer("age", "Age", n -> n.defaultValue(30).minimum(0).maximum(150))
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("age");
 
     assertThat(prop.get("default").asInt()).isEqualTo(30);
@@ -364,7 +358,7 @@ class ElicitationSchemaTest {
         ElicitationSchema.builder()
             .number("score", "Score", n -> n.minimum(0.0).maximum(100.0))
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("score");
 
     assertThat(prop.get("type").asString()).isEqualTo("number");
@@ -376,7 +370,7 @@ class ElicitationSchemaTest {
   void numberCustomizerShouldSupportDefaultValue() {
     ElicitationSchema schema =
         ElicitationSchema.builder().number("score", "Score", n -> n.defaultValue(95.5)).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("score");
 
     assertThat(prop.get("default").asDouble()).isEqualTo(95.5);
@@ -388,7 +382,7 @@ class ElicitationSchemaTest {
         ElicitationSchema.builder()
             .bool("active", "Is active", b -> b.title("Active Status"))
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("active");
 
     assertThat(prop.get("type").asString()).isEqualTo("boolean");
@@ -401,7 +395,7 @@ class ElicitationSchemaTest {
         ElicitationSchema.builder()
             .bool("verified", "Verified?", b -> b.defaultValue(true))
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("verified");
 
     assertThat(prop.get("default").asBoolean()).isTrue();
@@ -433,7 +427,7 @@ class ElicitationSchemaTest {
   @Test
   void chooseShouldAlwaysProduceOneOfWithConstTitle() {
     ElicitationSchema schema = ElicitationSchema.builder().choose("tag", Tag.class).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
@@ -449,7 +443,7 @@ class ElicitationSchemaTest {
   void chooseShouldUseToStringForTitle() {
     ElicitationSchema schema =
         ElicitationSchema.builder().choose("color", TitledColor.class).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("color");
 
     assertThat(prop.get("oneOf")).hasSize(3);
@@ -461,7 +455,7 @@ class ElicitationSchemaTest {
   void chooseWithDefaultShouldProduceOneOfWithDefault() {
     ElicitationSchema schema =
         ElicitationSchema.builder().choose("tag", Tag.class, Tag.JAVA).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
@@ -473,12 +467,11 @@ class ElicitationSchemaTest {
   @Test
   void chooseManyShouldAlwaysProduceAnyOfWithConstTitle() {
     ElicitationSchema schema = ElicitationSchema.builder().chooseMany("tags", Tag.class).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
     assertThat(prop.get("type").asString()).isEqualTo("array");
     ObjectNode items = (ObjectNode) prop.get("items");
-    assertThat(items.get("type").asString()).isEqualTo("string");
     assertThat(items.has("enum")).isFalse();
     assertThat(items.get("anyOf")).hasSize(3);
     assertThat(items.get("anyOf").get(0).get("const").asString()).isEqualTo("JAVA");
@@ -489,7 +482,7 @@ class ElicitationSchemaTest {
   void chooseManyShouldUseToStringForTitle() {
     ElicitationSchema schema =
         ElicitationSchema.builder().chooseMany("colors", TitledColor.class).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("colors");
 
     ObjectNode items = (ObjectNode) prop.get("items");
@@ -503,7 +496,7 @@ class ElicitationSchemaTest {
     List<String> items = List.of("active", "inactive");
     ElicitationSchema schema =
         ElicitationSchema.builder().choose("status", items, Function.identity()).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("status");
 
     assertThat(prop.get("oneOf")).hasSize(2);
@@ -516,7 +509,7 @@ class ElicitationSchemaTest {
     List<String> items = List.of("admin", "user");
     ElicitationSchema schema =
         ElicitationSchema.builder().chooseMany("roles", items, Function.identity()).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("roles");
 
     assertThat(prop.get("type").asString()).isEqualTo("array");
@@ -530,7 +523,7 @@ class ElicitationSchemaTest {
   void chooseManyCustomizerShouldSupportMaxItems() {
     ElicitationSchema schema =
         ElicitationSchema.builder().chooseMany("tags", Tag.class, c -> c.maxItems(3)).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
     assertThat(prop.get("type").asString()).isEqualTo("array");
@@ -547,7 +540,7 @@ class ElicitationSchemaTest {
         ElicitationSchema.builder()
             .chooseMany("tags", Tag.class, c -> c.minItems(1).maxItems(3))
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
     assertThat(prop.get("minItems").asInt()).isEqualTo(1);
@@ -559,7 +552,7 @@ class ElicitationSchemaTest {
     Consumer<ChooseOneBuilder<Tag>> customizer = c -> c.titleFn(t -> t.name().toLowerCase());
     ElicitationSchema schema =
         ElicitationSchema.builder().choose("tag", Tag.class, customizer).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
@@ -574,7 +567,7 @@ class ElicitationSchemaTest {
         c -> c.titleFn(t -> t.name().toLowerCase()).defaultValue(Tag.PYTHON);
     ElicitationSchema schema =
         ElicitationSchema.builder().choose("tag", Tag.class, customizer).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
@@ -588,7 +581,7 @@ class ElicitationSchemaTest {
     Consumer<ChooseManyBuilder<Tag>> customizer = c -> c.defaults(List.of(Tag.JAVA, Tag.GO));
     ElicitationSchema schema =
         ElicitationSchema.builder().chooseMany("tags", Tag.class, customizer).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
     assertThat(prop.get("type").asString()).isEqualTo("array");
@@ -603,7 +596,7 @@ class ElicitationSchemaTest {
         c -> c.titleFn(t -> t.name().toLowerCase()).defaults(List.of(Tag.PYTHON));
     ElicitationSchema schema =
         ElicitationSchema.builder().chooseMany("tags", Tag.class, customizer).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
     ObjectNode items = (ObjectNode) prop.get("items");
@@ -617,7 +610,7 @@ class ElicitationSchemaTest {
     Consumer<ChooseManyBuilder<Tag>> customizer = c -> c.titleFn(t -> t.name().toLowerCase());
     ElicitationSchema schema =
         ElicitationSchema.builder().chooseMany("tags", Tag.class, customizer).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
     ObjectNode items = (ObjectNode) prop.get("items");
@@ -631,7 +624,7 @@ class ElicitationSchemaTest {
     Status defaultStatus = statuses.get(0);
     ElicitationSchema schema =
         ElicitationSchema.builder().choose("status", statuses, Status::code, defaultStatus).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("status");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
@@ -645,7 +638,7 @@ class ElicitationSchemaTest {
         ElicitationSchema.builder()
             .choose("color", List.of("red", "green", "blue"), "green")
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("color");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
@@ -663,7 +656,7 @@ class ElicitationSchemaTest {
                 List.of("opt1", "opt2", "opt3"),
                 List.of("Option One", "Option Two", "Option Three"))
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("level");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
@@ -687,7 +680,7 @@ class ElicitationSchemaTest {
                 Function.identity(),
                 c -> c.defaults(List.of("java", "go")))
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
     assertThat(prop.get("type").asString()).isEqualTo("array");
@@ -706,7 +699,7 @@ class ElicitationSchemaTest {
                 Function.identity(),
                 c -> c.defaults(List.of("python")))
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
     assertThat(prop.get("default")).hasSize(1);
@@ -716,7 +709,7 @@ class ElicitationSchemaTest {
   @Test
   void chooseSingleSelectShouldIncludeTypeString() {
     ElicitationSchema schema = ElicitationSchema.builder().choose("tag", Tag.class).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tag");
 
     assertThat(prop.get("type").asString()).isEqualTo("string");
@@ -725,7 +718,7 @@ class ElicitationSchemaTest {
   @Test
   void chooseManyItemsShouldIncludeTypeString() {
     ElicitationSchema schema = ElicitationSchema.builder().chooseMany("tags", Tag.class).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("tags");
 
     ObjectNode items = (ObjectNode) prop.get("items");
@@ -742,7 +735,7 @@ class ElicitationSchemaTest {
             .bool("active", "Active")
             .choose("color", List.of("red", "blue"))
             .build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
 
     assertThat(node.get("properties")).hasSize(5);
     assertThat(node.get("required")).hasSize(5);
@@ -756,7 +749,7 @@ class ElicitationSchemaTest {
         c -> c.titleFn(Status::label).defaultValue(statuses.get(0));
     ElicitationSchema schema =
         ElicitationSchema.builder().choose("status", statuses, Status::code, customizer).build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("status");
 
     assertThat(prop.get("oneOf").get(0).get("title").asString()).isEqualTo("Active");
@@ -764,11 +757,25 @@ class ElicitationSchemaTest {
   }
 
   @Test
-  void requiredFieldShouldNotAppearInSerializedJson() {
+  void requiredFieldShouldNotAppearInSerializedPropertyJson() {
     ElicitationSchema schema = ElicitationSchema.builder().string("name", "Name").build();
-    ObjectNode node = schema.toObjectNode(objectMapper);
+    ObjectNode node = toNode(schema);
     ObjectNode prop = (ObjectNode) node.get("properties").get("name");
 
     assertThat(prop.has("required")).isFalse();
+  }
+
+  @Test
+  void toRequestedSchemaShouldReturnTypedRecord() {
+    ElicitationSchema schema =
+        ElicitationSchema.builder()
+            .string("name", "Name")
+            .integer("age", "Age", a -> a.optional())
+            .build();
+    RequestedSchema requestedSchema = schema.toRequestedSchema();
+
+    assertThat(requestedSchema.properties()).hasSize(2);
+    assertThat(requestedSchema.required()).containsExactly("name");
+    assertThat(requestedSchema.type()).isEqualTo("object");
   }
 }

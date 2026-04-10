@@ -15,6 +15,10 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
+import com.callibrity.mocapi.model.EnumOption;
+import com.callibrity.mocapi.model.PrimitiveSchemaDefinition;
+import com.callibrity.mocapi.model.TitledSingleSelectEnumSchema;
+import com.callibrity.mocapi.model.UntitledSingleSelectEnumSchema;
 import java.util.List;
 import java.util.function.Function;
 
@@ -84,17 +88,21 @@ public final class ChooseOneBuilder<T> {
     return this;
   }
 
-  public PropertySchema build() {
+  boolean isRequired() {
+    return required;
+  }
+
+  public PrimitiveSchemaDefinition build() {
     String defaultStr = defaultValue != null ? valueFn.apply(defaultValue) : null;
     if (rawStrings && titleFn == null) {
       List<String> values = items.stream().map(valueFn).toList();
-      return new EnumPropertySchema(required, description, title, values, defaultStr);
+      return new UntitledSingleSelectEnumSchema(title, description, values, defaultStr);
     }
     Function<T, String> effectiveTitleFn = titleFn != null ? titleFn : Object::toString;
     List<EnumOption> options =
         items.stream()
             .map(item -> new EnumOption(valueFn.apply(item), effectiveTitleFn.apply(item)))
             .toList();
-    return new TitledEnumPropertySchema(required, description, title, options, defaultStr);
+    return new TitledSingleSelectEnumSchema(title, description, options, defaultStr);
   }
 }

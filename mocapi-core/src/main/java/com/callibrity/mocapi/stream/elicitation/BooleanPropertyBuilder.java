@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
+import com.callibrity.mocapi.model.BooleanSchema;
+
 /** Builder for boolean-typed elicitation schema properties. */
 public final class BooleanPropertyBuilder {
 
@@ -45,7 +47,11 @@ public final class BooleanPropertyBuilder {
     return this;
   }
 
-  public BooleanPropertySchema build() {
-    return new BooleanPropertySchema(required, description, title, defaultValue);
+  boolean isRequired() {
+    return required;
+  }
+
+  public BooleanSchema build() {
+    return new BooleanSchema(title, description, defaultValue);
   }
 }

@@ -25,6 +25,7 @@ import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.LoggingMessageNotificationParams;
 import com.callibrity.mocapi.model.ProgressNotification;
 import com.callibrity.mocapi.model.ProgressNotificationParams;
+import com.callibrity.mocapi.model.RequestedSchema;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.SamplingMessage;
 import com.callibrity.mocapi.model.TextContent;
@@ -147,8 +148,9 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
     requireElicitationSupport();
     ElicitationSchemaBuilder builder = ElicitationSchema.builder();
     schema.accept(builder);
-    ObjectNode schemaNode = builder.build().toObjectNode(objectMapper);
-    JsonNode rawResponse = sendElicitationAndWait(message, schemaNode);
+    RequestedSchema requestedSchema = builder.build().toRequestedSchema();
+    ObjectNode schemaNode = (ObjectNode) objectMapper.valueToTree(requestedSchema);
+    JsonNode rawResponse = sendElicitationAndWait(message, requestedSchema);
     return parseRawResponse(rawResponse, schemaNode);
   }
 
@@ -250,13 +252,12 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
     }
   }
 
-  private JsonNode sendElicitationAndWait(String message, ObjectNode schemaNode) {
+  private JsonNode sendElicitationAndWait(String message, RequestedSchema requestedSchema) {
     String jsonRpcId = UUID.randomUUID().toString();
 
     ElicitRequestFormParams formParams =
-        new ElicitRequestFormParams("form", message, null, null, null);
-    ObjectNode params = (ObjectNode) objectMapper.valueToTree(formParams);
-    params.set("requestedSchema", schemaNode);
+        new ElicitRequestFormParams("form", message, requestedSchema, null, null);
+    JsonNode params = objectMapper.valueToTree(formParams);
 
     JsonRpcCall request =
         JsonRpcCall.of("elicitation/create", params, objectMapper.valueToTree(jsonRpcId));

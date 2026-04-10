@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
+import com.callibrity.mocapi.model.LegacyTitledEnumSchema;
 import java.util.List;
 
 /**
@@ -52,7 +53,11 @@ public final class ChooseLegacyBuilder {
     return this;
   }
 
-  public LegacyEnumPropertySchema build() {
-    return new LegacyEnumPropertySchema(required, description, title, values, displayNames, null);
+  boolean isRequired() {
+    return required;
+  }
+
+  public LegacyTitledEnumSchema build() {
+    return new LegacyTitledEnumSchema(title, description, values, displayNames, null);
   }
 }

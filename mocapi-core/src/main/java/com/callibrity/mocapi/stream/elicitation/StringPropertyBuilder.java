@@ -15,6 +15,9 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
+import com.callibrity.mocapi.model.StringFormat;
+import com.callibrity.mocapi.model.StringSchema;
+
 /** Builder for string-typed elicitation schema properties. */
 public final class StringPropertyBuilder {
 
@@ -24,8 +27,7 @@ public final class StringPropertyBuilder {
   private String defaultValue;
   private Integer minLength;
   private Integer maxLength;
-  private String pattern;
-  private String format;
+  private StringFormat format;
 
   public StringPropertyBuilder() {}
 
@@ -59,37 +61,35 @@ public final class StringPropertyBuilder {
     return this;
   }
 
-  public StringPropertyBuilder pattern(String regex) {
-    this.pattern = regex;
-    return this;
-  }
-
-  /** Shorthand for {@code format("email")}. */
+  /** Shorthand for email format. */
   public StringPropertyBuilder email() {
-    this.format = "email";
+    this.format = StringFormat.EMAIL;
     return this;
   }
 
-  /** Shorthand for {@code format("uri")}. */
+  /** Shorthand for URI format. */
   public StringPropertyBuilder uri() {
-    this.format = "uri";
+    this.format = StringFormat.URI;
     return this;
   }
 
-  /** Shorthand for {@code format("date")}. */
+  /** Shorthand for date format. */
   public StringPropertyBuilder date() {
-    this.format = "date";
+    this.format = StringFormat.DATE;
     return this;
   }
 
-  /** Shorthand for {@code format("date-time")}. */
+  /** Shorthand for date-time format. */
   public StringPropertyBuilder dateTime() {
-    this.format = "date-time";
+    this.format = StringFormat.DATE_TIME;
     return this;
   }
 
-  public StringPropertySchema build() {
-    return new StringPropertySchema(
-        required, description, title, defaultValue, minLength, maxLength, pattern, format);
+  boolean isRequired() {
+    return required;
+  }
+
+  public StringSchema build() {
+    return new StringSchema(title, description, minLength, maxLength, format, defaultValue);
   }
 }

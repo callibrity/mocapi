@@ -15,6 +15,12 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
+import com.callibrity.mocapi.model.EnumItemsSchema;
+import com.callibrity.mocapi.model.EnumOption;
+import com.callibrity.mocapi.model.PrimitiveSchemaDefinition;
+import com.callibrity.mocapi.model.TitledEnumItemsSchema;
+import com.callibrity.mocapi.model.TitledMultiSelectEnumSchema;
+import com.callibrity.mocapi.model.UntitledMultiSelectEnumSchema;
 import java.util.List;
 import java.util.function.Function;
 
@@ -96,7 +102,11 @@ public final class ChooseManyBuilder<T> {
     return this;
   }
 
-  public PropertySchema build() {
+  boolean isRequired() {
+    return required;
+  }
+
+  public PrimitiveSchemaDefinition build() {
     List<String> defaultValues = null;
     if (defaults != null && !defaults.isEmpty()) {
       defaultValues = defaults.stream().map(valueFn).toList();
@@ -104,8 +114,8 @@ public final class ChooseManyBuilder<T> {
     if (rawStrings && titleFn == null) {
       List<String> values = items.stream().map(valueFn).toList();
       EnumItemsSchema itemsSchema = new EnumItemsSchema(values);
-      return new MultiSelectPropertySchema(
-          required, description, title, itemsSchema, defaultValues, minItems, maxItems);
+      return new UntitledMultiSelectEnumSchema(
+          title, description, minItems, maxItems, itemsSchema, defaultValues);
     }
     Function<T, String> effectiveTitleFn = titleFn != null ? titleFn : Object::toString;
     List<EnumOption> options =
@@ -113,7 +123,7 @@ public final class ChooseManyBuilder<T> {
             .map(item -> new EnumOption(valueFn.apply(item), effectiveTitleFn.apply(item)))
             .toList();
     TitledEnumItemsSchema itemsSchema = new TitledEnumItemsSchema(options);
-    return new TitledMultiSelectPropertySchema(
-        required, description, title, itemsSchema, defaultValues, minItems, maxItems);
+    return new TitledMultiSelectEnumSchema(
+        title, description, minItems, maxItems, itemsSchema, defaultValues);
   }
 }

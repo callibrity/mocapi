@@ -17,23 +17,23 @@ package com.callibrity.mocapi.stream.elicitation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.mocapi.model.BooleanSchema;
 import org.junit.jupiter.api.Test;
 
 class BooleanPropertyBuilderTest {
 
   @Test
   void shouldBuildMinimalBooleanProperty() {
-    BooleanPropertySchema schema = new BooleanPropertyBuilder().description("Is active").build();
+    BooleanSchema schema = new BooleanPropertyBuilder().description("Is active").build();
 
     assertThat(schema.type()).isEqualTo("boolean");
     assertThat(schema.description()).isEqualTo("Is active");
     assertThat(schema.defaultValue()).isNull();
-    assertThat(schema.required()).isTrue();
   }
 
   @Test
   void shouldIncludeTitle() {
-    BooleanPropertySchema schema =
+    BooleanSchema schema =
         new BooleanPropertyBuilder().description("Is active").title("Active Status").build();
 
     assertThat(schema.title()).isEqualTo("Active Status");
@@ -41,7 +41,7 @@ class BooleanPropertyBuilderTest {
 
   @Test
   void shouldIncludeDefaultValueTrue() {
-    BooleanPropertySchema schema =
+    BooleanSchema schema =
         new BooleanPropertyBuilder().description("Is active").defaultValue(true).build();
 
     assertThat(schema.defaultValue()).isTrue();
@@ -49,7 +49,7 @@ class BooleanPropertyBuilderTest {
 
   @Test
   void shouldIncludeDefaultValueFalse() {
-    BooleanPropertySchema schema =
+    BooleanSchema schema =
         new BooleanPropertyBuilder().description("Is active").defaultValue(false).build();
 
     assertThat(schema.defaultValue()).isFalse();
@@ -57,7 +57,7 @@ class BooleanPropertyBuilderTest {
 
   @Test
   void shouldChainTitleAndDefault() {
-    BooleanPropertySchema schema =
+    BooleanSchema schema =
         new BooleanPropertyBuilder()
             .description("Is active")
             .title("Active Status")
@@ -70,9 +70,16 @@ class BooleanPropertyBuilderTest {
 
   @Test
   void optionalShouldSetRequiredFalse() {
-    BooleanPropertySchema schema =
-        new BooleanPropertyBuilder().description("Is active").optional().build();
+    BooleanPropertyBuilder builder =
+        new BooleanPropertyBuilder().description("Is active").optional();
 
-    assertThat(schema.required()).isFalse();
+    assertThat(builder.isRequired()).isFalse();
+  }
+
+  @Test
+  void defaultShouldBeRequired() {
+    BooleanPropertyBuilder builder = new BooleanPropertyBuilder().description("Is active");
+
+    assertThat(builder.isRequired()).isTrue();
   }
 }

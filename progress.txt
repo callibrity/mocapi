@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T01:59:00-04:00
-ITERATION: 100
-SPEC_COMPLETED: 101-push-paginated-request-params-through-list-registries.md
-WHAT_WAS_DONE: Migrated all four registry list methods (ToolsRegistry.listTools, PromptsRegistry.listPrompts, ResourcesRegistry.listResources, ResourcesRegistry.listResourceTemplates) from String cursor to PaginatedRequestParams parameter, and removed cursor-extraction glue from all four handler methods (McpToolMethods, McpPromptMethods, McpResourceMethods). Added five new CursorsTest tests for the PaginatedRequestParams overload. Updated all registry test classes to pass PaginatedRequestParams instead of raw cursor strings.
+LAST_RUN: 2026-04-10T02:12:00-04:00
+ITERATION: 101
+SPEC_COMPLETED: 102-migrate-elicitation-builders-to-model-schema.md
+WHAT_WAS_DONE: Migrated all elicitation property builders (String, Integer, Number, Boolean, ChooseOne, ChooseMany, ChooseLegacy) to return model types from com.callibrity.mocapi.model instead of core-local schema records. Reworked ElicitationSchema to produce a typed RequestedSchema via toRequestedSchema() instead of an ObjectNode. Updated DefaultMcpStreamContext.elicit() to pass a RequestedSchema directly into ElicitRequestFormParams. Deleted 13 core-local schema records (PropertySchema, StringPropertySchema, IntegerPropertySchema, NumberPropertySchema, BooleanPropertySchema, EnumPropertySchema, TitledEnumPropertySchema, MultiSelectPropertySchema, TitledMultiSelectPropertySchema, LegacyEnumPropertySchema, EnumItemsSchema, TitledEnumItemsSchema, EnumOption). Removed the pattern(String) and format(String) methods from StringPropertyBuilder per the MCP spec. Added type() method to model TitledEnumItemsSchema for wire compatibility. Added golden-JSON regression test. Updated all builder and schema tests.
 VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests pass, spotless and license checks pass
 STATUS: MORE_WORK
-NEXT_SPEC: 102-migrate-elicitation-builders-to-model-schema.md
-NOTES: The String overload of Cursors.paginate remains intact for any future internal callers. params.cursor() now only appears inside Cursors.java itself (the PaginatedRequestParams overload delegates to the String overload).
+NEXT_SPEC: 103-add-intermediate-sealed-enum-schema-types.md
+NOTES: The required flag is now tracked in ElicitationSchemaBuilder/ElicitationSchema instead of on each schema record. Model's TitledEnumItemsSchema now has a type() method returning "string" (added for wire compatibility with the old core version). The StringPropertyBuilder no longer exposes pattern(String) or format(String) — only the typed shorthand methods (email(), uri(), date(), dateTime()) remain, using StringFormat enum internally.

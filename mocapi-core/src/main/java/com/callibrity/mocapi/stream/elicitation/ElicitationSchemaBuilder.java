@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
+import com.callibrity.mocapi.model.PrimitiveSchemaDefinition;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,21 +29,23 @@ import java.util.function.Function;
  */
 public final class ElicitationSchemaBuilder {
 
-  private final Map<String, PropertySchema> properties = new LinkedHashMap<>();
+  private final Map<String, PrimitiveSchemaDefinition> properties = new LinkedHashMap<>();
+  private final List<String> requiredNames = new ArrayList<>();
 
   ElicitationSchemaBuilder() {}
 
   // --- String property methods ---
 
   public ElicitationSchemaBuilder string(String name, String description) {
-    addProperty(name, new StringPropertyBuilder().description(description).build());
+    StringPropertyBuilder builder = new StringPropertyBuilder().description(description);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   public ElicitationSchemaBuilder string(String name, String description, String defaultValue) {
-    addProperty(
-        name,
-        new StringPropertyBuilder().description(description).defaultValue(defaultValue).build());
+    StringPropertyBuilder builder =
+        new StringPropertyBuilder().description(description).defaultValue(defaultValue);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
@@ -49,21 +53,22 @@ public final class ElicitationSchemaBuilder {
       String name, String description, Consumer<StringPropertyBuilder> customizer) {
     StringPropertyBuilder builder = new StringPropertyBuilder().description(description);
     customizer.accept(builder);
-    addProperty(name, builder.build());
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   // --- Integer property methods ---
 
   public ElicitationSchemaBuilder integer(String name, String description) {
-    addProperty(name, new IntegerPropertyBuilder().description(description).build());
+    IntegerPropertyBuilder builder = new IntegerPropertyBuilder().description(description);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   public ElicitationSchemaBuilder integer(String name, String description, int defaultValue) {
-    addProperty(
-        name,
-        new IntegerPropertyBuilder().description(description).defaultValue(defaultValue).build());
+    IntegerPropertyBuilder builder =
+        new IntegerPropertyBuilder().description(description).defaultValue(defaultValue);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
@@ -71,21 +76,22 @@ public final class ElicitationSchemaBuilder {
       String name, String description, Consumer<IntegerPropertyBuilder> customizer) {
     IntegerPropertyBuilder builder = new IntegerPropertyBuilder().description(description);
     customizer.accept(builder);
-    addProperty(name, builder.build());
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   // --- Number property methods ---
 
   public ElicitationSchemaBuilder number(String name, String description) {
-    addProperty(name, new NumberPropertyBuilder().description(description).build());
+    NumberPropertyBuilder builder = new NumberPropertyBuilder().description(description);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   public ElicitationSchemaBuilder number(String name, String description, double defaultValue) {
-    addProperty(
-        name,
-        new NumberPropertyBuilder().description(description).defaultValue(defaultValue).build());
+    NumberPropertyBuilder builder =
+        new NumberPropertyBuilder().description(description).defaultValue(defaultValue);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
@@ -93,21 +99,22 @@ public final class ElicitationSchemaBuilder {
       String name, String description, Consumer<NumberPropertyBuilder> customizer) {
     NumberPropertyBuilder builder = new NumberPropertyBuilder().description(description);
     customizer.accept(builder);
-    addProperty(name, builder.build());
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   // --- Boolean property methods ---
 
   public ElicitationSchemaBuilder bool(String name, String description) {
-    addProperty(name, new BooleanPropertyBuilder().description(description).build());
+    BooleanPropertyBuilder builder = new BooleanPropertyBuilder().description(description);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   public ElicitationSchemaBuilder bool(String name, String description, boolean defaultValue) {
-    addProperty(
-        name,
-        new BooleanPropertyBuilder().description(description).defaultValue(defaultValue).build());
+    BooleanPropertyBuilder builder =
+        new BooleanPropertyBuilder().description(description).defaultValue(defaultValue);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
@@ -115,20 +122,22 @@ public final class ElicitationSchemaBuilder {
       String name, String description, Consumer<BooleanPropertyBuilder> customizer) {
     BooleanPropertyBuilder builder = new BooleanPropertyBuilder().description(description);
     customizer.accept(builder);
-    addProperty(name, builder.build());
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   // --- Enum class choose variants ---
 
   public <E extends Enum<E>> ElicitationSchemaBuilder choose(String name, Class<E> enumType) {
-    addProperty(name, ChooseOneBuilder.fromEnum(enumType).build());
+    ChooseOneBuilder<E> builder = ChooseOneBuilder.fromEnum(enumType);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   public <E extends Enum<E>> ElicitationSchemaBuilder choose(
       String name, Class<E> enumType, E defaultValue) {
-    addProperty(name, ChooseOneBuilder.fromEnum(enumType).defaultValue(defaultValue).build());
+    ChooseOneBuilder<E> builder = ChooseOneBuilder.fromEnum(enumType).defaultValue(defaultValue);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
@@ -136,7 +145,7 @@ public final class ElicitationSchemaBuilder {
       String name, Class<E> enumType, Consumer<ChooseOneBuilder<E>> customizer) {
     ChooseOneBuilder<E> builder = ChooseOneBuilder.fromEnum(enumType);
     customizer.accept(builder);
-    addProperty(name, builder.build());
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
@@ -144,13 +153,15 @@ public final class ElicitationSchemaBuilder {
 
   public <T> ElicitationSchemaBuilder choose(
       String name, List<T> items, Function<T, String> valueFn) {
-    addProperty(name, ChooseOneBuilder.from(items, valueFn).build());
+    ChooseOneBuilder<T> builder = ChooseOneBuilder.from(items, valueFn);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   public <T> ElicitationSchemaBuilder choose(
       String name, List<T> items, Function<T, String> valueFn, T defaultValue) {
-    addProperty(name, ChooseOneBuilder.from(items, valueFn).defaultValue(defaultValue).build());
+    ChooseOneBuilder<T> builder = ChooseOneBuilder.from(items, valueFn).defaultValue(defaultValue);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
@@ -161,19 +172,21 @@ public final class ElicitationSchemaBuilder {
       Consumer<ChooseOneBuilder<T>> customizer) {
     ChooseOneBuilder<T> builder = ChooseOneBuilder.from(items, valueFn);
     customizer.accept(builder);
-    addProperty(name, builder.build());
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   // --- Raw string choose variants ---
 
   public ElicitationSchemaBuilder choose(String name, List<String> values) {
-    addProperty(name, ChooseOneBuilder.from(values).build());
+    ChooseOneBuilder<String> builder = ChooseOneBuilder.from(values);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   public ElicitationSchemaBuilder choose(String name, List<String> values, String defaultValue) {
-    addProperty(name, ChooseOneBuilder.from(values).defaultValue(defaultValue).build());
+    ChooseOneBuilder<String> builder = ChooseOneBuilder.from(values).defaultValue(defaultValue);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
@@ -182,14 +195,16 @@ public final class ElicitationSchemaBuilder {
   @Deprecated
   public ElicitationSchemaBuilder chooseLegacy(
       String name, List<String> values, List<String> displayNames) {
-    addProperty(name, new ChooseLegacyBuilder(values, displayNames).build());
+    ChooseLegacyBuilder builder = new ChooseLegacyBuilder(values, displayNames);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   // --- Enum class chooseMany variants ---
 
   public <E extends Enum<E>> ElicitationSchemaBuilder chooseMany(String name, Class<E> enumType) {
-    addProperty(name, ChooseManyBuilder.fromEnum(enumType).build());
+    ChooseManyBuilder<E> builder = ChooseManyBuilder.fromEnum(enumType);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
@@ -197,7 +212,7 @@ public final class ElicitationSchemaBuilder {
       String name, Class<E> enumType, Consumer<ChooseManyBuilder<E>> customizer) {
     ChooseManyBuilder<E> builder = ChooseManyBuilder.fromEnum(enumType);
     customizer.accept(builder);
-    addProperty(name, builder.build());
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
@@ -205,7 +220,8 @@ public final class ElicitationSchemaBuilder {
 
   public <T> ElicitationSchemaBuilder chooseMany(
       String name, List<T> items, Function<T, String> valueFn) {
-    addProperty(name, ChooseManyBuilder.from(items, valueFn).build());
+    ChooseManyBuilder<T> builder = ChooseManyBuilder.from(items, valueFn);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
@@ -216,24 +232,28 @@ public final class ElicitationSchemaBuilder {
       Consumer<ChooseManyBuilder<T>> customizer) {
     ChooseManyBuilder<T> builder = ChooseManyBuilder.from(items, valueFn);
     customizer.accept(builder);
-    addProperty(name, builder.build());
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   // --- Raw string chooseMany variants ---
 
   public ElicitationSchemaBuilder chooseMany(String name, List<String> values) {
-    addProperty(name, ChooseManyBuilder.from(values).build());
+    ChooseManyBuilder<String> builder = ChooseManyBuilder.from(values);
+    addProperty(name, builder.build(), builder.isRequired());
     return this;
   }
 
   public ElicitationSchema build() {
-    return new ElicitationSchema(new LinkedHashMap<>(properties));
+    return new ElicitationSchema(new LinkedHashMap<>(properties), new ArrayList<>(requiredNames));
   }
 
-  private void addProperty(String name, PropertySchema schema) {
+  private void addProperty(String name, PrimitiveSchemaDefinition schema, boolean required) {
     if (properties.put(name, schema) != null) {
       throw new IllegalArgumentException("Duplicate property: " + name);
+    }
+    if (required) {
+      requiredNames.add(name);
     }
   }
 }

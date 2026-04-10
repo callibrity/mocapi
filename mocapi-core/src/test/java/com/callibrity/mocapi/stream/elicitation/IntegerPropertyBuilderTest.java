@@ -17,39 +17,37 @@ package com.callibrity.mocapi.stream.elicitation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.mocapi.model.NumberSchema;
 import org.junit.jupiter.api.Test;
 
 class IntegerPropertyBuilderTest {
 
   @Test
   void shouldBuildMinimalIntegerProperty() {
-    IntegerPropertySchema schema = new IntegerPropertyBuilder().description("Age").build();
+    NumberSchema schema = new IntegerPropertyBuilder().description("Age").build();
 
     assertThat(schema.type()).isEqualTo("integer");
     assertThat(schema.description()).isEqualTo("Age");
     assertThat(schema.defaultValue()).isNull();
-    assertThat(schema.required()).isTrue();
   }
 
   @Test
   void shouldIncludeTitle() {
-    IntegerPropertySchema schema =
-        new IntegerPropertyBuilder().description("Age").title("Your Age").build();
+    NumberSchema schema = new IntegerPropertyBuilder().description("Age").title("Your Age").build();
 
     assertThat(schema.title()).isEqualTo("Your Age");
   }
 
   @Test
   void shouldIncludeDefaultValue() {
-    IntegerPropertySchema schema =
-        new IntegerPropertyBuilder().description("Age").defaultValue(30).build();
+    NumberSchema schema = new IntegerPropertyBuilder().description("Age").defaultValue(30).build();
 
     assertThat(schema.defaultValue()).isEqualTo(30);
   }
 
   @Test
   void shouldIncludeMinimumAndMaximum() {
-    IntegerPropertySchema schema =
+    NumberSchema schema =
         new IntegerPropertyBuilder().description("Age").minimum(0).maximum(150).build();
 
     assertThat(schema.minimum()).isEqualTo(0);
@@ -58,7 +56,7 @@ class IntegerPropertyBuilderTest {
 
   @Test
   void shouldChainAllConstraints() {
-    IntegerPropertySchema schema =
+    NumberSchema schema =
         new IntegerPropertyBuilder()
             .description("Age")
             .title("Your Age")
@@ -75,9 +73,15 @@ class IntegerPropertyBuilderTest {
 
   @Test
   void optionalShouldSetRequiredFalse() {
-    IntegerPropertySchema schema =
-        new IntegerPropertyBuilder().description("Age").optional().build();
+    IntegerPropertyBuilder builder = new IntegerPropertyBuilder().description("Age").optional();
 
-    assertThat(schema.required()).isFalse();
+    assertThat(builder.isRequired()).isFalse();
+  }
+
+  @Test
+  void defaultShouldBeRequired() {
+    IntegerPropertyBuilder builder = new IntegerPropertyBuilder().description("Age");
+
+    assertThat(builder.isRequired()).isTrue();
   }
 }

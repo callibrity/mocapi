@@ -15,6 +15,12 @@
  */
 package com.callibrity.mocapi.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
-public record TitledEnumItemsSchema(List<EnumOption> anyOf) {}
+public record TitledEnumItemsSchema(List<EnumOption> anyOf) {
+  @JsonProperty("type")
+  public String type() {
+    return "string";
+  }
+}

@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
+import com.callibrity.mocapi.model.NumberSchema;
+
 /** Builder for integer-typed elicitation schema properties. */
 public final class IntegerPropertyBuilder {
 
@@ -57,7 +59,11 @@ public final class IntegerPropertyBuilder {
     return this;
   }
 
-  public IntegerPropertySchema build() {
-    return new IntegerPropertySchema(required, description, title, defaultValue, minimum, maximum);
+  boolean isRequired() {
+    return required;
+  }
+
+  public NumberSchema build() {
+    return new NumberSchema("integer", title, description, minimum, maximum, defaultValue);
   }
 }

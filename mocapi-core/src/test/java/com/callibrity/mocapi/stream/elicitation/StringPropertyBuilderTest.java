@@ -17,24 +17,25 @@ package com.callibrity.mocapi.stream.elicitation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.mocapi.model.StringFormat;
+import com.callibrity.mocapi.model.StringSchema;
 import org.junit.jupiter.api.Test;
 
 class StringPropertyBuilderTest {
 
   @Test
   void shouldBuildMinimalStringProperty() {
-    StringPropertySchema schema = new StringPropertyBuilder().description("A description").build();
+    StringSchema schema = new StringPropertyBuilder().description("A description").build();
 
     assertThat(schema.type()).isEqualTo("string");
     assertThat(schema.description()).isEqualTo("A description");
     assertThat(schema.title()).isNull();
     assertThat(schema.defaultValue()).isNull();
-    assertThat(schema.required()).isTrue();
   }
 
   @Test
   void shouldIncludeTitle() {
-    StringPropertySchema schema =
+    StringSchema schema =
         new StringPropertyBuilder().description("desc").title("Full Name").build();
 
     assertThat(schema.title()).isEqualTo("Full Name");
@@ -42,7 +43,7 @@ class StringPropertyBuilderTest {
 
   @Test
   void shouldIncludeDefaultValue() {
-    StringPropertySchema schema =
+    StringSchema schema =
         new StringPropertyBuilder().description("desc").defaultValue("hello").build();
 
     assertThat(schema.defaultValue()).isEqualTo("hello");
@@ -50,7 +51,7 @@ class StringPropertyBuilderTest {
 
   @Test
   void shouldIncludeMinAndMaxLength() {
-    StringPropertySchema schema =
+    StringSchema schema =
         new StringPropertyBuilder().description("desc").minLength(1).maxLength(255).build();
 
     assertThat(schema.minLength()).isEqualTo(1);
@@ -58,64 +59,59 @@ class StringPropertyBuilderTest {
   }
 
   @Test
-  void shouldIncludePattern() {
-    StringPropertySchema schema =
-        new StringPropertyBuilder().description("desc").pattern("^[a-z]+$").build();
-
-    assertThat(schema.pattern()).isEqualTo("^[a-z]+$");
-  }
-
-  @Test
   void shouldSetEmailFormat() {
-    StringPropertySchema schema = new StringPropertyBuilder().description("desc").email().build();
+    StringSchema schema = new StringPropertyBuilder().description("desc").email().build();
 
-    assertThat(schema.format()).isEqualTo("email");
+    assertThat(schema.format()).isEqualTo(StringFormat.EMAIL);
   }
 
   @Test
   void shouldSetUriFormat() {
-    StringPropertySchema schema = new StringPropertyBuilder().description("desc").uri().build();
+    StringSchema schema = new StringPropertyBuilder().description("desc").uri().build();
 
-    assertThat(schema.format()).isEqualTo("uri");
+    assertThat(schema.format()).isEqualTo(StringFormat.URI);
   }
 
   @Test
   void shouldSetDateFormat() {
-    StringPropertySchema schema = new StringPropertyBuilder().description("desc").date().build();
+    StringSchema schema = new StringPropertyBuilder().description("desc").date().build();
 
-    assertThat(schema.format()).isEqualTo("date");
+    assertThat(schema.format()).isEqualTo(StringFormat.DATE);
   }
 
   @Test
   void shouldSetDateTimeFormat() {
-    StringPropertySchema schema =
-        new StringPropertyBuilder().description("desc").dateTime().build();
+    StringSchema schema = new StringPropertyBuilder().description("desc").dateTime().build();
 
-    assertThat(schema.format()).isEqualTo("date-time");
+    assertThat(schema.format()).isEqualTo(StringFormat.DATE_TIME);
   }
 
   @Test
   void shouldChainMultipleConstraints() {
-    StringPropertySchema schema =
+    StringSchema schema =
         new StringPropertyBuilder()
             .description("desc")
             .title("ZIP")
-            .pattern("^\\d{5}$")
             .maxLength(5)
             .defaultValue("12345")
             .build();
 
     assertThat(schema.title()).isEqualTo("ZIP");
-    assertThat(schema.pattern()).isEqualTo("^\\d{5}$");
     assertThat(schema.maxLength()).isEqualTo(5);
     assertThat(schema.defaultValue()).isEqualTo("12345");
   }
 
   @Test
   void optionalShouldSetRequiredFalse() {
-    StringPropertySchema schema =
-        new StringPropertyBuilder().description("Nickname").optional().build();
+    StringPropertyBuilder builder = new StringPropertyBuilder().description("Nickname").optional();
 
-    assertThat(schema.required()).isFalse();
+    assertThat(builder.isRequired()).isFalse();
+  }
+
+  @Test
+  void defaultShouldBeRequired() {
+    StringPropertyBuilder builder = new StringPropertyBuilder().description("Name");
+
+    assertThat(builder.isRequired()).isTrue();
   }
 }

@@ -17,23 +17,23 @@ package com.callibrity.mocapi.stream.elicitation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.mocapi.model.NumberSchema;
 import org.junit.jupiter.api.Test;
 
 class NumberPropertyBuilderTest {
 
   @Test
   void shouldBuildMinimalNumberProperty() {
-    NumberPropertySchema schema = new NumberPropertyBuilder().description("Score").build();
+    NumberSchema schema = new NumberPropertyBuilder().description("Score").build();
 
     assertThat(schema.type()).isEqualTo("number");
     assertThat(schema.description()).isEqualTo("Score");
     assertThat(schema.defaultValue()).isNull();
-    assertThat(schema.required()).isTrue();
   }
 
   @Test
   void shouldIncludeTitle() {
-    NumberPropertySchema schema =
+    NumberSchema schema =
         new NumberPropertyBuilder().description("Score").title("Your Score").build();
 
     assertThat(schema.title()).isEqualTo("Your Score");
@@ -41,7 +41,7 @@ class NumberPropertyBuilderTest {
 
   @Test
   void shouldIncludeDefaultValue() {
-    NumberPropertySchema schema =
+    NumberSchema schema =
         new NumberPropertyBuilder().description("Score").defaultValue(95.5).build();
 
     assertThat(schema.defaultValue()).isEqualTo(95.5);
@@ -49,7 +49,7 @@ class NumberPropertyBuilderTest {
 
   @Test
   void shouldIncludeMinimumAndMaximum() {
-    NumberPropertySchema schema =
+    NumberSchema schema =
         new NumberPropertyBuilder().description("Score").minimum(0.0).maximum(100.0).build();
 
     assertThat(schema.minimum()).isEqualTo(0.0);
@@ -58,7 +58,7 @@ class NumberPropertyBuilderTest {
 
   @Test
   void shouldChainAllConstraints() {
-    NumberPropertySchema schema =
+    NumberSchema schema =
         new NumberPropertyBuilder()
             .description("Score")
             .title("Your Score")
@@ -75,9 +75,15 @@ class NumberPropertyBuilderTest {
 
   @Test
   void optionalShouldSetRequiredFalse() {
-    NumberPropertySchema schema =
-        new NumberPropertyBuilder().description("Score").optional().build();
+    NumberPropertyBuilder builder = new NumberPropertyBuilder().description("Score").optional();
 
-    assertThat(schema.required()).isFalse();
+    assertThat(builder.isRequired()).isFalse();
+  }
+
+  @Test
+  void defaultShouldBeRequired() {
+    NumberPropertyBuilder builder = new NumberPropertyBuilder().description("Score");
+
+    assertThat(builder.isRequired()).isTrue();
   }
 }

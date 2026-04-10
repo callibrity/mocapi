@@ -15,24 +15,24 @@
  */
 package com.callibrity.mocapi.stream.elicitation;
 
-import java.util.ArrayList;
+import com.callibrity.mocapi.model.PrimitiveSchemaDefinition;
+import com.callibrity.mocapi.model.RequestedSchema;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
 
 /**
- * An MCP elicitation schema. Wraps the property definitions and renders them as a JSON Schema
- * object node. Required fields are derived from each property's {@link PropertySchema#required()}
- * flag.
+ * An MCP elicitation schema. Wraps the property definitions and required field names, producing a
+ * typed {@link RequestedSchema}.
  */
 public final class ElicitationSchema {
 
-  private final Map<String, PropertySchema> properties;
+  private final Map<String, PrimitiveSchemaDefinition> properties;
+  private final List<String> requiredNames;
 
-  ElicitationSchema(Map<String, PropertySchema> properties) {
+  ElicitationSchema(Map<String, PrimitiveSchemaDefinition> properties, List<String> requiredNames) {
     this.properties = properties;
+    this.requiredNames = requiredNames;
   }
 
   /** Creates a new builder for constructing an {@link ElicitationSchema}. */
@@ -41,34 +41,12 @@ public final class ElicitationSchema {
   }
 
   /**
-   * Renders this schema as a Jackson {@link ObjectNode}.
+   * Produces a typed {@link RequestedSchema} from this elicitation schema.
    *
-   * @param objectMapper the ObjectMapper to use for node creation
-   * @return an ObjectNode representing the JSON Schema
+   * @return a RequestedSchema with properties and required field names
    */
-  public ObjectNode toObjectNode(ObjectMapper objectMapper) {
-    ObjectNode schema = objectMapper.createObjectNode();
-    schema.put("type", "object");
-
-    ObjectNode propsNode = objectMapper.createObjectNode();
-    List<String> required = new ArrayList<>();
-
-    for (var entry : properties.entrySet()) {
-      propsNode.set(entry.getKey(), objectMapper.valueToTree(entry.getValue()));
-      if (entry.getValue().required()) {
-        required.add(entry.getKey());
-      }
-    }
-    schema.set("properties", propsNode);
-
-    if (!required.isEmpty()) {
-      ArrayNode requiredArray = objectMapper.createArrayNode();
-      for (String name : required) {
-        requiredArray.add(name);
-      }
-      schema.set("required", requiredArray);
-    }
-
-    return schema;
+  public RequestedSchema toRequestedSchema() {
+    List<String> required = requiredNames.isEmpty() ? null : List.copyOf(requiredNames);
+    return new RequestedSchema(new LinkedHashMap<>(properties), required);
   }
 }
