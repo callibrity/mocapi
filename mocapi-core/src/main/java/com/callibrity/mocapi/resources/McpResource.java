@@ -15,15 +15,12 @@
  */
 package com.callibrity.mocapi.resources;
 
+import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.Resource;
+
 public interface McpResource {
 
-  // -------------------------- OTHER METHODS --------------------------
+  Resource descriptor();
 
-  Descriptor descriptor();
-
-  ReadResourceResponse read();
-
-  // -------------------------- INNER CLASSES --------------------------
-
-  record Descriptor(String uri, String name, String description, String mimeType) {}
+  ReadResourceResult read();
 }

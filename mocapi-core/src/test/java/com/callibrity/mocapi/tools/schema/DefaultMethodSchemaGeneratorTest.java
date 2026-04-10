@@ -17,7 +17,7 @@ package com.callibrity.mocapi.tools.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.callibrity.mocapi.tools.annotation.Tool;
+import com.callibrity.mocapi.tools.annotation.ToolMethod;
 import com.callibrity.mocapi.tools.util.HelloResponse;
 import com.callibrity.mocapi.tools.util.HelloTool;
 import com.github.victools.jsonschema.generator.SchemaVersion;
@@ -65,12 +65,12 @@ class DefaultMethodSchemaGeneratorTest {
 
   public static class TestTools {
 
-    @Tool(name = "with-optional-parameter")
+    @ToolMethod(name = "with-optional-parameter")
     public HelloResponse withOptionalParameter(@Nullable String name) {
       return null;
     }
 
-    @Tool(name = "with-mixed-parameter")
+    @ToolMethod(name = "with-mixed-parameter")
     public HelloResponse withMixedParameters(String name, @Nullable String optional) {
       return null;
     }

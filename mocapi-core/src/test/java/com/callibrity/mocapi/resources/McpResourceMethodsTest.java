@@ -18,7 +18,10 @@ package com.callibrity.mocapi.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.content.TextResourceContents;
+import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.Resource;
+import com.callibrity.mocapi.model.ResourceTemplate;
+import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.Map;
@@ -29,13 +32,13 @@ class McpResourceMethodsTest {
   private final McpResource greetingResource =
       new McpResource() {
         @Override
-        public Descriptor descriptor() {
-          return new Descriptor("test://greeting", "Greeting", "A greeting", "text/plain");
+        public Resource descriptor() {
+          return new Resource("test://greeting", "Greeting", "A greeting", "text/plain");
         }
 
         @Override
-        public ReadResourceResponse read() {
-          return new ReadResourceResponse(
+        public ReadResourceResult read() {
+          return new ReadResourceResult(
               List.of(new TextResourceContents("test://greeting", "text/plain", "Hello!")));
         }
       };
@@ -43,13 +46,14 @@ class McpResourceMethodsTest {
   private final McpResourceTemplate itemTemplate =
       new McpResourceTemplate() {
         @Override
-        public Descriptor descriptor() {
-          return new Descriptor("test://item/{id}", "Item Template", "An item", "application/json");
+        public ResourceTemplate descriptor() {
+          return new ResourceTemplate(
+              "test://item/{id}", "Item Template", "An item", "application/json");
         }
 
         @Override
-        public ReadResourceResponse read(Map<String, String> pathVariables) {
-          return new ReadResourceResponse(
+        public ReadResourceResult read(Map<String, String> pathVariables) {
+          return new ReadResourceResult(
               List.of(
                   new TextResourceContents(
                       "test://item/" + pathVariables.get("id"),

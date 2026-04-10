@@ -15,6 +15,11 @@
  */
 package com.callibrity.mocapi.resources;
 
+import com.callibrity.mocapi.model.ListResourceTemplatesResult;
+import com.callibrity.mocapi.model.ListResourcesResult;
+import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.Resource;
+import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -30,8 +35,8 @@ public class ResourcesRegistry {
   private final Map<String, McpResource> resources;
   private final Map<UriTemplate, McpResourceTemplate> templates;
   private final int pageSize;
-  private final List<McpResource.Descriptor> sortedResourceDescriptors;
-  private final List<McpResourceTemplate.Descriptor> sortedTemplateDescriptors;
+  private final List<Resource> sortedResourceDescriptors;
+  private final List<ResourceTemplate> sortedTemplateDescriptors;
 
   public ResourcesRegistry(
       List<McpResource> resources, List<McpResourceTemplate> templates, int pageSize) {
@@ -40,7 +45,7 @@ public class ResourcesRegistry {
     this.sortedResourceDescriptors =
         resources.stream()
             .map(McpResource::descriptor)
-            .sorted(Comparator.comparing(McpResource.Descriptor::uri))
+            .sorted(Comparator.comparing(Resource::uri))
             .toList();
     this.templates =
         templates.stream()
@@ -56,7 +61,7 @@ public class ResourcesRegistry {
     this.sortedTemplateDescriptors =
         templates.stream()
             .map(McpResourceTemplate::descriptor)
-            .sorted(Comparator.comparing(McpResourceTemplate.Descriptor::uriTemplate))
+            .sorted(Comparator.comparing(ResourceTemplate::uriTemplate))
             .toList();
     this.pageSize = pageSize;
   }
@@ -65,17 +70,17 @@ public class ResourcesRegistry {
     return resources.isEmpty() && templates.isEmpty();
   }
 
-  public ListResourcesResponse listResources(String cursor) {
+  public ListResourcesResult listResources(String cursor) {
     var page = Cursors.paginate(sortedResourceDescriptors, cursor, pageSize);
-    return new ListResourcesResponse(page.items(), page.nextCursor());
+    return new ListResourcesResult(page.items(), page.nextCursor());
   }
 
-  public ListResourceTemplatesResponse listResourceTemplates(String cursor) {
+  public ListResourceTemplatesResult listResourceTemplates(String cursor) {
     var page = Cursors.paginate(sortedTemplateDescriptors, cursor, pageSize);
-    return new ListResourceTemplatesResponse(page.items(), page.nextCursor());
+    return new ListResourceTemplatesResult(page.items(), page.nextCursor());
   }
 
-  public ReadResourceResponse readResource(String uri) {
+  public ReadResourceResult readResource(String uri) {
     McpResource exact = resources.get(uri);
     if (exact != null) {
       return exact.read();

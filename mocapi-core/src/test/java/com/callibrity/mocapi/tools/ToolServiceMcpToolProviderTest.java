@@ -20,7 +20,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.stream.McpStreamContextScopedValueResolver;
-import com.callibrity.mocapi.tools.annotation.Tool;
+import com.callibrity.mocapi.tools.annotation.ToolMethod;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import com.callibrity.mocapi.tools.schema.MethodSchemaGenerator;
 import java.lang.reflect.Method;
@@ -122,7 +122,7 @@ class ToolServiceMcpToolProviderTest {
 
   @ToolService
   static class SampleToolService {
-    @Tool(description = "Greets someone")
+    @ToolMethod(description = "Greets someone")
     public GreetResult greet(String name) {
       return new GreetResult("Hello, " + name);
     }
@@ -130,7 +130,7 @@ class ToolServiceMcpToolProviderTest {
 
   @ToolService
   static class OtherToolService {
-    @Tool(description = "Echoes input")
+    @ToolMethod(description = "Echoes input")
     public EchoResult echo(String input) {
       return new EchoResult(input);
     }

@@ -20,7 +20,7 @@ import com.callibrity.mocapi.content.CallToolResponse;
 import com.callibrity.mocapi.content.EmbeddedResource;
 import com.callibrity.mocapi.content.ImageContent;
 import com.callibrity.mocapi.content.TextContent;
-import com.callibrity.mocapi.content.TextResourceContents;
+import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.stream.McpStreamContext;
 import com.callibrity.mocapi.stream.SamplingResult;
 import com.callibrity.mocapi.tools.annotation.Tool;

@@ -15,14 +15,14 @@
  */
 package com.callibrity.mocapi.example.tools;
 
-import com.callibrity.mocapi.tools.annotation.Tool;
+import com.callibrity.mocapi.tools.annotation.ToolMethod;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @ToolService
 public class Rot13Tool {
 
-  @Tool(description = "A ROT-13 encoding utility.")
+  @ToolMethod(description = "A ROT-13 encoding utility.")
   public Rot13Response encode(@Schema(description = "The text to be ROT-13 encoded.") String text) {
     StringBuilder result = new StringBuilder();
 

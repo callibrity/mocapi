@@ -23,9 +23,9 @@ public interface AnnotationMcpToolProviderFactory {
 
   /**
    * Creates a new instance of {@link McpToolProvider} based on the provided target object. All
-   * methods annotated with {@link Tool} will be registered as tools in the provider.
+   * methods annotated with {@link ToolMethod} will be registered as tools in the provider.
    *
-   * @param targetObject the object containing methods annotated with {@link Tool}
+   * @param targetObject the object containing methods annotated with {@link ToolMethod}
    * @return a new instance of {@link McpToolProvider} that contains the tools defined by the
    *     annotations
    */

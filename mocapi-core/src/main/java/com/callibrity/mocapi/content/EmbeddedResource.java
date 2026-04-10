@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.content;
 
+import com.callibrity.mocapi.model.ResourceContents;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

@@ -16,13 +16,13 @@
 package com.callibrity.mocapi.example.tools;
 
 import com.callibrity.mocapi.stream.McpStreamContext;
-import com.callibrity.mocapi.tools.annotation.Tool;
+import com.callibrity.mocapi.tools.annotation.ToolMethod;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 
 @ToolService
 public class CountdownTool {
 
-  @Tool(
+  @ToolMethod(
       name = "countdown",
       description = "Counts down from the given number, sending progress updates via SSE")
   public CountdownResponse countdown(int from, McpStreamContext<CountdownResponse> ctx) {

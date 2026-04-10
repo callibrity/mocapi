@@ -15,13 +15,13 @@
  */
 package com.callibrity.mocapi.example.tools;
 
-import com.callibrity.mocapi.tools.annotation.Tool;
+import com.callibrity.mocapi.tools.annotation.ToolMethod;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 
 @ToolService
 public class HelloTool {
 
-  @Tool(name = "hello", description = "Returns a greeting message")
+  @ToolMethod(name = "hello", description = "Returns a greeting message")
   public HelloResponse sayHello(String name) {
     return new HelloResponse(String.format("Hello, %s!", name));
   }

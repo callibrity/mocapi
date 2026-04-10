@@ -16,7 +16,7 @@
 package com.callibrity.mocapi.compat;
 
 import com.callibrity.mocapi.stream.McpStreamContext;
-import com.callibrity.mocapi.tools.annotation.Tool;
+import com.callibrity.mocapi.tools.annotation.ToolMethod;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -25,17 +25,17 @@ import java.util.Map;
 @ToolService
 public class CompatTools {
 
-  @Tool(name = "echo", description = "Returns its input as structured content")
+  @ToolMethod(name = "echo", description = "Returns its input as structured content")
   public Map<String, Object> echo(String message) {
     return Map.of("message", message);
   }
 
-  @Tool(name = "error", description = "Always throws a JSON-RPC error")
+  @ToolMethod(name = "error", description = "Always throws a JSON-RPC error")
   public Map<String, Object> error() {
     throw new JsonRpcException(JsonRpcProtocol.INTERNAL_ERROR, "intentional error");
   }
 
-  @Tool(name = "stream", description = "A streaming tool that sends a progress notification")
+  @ToolMethod(name = "stream", description = "A streaming tool that sends a progress notification")
   public Map<String, Object> stream(String message, McpStreamContext<Map<String, Object>> ctx) {
     ctx.sendProgress(1, 2);
     return Map.of("message", message);

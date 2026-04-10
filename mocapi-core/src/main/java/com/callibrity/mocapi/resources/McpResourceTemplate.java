@@ -15,13 +15,13 @@
  */
 package com.callibrity.mocapi.resources;
 
+import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.ResourceTemplate;
 import java.util.Map;
 
 public interface McpResourceTemplate {
 
-  Descriptor descriptor();
+  ResourceTemplate descriptor();
 
-  ReadResourceResponse read(Map<String, String> pathVariables);
-
-  record Descriptor(String uriTemplate, String name, String description, String mimeType) {}
+  ReadResourceResult read(Map<String, String> pathVariables);
 }

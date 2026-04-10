@@ -18,7 +18,7 @@ package com.callibrity.mocapi.compat.conformance;
 import com.callibrity.mocapi.content.EmbeddedResource;
 import com.callibrity.mocapi.content.ImageContent;
 import com.callibrity.mocapi.content.TextContent;
-import com.callibrity.mocapi.content.TextResourceContents;
+import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.prompts.GetPromptResponse;
 import com.callibrity.mocapi.prompts.McpPrompt;
 import com.callibrity.mocapi.prompts.PromptArgument;

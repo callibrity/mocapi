@@ -15,11 +15,11 @@
  */
 package com.callibrity.mocapi.tools.util;
 
-import com.callibrity.mocapi.tools.annotation.Tool;
+import com.callibrity.mocapi.tools.annotation.ToolMethod;
 
 public class NullTool {
 
-  @Tool(name = "nay-hello")
+  @ToolMethod(name = "nay-hello")
   public HelloResponse sayHello(String name) {
     return null;
   }

@@ -24,7 +24,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 @Documented
-public @interface Tool {
+public @interface ToolMethod {
 
   /**
    * The name of the tool. If not specified, a dot-separated, kebab-case class name and method name

@@ -15,6 +15,9 @@
  */
 package com.callibrity.mocapi.resources;
 
+import com.callibrity.mocapi.model.ListResourceTemplatesResult;
+import com.callibrity.mocapi.model.ListResourcesResult;
+import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import java.util.Map;
@@ -27,17 +30,17 @@ public class McpResourceMethods {
   private final ResourcesRegistry resourcesRegistry;
 
   @JsonRpcMethod("resources/list")
-  public ListResourcesResponse listResources(String cursor) {
+  public ListResourcesResult listResources(String cursor) {
     return resourcesRegistry.listResources(cursor);
   }
 
   @JsonRpcMethod("resources/templates/list")
-  public ListResourceTemplatesResponse listResourceTemplates(String cursor) {
+  public ListResourceTemplatesResult listResourceTemplates(String cursor) {
     return resourcesRegistry.listResourceTemplates(cursor);
   }
 
   @JsonRpcMethod("resources/read")
-  public ReadResourceResponse readResource(String uri) {
+  public ReadResourceResult readResource(String uri) {
     return resourcesRegistry.readResource(uri);
   }
 

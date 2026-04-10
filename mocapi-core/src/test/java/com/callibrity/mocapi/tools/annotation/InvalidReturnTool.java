@@ -17,7 +17,7 @@ package com.callibrity.mocapi.tools.annotation;
 
 public class InvalidReturnTool {
 
-  @Tool
+  @ToolMethod
   public String badReturnType(String name) {
     return String.format("Hello, %s!", name);
   }

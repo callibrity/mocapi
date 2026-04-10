@@ -48,7 +48,7 @@ public class AnnotationMcpTool implements McpTool {
 
   public static List<AnnotationMcpTool> createTools(
       MethodSchemaGenerator generator, MethodInvokerFactory invokerFactory, Object targetObject) {
-    return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), Tool.class).stream()
+    return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), ToolMethod.class).stream()
         .map(m -> new AnnotationMcpTool(generator, invokerFactory, targetObject, m))
         .toList();
   }
@@ -60,7 +60,7 @@ public class AnnotationMcpTool implements McpTool {
       MethodInvokerFactory invokerFactory,
       Object targetObject,
       Method method) {
-    var annotation = method.getAnnotation(Tool.class);
+    var annotation = method.getAnnotation(ToolMethod.class);
     String name = nameOf(targetObject, method, annotation);
     String title = titleOf(targetObject, method, annotation);
     String description = descriptionOf(targetObject, method, annotation);
@@ -100,17 +100,17 @@ public class AnnotationMcpTool implements McpTool {
     this.descriptor = new Descriptor(name, title, description, inputSchema, outputSchema);
   }
 
-  private static String nameOf(Object targetObject, Method method, Tool annotation) {
+  private static String nameOf(Object targetObject, Method method, ToolMethod annotation) {
     return ofNullable(StringUtils.trimToNull(annotation.name()))
         .orElseGet(() -> identifier(targetObject, method));
   }
 
-  private static String titleOf(Object targetObject, Method method, Tool annotation) {
+  private static String titleOf(Object targetObject, Method method, ToolMethod annotation) {
     return ofNullable(StringUtils.trimToNull(annotation.title()))
         .orElseGet(() -> humanReadableName(targetObject, method));
   }
 
-  private static String descriptionOf(Object targetObject, Method method, Tool annotation) {
+  private static String descriptionOf(Object targetObject, Method method, ToolMethod annotation) {
     return ofNullable(StringUtils.trimToNull(annotation.description()))
         .orElseGet(() -> humanReadableName(targetObject, method));
   }

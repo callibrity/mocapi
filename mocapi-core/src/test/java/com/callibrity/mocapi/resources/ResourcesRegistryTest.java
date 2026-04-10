@@ -18,7 +18,10 @@ package com.callibrity.mocapi.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.content.TextResourceContents;
+import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.Resource;
+import com.callibrity.mocapi.model.ResourceTemplate;
+import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
@@ -31,13 +34,13 @@ class ResourcesRegistryTest {
   private McpResource resource(String uri, String name, String description, String mimeType) {
     return new McpResource() {
       @Override
-      public Descriptor descriptor() {
-        return new Descriptor(uri, name, description, mimeType);
+      public Resource descriptor() {
+        return new Resource(uri, name, description, mimeType);
       }
 
       @Override
-      public ReadResourceResponse read() {
-        return new ReadResourceResponse(
+      public ReadResourceResult read() {
+        return new ReadResourceResult(
             List.of(new TextResourceContents(uri, mimeType, "content of " + uri)));
       }
     };
@@ -47,13 +50,13 @@ class ResourcesRegistryTest {
       String uriTemplate, String name, String description, String mimeType) {
     return new McpResourceTemplate() {
       @Override
-      public Descriptor descriptor() {
-        return new Descriptor(uriTemplate, name, description, mimeType);
+      public ResourceTemplate descriptor() {
+        return new ResourceTemplate(uriTemplate, name, description, mimeType);
       }
 
       @Override
-      public ReadResourceResponse read(Map<String, String> pathVariables) {
-        return new ReadResourceResponse(
+      public ReadResourceResult read(Map<String, String> pathVariables) {
+        return new ReadResourceResult(
             List.of(new TextResourceContents(uriTemplate, mimeType, "template content")));
       }
     };

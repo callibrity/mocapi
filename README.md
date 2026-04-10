@@ -46,7 +46,7 @@ This will automatically activate the `MocapiToolsAutoConfiguration` which will e
 tool, you need to create a bean annotated with `@ToolService` having methods annotated with `@Tool`:
 
 ```java
-import com.callibrity.mocapi.tools.annotation.Tool;
+import com.callibrity.mocapi.tools.annotation.ToolMethod;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 
 @ToolService
