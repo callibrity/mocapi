@@ -15,14 +15,16 @@
  */
 package com.callibrity.mocapi.compat.conformance;
 
-import com.callibrity.mocapi.content.EmbeddedResource;
-import com.callibrity.mocapi.content.ImageContent;
-import com.callibrity.mocapi.content.TextContent;
+import com.callibrity.mocapi.model.EmbeddedResource;
+import com.callibrity.mocapi.model.GetPromptResult;
+import com.callibrity.mocapi.model.ImageContent;
+import com.callibrity.mocapi.model.Prompt;
+import com.callibrity.mocapi.model.PromptArgument;
+import com.callibrity.mocapi.model.PromptMessage;
+import com.callibrity.mocapi.model.Role;
+import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.TextResourceContents;
-import com.callibrity.mocapi.prompts.GetPromptResponse;
 import com.callibrity.mocapi.prompts.McpPrompt;
-import com.callibrity.mocapi.prompts.PromptArgument;
-import com.callibrity.mocapi.prompts.PromptMessage;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -112,17 +114,18 @@ public class ConformancePrompts {
   public McpPrompt simplePrompt() {
     return new McpPrompt() {
       @Override
-      public Descriptor descriptor() {
-        return new Descriptor("test_simple_prompt", null, "A simple test prompt", null, List.of());
+      public Prompt descriptor() {
+        return new Prompt("test_simple_prompt", null, "A simple test prompt", null, List.of());
       }
 
       @Override
-      public GetPromptResponse get(Map<String, String> arguments) {
-        return new GetPromptResponse(
+      public GetPromptResult get(Map<String, String> arguments) {
+        return new GetPromptResult(
             "A simple test prompt",
             List.of(
                 new PromptMessage(
-                    "user", List.of(new TextContent("This is a simple prompt for testing.")))));
+                    Role.user,
+                    List.of(new TextContent("This is a simple prompt for testing.", null)))));
       }
     };
   }
@@ -131,8 +134,8 @@ public class ConformancePrompts {
   public McpPrompt promptWithArguments() {
     return new McpPrompt() {
       @Override
-      public Descriptor descriptor() {
-        return new Descriptor(
+      public Prompt descriptor() {
+        return new Prompt(
             "test_prompt_with_arguments",
             null,
             "A test prompt with arguments",
@@ -143,18 +146,19 @@ public class ConformancePrompts {
       }
 
       @Override
-      public GetPromptResponse get(Map<String, String> arguments) {
+      public GetPromptResult get(Map<String, String> arguments) {
         String arg1 = arguments != null ? arguments.getOrDefault("arg1", "") : "";
         String arg2 = arguments != null ? arguments.getOrDefault("arg2", "") : "";
-        return new GetPromptResponse(
+        return new GetPromptResult(
             "A test prompt with arguments",
             List.of(
                 new PromptMessage(
-                    "user",
+                    Role.user,
                     List.of(
                         new TextContent(
                             String.format(
-                                "Prompt with arguments: arg1='%s', arg2='%s'", arg1, arg2))))));
+                                "Prompt with arguments: arg1='%s', arg2='%s'", arg1, arg2),
+                            null)))));
       }
     };
   }
@@ -163,8 +167,8 @@ public class ConformancePrompts {
   public McpPrompt promptWithEmbeddedResource() {
     return new McpPrompt() {
       @Override
-      public Descriptor descriptor() {
-        return new Descriptor(
+      public Prompt descriptor() {
+        return new Prompt(
             "test_prompt_with_embedded_resource",
             null,
             "A test prompt with an embedded resource",
@@ -173,22 +177,24 @@ public class ConformancePrompts {
       }
 
       @Override
-      public GetPromptResponse get(Map<String, String> arguments) {
+      public GetPromptResult get(Map<String, String> arguments) {
         String resourceUri = arguments != null ? arguments.getOrDefault("resourceUri", "") : "";
-        return new GetPromptResponse(
+        return new GetPromptResult(
             "A test prompt with an embedded resource",
             List.of(
                 new PromptMessage(
-                    "user",
+                    Role.user,
                     List.of(
                         new EmbeddedResource(
                             new TextResourceContents(
                                 resourceUri,
                                 "text/plain",
-                                "Embedded resource content for testing.")))),
+                                "Embedded resource content for testing."),
+                            null))),
                 new PromptMessage(
-                    "user",
-                    List.of(new TextContent("Please process the embedded resource above.")))));
+                    Role.user,
+                    List.of(
+                        new TextContent("Please process the embedded resource above.", null)))));
       }
     };
   }
@@ -197,19 +203,20 @@ public class ConformancePrompts {
   public McpPrompt promptWithImage() {
     return new McpPrompt() {
       @Override
-      public Descriptor descriptor() {
-        return new Descriptor(
+      public Prompt descriptor() {
+        return new Prompt(
             "test_prompt_with_image", null, "A test prompt with an image", null, List.of());
       }
 
       @Override
-      public GetPromptResponse get(Map<String, String> arguments) {
-        return new GetPromptResponse(
+      public GetPromptResult get(Map<String, String> arguments) {
+        return new GetPromptResult(
             "A test prompt with an image",
             List.of(
-                new PromptMessage("user", List.of(new ImageContent(TINY_PNG, "image/png"))),
                 new PromptMessage(
-                    "user", List.of(new TextContent("Please analyze the image above.")))));
+                    Role.user, List.of(new ImageContent(TINY_PNG, "image/png", null))),
+                new PromptMessage(
+                    Role.user, List.of(new TextContent("Please analyze the image above.", null)))));
       }
     };
   }

@@ -18,7 +18,12 @@ package com.callibrity.mocapi.prompts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.content.TextContent;
+import com.callibrity.mocapi.model.GetPromptResult;
+import com.callibrity.mocapi.model.Prompt;
+import com.callibrity.mocapi.model.PromptArgument;
+import com.callibrity.mocapi.model.PromptMessage;
+import com.callibrity.mocapi.model.Role;
+import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
@@ -31,8 +36,8 @@ class PromptsRegistryTest {
   private McpPrompt createPrompt(String name) {
     return new McpPrompt() {
       @Override
-      public Descriptor descriptor() {
-        return new Descriptor(
+      public Prompt descriptor() {
+        return new Prompt(
             name,
             null,
             "Description of " + name,
@@ -41,10 +46,12 @@ class PromptsRegistryTest {
       }
 
       @Override
-      public GetPromptResponse get(Map<String, String> arguments) {
-        return new GetPromptResponse(
+      public GetPromptResult get(Map<String, String> arguments) {
+        return new GetPromptResult(
             descriptor().description(),
-            List.of(new PromptMessage("user", List.of(new TextContent("Hello from " + name)))));
+            List.of(
+                new PromptMessage(
+                    Role.user, List.of(new TextContent("Hello from " + name, null)))));
       }
     };
   }

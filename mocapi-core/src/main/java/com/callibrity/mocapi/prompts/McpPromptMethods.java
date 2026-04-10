@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.prompts;
 
+import com.callibrity.mocapi.model.GetPromptResult;
+import com.callibrity.mocapi.model.ListPromptsResult;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import java.util.Map;
@@ -27,12 +29,12 @@ public class McpPromptMethods {
   private final PromptsRegistry promptsRegistry;
 
   @JsonRpcMethod("prompts/list")
-  public ListPromptsResponse listPrompts(String cursor) {
+  public ListPromptsResult listPrompts(String cursor) {
     return promptsRegistry.listPrompts(cursor);
   }
 
   @JsonRpcMethod("prompts/get")
-  public GetPromptResponse getPrompt(String name, Map<String, String> arguments) {
+  public GetPromptResult getPrompt(String name, Map<String, String> arguments) {
     return promptsRegistry.lookup(name).get(arguments);
   }
 }

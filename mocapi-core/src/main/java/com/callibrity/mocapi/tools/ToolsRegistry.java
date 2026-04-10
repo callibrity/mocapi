@@ -18,7 +18,7 @@ package com.callibrity.mocapi.tools;
 import static java.util.Optional.ofNullable;
 
 import com.callibrity.mocapi.content.CallToolResponse;
-import com.callibrity.mocapi.content.TextContent;
+import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -90,7 +90,7 @@ public class ToolsRegistry {
     ObjectNode structuredContent =
         jsonResult != null && jsonResult.isObject() ? (ObjectNode) jsonResult : null;
     String text = jsonResult != null ? jsonResult.toString() : "";
-    var textContent = new TextContent(text);
+    var textContent = new TextContent(text, null);
     return new CallToolResponse(List.of(textContent), null, structuredContent);
   }
 

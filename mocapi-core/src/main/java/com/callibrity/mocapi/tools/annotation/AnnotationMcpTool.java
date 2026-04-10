@@ -48,7 +48,8 @@ public class AnnotationMcpTool implements McpTool {
 
   public static List<AnnotationMcpTool> createTools(
       MethodSchemaGenerator generator, MethodInvokerFactory invokerFactory, Object targetObject) {
-    return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), ToolMethod.class).stream()
+    return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), ToolMethod.class)
+        .stream()
         .map(m -> new AnnotationMcpTool(generator, invokerFactory, targetObject, m))
         .toList();
   }

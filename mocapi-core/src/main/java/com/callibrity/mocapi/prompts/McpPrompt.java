@@ -15,21 +15,13 @@
  */
 package com.callibrity.mocapi.prompts;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.List;
+import com.callibrity.mocapi.model.GetPromptResult;
+import com.callibrity.mocapi.model.Prompt;
 import java.util.Map;
 
 public interface McpPrompt {
 
-  Descriptor descriptor();
+  Prompt descriptor();
 
-  GetPromptResponse get(Map<String, String> arguments);
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  record Descriptor(
-      String name,
-      String title,
-      String description,
-      List<Icon> icons,
-      List<PromptArgument> arguments) {}
+  GetPromptResult get(Map<String, String> arguments);
 }

@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.content;
 
+import com.callibrity.mocapi.model.ContentBlock;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import tools.jackson.databind.node.ObjectNode;

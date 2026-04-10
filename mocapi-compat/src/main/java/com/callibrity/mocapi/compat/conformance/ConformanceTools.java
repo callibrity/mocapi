@@ -15,15 +15,15 @@
  */
 package com.callibrity.mocapi.compat.conformance;
 
-import com.callibrity.mocapi.content.AudioContent;
 import com.callibrity.mocapi.content.CallToolResponse;
-import com.callibrity.mocapi.content.EmbeddedResource;
-import com.callibrity.mocapi.content.ImageContent;
-import com.callibrity.mocapi.content.TextContent;
+import com.callibrity.mocapi.model.AudioContent;
+import com.callibrity.mocapi.model.EmbeddedResource;
+import com.callibrity.mocapi.model.ImageContent;
+import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.stream.McpStreamContext;
 import com.callibrity.mocapi.stream.SamplingResult;
-import com.callibrity.mocapi.tools.annotation.Tool;
+import com.callibrity.mocapi.tools.annotation.ToolMethod;
 import com.callibrity.mocapi.tools.annotation.ToolService;
 import java.util.Base64;
 import java.util.List;
@@ -174,12 +174,12 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @Tool(
+  @ToolMethod(
       name = "test_simple_text",
       description = "Returns simple text content for conformance testing")
   public CallToolResponse simpleText() {
     return new CallToolResponse(
-        List.of(new TextContent("This is a simple text response for testing.")), null, null);
+        List.of(new TextContent("This is a simple text response for testing.", null)), null, null);
   }
 
   /**
@@ -189,9 +189,11 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @Tool(name = "test_image_content", description = "Returns image content for conformance testing")
+  @ToolMethod(
+      name = "test_image_content",
+      description = "Returns image content for conformance testing")
   public CallToolResponse imageContent() {
-    return new CallToolResponse(List.of(new ImageContent(TINY_PNG, "image/png")), null, null);
+    return new CallToolResponse(List.of(new ImageContent(TINY_PNG, "image/png", null)), null, null);
   }
 
   /**
@@ -201,9 +203,11 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @Tool(name = "test_audio_content", description = "Returns audio content for conformance testing")
+  @ToolMethod(
+      name = "test_audio_content",
+      description = "Returns audio content for conformance testing")
   public CallToolResponse audioContent() {
-    return new CallToolResponse(List.of(new AudioContent(TINY_WAV, "audio/wav")), null, null);
+    return new CallToolResponse(List.of(new AudioContent(TINY_WAV, "audio/wav", null)), null, null);
   }
 
   /**
@@ -213,7 +217,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @Tool(
+  @ToolMethod(
       name = "test_embedded_resource",
       description = "Returns embedded resource content for conformance testing")
   public CallToolResponse embeddedResource() {
@@ -223,7 +227,8 @@ public class ConformanceTools {
                 new TextResourceContents(
                     "test://embedded-resource",
                     "text/plain",
-                    "This is an embedded resource content."))),
+                    "This is an embedded resource content."),
+                null)),
         null,
         null);
   }
@@ -235,19 +240,20 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @Tool(
+  @ToolMethod(
       name = "test_multiple_content_types",
       description = "Returns multiple content types for conformance testing")
   public CallToolResponse mixedContent() {
     return new CallToolResponse(
         List.of(
-            new TextContent("Multiple content types test:"),
-            new ImageContent(TINY_PNG, "image/png"),
+            new TextContent("Multiple content types test:", null),
+            new ImageContent(TINY_PNG, "image/png", null),
             new EmbeddedResource(
                 new TextResourceContents(
                     "test://mixed-content-resource",
                     "application/json",
-                    "{\"test\":\"data\",\"value\":123}"))),
+                    "{\"test\":\"data\",\"value\":123}"),
+                null)),
         null,
         null);
   }
@@ -260,7 +266,7 @@ public class ConformanceTools {
    *     href="https://modelcontextprotocol.io/specification/2025-11-25/server/utilities/logging">MCP
    *     Logging Specification</a>
    */
-  @Tool(
+  @ToolMethod(
       name = "test_tool_with_logging",
       description = "Sends log messages during execution for conformance testing")
   public CallToolResponse withLogging(McpStreamContext<CallToolResponse> ctx)
@@ -280,7 +286,7 @@ public class ConformanceTools {
         "test_tool_with_logging",
         "Tool execution completed");
     return new CallToolResponse(
-        List.of(new TextContent("Logging test completed successfully")), null, null);
+        List.of(new TextContent("Logging test completed successfully", null)), null, null);
   }
 
   /**
@@ -290,12 +296,12 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @Tool(
+  @ToolMethod(
       name = "test_error_handling",
       description = "Always returns an error for conformance testing")
   public CallToolResponse errorHandling() {
     return new CallToolResponse(
-        List.of(new TextContent("This tool intentionally returns an error for testing")),
+        List.of(new TextContent("This tool intentionally returns an error for testing", null)),
         true,
         null);
   }
@@ -307,7 +313,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @Tool(
+  @ToolMethod(
       name = "test_tool_with_progress",
       description = "Reports progress notifications for conformance testing")
   public CallToolResponse withProgress(McpStreamContext<CallToolResponse> ctx)
@@ -318,7 +324,7 @@ public class ConformanceTools {
     Thread.sleep(50);
     ctx.sendProgress(100, 100);
     return new CallToolResponse(
-        List.of(new TextContent("Progress test completed successfully")), null, null);
+        List.of(new TextContent("Progress test completed successfully", null)), null, null);
   }
 
   /**
@@ -328,11 +334,12 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/sampling">MCP
    *     Sampling Specification</a>
    */
-  @Tool(name = "test_sampling", description = "Tests sampling/createMessage for conformance")
+  @ToolMethod(name = "test_sampling", description = "Tests sampling/createMessage for conformance")
   public CallToolResponse testSampling(String prompt, McpStreamContext<CallToolResponse> ctx) {
     SamplingResult result = ctx.sample(prompt, 100);
     String text = result.text();
-    return new CallToolResponse(List.of(new TextContent("LLM response: " + text)), null, null);
+    return new CallToolResponse(
+        List.of(new TextContent("LLM response: " + text, null)), null, null);
   }
 
   /**
@@ -342,7 +349,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation">MCP
    *     Elicitation Specification</a>
    */
-  @Tool(name = "test_elicitation", description = "Tests elicitation/create for conformance")
+  @ToolMethod(name = "test_elicitation", description = "Tests elicitation/create for conformance")
   public CallToolResponse testElicitation(String message, McpStreamContext<CallToolResponse> ctx) {
     var result =
         ctx.elicit(
@@ -355,7 +362,8 @@ public class ConformanceTools {
     return new CallToolResponse(
         List.of(
             new TextContent(
-                "User response: action=" + result.action().getValue() + ", content=" + content)),
+                "User response: action=" + result.action().getValue() + ", content=" + content,
+                null)),
         null,
         null);
   }
@@ -367,7 +375,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation">MCP
    *     Elicitation Specification</a>
    */
-  @Tool(
+  @ToolMethod(
       name = "test_elicitation_sep1034_defaults",
       description = "Tests elicitation with default values for conformance")
   public CallToolResponse testElicitationDefaults(McpStreamContext<CallToolResponse> ctx) {
@@ -382,7 +390,8 @@ public class ConformanceTools {
               schema.bool("verified", "Verified", true);
             });
     return new CallToolResponse(
-        List.of(new TextContent("Elicitation completed: action=" + result.action().getValue())),
+        List.of(
+            new TextContent("Elicitation completed: action=" + result.action().getValue(), null)),
         null,
         null);
   }
@@ -428,7 +437,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation">MCP
    *     Elicitation Specification</a>
    */
-  @Tool(
+  @ToolMethod(
       name = "test_elicitation_sep1330_enums",
       description = "Tests elicitation with enum variants for conformance")
   public CallToolResponse testElicitationEnums(McpStreamContext<CallToolResponse> ctx) {
@@ -446,7 +455,8 @@ public class ConformanceTools {
               schema.chooseMany("titledMulti", TitledMultiOption.class);
             });
     return new CallToolResponse(
-        List.of(new TextContent("Elicitation completed: action=" + result.action().getValue())),
+        List.of(
+            new TextContent("Elicitation completed: action=" + result.action().getValue(), null)),
         null,
         null);
   }

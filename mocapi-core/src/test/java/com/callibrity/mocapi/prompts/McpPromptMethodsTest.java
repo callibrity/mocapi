@@ -18,7 +18,12 @@ package com.callibrity.mocapi.prompts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.content.TextContent;
+import com.callibrity.mocapi.model.GetPromptResult;
+import com.callibrity.mocapi.model.Prompt;
+import com.callibrity.mocapi.model.PromptArgument;
+import com.callibrity.mocapi.model.PromptMessage;
+import com.callibrity.mocapi.model.Role;
+import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.Map;
@@ -29,8 +34,8 @@ class McpPromptMethodsTest {
   private final McpPrompt testPrompt =
       new McpPrompt() {
         @Override
-        public Descriptor descriptor() {
-          return new Descriptor(
+        public Prompt descriptor() {
+          return new Prompt(
               "greet",
               null,
               "A greeting prompt",
@@ -39,11 +44,13 @@ class McpPromptMethodsTest {
         }
 
         @Override
-        public GetPromptResponse get(Map<String, String> arguments) {
+        public GetPromptResult get(Map<String, String> arguments) {
           String name = arguments.getOrDefault("name", "World");
-          return new GetPromptResponse(
+          return new GetPromptResult(
               "A greeting prompt",
-              List.of(new PromptMessage("user", List.of(new TextContent("Hello, " + name + "!")))));
+              List.of(
+                  new PromptMessage(
+                      Role.user, List.of(new TextContent("Hello, " + name + "!", null)))));
         }
       };
 
@@ -65,7 +72,7 @@ class McpPromptMethodsTest {
     var response = methods.getPrompt("greet", Map.of("name", "Mocapi"));
 
     assertThat(response.messages()).hasSize(1);
-    assertThat(response.messages().getFirst().role()).isEqualTo("user");
+    assertThat(response.messages().getFirst().role()).isEqualTo(Role.user);
     assertThat(response.messages().getFirst().content()).hasSize(1);
     assertThat(response.messages().getFirst().content().getFirst()).isInstanceOf(TextContent.class);
     assertThat(((TextContent) response.messages().getFirst().content().getFirst()).text())

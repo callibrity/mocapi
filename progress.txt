@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T00:00:18-04:00
-ITERATION: 85
-SPEC_COMPLETED: 086-migrate-resources-to-model.md
-WHAT_WAS_DONE: Migrated all resource types in mocapi-core to use canonical types from mocapi-model: replaced McpResource.Descriptor with model.Resource, McpResourceTemplate.Descriptor with model.ResourceTemplate, ReadResourceResponse with ReadResourceResult, ListResourcesResponse with ListResourcesResult, ListResourceTemplatesResponse with ListResourceTemplatesResult; deleted core's ResourceContents/TextResourceContents/BlobResourceContents content types in favor of model equivalents; updated ResourcesRegistry, McpResourceMethods, EmbeddedResource, all unit tests, and all conformance resources/tools/prompts.
-VERIFICATION: mvn verify — BUILD SUCCESS, all modules pass, 80 integration tests, spotless and license checks pass
+LAST_RUN: 2026-04-10T00:12:00-04:00
+ITERATION: 86
+SPEC_COMPLETED: 087-migrate-prompts-to-model.md
+WHAT_WAS_DONE: Migrated all prompt types in mocapi-core to use canonical types from mocapi-model: replaced McpPrompt.Descriptor with model.Prompt, GetPromptResponse with GetPromptResult, ListPromptsResponse with ListPromptsResult, core PromptMessage/PromptArgument/Icon with model equivalents; deleted entire content type hierarchy (ContentBlock, TextContent, ImageContent, AudioContent, ResourceLink, EmbeddedResource, Annotations) from core in favor of model equivalents; updated CallToolResponse to use model.ContentBlock; updated PromptsRegistry, McpPromptMethods, ConformancePrompts, ConformanceTools, ToolsRegistry, and all unit tests. Also fixed pre-existing @Tool→@ToolMethod annotation rename in ConformanceTools.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests, spotless and license checks pass
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: Core's EmbeddedResource now imports ResourceContents from mocapi-model instead of the deleted core content type. The ContentBlock hierarchy (TextContent, ImageContent, AudioContent, ResourceLink, EmbeddedResource) remains in mocapi-core for now — those will be migrated in follow-up specs for prompts and tools. ConformanceTools and ConformancePrompts also updated to import TextResourceContents from model.
+NOTES: The content package now contains only CallToolResponse (still referencing model.ContentBlock). The @Tool→@ToolMethod rename in ConformanceTools was a pre-existing issue from a prior spec that was masked by cached class files; fixed as part of this iteration. Model types use Role enum instead of String for roles, and Boolean wrapper instead of boolean primitive for PromptArgument.required. Model content types lack convenience constructors so null is passed explicitly for annotations parameter.

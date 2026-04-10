@@ -17,6 +17,8 @@ package com.callibrity.mocapi.prompts;
 
 import static java.util.Optional.ofNullable;
 
+import com.callibrity.mocapi.model.ListPromptsResult;
+import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -28,7 +30,7 @@ import java.util.stream.Collectors;
 public class PromptsRegistry {
 
   private final Map<String, McpPrompt> prompts;
-  private final List<McpPrompt.Descriptor> sortedDescriptors;
+  private final List<Prompt> sortedDescriptors;
   private final int pageSize;
 
   public PromptsRegistry(List<McpPrompt> prompts, int pageSize) {
@@ -45,7 +47,7 @@ public class PromptsRegistry {
     this.sortedDescriptors =
         prompts.stream()
             .map(McpPrompt::descriptor)
-            .sorted(Comparator.comparing(McpPrompt.Descriptor::name))
+            .sorted(Comparator.comparing(Prompt::name))
             .toList();
     this.pageSize = pageSize;
   }
@@ -62,8 +64,8 @@ public class PromptsRegistry {
                     JsonRpcProtocol.INVALID_PARAMS, String.format("Prompt not found: %s", name)));
   }
 
-  public ListPromptsResponse listPrompts(String cursor) {
+  public ListPromptsResult listPrompts(String cursor) {
     var page = Cursors.paginate(sortedDescriptors, cursor, pageSize);
-    return new ListPromptsResponse(page.items(), page.nextCursor());
+    return new ListPromptsResult(page.items(), page.nextCursor());
   }
 }
