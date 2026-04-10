@@ -26,11 +26,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
-class PingIT {
+class ToolsCallMixedContentIT {
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,12 +43,31 @@ class PingIT {
   }
 
   @Test
-  void pingReturnsEmptyResult() throws Exception {
+  void callMixedContentReturnsMultipleTypes() throws Exception {
     String sessionId = client.initialize();
 
+    ObjectNode params = client.objectMapper().createObjectNode();
+    params.put("name", "test_multiple_content_types");
+    params.putObject("arguments");
+
     client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
+        .post(sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(2))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+        .andExpect(jsonPath("$.result.content.length()").value(3))
+        .andExpect(jsonPath("$.result.content[0].type").value("text"))
+        .andExpect(jsonPath("$.result.content[0].text").value("Multiple content types test:"))
+        .andExpect(jsonPath("$.result.content[1].type").value("image"))
+        .andExpect(jsonPath("$.result.content[1].mimeType").value("image/png"))
+        .andExpect(
+            jsonPath("$.result.content[1].data")
+                .value(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwzAAAAAElFTkSuQmCC"))
+        .andExpect(jsonPath("$.result.content[2].type").value("resource"))
+        .andExpect(
+            jsonPath("$.result.content[2].resource.uri").value("test://mixed-content-resource"))
+        .andExpect(jsonPath("$.result.content[2].resource.mimeType").value("application/json"))
+        .andExpect(
+            jsonPath("$.result.content[2].resource.text")
+                .value("{\"test\":\"data\",\"value\":123}"));
   }
 }

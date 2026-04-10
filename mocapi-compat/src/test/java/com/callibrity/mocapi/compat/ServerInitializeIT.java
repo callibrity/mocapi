@@ -30,7 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest(classes = ConformanceApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
-class PingIT {
+class ServerInitializeIT {
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,12 +42,48 @@ class PingIT {
   }
 
   @Test
-  void pingReturnsEmptyResult() throws Exception {
+  void initializeReturnsJsonRpc20() throws Exception {
+    client
+        .initializeResult()
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.jsonrpc").value("2.0"));
+  }
+
+  @Test
+  void initializeReturnsProtocolVersion() throws Exception {
+    client
+        .initializeResult()
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.result.protocolVersion").value("2025-11-25"));
+  }
+
+  @Test
+  void initializeReturnsCapabilities() throws Exception {
+    client
+        .initializeResult()
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.result.capabilities.tools").exists())
+        .andExpect(jsonPath("$.result.capabilities.resources").exists())
+        .andExpect(jsonPath("$.result.capabilities.prompts").exists());
+  }
+
+  @Test
+  void initializeReturnsServerInfo() throws Exception {
+    client
+        .initializeResult()
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.result.serverInfo.name").value("mocapi-mcp-server"));
+  }
+
+  @Test
+  void initializeDoesNotRequireSessionId() throws Exception {
+    client.initializeResult().andExpect(status().isOk());
+  }
+
+  @Test
+  void notificationsInitializedReturns202() throws Exception {
     String sessionId = client.initialize();
 
-    client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+    client.notify(sessionId, "notifications/initialized", null).andExpect(status().isAccepted());
   }
 }

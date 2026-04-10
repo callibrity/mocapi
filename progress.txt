@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T20:31:33-04:00
-ITERATION: 73
-SPEC_COMPLETED: 074-tighten-conformance-it-assertions.md
-WHAT_WAS_DONE: Replaced all loose assertions (isNotEmpty(), exists(), isMap()-without-size) in conformance ITs with exact value checks. ToolsCallSimpleTextIT now asserts exact text. ToolsCallImageIT and ToolsCallAudioIT assert exact base64 data strings. ToolsCallEmbeddedResourceIT asserts uri, mimeType, and text. ToolsCallErrorIT asserts the error message text. ToolsCallMixedContentIT asserts all three content items' values (text, image data/mimeType, resource uri/mimeType/text). ServerInitializeIT asserts protocolVersion="2025-11-25", specific capability keys (tools, resources, prompts), and serverInfo.name="mocapi-mcp-server". PromptsGetWithImageIT asserts exact base64 PNG data. ResourcesReadBinaryIT asserts exact base64 blob string. ResourcesSubscribeIT and ResourcesUnsubscribeIT assert result is empty map (length=0).
-VERIFICATION: mvn verify — BUILD SUCCESS, all 92 tests pass (unit + integration + conformance, spotless, license checks), 0 failures
+LAST_RUN: 2026-04-09T20:43:45-04:00
+ITERATION: 74
+SPEC_COMPLETED: 075-merge-compat-tests.md
+WHAT_WAS_DONE: Flattened compat test structure by moving all 30 conformance ITs from com.callibrity.mocapi.compat.conformance up to com.callibrity.mocapi.compat, merging unique tests from original ITs into the moved conformance ITs, and deleting 7 duplicate/dead IT classes (SmokeIT, PingIT, InitializationIT, ToolInvocationIT, StreamingToolIT, OriginValidationIT, ServerSseMultipleStreamsIT). Merged methods: 2 into ServerInitializeIT, 5 into DnsRebindingProtectionIT, 2 into SseStreamIT, 2 into ContentNegotiationIT. CompatApplication and CompatTools kept because ContentNegotiationIT and FullConversationIT still need "echo"/"stream" tools.
+VERIFICATION: mvn clean verify — BUILD SUCCESS, all 80 tests pass (down from 92 due to duplicate removal), 0 failures, spotless and license checks pass
 STATUS: MORE_WORK
-NEXT_SPEC: 075-merge-compat-tests.md
-NOTES: PingIT already had .isEmpty() which is sufficient. PromptsGetSimpleIT, PromptsGetWithArgsIT, ResourcesReadTextIT, PromptsGetEmbeddedResourceIT already had exact value assertions. The spec mentioned ToolsCallWithProgressIT and ToolsCallWithLoggingIT — these already test SSE notification content via string contains checks on the raw SSE body, which is the correct approach for async SSE-based tests.
+NEXT_SPEC: 076-simplify-duplicate-property-check.md
+NOTES: Test count reduced from 92 to 80 is expected: 23 tests deleted from 7 dead IT classes, 11 unique methods merged into existing ITs. The conformance src/main/java classes (ConformanceApplication, ConformanceTools, ConformanceResources, ConformancePrompts) remain in the conformance sub-package as instructed.

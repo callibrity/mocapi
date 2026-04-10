@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.callibrity.mocapi.compat.conformance.ConformanceApplication;
@@ -26,11 +26,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
-class PingIT {
+class ToolsCallWithLoggingIT {
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,12 +44,37 @@ class PingIT {
   }
 
   @Test
-  void pingReturnsEmptyResult() throws Exception {
+  void loggingToolReturnsSseWithLogNotifications() throws Exception {
     String sessionId = client.initialize();
 
-    client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+    // Set log level to debug so all messages pass through
+    ObjectNode levelParams = client.objectMapper().createObjectNode();
+    levelParams.put("level", "debug");
+    client.post(
+        sessionId,
+        "logging/setLevel",
+        levelParams,
+        client.objectMapper().getNodeFactory().numberNode(2));
+
+    ObjectNode params = client.objectMapper().createObjectNode();
+    params.put("name", "test_tool_with_logging");
+    params.putObject("arguments");
+
+    MvcResult mvcResult =
+        client
+            .post(
+                sessionId,
+                "tools/call",
+                params,
+                client.objectMapper().getNodeFactory().numberNode(3))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    // Wait for async SSE stream to complete (tool finishes after ~150ms of sleep)
+    mvcResult.getAsyncResult(5000);
+    String body = mvcResult.getResponse().getContentAsString();
+
+    assertThat(body).contains("notifications/message");
+    assertThat(body).contains("Logging test completed successfully");
   }
 }

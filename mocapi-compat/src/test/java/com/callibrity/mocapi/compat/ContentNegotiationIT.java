@@ -27,6 +27,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = CompatApplication.class)
 @AutoConfigureMockMvc
@@ -64,5 +65,37 @@ class ContentNegotiationIT {
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.result").isEmpty());
+  }
+
+  @Test
+  void streamingToolCallReturnsSseContentType() throws Exception {
+    String sessionId = client.initialize();
+
+    ObjectNode params = client.objectMapper().createObjectNode();
+    params.put("name", "stream");
+    ObjectNode arguments = params.putObject("arguments");
+    arguments.put("message", "hello streaming");
+
+    client
+        .post(
+            sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(10))
+        .andExpect(status().isOk())
+        .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM));
+  }
+
+  @Test
+  void nonStreamingToolReturnsJsonNotSse() throws Exception {
+    String sessionId = client.initialize();
+
+    ObjectNode params = client.objectMapper().createObjectNode();
+    params.put("name", "echo");
+    ObjectNode arguments = params.putObject("arguments");
+    arguments.put("message", "hello json");
+
+    client
+        .post(
+            sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(12))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON));
   }
 }

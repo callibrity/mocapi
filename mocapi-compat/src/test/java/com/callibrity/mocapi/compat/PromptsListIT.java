@@ -15,10 +15,12 @@
  */
 package com.callibrity.mocapi.compat;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.callibrity.mocapi.compat.conformance.ConformanceApplication;
+import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,11 +28,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
-class PingIT {
+class PromptsListIT {
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,12 +45,35 @@ class PingIT {
   }
 
   @Test
-  void pingReturnsEmptyResult() throws Exception {
+  void promptsListReturnsAllConformancePrompts() throws Exception {
     String sessionId = client.initialize();
 
-    client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+    String body =
+        client
+            .post(
+                sessionId,
+                "prompts/list",
+                null,
+                client.objectMapper().getNodeFactory().numberNode(2))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.result.prompts").isArray())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    ObjectNode response = (ObjectNode) client.objectMapper().readTree(body);
+    var prompts = response.get("result").get("prompts");
+
+    var names = new ArrayList<String>();
+    for (var prompt : prompts) {
+      names.add(prompt.get("name").asString());
+    }
+
+    assertThat(names)
+        .contains(
+            "test_simple_prompt",
+            "test_prompt_with_arguments",
+            "test_prompt_with_embedded_resource",
+            "test_prompt_with_image");
   }
 }

@@ -26,11 +26,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
-class PingIT {
+class PromptsGetEmbeddedResourceIT {
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,12 +43,31 @@ class PingIT {
   }
 
   @Test
-  void pingReturnsEmptyResult() throws Exception {
+  void getPromptWithEmbeddedResource() throws Exception {
     String sessionId = client.initialize();
 
+    ObjectNode params = client.objectMapper().createObjectNode();
+    params.put("name", "test_prompt_with_embedded_resource");
+    ObjectNode arguments = params.putObject("arguments");
+    arguments.put("resourceUri", "test://example-resource");
+
     client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
+        .post(
+            sessionId, "prompts/get", params, client.objectMapper().getNodeFactory().numberNode(2))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+        .andExpect(jsonPath("$.result.messages").isArray())
+        .andExpect(jsonPath("$.result.messages[0].role").value("user"))
+        .andExpect(jsonPath("$.result.messages[0].content.type").value("resource"))
+        .andExpect(
+            jsonPath("$.result.messages[0].content.resource.uri").value("test://example-resource"))
+        .andExpect(jsonPath("$.result.messages[0].content.resource.mimeType").value("text/plain"))
+        .andExpect(
+            jsonPath("$.result.messages[0].content.resource.text")
+                .value("Embedded resource content for testing."))
+        .andExpect(jsonPath("$.result.messages[1].role").value("user"))
+        .andExpect(jsonPath("$.result.messages[1].content.type").value("text"))
+        .andExpect(
+            jsonPath("$.result.messages[1].content.text")
+                .value("Please process the embedded resource above."));
   }
 }

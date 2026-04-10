@@ -26,11 +26,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
-class PingIT {
+class ResourcesSubscribeIT {
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,12 +43,20 @@ class PingIT {
   }
 
   @Test
-  void pingReturnsEmptyResult() throws Exception {
+  void subscribeReturnsEmptyObject() throws Exception {
     String sessionId = client.initialize();
 
+    ObjectNode params = client.objectMapper().createObjectNode();
+    params.put("uri", "test://watched-resource");
+
     client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
+        .post(
+            sessionId,
+            "resources/subscribe",
+            params,
+            client.objectMapper().getNodeFactory().numberNode(2))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+        .andExpect(jsonPath("$.result").isMap())
+        .andExpect(jsonPath("$.result.length()").value(0));
   }
 }

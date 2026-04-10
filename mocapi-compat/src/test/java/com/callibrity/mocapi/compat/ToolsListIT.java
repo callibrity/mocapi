@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -26,11 +27,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
-class PingIT {
+class ToolsListIT {
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,12 +44,34 @@ class PingIT {
   }
 
   @Test
-  void pingReturnsEmptyResult() throws Exception {
+  void toolsListReturnsAllConformanceTools() throws Exception {
     String sessionId = client.initialize();
 
-    client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+    String body =
+        client
+            .post(
+                sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(2))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.result.tools").isArray())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    ObjectNode response = (ObjectNode) client.objectMapper().readTree(body);
+    var tools = response.get("result").get("tools");
+
+    var toolNames = new java.util.ArrayList<String>();
+    for (var tool : tools) {
+      toolNames.add(tool.get("name").asString());
+    }
+
+    assertThat(toolNames)
+        .contains(
+            "test_simple_text",
+            "test_image_content",
+            "test_audio_content",
+            "test_embedded_resource",
+            "test_multiple_content_types",
+            "test_error_handling");
   }
 }

@@ -26,11 +26,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
-class PingIT {
+class CompletionCompleteIT {
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,12 +43,25 @@ class PingIT {
   }
 
   @Test
-  void pingReturnsEmptyResult() throws Exception {
+  void completionReturnsValues() throws Exception {
     String sessionId = client.initialize();
 
+    ObjectNode params = client.objectMapper().createObjectNode();
+    ObjectNode ref = params.putObject("ref");
+    ref.put("type", "ref/prompt");
+    ref.put("name", "test");
+    ObjectNode argument = params.putObject("argument");
+    argument.put("name", "arg");
+    argument.put("value", "t");
+
     client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
+        .post(
+            sessionId,
+            "completion/complete",
+            params,
+            client.objectMapper().getNodeFactory().numberNode(2))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+        .andExpect(jsonPath("$.result.completion").exists())
+        .andExpect(jsonPath("$.result.completion.values").isArray());
   }
 }

@@ -26,11 +26,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
-class PingIT {
+class ToolsCallSimpleTextIT {
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,12 +43,19 @@ class PingIT {
   }
 
   @Test
-  void pingReturnsEmptyResult() throws Exception {
+  void callSimpleTextReturnsTextContent() throws Exception {
     String sessionId = client.initialize();
 
+    ObjectNode params = client.objectMapper().createObjectNode();
+    params.put("name", "test_simple_text");
+    params.putObject("arguments");
+
     client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
+        .post(sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(2))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+        .andExpect(jsonPath("$.result.content[0].type").value("text"))
+        .andExpect(
+            jsonPath("$.result.content[0].text")
+                .value("This is a simple text response for testing."));
   }
 }

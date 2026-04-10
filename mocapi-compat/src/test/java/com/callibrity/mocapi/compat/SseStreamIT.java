@@ -69,4 +69,21 @@ class SseStreamIT {
   void getWithUnknownSessionReturns404() throws Exception {
     client.getRaw("text/event-stream", "nonexistent-session-id").andExpect(status().isNotFound());
   }
+
+  @Test
+  void tamperedLastEventIdReturns400() throws Exception {
+    String sessionId = client.initialize();
+
+    client.get(sessionId).andExpect(status().isOk());
+
+    client.getWithLastEventId(sessionId, "tampered-event-id").andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void multipleGetSseStreamsAreAccepted() throws Exception {
+    String sessionId = client.initialize();
+
+    client.get(sessionId).andExpect(status().isOk());
+    client.get(sessionId).andExpect(status().isOk());
+  }
 }

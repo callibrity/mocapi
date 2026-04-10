@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -26,11 +27,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
-class PingIT {
+class ResourcesReadBinaryIT {
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,12 +44,31 @@ class PingIT {
   }
 
   @Test
-  void pingReturnsEmptyResult() throws Exception {
+  void readStaticBinaryResource() throws Exception {
     String sessionId = client.initialize();
 
-    client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+    ObjectNode params = client.objectMapper().createObjectNode();
+    params.put("uri", "test://static-binary");
+
+    String body =
+        client
+            .post(
+                sessionId,
+                "resources/read",
+                params,
+                client.objectMapper().getNodeFactory().numberNode(2))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.result.contents").isArray())
+            .andExpect(jsonPath("$.result.contents[0].uri").value("test://static-binary"))
+            .andExpect(jsonPath("$.result.contents[0].mimeType").value("image/png"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    ObjectNode response = (ObjectNode) client.objectMapper().readTree(body);
+    String blob = response.get("result").get("contents").get(0).get("blob").asString();
+    assertThat(blob)
+        .isEqualTo(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwzAAAAAElFTkSuQmCC");
   }
 }

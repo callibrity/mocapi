@@ -26,11 +26,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
-class PingIT {
+class ResourcesReadTextIT {
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,12 +43,24 @@ class PingIT {
   }
 
   @Test
-  void pingReturnsEmptyResult() throws Exception {
+  void readStaticTextResource() throws Exception {
     String sessionId = client.initialize();
 
+    ObjectNode params = client.objectMapper().createObjectNode();
+    params.put("uri", "test://static-text");
+
     client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
+        .post(
+            sessionId,
+            "resources/read",
+            params,
+            client.objectMapper().getNodeFactory().numberNode(2))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+        .andExpect(jsonPath("$.result.contents").isArray())
+        .andExpect(jsonPath("$.result.contents[0].uri").value("test://static-text"))
+        .andExpect(jsonPath("$.result.contents[0].mimeType").value("text/plain"))
+        .andExpect(
+            jsonPath("$.result.contents[0].text")
+                .value("This is the content of the static text resource."));
   }
 }

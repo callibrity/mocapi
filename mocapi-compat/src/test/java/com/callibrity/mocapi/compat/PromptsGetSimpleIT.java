@@ -26,11 +26,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
-class PingIT {
+class PromptsGetSimpleIT {
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,12 +43,21 @@ class PingIT {
   }
 
   @Test
-  void pingReturnsEmptyResult() throws Exception {
+  void getSimplePrompt() throws Exception {
     String sessionId = client.initialize();
 
+    ObjectNode params = client.objectMapper().createObjectNode();
+    params.put("name", "test_simple_prompt");
+
     client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
+        .post(
+            sessionId, "prompts/get", params, client.objectMapper().getNodeFactory().numberNode(2))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+        .andExpect(jsonPath("$.result.messages").isArray())
+        .andExpect(jsonPath("$.result.messages[0].role").value("user"))
+        .andExpect(jsonPath("$.result.messages[0].content.type").value("text"))
+        .andExpect(
+            jsonPath("$.result.messages[0].content.text")
+                .value("This is a simple prompt for testing."));
   }
 }

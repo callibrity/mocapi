@@ -15,7 +15,6 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.callibrity.mocapi.compat.conformance.ConformanceApplication;
@@ -30,7 +29,13 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest(classes = ConformanceApplication.class)
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = RandomMasterKeyInitializer.class)
-class PingIT {
+class DnsRebindingProtectionIT {
+
+  private static final String INIT_BODY =
+      """
+      {"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}""";
+
+  private static final String BAD_ORIGIN = "http://evil.example.com";
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,12 +47,40 @@ class PingIT {
   }
 
   @Test
-  void pingReturnsEmptyResult() throws Exception {
+  void foreignOriginIsRejected() throws Exception {
+    client.postWithOrigin(null, BAD_ORIGIN, INIT_BODY).andExpect(status().isForbidden());
+  }
+
+  @Test
+  void postWithNoOriginIsAccepted() throws Exception {
+    client.initializeResult().andExpect(status().isOk());
+  }
+
+  @Test
+  void getWithInvalidOriginReturns403() throws Exception {
     String sessionId = client.initialize();
 
-    client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+    client.getWithOrigin(sessionId, BAD_ORIGIN).andExpect(status().isForbidden());
+  }
+
+  @Test
+  void deleteWithInvalidOriginReturns403() throws Exception {
+    String sessionId = client.initialize();
+
+    client.deleteWithOrigin(sessionId, BAD_ORIGIN).andExpect(status().isForbidden());
+  }
+
+  @Test
+  void getWithNoOriginIsAccepted() throws Exception {
+    String sessionId = client.initialize();
+
+    client.get(sessionId).andExpect(status().isOk());
+  }
+
+  @Test
+  void deleteWithNoOriginIsAccepted() throws Exception {
+    String sessionId = client.initialize();
+
+    client.delete(sessionId).andExpect(status().isNoContent());
   }
 }
