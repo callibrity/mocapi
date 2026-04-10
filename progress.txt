@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T00:39:00-04:00
-ITERATION: 90
-SPEC_COMPLETED: 091-elicitation-types-in-model.md
-WHAT_WAS_DONE: Added all elicitation types to mocapi-model: ElicitAction enum, updated ElicitResult to use ElicitAction and Map<String,Object>, StringFormat enum, PrimitiveSchemaDefinition sealed interface with 8 subtypes (StringSchema, NumberSchema, BooleanSchema, UntitledSingleSelectEnumSchema, TitledSingleSelectEnumSchema, UntitledMultiSelectEnumSchema, TitledMultiSelectEnumSchema, LegacyTitledEnumSchema), support records (EnumOption, EnumItemsSchema, TitledEnumItemsSchema), and RequestedSchema. Created comprehensive serialization tests for all types.
+LAST_RUN: 2026-04-10T00:42:25-04:00
+ITERATION: 91
+SPEC_COMPLETED: 092-request-meta-and-progress-in-model.md
+WHAT_WAS_DONE: Added RequestMeta, ProgressNotificationParams, and ProgressNotification records to mocapi-model with full serialization tests covering string and numeric progressToken values.
 VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests, spotless and license checks pass
 STATUS: MORE_WORK
-NEXT_SPEC: 092-request-meta-and-progress-in-model.md
-NOTES: Updated existing ElicitResult to use ElicitAction enum instead of raw String and Map<String,Object> instead of ObjectNode. No code in mocapi-core references ElicitResult yet so this was a safe change. The PrimitiveSchemaDefinition sealed interface has 8 permits (not 9 as stated in AC — the spec lists 8 subtypes in the permits clause plus support records EnumOption/EnumItemsSchema/TitledEnumItemsSchema which are not subtypes of the sealed interface).
+NEXT_SPEC: 093-request-types-in-model.md
+NOTES: TaskAugmentedRequestParams was not added — no schema.ts file exists in the repo and the MCP 2025-11-25 spec does not define it as a standalone type. The spec's AC says "if applicable per schema" so this is intentionally deferred. RequestMeta uses Object for progressToken to handle the string|number union type from the MCP spec. The existing McpRequestMeta in mocapi-core uses String — a follow-up migration spec should update it.
