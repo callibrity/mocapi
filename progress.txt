@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T07:45:00-04:00
-ITERATION: 20
-SPEC_COMPLETED: 113-mocapi-session-store-redis.md
-WHAT_WAS_DONE: Created new mocapi-session-store-redis module with RedisMcpSessionStore (all 5 McpSessionStore methods via Redis primitives, KEEPTTL for update, configurable key prefix) and RedisMcpSessionStoreAutoConfiguration (conditional on RedisConnectionFactory, before MocapiAutoConfiguration).
-VERIFICATION: mvn verify — BUILD SUCCESS, full reactor green. Module tests: 10 passed (7 Testcontainers integration tests for RedisMcpSessionStore + 3 ApplicationContextRunner tests for auto-configuration). Spotless and license checks pass.
+LAST_RUN: 2026-04-10T07:52:00-04:00
+ITERATION: 21
+SPEC_COMPLETED: 114-mocapi-session-store-hazelcast.md
+WHAT_WAS_DONE: Created new mocapi-session-store-hazelcast module with HazelcastMcpSessionStore (all 5 McpSessionStore methods via IMap operations, EntryView-based TTL preservation for update, configurable map name) and HazelcastMcpSessionStoreAutoConfiguration (conditional on HazelcastInstance, before MocapiAutoConfiguration).
+VERIFICATION: mvn verify — BUILD SUCCESS, full reactor green. Module tests: 11 passed (8 embedded Hazelcast integration tests for HazelcastMcpSessionStore including round-trip serialization, TTL expiration, TTL preservation on update + 3 ApplicationContextRunner tests for auto-configuration). Spotless and license checks pass.
 STATUS: MORE_WORK
-NEXT_SPEC: 114-mocapi-session-store-hazelcast.md
-NOTES: Used GenericContainer with redis:7-alpine instead of com.redis:testcontainers-redis to avoid unmanaged dependency. Testcontainers 1.20.4 version added explicitly since Spring Boot BOM does not manage it. Jackson 3 (tools.jackson) ObjectMapper used for serialization. The LettuceConnectionFactory reconnect warnings in test output are expected — container shutdown during test teardown.
+NEXT_SPEC: 115-mocapi-session-store-jdbc.md
+NOTES: Hazelcast 5.5.0 (managed by Spring Boot 4.0.5 BOM) supports zero-config Compact serialization for records — no custom serializer or Serializable needed. Used com.hazelcast.core.EntryView (not com.hazelcast.map.EntryView which doesn't exist in 5.5.0). Each test creates an isolated Hazelcast instance with a unique cluster name to prevent cross-JVM clustering. Tests take ~31s due to Hazelcast startup/shutdown per test.

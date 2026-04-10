@@ -59,6 +59,7 @@
         <module>mocapi-example</module>
         <module>mocapi-compat</module>
         <module>mocapi-session-store-redis</module>
+        <module>mocapi-session-store-hazelcast</module>
     </modules>
 
     <properties>
