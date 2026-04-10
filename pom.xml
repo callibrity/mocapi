@@ -64,6 +64,7 @@
         <module>mocapi-session-store-cassandra</module>
         <module>mocapi-session-store-mongodb</module>
         <module>mocapi-session-store-dynamodb</module>
+        <module>mocapi-session-store-nats</module>
         <module>mocapi-redis-spring-boot-starter</module>
         <module>mocapi-hazelcast-spring-boot-starter</module>
         <module>mocapi-postgresql-spring-boot-starter</module>

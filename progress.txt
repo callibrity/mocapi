@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T12:42:00-04:00
-ITERATION: 53
-SPEC_COMPLETED: 145-use-model-types-in-it-test-request-construction.md
-WHAT_WAS_DONE: Replaced hand-rolled ObjectNode request param construction in all IT tests with typed model records (CallToolRequestParams, GetPromptRequestParams, ResourceRequestParams, CompleteRequestParams, SetLevelRequestParams, RequestMeta). Added Object-typed post() overload to McpClient that accepts model records directly via valueToTree conversion.
-VERIFICATION: mvn verify -pl mocapi-compat -am — BUILD SUCCESS, 81 tests run, 0 failures. Spotless and license checks pass. Pre-existing RedisMcpSessionStoreAutoConfigurationTest.userProvidedBeanTakesPrecedence failure remains (unrelated).
+LAST_RUN: 2026-04-10T12:50:00-04:00
+ITERATION: 54
+SPEC_COMPLETED: 146-mocapi-session-store-nats.md
+WHAT_WAS_DONE: Created new mocapi-session-store-nats module providing a NATS JetStream KV backed McpSessionStore. NatsMcpSessionStore implements all five McpSessionStore methods using the KeyValue/KeyValueManagement APIs with idempotent bucket creation, bucket-level TTL, and tombstone filtering. NatsMcpSessionStoreAutoConfiguration activates when a Connection bean is present. 12 tests cover all store operations, bucket config verification, TTL expiration (via Awaitility), and auto-configuration conditionals (FilteredClassLoader, missing bean, positive case with mocks).
+VERIFICATION: mvn verify -pl mocapi-session-store-nats,mocapi-compat -am — BUILD SUCCESS, 12 tests in NATS module (0 failures), 81 tests in compat module (0 failures). Spotless and license checks pass. Pre-existing RedisMcpSessionStoreAutoConfigurationTest.userProvidedBeanTakesPrecedence failure remains (unrelated).
 STATUS: MORE_WORK
-NEXT_SPEC: 146-mocapi-session-store-nats.md
-NOTES: Remaining createObjectNode() usages in IT tests are all legitimate: (1) tool arguments (inner JsonNode, tool-specific schema), (2) capabilities ObjectNode passed to initializeWithCapabilities(), (3) mailbox response payloads in elicitation/sampling tests, (4) response parsing in ResourcesReadBinaryIT/ResourcesListIT, (5) McpClient internal JSON-RPC envelope construction. The McpClient.post(ObjectNode) overload is preserved for backward compatibility; the new Object overload handles the conversion.
+NEXT_SPEC: none
+NOTES: jnats 2.25.2 used (matches substrate-mailbox-nats version; substrate-bom does not manage jnats directly). No testcontainers:nats module exists on Maven Central — used GenericContainer with nats:latest image and -js flag instead. The nested TtlFilteringTest uses a separate NATS container with 1-second bucket TTL to verify expiration without Thread.sleep.
