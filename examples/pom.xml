@@ -35,5 +35,6 @@
         <module>in-memory</module>
         <module>redis</module>
         <module>hazelcast</module>
+        <module>postgresql</module>
     </modules>
 </project>

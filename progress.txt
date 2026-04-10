@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T10:07:06-04:00
-ITERATION: 36
-SPEC_COMPLETED: 128-example-hazelcast-app.md
-WHAT_WAS_DONE: Created examples/hazelcast module with HazelcastExampleApplication delegating to ExampleApplication, pom.xml depending on mocapi-examples-lib and mocapi-hazelcast-spring-boot-starter, application.yml pointing spring.hazelcast.config at bundled hazelcast.yaml, hazelcast.yaml with multicast and TCP-IP discovery disabled for safe single-JVM default, and README.md covering embedded default, cluster mode, and client/server mode. Added module to examples/pom.xml. No docker-compose.yml — Hazelcast runs embedded.
-VERIFICATION: mvn verify — full reactor BUILD SUCCESS (15 modules including mocapi-example-hazelcast)
+LAST_RUN: 2026-04-10T10:10:22-04:00
+ITERATION: 37
+SPEC_COMPLETED: 129-example-postgresql-app.md
+WHAT_WAS_DONE: Created examples/postgresql module with PostgreSqlExampleApplication delegating to ExampleApplication, pom.xml depending on mocapi-examples-lib, mocapi-session-store-jdbc, postgresql driver, and spring-boot-starter-jdbc, application.yml configuring datasource with env var defaults and Spring SQL init pointing at the JDBC session store's PostgreSQL schema, docker-compose.yml with PostgreSQL 16-alpine and health check, and README.md documenting the session-store-only limitation prominently along with prerequisites, infra startup, app run, session persistence verification, and cloud deployment hints. Added module to examples/pom.xml.
+VERIFICATION: mvn verify — full reactor BUILD SUCCESS (16 modules including mocapi-example-postgresql)
 STATUS: MORE_WORK
-NEXT_SPEC: 129-example-postgresql-app.md
-NOTES: The Hazelcast example follows the same delegation pattern as the Redis and in-memory examples. No direct dependencies on mocapi-session-store-hazelcast or hazelcast-spring — all come transitively through mocapi-hazelcast-spring-boot-starter. All source and resource files have Apache 2.0 license headers.
+NEXT_SPEC: 130-mocapi-session-store-cassandra.md
+NOTES: The PostgreSQL example follows the same delegation pattern as the other examples. Unlike Redis and Hazelcast examples which use an all-in-one starter, this example directly depends on mocapi-session-store-jdbc because PostgreSQL lacks the pub/sub primitives needed for Mailbox/Journal/Notifier. The README prominently warns about this limitation. Schema init uses Spring Boot's spring.sql.init to load the schema from mocapi-session-store-jdbc's classpath resource.
