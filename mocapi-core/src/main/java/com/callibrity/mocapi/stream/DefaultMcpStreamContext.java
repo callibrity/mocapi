@@ -18,6 +18,9 @@ package com.callibrity.mocapi.stream;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.CreateMessageRequestParams;
 import com.callibrity.mocapi.model.CreateMessageResult;
+import com.callibrity.mocapi.model.ElicitAction;
+import com.callibrity.mocapi.model.ElicitRequestFormParams;
+import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.LoggingMessageNotificationParams;
 import com.callibrity.mocapi.model.ProgressNotification;
@@ -295,9 +298,9 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
   private JsonNode sendElicitationAndWait(String message, ObjectNode schemaNode) {
     String jsonRpcId = UUID.randomUUID().toString();
 
-    ObjectNode params = objectMapper.createObjectNode();
-    params.put("mode", "form");
-    params.put("message", message);
+    ElicitRequestFormParams formParams =
+        new ElicitRequestFormParams("form", message, null, null, null);
+    ObjectNode params = (ObjectNode) objectMapper.valueToTree(formParams);
     params.set("requestedSchema", schemaNode);
 
     JsonRpcCall request =
@@ -320,11 +323,12 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
 
   private <T> BeanElicitationResult<T> parseResponse(
       JsonNode rawResponse, ObjectNode schemaNode, Class<T> type) {
-    ElicitationAction action = extractAction(rawResponse);
+    ElicitResult elicitResult = deserializeElicitResult(rawResponse);
+    ElicitationAction action = toElicitationAction(elicitResult.action());
     if (action != ElicitationAction.ACCEPT) {
       return new BeanElicitationResult<>(action, null);
     }
-    JsonNode content = extractContent(rawResponse);
+    JsonNode content = objectMapper.valueToTree(elicitResult.content());
     validateContent(content, schemaNode);
     T typed = objectMapper.treeToValue(content, type);
     return new BeanElicitationResult<>(action, typed);
@@ -332,27 +336,29 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
 
   private <T> BeanElicitationResult<T> parseResponse(
       JsonNode rawResponse, ObjectNode schemaNode, TypeReference<T> type) {
-    ElicitationAction action = extractAction(rawResponse);
+    ElicitResult elicitResult = deserializeElicitResult(rawResponse);
+    ElicitationAction action = toElicitationAction(elicitResult.action());
     if (action != ElicitationAction.ACCEPT) {
       return new BeanElicitationResult<>(action, null);
     }
-    JsonNode content = extractContent(rawResponse);
+    JsonNode content = objectMapper.valueToTree(elicitResult.content());
     validateContent(content, schemaNode);
     T typed = objectMapper.treeToValue(content, type);
     return new BeanElicitationResult<>(action, typed);
   }
 
   private ElicitationResult parseRawResponse(JsonNode rawResponse, ObjectNode schemaNode) {
-    ElicitationAction action = extractAction(rawResponse);
+    ElicitResult elicitResult = deserializeElicitResult(rawResponse);
+    ElicitationAction action = toElicitationAction(elicitResult.action());
     if (action != ElicitationAction.ACCEPT) {
       return new ElicitationResult(action, null);
     }
-    JsonNode content = extractContent(rawResponse);
+    JsonNode content = objectMapper.valueToTree(elicitResult.content());
     validateContent(content, schemaNode);
     return new ElicitationResult(action, content);
   }
 
-  private ElicitationAction extractAction(JsonNode rawResponse) {
+  private ElicitResult deserializeElicitResult(JsonNode rawResponse) {
     JsonNode errorNode = rawResponse.get("error");
     if (errorNode != null) {
       throw new McpElicitationException("Client returned JSON-RPC error: " + errorNode);
@@ -363,23 +369,11 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
       resultNode = rawResponse;
     }
 
-    JsonNode actionNode = resultNode.get("action");
-    if (actionNode == null) {
-      throw new McpElicitationException("Elicitation response missing 'action' field");
-    }
-    return ElicitationAction.fromValue(actionNode.asString());
+    return objectMapper.treeToValue(resultNode, ElicitResult.class);
   }
 
-  private JsonNode extractContent(JsonNode rawResponse) {
-    JsonNode resultNode = rawResponse.get("result");
-    if (resultNode == null) {
-      resultNode = rawResponse;
-    }
-    JsonNode content = resultNode.get("content");
-    if (content == null || content.isNull()) {
-      throw new McpElicitationException("Accepted elicitation response missing 'content' field");
-    }
-    return content;
+  private ElicitationAction toElicitationAction(ElicitAction action) {
+    return ElicitationAction.fromValue(action.toJson());
   }
 
   private void validateContent(JsonNode content, ObjectNode schemaNode) {

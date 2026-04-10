@@ -73,14 +73,14 @@ class CursorsTest {
 
   @Test
   void firstPageWithNullCursor() {
-    var page = Cursors.paginate(ITEMS, null, 2);
+    var page = Cursors.paginate(ITEMS, (String) null, 2);
     assertThat(page.items()).containsExactly("a", "b");
     assertThat(page.nextCursor()).isNotNull();
   }
 
   @Test
   void secondPageWithCursor() {
-    var first = Cursors.paginate(ITEMS, null, 2);
+    var first = Cursors.paginate(ITEMS, (String) null, 2);
     var second = Cursors.paginate(ITEMS, first.nextCursor(), 2);
     assertThat(second.items()).containsExactly("c", "d");
     assertThat(second.nextCursor()).isNotNull();
@@ -88,7 +88,7 @@ class CursorsTest {
 
   @Test
   void lastPageHasNullCursor() {
-    var first = Cursors.paginate(ITEMS, null, 2);
+    var first = Cursors.paginate(ITEMS, (String) null, 2);
     var second = Cursors.paginate(ITEMS, first.nextCursor(), 2);
     var third = Cursors.paginate(ITEMS, second.nextCursor(), 2);
     assertThat(third.items()).containsExactly("e");
@@ -97,14 +97,14 @@ class CursorsTest {
 
   @Test
   void pageSizeLargerThanListReturnsAll() {
-    var page = Cursors.paginate(ITEMS, null, 100);
+    var page = Cursors.paginate(ITEMS, (String) null, 100);
     assertThat(page.items()).containsExactly("a", "b", "c", "d", "e");
     assertThat(page.nextCursor()).isNull();
   }
 
   @Test
   void emptyListReturnsEmptyPage() {
-    var page = Cursors.paginate(List.of(), null, 10);
+    var page = Cursors.paginate(List.of(), (String) null, 10);
     assertThat(page.items()).isEmpty();
     assertThat(page.nextCursor()).isNull();
   }

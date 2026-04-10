@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T01:37:00-04:00
-ITERATION: 96
-SPEC_COMPLETED: 097-migrate-sampling-to-model.md
-WHAT_WAS_DONE: Migrated DefaultMcpStreamContext.sample() to construct a CreateMessageRequestParams record with SamplingMessage/TextContent instead of hand-building ObjectNodes, and migrated parseSamplingResponse() to deserialize into CreateMessageResult via objectMapper.treeToValue instead of manual field extraction.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests pass, spotless and license checks pass
+LAST_RUN: 2026-04-10T01:44:00-04:00
+ITERATION: 97
+SPEC_COMPLETED: 098-migrate-elicitation-to-model.md
+WHAT_WAS_DONE: Migrated DefaultMcpStreamContext elicitation request construction to use ElicitRequestFormParams record with valueToTree instead of hand-built ObjectNode, and migrated response parsing to deserialize into ElicitResult via objectMapper.treeToValue instead of manual extractAction/extractContent field walking.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests pass, 29 DefaultMcpStreamContextTest tests pass unchanged, spotless and license checks pass
 STATUS: MORE_WORK
-NEXT_SPEC: 098-migrate-elicitation-to-model.md
-NOTES: SamplingResult still exposes content as JsonNode — the ContentBlock from CreateMessageResult is serialized back via objectMapper.valueToTree() to preserve the existing public API. No test changes needed; no existing sampling tests existed in DefaultMcpStreamContextTest (elicitation tests all pass unchanged).
+NEXT_SPEC: 099-empty-result-and-handler-response-cleanup.md
+NOTES: ElicitRequestFormParams is constructed with null requestedSchema (since RequestedSchema's sealed PrimitiveSchemaDefinition hierarchy lacks deserialization support), then the schemaNode ObjectNode is set on the serialized tree — this eliminates createObjectNode field-by-field construction while preserving schema wire format. Response parsing now uses deserializeElicitResult() which checks for JSON-RPC error first, then deserializes the result subtree into ElicitResult, and maps ElicitAction to ElicitationAction via toElicitationAction(). Content is converted back to JsonNode via valueToTree for schema validation and downstream callers. Also fixed pre-existing CursorsTest ambiguous method reference compilation error (null → (String) null for paginate calls).

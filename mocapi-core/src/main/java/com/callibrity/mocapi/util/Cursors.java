@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.util;
 
+import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.nio.ByteBuffer;
@@ -41,6 +42,10 @@ public final class Cursors {
   }
 
   public record Page<T>(List<T> items, String nextCursor) {}
+
+  public static <T> Page<T> paginate(List<T> all, PaginatedRequestParams params, int pageSize) {
+    return paginate(all, params == null ? null : params.cursor(), pageSize);
+  }
 
   public static <T> Page<T> paginate(List<T> all, String cursor, int pageSize) {
     int offset = Math.clamp(decode(cursor), 0, all.size());
