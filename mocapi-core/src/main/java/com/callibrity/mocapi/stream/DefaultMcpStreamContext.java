@@ -17,6 +17,7 @@ package com.callibrity.mocapi.stream;
 
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.LoggingLevel;
+import com.callibrity.mocapi.model.LoggingMessageNotificationParams;
 import com.callibrity.mocapi.model.ProgressNotification;
 import com.callibrity.mocapi.model.ProgressNotificationParams;
 import com.callibrity.mocapi.session.McpSession;
@@ -129,11 +130,9 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
     if (level.ordinal() < threshold.ordinal()) {
       return;
     }
-    ObjectNode params = objectMapper.createObjectNode();
-    params.put("level", level.toJson());
-    params.put("logger", logger);
-    params.set("data", objectMapper.valueToTree(data));
-    publishNotification("notifications/message", params);
+    var params =
+        new LoggingMessageNotificationParams(level, logger, objectMapper.valueToTree(data), null);
+    publishNotification("notifications/message", objectMapper.valueToTree(params));
   }
 
   @Override

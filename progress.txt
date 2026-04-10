@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T01:30:36-04:00
-ITERATION: 94
-SPEC_COMPLETED: 095-bind-jsonrpc-params-for-all-mcp-methods.md
-WHAT_WAS_DONE: Migrated all 10 remaining MCP handler methods to use @JsonRpcParams with typed request records from mocapi-model, replacing loose String/Map/JsonNode parameters. Updated unit tests for McpPromptMethods and McpResourceMethods to use the new signatures, and added null-params tests for paginated list methods.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests, spotless and license checks pass
+LAST_RUN: 2026-04-10T01:33:01-04:00
+ITERATION: 95
+SPEC_COMPLETED: 096-migrate-log-notification-to-model.md
+WHAT_WAS_DONE: Migrated DefaultMcpStreamContext.log() to construct a LoggingMessageNotificationParams record instead of hand-building an ObjectNode, mirroring the sendProgress pattern.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests pass, spotless and license checks pass
 STATUS: MORE_WORK
-NEXT_SPEC: 096-migrate-log-notification-to-model.md
-NOTES: McpLoggingMethods now validates null params/level explicitly. All four list methods (tools/list, prompts/list, resources/list, resources/templates/list) handle null params for clients that omit the params object. McpCompletionMethods params argument is accepted but unused since the handler returns empty completions.
+NEXT_SPEC: 097-migrate-sampling-to-model.md
+NOTES: Pre-converted data via objectMapper.valueToTree(data) before passing to the record to preserve NullNode serialization for null data (record has @JsonInclude(NON_NULL) which would otherwise omit null fields). All existing tests pass unchanged.
