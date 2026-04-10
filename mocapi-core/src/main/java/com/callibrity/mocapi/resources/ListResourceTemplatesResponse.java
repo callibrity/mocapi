@@ -15,9 +15,10 @@
  */
 package com.callibrity.mocapi.resources;
 
+import com.callibrity.mocapi.resources.desc.McpResourceTemplateDescriptor;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ListResourceTemplatesResponse(
-    List<McpResourceTemplateDescriptor> resourceTemplates, String nextCursor) {}
+        List<McpResourceTemplateDescriptor> resourceTemplates, String nextCursor) {}

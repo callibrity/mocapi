@@ -21,7 +21,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -29,7 +28,6 @@ import org.springframework.context.annotation.Bean;
 @AutoConfiguration
 @AutoConfigureBefore(MocapiAutoConfiguration.class)
 @ConditionalOnClass(PromptsRegistry.class)
-@ConditionalOnBean(McpPromptProvider.class)
 @EnableConfigurationProperties(MocapiProperties.class)
 @RequiredArgsConstructor
 public class MocapiPromptsAutoConfiguration {
@@ -37,7 +35,7 @@ public class MocapiPromptsAutoConfiguration {
   private final MocapiProperties mocapiProperties;
 
   @Bean
-  public PromptsRegistry promptsRegistry(List<McpPromptProvider> promptProviders) {
-    return new PromptsRegistry(promptProviders, mocapiProperties.getPagination().getPageSize());
+  public PromptsRegistry promptsRegistry(List<McpPrompt> prompts) {
+    return new PromptsRegistry(prompts, mocapiProperties.getPagination().getPageSize());
   }
 }

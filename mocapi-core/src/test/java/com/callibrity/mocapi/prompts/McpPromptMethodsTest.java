@@ -51,8 +51,7 @@ class McpPromptMethodsTest {
         }
       };
 
-  private final PromptsRegistry registry =
-      new PromptsRegistry(List.of(() -> List.of(testPrompt)), 50);
+  private final PromptsRegistry registry = new PromptsRegistry(List.of(testPrompt), 50);
   private final McpPromptMethods methods = new McpPromptMethods(registry);
 
   @Test

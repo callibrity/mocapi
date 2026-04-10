@@ -31,11 +31,8 @@ public class PromptsRegistry {
   private final Map<String, McpPrompt> prompts;
   private final int pageSize;
 
-  public PromptsRegistry(List<McpPromptProvider> providers, int pageSize) {
-    this.prompts =
-        providers.stream()
-            .flatMap(p -> p.getMcpPrompts().stream())
-            .collect(Collectors.toMap(McpPrompt::name, p -> p));
+  public PromptsRegistry(List<McpPrompt> prompts, int pageSize) {
+    this.prompts = prompts.stream().collect(Collectors.toMap(McpPrompt::name, p -> p));
     this.pageSize = pageSize;
   }
 

@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.resources;
 
+import com.callibrity.mocapi.resources.desc.McpResourceDescriptor;
+import com.callibrity.mocapi.resources.desc.McpResourceTemplateDescriptor;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.nio.charset.StandardCharsets;

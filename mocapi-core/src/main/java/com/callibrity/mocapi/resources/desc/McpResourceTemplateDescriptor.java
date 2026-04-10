@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.resources;
+package com.callibrity.mocapi.resources.desc;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 

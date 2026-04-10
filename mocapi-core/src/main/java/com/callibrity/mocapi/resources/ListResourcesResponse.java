@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.resources;
 
+import com.callibrity.mocapi.resources.desc.McpResourceDescriptor;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 

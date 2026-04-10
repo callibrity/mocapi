@@ -52,10 +52,6 @@ class PromptsRegistryTest {
     };
   }
 
-  private McpPromptProvider providerWith(List<McpPrompt> prompts) {
-    return () -> prompts;
-  }
-
   @Test
   void isEmptyShouldReturnTrueWhenNoPrompts() {
     var registry = new PromptsRegistry(List.of(), 50);
@@ -64,14 +60,14 @@ class PromptsRegistryTest {
 
   @Test
   void isEmptyShouldReturnFalseWhenPromptsExist() {
-    var registry = new PromptsRegistry(List.of(providerWith(List.of(createPrompt("test")))), 50);
+    var registry = new PromptsRegistry(List.of(createPrompt("test")), 50);
     assertThat(registry.isEmpty()).isFalse();
   }
 
   @Test
   void shouldListAllPrompts() {
     var prompts = List.of(createPrompt("beta"), createPrompt("alpha"));
-    var registry = new PromptsRegistry(List.of(providerWith(prompts)), 50);
+    var registry = new PromptsRegistry(prompts, 50);
 
     var response = registry.listPrompts(null);
 
@@ -82,10 +78,9 @@ class PromptsRegistryTest {
   }
 
   @Test
-  void shouldAggregatePromptsFromMultipleProviders() {
-    var provider1 = providerWith(List.of(createPrompt("alpha")));
-    var provider2 = providerWith(List.of(createPrompt("beta")));
-    var registry = new PromptsRegistry(List.of(provider1, provider2), 50);
+  void shouldCollectPromptsFromList() {
+    var prompts = List.of(createPrompt("alpha"), createPrompt("beta"));
+    var registry = new PromptsRegistry(prompts, 50);
 
     var response = registry.listPrompts(null);
 
@@ -94,8 +89,7 @@ class PromptsRegistryTest {
 
   @Test
   void shouldLookupByName() {
-    var prompts = List.of(createPrompt("my-prompt"));
-    var registry = new PromptsRegistry(List.of(providerWith(prompts)), 50);
+    var registry = new PromptsRegistry(List.of(createPrompt("my-prompt")), 50);
 
     var prompt = registry.lookup("my-prompt");
 
@@ -105,7 +99,7 @@ class PromptsRegistryTest {
 
   @Test
   void shouldThrowWhenLookingUpUnknownName() {
-    var registry = new PromptsRegistry(List.of(providerWith(List.of(createPrompt("exists")))), 50);
+    var registry = new PromptsRegistry(List.of(createPrompt("exists")), 50);
 
     assertThatThrownBy(() -> registry.lookup("unknown"))
         .isExactlyInstanceOf(JsonRpcException.class)
@@ -116,7 +110,7 @@ class PromptsRegistryTest {
   void shouldPaginatePrompts() {
     List<McpPrompt> prompts =
         IntStream.range(0, 5).mapToObj(i -> createPrompt(String.format("prompt-%03d", i))).toList();
-    var registry = new PromptsRegistry(List.of(providerWith(prompts)), 2);
+    var registry = new PromptsRegistry(prompts, 2);
 
     var page1 = registry.listPrompts(null);
     assertThat(page1.prompts()).hasSize(2);
@@ -141,7 +135,7 @@ class PromptsRegistryTest {
         IntStream.range(0, totalPrompts)
             .mapToObj(i -> createPrompt(String.format("p-%03d", i)))
             .toList();
-    var registry = new PromptsRegistry(List.of(providerWith(prompts)), 3);
+    var registry = new PromptsRegistry(prompts, 3);
 
     int totalRetrieved = 0;
     String cursor = null;
@@ -156,7 +150,7 @@ class PromptsRegistryTest {
 
   @Test
   void shouldThrowOnInvalidCursor() {
-    var registry = new PromptsRegistry(List.of(providerWith(List.of(createPrompt("a")))), 2);
+    var registry = new PromptsRegistry(List.of(createPrompt("a")), 2);
 
     assertThatThrownBy(() -> registry.listPrompts("not-valid-base64!!!"))
         .isExactlyInstanceOf(JsonRpcException.class)
@@ -165,7 +159,7 @@ class PromptsRegistryTest {
 
   @Test
   void shouldThrowOnOutOfRangeCursor() {
-    var registry = new PromptsRegistry(List.of(providerWith(List.of(createPrompt("a")))), 2);
+    var registry = new PromptsRegistry(List.of(createPrompt("a")), 2);
     String cursor = PromptsRegistry.encodeCursor(100);
 
     assertThatThrownBy(() -> registry.listPrompts(cursor))
@@ -180,8 +174,7 @@ class PromptsRegistryTest {
 
   @Test
   void listPromptsShouldIncludeArguments() {
-    var prompts = List.of(createPrompt("with-args"));
-    var registry = new PromptsRegistry(List.of(providerWith(prompts)), 50);
+    var registry = new PromptsRegistry(List.of(createPrompt("with-args")), 50);
 
     var response = registry.listPrompts(null);
 

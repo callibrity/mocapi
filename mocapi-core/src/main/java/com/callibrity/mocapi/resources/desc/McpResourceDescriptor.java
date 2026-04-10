@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.prompts;
+package com.callibrity.mocapi.resources.desc;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-@FunctionalInterface
-public interface McpPromptProvider {
-  List<McpPrompt> getMcpPrompts();
-}
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record McpResourceDescriptor(String uri, String name, String description, String mimeType) {}

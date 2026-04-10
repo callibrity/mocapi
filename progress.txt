@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-09T22:33:00-04:00
-ITERATION: 79
-SPEC_COMPLETED: 080-refactor-resources-with-registry-lookup.md
-WHAT_WAS_DONE: Refactored resources subsystem from provider-based iteration to interface-based registry lookup. McpResource and McpResourceTemplate are now interfaces (not records) with read() methods. ResourcesRegistry uses Map<String, McpResource> for O(1) exact URI match and Map<UriTemplate, McpResourceTemplate> for template pattern matching. Created McpResourceDescriptor and McpResourceTemplateDescriptor records for list serialization. Deleted McpResourceProvider interface. Refactored ConformanceResources from a single provider into individual @Bean methods. Updated MocapiResourcesAutoConfiguration to inject List<McpResource> + List<McpResourceTemplate>.
-VERIFICATION: mvn verify — BUILD SUCCESS, all tests pass (15 ResourcesRegistryTest, 6 McpResourceMethodsTest, 80 integration tests), 0 failures, spotless and license checks pass
+LAST_RUN: 2026-04-09T22:36:00-04:00
+ITERATION: 80
+SPEC_COMPLETED: 081-remove-prompt-and-resource-providers.md
+WHAT_WAS_DONE: Removed McpPromptProvider interface and refactored PromptsRegistry to accept List<McpPrompt> directly. Updated MocapiPromptsAutoConfiguration to inject List<McpPrompt> (removed @ConditionalOnBean since Spring injects empty lists). Converted ConformancePrompts from @Component implementing McpPromptProvider to @Configuration with individual @Bean methods. Updated PromptsRegistryTest and McpPromptMethodsTest to pass prompts directly. McpResourceProvider was already deleted by spec 080.
+VERIFICATION: mvn verify — BUILD SUCCESS, all tests pass (80 integration tests, all unit tests), 0 failures, spotless and license checks pass
 STATUS: MORE_WORK
-NEXT_SPEC: 081-remove-prompt-and-resource-providers.md
-NOTES: McpResourceProvider is fully deleted. The MocapiResourcesAutoConfiguration no longer uses @ConditionalOnBean since Spring injects empty lists when no resource/template beans exist, and isEmpty() handles capability detection. UriTemplate from spring-web is used for template matching (available via spring-boot-starter-webmvc transitive dependency).
+NEXT_SPEC: 082-prompts-spec-compliance.md
+NOTES: The prompts subsystem now mirrors the resources subsystem pattern — individual beans collected via Spring's List injection, no provider intermediary. Both McpPromptProvider and McpResourceProvider are fully deleted.

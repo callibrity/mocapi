@@ -19,7 +19,6 @@ import com.callibrity.mocapi.prompts.EmbeddedPromptResource;
 import com.callibrity.mocapi.prompts.GetPromptResponse;
 import com.callibrity.mocapi.prompts.ImagePromptContent;
 import com.callibrity.mocapi.prompts.McpPrompt;
-import com.callibrity.mocapi.prompts.McpPromptProvider;
 import com.callibrity.mocapi.prompts.PromptArgument;
 import com.callibrity.mocapi.prompts.PromptMessage;
 import com.callibrity.mocapi.prompts.ResourcePromptContent;
@@ -27,10 +26,11 @@ import com.callibrity.mocapi.prompts.TextPromptContent;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-@Component
-public class ConformancePrompts implements McpPromptProvider {
+@Configuration
+public class ConformancePrompts {
 
   // 1x1 red pixel PNG
   private static final String TINY_PNG =
@@ -108,13 +108,8 @@ public class ConformancePrompts implements McpPromptProvider {
                 (byte) 0x82
               });
 
-  @Override
-  public List<McpPrompt> getMcpPrompts() {
-    return List.of(
-        simplePrompt(), promptWithArguments(), promptWithEmbeddedResource(), promptWithImage());
-  }
-
-  private McpPrompt simplePrompt() {
+  @Bean
+  public McpPrompt simplePrompt() {
     return new McpPrompt() {
       @Override
       public String name() {
@@ -142,7 +137,8 @@ public class ConformancePrompts implements McpPromptProvider {
     };
   }
 
-  private McpPrompt promptWithArguments() {
+  @Bean
+  public McpPrompt promptWithArguments() {
     return new McpPrompt() {
       @Override
       public String name() {
@@ -177,7 +173,8 @@ public class ConformancePrompts implements McpPromptProvider {
     };
   }
 
-  private McpPrompt promptWithEmbeddedResource() {
+  @Bean
+  public McpPrompt promptWithEmbeddedResource() {
     return new McpPrompt() {
       @Override
       public String name() {
@@ -211,7 +208,8 @@ public class ConformancePrompts implements McpPromptProvider {
     };
   }
 
-  private McpPrompt promptWithImage() {
+  @Bean
+  public McpPrompt promptWithImage() {
     return new McpPrompt() {
       @Override
       public String name() {
