@@ -83,7 +83,16 @@ catches them automatically before compilation.
 - Lombok for boilerplate reduction (`@Slf4j`, `@RequiredArgsConstructor`, `@Data`, `@Getter`)
 - Records for immutable data types (DTOs, responses, descriptors)
 - Google Java Format enforced via Spotless
-- Never use `@SuppressWarnings` — fix the underlying issue
+- Never use `@SuppressWarnings` — fix the underlying issue. **One
+  narrow exception**: `@SuppressWarnings("deprecation")` is allowed
+  (and required by Sonar rule S1874) when a deprecated API is being
+  used legitimately — specifically, when the MCP specification
+  itself mandates support for a deprecated type (e.g.,
+  `LegacyTitledEnumSchema` which exists for backward compatibility
+  with pre-2025-11-25 clients) or when a test deliberately exercises
+  a deprecated code path. Every such suppression must be accompanied
+  by a short comment explaining why the deprecated usage is
+  intentional.
 - Apache 2.0 license headers on all source files (managed by license-maven-plugin)
 - Test files mirror source structure: `src/test/java/...` matching `src/main/java/...`
 - Integration tests use `*IT.java` suffix (Maven failsafe convention)
@@ -136,7 +145,12 @@ A spec is done when ALL of the following are true:
 
 ## Constraints and guardrails
 
-- Never use `@SuppressWarnings` — fix the underlying issue instead
+- Never use `@SuppressWarnings` — fix the underlying issue instead.
+  **Narrow exception**: `@SuppressWarnings("deprecation")` is
+  allowed for deprecated MCP-spec types that must be supported for
+  backward compatibility (e.g., `LegacyTitledEnumSchema`) and for
+  tests that deliberately exercise deprecated code paths. Every
+  such suppression must have a comment explaining the intent.
 - Never commit secrets or credentials
 - Never modify the public API shape of existing annotations (`@Tool`, `@ToolService`, `@Prompt`, `@PromptService`) without an explicit spec
 - Never remove or weaken input validation (JSON schema validation on tool calls)

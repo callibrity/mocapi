@@ -1,9 +1,9 @@
-# mocapi-spring-boot-starter-hazelcast (all-in-one Hazelcast starter)
+# mocapi-hazelcast-spring-boot-starter (all-in-one Hazelcast starter)
 
 ## What to build
 
 The Hazelcast analogue of spec 122 (Redis all-in-one starter).
-A new Maven module `mocapi-spring-boot-starter-hazelcast` that
+A new Maven module `mocapi-hazelcast-spring-boot-starter` that
 is a pure aggregation pom, depending on every mocapi and
 substrate module that has a Hazelcast-backed implementation of
 a pluggable SPI.
@@ -11,10 +11,17 @@ a pluggable SPI.
 Same shape as the Redis starter, same rationale (one-coordinate
 consumption of the full stack), different backend.
 
+### Naming convention
+
+Per Spring Boot's documented third-party starter convention
+(`<name>-spring-boot-starter`), this module is named
+`mocapi-hazelcast-spring-boot-starter`, NOT
+`mocapi-spring-boot-starter-hazelcast`.
+
 ### Module structure
 
 ```
-mocapi-spring-boot-starter-hazelcast/
+mocapi-hazelcast-spring-boot-starter/
 └── pom.xml
 ```
 
@@ -30,8 +37,8 @@ Add to the parent pom's `<modules>` list.
     <version>${project.version}</version>
   </parent>
 
-  <artifactId>mocapi-spring-boot-starter-hazelcast</artifactId>
-  <name>Mocapi - Spring Boot Starter (Hazelcast)</name>
+  <artifactId>mocapi-hazelcast-spring-boot-starter</artifactId>
+  <name>Mocapi - Hazelcast Spring Boot Starter</name>
   <description>
     All-in-one Hazelcast starter: bundles the mocapi Spring Boot
     starter plus Hazelcast implementations of McpSessionStore,
@@ -77,7 +84,7 @@ Add to the parent pom's `<modules>` list.
 ```xml
 <dependency>
   <groupId>com.callibrity.mocapi</groupId>
-  <artifactId>mocapi-spring-boot-starter-hazelcast</artifactId>
+  <artifactId>mocapi-hazelcast-spring-boot-starter</artifactId>
   <version>...</version>
 </dependency>
 ```
@@ -90,7 +97,7 @@ deployments need explicit config).
 
 ## Acceptance criteria
 
-- [ ] New module `mocapi-spring-boot-starter-hazelcast` exists.
+- [ ] New module `mocapi-hazelcast-spring-boot-starter` exists.
 - [ ] Listed in parent pom's `<modules>`.
 - [ ] Pure aggregation pom — no Java source.
 - [ ] Declares dependencies on:
@@ -107,6 +114,10 @@ deployments need explicit config).
 
 ## Implementation notes
 
+- **Spring Boot naming convention** — must be
+  `mocapi-hazelcast-spring-boot-starter`, NOT
+  `mocapi-spring-boot-starter-hazelcast`. See spec 122 for the
+  rationale.
 - **Dependency on spec 114** (the Hazelcast session store module)
   and on substrate's Hazelcast modules. Verify the substrate
   coordinates before committing.
