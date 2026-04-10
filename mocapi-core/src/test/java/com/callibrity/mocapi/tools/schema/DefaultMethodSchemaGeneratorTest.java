@@ -37,7 +37,6 @@ class DefaultMethodSchemaGeneratorTest {
     var method = HelloTool.class.getMethod("sayHello", String.class);
 
     var schema = generator.generateInputSchema(new HelloTool(), method);
-    System.out.println(schema.toPrettyString());
     assertThat(schema).isNotNull();
     assertThat(schema.get("properties")).isNotNull();
   }
