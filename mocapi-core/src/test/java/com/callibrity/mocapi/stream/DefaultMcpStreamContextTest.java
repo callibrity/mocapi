@@ -28,12 +28,16 @@ import com.callibrity.mocapi.model.ClientCapabilities;
 import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.ElicitationCapability;
 import com.callibrity.mocapi.model.LoggingLevel;
+import com.callibrity.mocapi.model.SamplingCapability;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStream;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationTimeoutException;
+import com.callibrity.ripcurl.core.JsonRpcError;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
+import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -274,8 +278,8 @@ class DefaultMcpStreamContextTest {
     return new McpSession("2025-11-25", new ClientCapabilities(null, null, null), null);
   }
 
-  private Mailbox<JsonNode> mockMailbox() {
-    return (Mailbox<JsonNode>) (Mailbox<?>) mock(Mailbox.class);
+  private Mailbox<JsonRpcResponse> mockMailbox() {
+    return (Mailbox<JsonRpcResponse>) (Mailbox<?>) mock(Mailbox.class);
   }
 
   // --- Builder-based elicit tests ---
@@ -284,13 +288,14 @@ class DefaultMcpStreamContextTest {
   void elicitWithBuilderShouldPublishRequestAndReturnJsonNode() {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
-    Mailbox<JsonNode> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
 
     JsonNode responseNode =
         objectMapper.valueToTree(
             Map.of("action", "accept", "content", Map.of("username", "Alice", "email", "a@b.com")));
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
+    when(mailbox.poll(any(Duration.class)))
+        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
 
     ElicitResult result =
         context.elicit(
@@ -316,11 +321,12 @@ class DefaultMcpStreamContextTest {
   void elicitWithBuilderShouldReturnDecline() {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
-    Mailbox<JsonNode> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
 
     JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "decline"));
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
+    when(mailbox.poll(any(Duration.class)))
+        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
 
     ElicitResult result = context.elicit("Enter info", schema -> schema.string("name", "Name"));
 
@@ -341,8 +347,8 @@ class DefaultMcpStreamContextTest {
   void elicitWithBuilderShouldThrowOnTimeout() {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
-    Mailbox<JsonNode> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
     when(mailbox.poll(any(Duration.class))).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> context.elicit("Enter info", schema -> schema.string("name", "Name")))
@@ -355,18 +361,102 @@ class DefaultMcpStreamContextTest {
   void elicitWithBuilderShouldValidateContent() {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
-    Mailbox<JsonNode> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonNode.class))).thenReturn(mailbox);
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
 
     JsonNode responseNode =
         objectMapper.valueToTree(
             Map.of("action", "accept", "content", Map.of("age", "not-an-integer")));
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(responseNode));
+    when(mailbox.poll(any(Duration.class)))
+        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
 
     assertThatThrownBy(() -> context.elicit("Enter info", schema -> schema.integer("age", "Age")))
         .isInstanceOf(McpElicitationException.class)
         .hasMessageContaining("schema validation");
 
     verify(mailbox).delete();
+  }
+
+  @Test
+  void elicitShouldThrowOnJsonRpcError() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
+    var context = createContext(null, "sess-1");
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+
+    JsonRpcError rpcError = new JsonRpcError(-32600, "Invalid Request", null);
+    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(rpcError));
+
+    assertThatThrownBy(() -> context.elicit("Enter info", schema -> schema.string("name", "Name")))
+        .isInstanceOf(McpElicitationException.class)
+        .hasMessageContaining("JSON-RPC error");
+
+    verify(mailbox).delete();
+  }
+
+  // --- Sampling tests ---
+
+  private McpSession sessionWithSampling() {
+    return new McpSession(
+        "2025-11-25", new ClientCapabilities(null, new SamplingCapability(), null), null);
+  }
+
+  @Test
+  void sampleShouldReturnResultOnSuccess() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithSampling()));
+    var context = createContext(null, "sess-1");
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+
+    JsonNode resultPayload =
+        objectMapper.valueToTree(
+            Map.of("role", "assistant", "content", Map.of("type", "text", "text", "Hello")));
+    when(mailbox.poll(any(Duration.class)))
+        .thenReturn(Optional.of(new JsonRpcResult(resultPayload, null)));
+
+    SamplingResult result = context.sample("Say hello", 100);
+
+    assertThat(result.role()).isEqualTo("assistant");
+    verify(mailbox).delete();
+  }
+
+  @Test
+  void sampleShouldThrowOnJsonRpcError() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithSampling()));
+    var context = createContext(null, "sess-1");
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+
+    JsonRpcError rpcError = new JsonRpcError(-32600, "Invalid Request", null);
+    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(rpcError));
+
+    assertThatThrownBy(() -> context.sample("Say hello", 100))
+        .isInstanceOf(McpSamplingException.class)
+        .hasMessageContaining("JSON-RPC error");
+
+    verify(mailbox).delete();
+  }
+
+  @Test
+  void sampleShouldThrowOnTimeout() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithSampling()));
+    var context = createContext(null, "sess-1");
+    Mailbox<JsonRpcResponse> mailbox = mockMailbox();
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> context.sample("Say hello", 100))
+        .isInstanceOf(McpSamplingTimeoutException.class);
+
+    verify(mailbox).delete();
+  }
+
+  @Test
+  void sampleShouldThrowWhenSamplingNotSupported() {
+    when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithoutElicitation()));
+    var context = createContext(null, "sess-1");
+
+    assertThatThrownBy(() -> context.sample("Say hello", 100))
+        .isInstanceOf(McpSamplingNotSupportedException.class);
   }
 }

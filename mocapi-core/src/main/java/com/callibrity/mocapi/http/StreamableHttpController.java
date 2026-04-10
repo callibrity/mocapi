@@ -257,9 +257,9 @@ public class StreamableHttpController {
     }
     JsonNode idNode = result.id();
     if (idNode != null && !idNode.isNull()) {
-      Mailbox<JsonNode> mailbox =
-          mailboxFactory.create("elicit:" + idNode.asString(), JsonNode.class);
-      mailbox.deliver(result.result());
+      Mailbox<JsonRpcResponse> mailbox =
+          mailboxFactory.create(idNode.asString(), JsonRpcResponse.class);
+      mailbox.deliver(result);
     }
     return ResponseEntity.accepted().build();
   }
@@ -272,11 +272,9 @@ public class StreamableHttpController {
     }
     JsonNode idNode = error.id();
     if (idNode != null && !idNode.isNull()) {
-      ObjectNode errorWrapper = objectMapper.createObjectNode();
-      errorWrapper.set("error", objectMapper.valueToTree(error.error()));
-      Mailbox<JsonNode> mailbox =
-          mailboxFactory.create("elicit:" + idNode.asString(), JsonNode.class);
-      mailbox.deliver(errorWrapper);
+      Mailbox<JsonRpcResponse> mailbox =
+          mailboxFactory.create(idNode.asString(), JsonRpcResponse.class);
+      mailbox.deliver(error);
     }
     return ResponseEntity.accepted().build();
   }

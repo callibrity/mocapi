@@ -22,6 +22,8 @@ import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.callibrity.mocapi.compat.conformance.ConformanceApplication;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
+import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,7 +38,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
@@ -67,8 +68,9 @@ class ElicitationSep1330EnumsIT {
     doAnswer(
             invocation -> {
               String key = invocation.getArgument(0);
+              Class<?> type = invocation.getArgument(1);
               var result = invocation.callRealMethod();
-              if (key.startsWith("elicit:")) {
+              if (type == JsonRpcResponse.class) {
                 capturedKey.set(key);
                 keyLatch.countDown();
               }
@@ -92,7 +94,7 @@ class ElicitationSep1330EnumsIT {
             .andReturn();
 
     assertThat(keyLatch.await(5, TimeUnit.SECONDS)).isTrue();
-    String jsonRpcId = capturedKey.get().replace("elicit:", "");
+    String jsonRpcId = capturedKey.get();
 
     ObjectNode elicitResult = client.objectMapper().createObjectNode();
     elicitResult.put("action", "accept");
@@ -104,8 +106,8 @@ class ElicitationSep1330EnumsIT {
         "untitledMulti", client.objectMapper().createArrayNode().add("option1").add("option2"));
     content.set("titledMulti", client.objectMapper().createArrayNode().add("value1").add("value2"));
 
-    Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + jsonRpcId, JsonNode.class);
-    mailbox.deliver(elicitResult);
+    Mailbox<JsonRpcResponse> mailbox = mailboxFactory.create(jsonRpcId, JsonRpcResponse.class);
+    mailbox.deliver(new JsonRpcResult(elicitResult, null));
 
     mvcResult.getAsyncResult(5000);
     String body = mvcResult.getResponse().getContentAsString();

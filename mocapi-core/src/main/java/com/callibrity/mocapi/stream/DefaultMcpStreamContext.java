@@ -38,7 +38,9 @@ import com.callibrity.mocapi.stream.elicitation.McpElicitationTimeoutException;
 import com.callibrity.mocapi.stream.elicitation.RequestedSchemaBuilder;
 import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcCall;
+import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
@@ -147,8 +149,8 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
     schema.accept(builder);
     RequestedSchema requestedSchema = builder.build();
     ObjectNode schemaNode = (ObjectNode) objectMapper.valueToTree(requestedSchema);
-    JsonNode rawResponse = sendElicitationAndWait(message, requestedSchema);
-    return parseRawResponse(rawResponse, schemaNode);
+    JsonRpcResult result = sendElicitationAndWait(message, requestedSchema);
+    return parseRawResponse(result, schemaNode);
   }
 
   @Override
@@ -178,15 +180,19 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
             objectMapper.valueToTree(requestParams),
             objectMapper.valueToTree(jsonRpcId));
 
-    Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + jsonRpcId, JsonNode.class);
+    Mailbox<JsonRpcResponse> mailbox = mailboxFactory.create(jsonRpcId, JsonRpcResponse.class);
     try {
       stream.publishJson(toJsonTree(request));
 
-      Optional<JsonNode> raw = mailbox.poll(elicitationTimeout);
+      Optional<JsonRpcResponse> raw = mailbox.poll(elicitationTimeout);
       if (raw.isEmpty()) {
         throw new McpSamplingTimeoutException("Sampling timed out after " + elicitationTimeout);
       }
-      return parseSamplingResponse(raw.get());
+      return switch (raw.get()) {
+        case JsonRpcError error ->
+            throw new McpSamplingException("Client returned JSON-RPC error: " + error.error());
+        case JsonRpcResult result -> parseSamplingResult(result);
+      };
     } finally {
       mailbox.delete();
     }
@@ -224,21 +230,16 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
     }
   }
 
-  private SamplingResult parseSamplingResponse(JsonNode rawResponse) {
-    JsonNode errorNode = rawResponse.get("error");
-    if (errorNode != null) {
-      throw new McpSamplingException("Client returned JSON-RPC error: " + errorNode);
-    }
-
-    JsonNode resultNode = rawResponse.get("result");
-    if (resultNode == null) {
-      resultNode = rawResponse;
-    }
-
-    CreateMessageResult result = objectMapper.treeToValue(resultNode, CreateMessageResult.class);
-    String role = result.role() != null ? result.role().toJson() : null;
-    JsonNode content = result.content() != null ? objectMapper.valueToTree(result.content()) : null;
-    return new SamplingResult(role, content, result.model(), result.stopReason());
+  private SamplingResult parseSamplingResult(JsonRpcResult result) {
+    CreateMessageResult createMessageResult =
+        objectMapper.treeToValue(result.result(), CreateMessageResult.class);
+    String role = createMessageResult.role() != null ? createMessageResult.role().toJson() : null;
+    JsonNode content =
+        createMessageResult.content() != null
+            ? objectMapper.valueToTree(createMessageResult.content())
+            : null;
+    return new SamplingResult(
+        role, content, createMessageResult.model(), createMessageResult.stopReason());
   }
 
   private void requireElicitationSupport() {
@@ -249,7 +250,7 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
     }
   }
 
-  private JsonNode sendElicitationAndWait(String message, RequestedSchema requestedSchema) {
+  private JsonRpcResult sendElicitationAndWait(String message, RequestedSchema requestedSchema) {
     String jsonRpcId = UUID.randomUUID().toString();
 
     ElicitRequestFormParams formParams =
@@ -259,42 +260,32 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
     JsonRpcCall request =
         JsonRpcCall.of("elicitation/create", params, objectMapper.valueToTree(jsonRpcId));
 
-    Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + jsonRpcId, JsonNode.class);
+    Mailbox<JsonRpcResponse> mailbox = mailboxFactory.create(jsonRpcId, JsonRpcResponse.class);
     try {
       stream.publishJson(toJsonTree(request));
 
-      Optional<JsonNode> raw = mailbox.poll(elicitationTimeout);
+      Optional<JsonRpcResponse> raw = mailbox.poll(elicitationTimeout);
       if (raw.isEmpty()) {
         throw new McpElicitationTimeoutException(
             "Elicitation timed out after " + elicitationTimeout);
       }
-      return raw.get();
+      return switch (raw.get()) {
+        case JsonRpcError error ->
+            throw new McpElicitationException("Client returned JSON-RPC error: " + error.error());
+        case JsonRpcResult result -> result;
+      };
     } finally {
       mailbox.delete();
     }
   }
 
-  private ElicitResult parseRawResponse(JsonNode rawResponse, ObjectNode schemaNode) {
-    ElicitResult elicitResult = deserializeElicitResult(rawResponse);
+  private ElicitResult parseRawResponse(JsonRpcResult result, ObjectNode schemaNode) {
+    ElicitResult elicitResult = objectMapper.treeToValue(result.result(), ElicitResult.class);
     if (elicitResult.action() != ElicitAction.ACCEPT) {
       return new ElicitResult(elicitResult.action(), null);
     }
     validateContent(elicitResult.content(), schemaNode);
     return elicitResult;
-  }
-
-  private ElicitResult deserializeElicitResult(JsonNode rawResponse) {
-    JsonNode errorNode = rawResponse.get("error");
-    if (errorNode != null) {
-      throw new McpElicitationException("Client returned JSON-RPC error: " + errorNode);
-    }
-
-    JsonNode resultNode = rawResponse.get("result");
-    if (resultNode == null) {
-      resultNode = rawResponse;
-    }
-
-    return objectMapper.treeToValue(resultNode, ElicitResult.class);
   }
 
   private void validateContent(JsonNode content, ObjectNode schemaNode) {

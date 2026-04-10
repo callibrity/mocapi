@@ -22,6 +22,8 @@ import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.callibrity.mocapi.compat.conformance.ConformanceApplication;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
+import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,7 +38,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
@@ -67,8 +68,9 @@ class ToolsCallElicitationIT {
     doAnswer(
             invocation -> {
               String key = invocation.getArgument(0);
+              Class<?> type = invocation.getArgument(1);
               var result = invocation.callRealMethod();
-              if (key.startsWith("elicit:")) {
+              if (type == JsonRpcResponse.class) {
                 capturedKey.set(key);
                 keyLatch.countDown();
               }
@@ -93,7 +95,7 @@ class ToolsCallElicitationIT {
             .andReturn();
 
     assertThat(keyLatch.await(5, TimeUnit.SECONDS)).isTrue();
-    String jsonRpcId = capturedKey.get().replace("elicit:", "");
+    String jsonRpcId = capturedKey.get();
 
     // Deliver the elicitation response directly to the mailbox
     ObjectNode elicitResult = client.objectMapper().createObjectNode();
@@ -102,8 +104,8 @@ class ToolsCallElicitationIT {
     content.put("username", "testuser");
     content.put("email", "test@example.com");
 
-    Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + jsonRpcId, JsonNode.class);
-    mailbox.deliver(elicitResult);
+    Mailbox<JsonRpcResponse> mailbox = mailboxFactory.create(jsonRpcId, JsonRpcResponse.class);
+    mailbox.deliver(new JsonRpcResult(elicitResult, null));
 
     mvcResult.getAsyncResult(5000);
     String body = mvcResult.getResponse().getContentAsString();

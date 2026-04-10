@@ -22,6 +22,8 @@ import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.callibrity.mocapi.compat.conformance.ConformanceApplication;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
+import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,7 +38,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest(classes = ConformanceApplication.class)
@@ -69,8 +70,9 @@ class ToolsCallSamplingIT {
     doAnswer(
             invocation -> {
               String key = invocation.getArgument(0);
+              Class<?> type = invocation.getArgument(1);
               var result = invocation.callRealMethod();
-              if (key.startsWith("elicit:")) {
+              if (type == JsonRpcResponse.class) {
                 capturedKey.set(key);
                 keyLatch.countDown();
               }
@@ -98,7 +100,7 @@ class ToolsCallSamplingIT {
 
     // Wait for the tool to create the sampling mailbox
     assertThat(keyLatch.await(5, TimeUnit.SECONDS)).isTrue();
-    String jsonRpcId = capturedKey.get().replace("elicit:", "");
+    String jsonRpcId = capturedKey.get();
 
     // Deliver the sampling response directly to the mailbox
     ObjectNode samplingResult = client.objectMapper().createObjectNode();
@@ -108,8 +110,8 @@ class ToolsCallSamplingIT {
     content.put("text", "42");
     samplingResult.put("model", "test-model");
 
-    Mailbox<JsonNode> mailbox = mailboxFactory.create("elicit:" + jsonRpcId, JsonNode.class);
-    mailbox.deliver(samplingResult);
+    Mailbox<JsonRpcResponse> mailbox = mailboxFactory.create(jsonRpcId, JsonRpcResponse.class);
+    mailbox.deliver(new JsonRpcResult(samplingResult, null));
 
     // Wait for async SSE stream to complete
     mvcResult.getAsyncResult(5000);
