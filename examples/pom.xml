@@ -34,5 +34,6 @@
         <module>examples-lib</module>
         <module>in-memory</module>
         <module>redis</module>
+        <module>hazelcast</module>
     </modules>
 </project>

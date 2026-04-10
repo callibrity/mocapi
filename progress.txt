@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T10:04:20-04:00
-ITERATION: 35
-SPEC_COMPLETED: 127-example-redis-app.md
-WHAT_WAS_DONE: Created examples/redis module with RedisExampleApplication delegating to ExampleApplication, pom.xml depending on mocapi-examples-lib and mocapi-redis-spring-boot-starter, application.yml with Redis host/port env var defaults, docker-compose.yml with Redis 7 Alpine + healthcheck, and README.md with prerequisites, startup, session persistence verification, and cloud deployment instructions. Added module to examples/pom.xml. Also applied spotless:apply to examples-lib to fix a pre-existing formatting issue.
-VERIFICATION: mvn verify — full reactor BUILD SUCCESS (14 modules including mocapi-example-redis)
+LAST_RUN: 2026-04-10T10:07:06-04:00
+ITERATION: 36
+SPEC_COMPLETED: 128-example-hazelcast-app.md
+WHAT_WAS_DONE: Created examples/hazelcast module with HazelcastExampleApplication delegating to ExampleApplication, pom.xml depending on mocapi-examples-lib and mocapi-hazelcast-spring-boot-starter, application.yml pointing spring.hazelcast.config at bundled hazelcast.yaml, hazelcast.yaml with multicast and TCP-IP discovery disabled for safe single-JVM default, and README.md covering embedded default, cluster mode, and client/server mode. Added module to examples/pom.xml. No docker-compose.yml — Hazelcast runs embedded.
+VERIFICATION: mvn verify — full reactor BUILD SUCCESS (15 modules including mocapi-example-hazelcast)
 STATUS: MORE_WORK
-NEXT_SPEC: 128-example-hazelcast-app.md
-NOTES: The examples-lib module had a pre-existing spotless formatting violation in CountdownTool.java which was fixed via spotless:apply during this iteration. The Redis example follows the same delegation pattern as the in-memory example. No direct dependencies on substrate-*-redis or spring-boot-starter-data-redis — all come transitively through mocapi-redis-spring-boot-starter. Docker-compose.yml and application.yml both have license headers (required by license-maven-plugin).
+NEXT_SPEC: 129-example-postgresql-app.md
+NOTES: The Hazelcast example follows the same delegation pattern as the Redis and in-memory examples. No direct dependencies on mocapi-session-store-hazelcast or hazelcast-spring — all come transitively through mocapi-hazelcast-spring-boot-starter. All source and resource files have Apache 2.0 license headers.
