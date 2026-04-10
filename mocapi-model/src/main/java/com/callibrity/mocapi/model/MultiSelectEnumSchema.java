@@ -15,5 +15,5 @@
  */
 package com.callibrity.mocapi.model;
 
-public sealed interface PrimitiveSchemaDefinition
-    permits StringSchema, NumberSchema, BooleanSchema, EnumSchema {}
+public sealed interface MultiSelectEnumSchema extends EnumSchema
+    permits UntitledMultiSelectEnumSchema, TitledMultiSelectEnumSchema {}

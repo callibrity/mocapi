@@ -27,7 +27,7 @@ public record TitledMultiSelectEnumSchema(
     Integer maxItems,
     TitledEnumItemsSchema items,
     @JsonProperty("default") List<String> defaultValues)
-    implements PrimitiveSchemaDefinition {
+    implements MultiSelectEnumSchema {
   @JsonProperty("type")
   public String type() {
     return "array";

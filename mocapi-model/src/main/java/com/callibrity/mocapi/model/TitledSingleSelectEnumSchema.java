@@ -25,7 +25,7 @@ public record TitledSingleSelectEnumSchema(
     String description,
     List<EnumOption> oneOf,
     @JsonProperty("default") String defaultValue)
-    implements PrimitiveSchemaDefinition {
+    implements SingleSelectEnumSchema {
   @JsonProperty("type")
   public String type() {
     return "string";

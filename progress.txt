@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T02:12:00-04:00
-ITERATION: 101
-SPEC_COMPLETED: 102-migrate-elicitation-builders-to-model-schema.md
-WHAT_WAS_DONE: Migrated all elicitation property builders (String, Integer, Number, Boolean, ChooseOne, ChooseMany, ChooseLegacy) to return model types from com.callibrity.mocapi.model instead of core-local schema records. Reworked ElicitationSchema to produce a typed RequestedSchema via toRequestedSchema() instead of an ObjectNode. Updated DefaultMcpStreamContext.elicit() to pass a RequestedSchema directly into ElicitRequestFormParams. Deleted 13 core-local schema records (PropertySchema, StringPropertySchema, IntegerPropertySchema, NumberPropertySchema, BooleanPropertySchema, EnumPropertySchema, TitledEnumPropertySchema, MultiSelectPropertySchema, TitledMultiSelectPropertySchema, LegacyEnumPropertySchema, EnumItemsSchema, TitledEnumItemsSchema, EnumOption). Removed the pattern(String) and format(String) methods from StringPropertyBuilder per the MCP spec. Added type() method to model TitledEnumItemsSchema for wire compatibility. Added golden-JSON regression test. Updated all builder and schema tests.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests pass, spotless and license checks pass
+LAST_RUN: 2026-04-10T02:17:00-04:00
+ITERATION: 102
+SPEC_COMPLETED: 103-add-intermediate-sealed-enum-schema-types.md
+WHAT_WAS_DONE: Added three sealed marker interfaces (EnumSchema, SingleSelectEnumSchema, MultiSelectEnumSchema) to mocapi-model mirroring schema.ts's two-level union hierarchy. Re-parented the five enum-family leaf records to implement the new intermediate interfaces instead of PrimitiveSchemaDefinition directly. Updated PrimitiveSchemaDefinition to permit only four direct children (StringSchema, NumberSchema, BooleanSchema, EnumSchema). Added comprehensive hierarchy test covering instanceof chains, pattern-match exhaustiveness for both PrimitiveSchemaDefinition and EnumSchema switches, non-enum negative checks, and byte-identical wire format verification for all eight leaf types.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 tests pass (including new PrimitiveSchemaDefinitionHierarchyTest with 7 test methods), spotless and license checks pass
 STATUS: MORE_WORK
-NEXT_SPEC: 103-add-intermediate-sealed-enum-schema-types.md
-NOTES: The required flag is now tracked in ElicitationSchemaBuilder/ElicitationSchema instead of on each schema record. Model's TitledEnumItemsSchema now has a type() method returning "string" (added for wire compatibility with the old core version). The StringPropertyBuilder no longer exposes pattern(String) or format(String) — only the typed shorthand methods (email(), uri(), date(), dateTime()) remain, using StringFormat enum internally.
+NEXT_SPEC: none (no more specs in specs/ directory)
+NOTES: Wire format is byte-identical before and after — Jackson serializes the leaf records identically regardless of intermediate sealed interfaces. No existing switch/instanceof usage against PrimitiveSchemaDefinition was found in the codebase, so no consumer code needed changes.

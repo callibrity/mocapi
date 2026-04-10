@@ -27,7 +27,7 @@ public record LegacyTitledEnumSchema(
     @JsonProperty("enum") List<String> values,
     List<String> enumNames,
     @JsonProperty("default") String defaultValue)
-    implements PrimitiveSchemaDefinition {
+    implements EnumSchema {
   @JsonProperty("type")
   public String type() {
     return "string";
