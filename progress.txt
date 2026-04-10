@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T01:26:27-04:00
-ITERATION: 93
-SPEC_COMPLETED: 094-tool-execution-errors-as-is-error-result.md
-WHAT_WAS_DONE: Changed tool execution failures from JSON-RPC error responses to CallToolResult(isError=true) in both non-streamable (ToolsRegistry.callTool) and streamable (McpToolMethods.executeStreamableTool) paths, while preserving JsonRpcException as JSON-RPC errors for protocol-level failures.
+LAST_RUN: 2026-04-10T01:30:36-04:00
+ITERATION: 94
+SPEC_COMPLETED: 095-bind-jsonrpc-params-for-all-mcp-methods.md
+WHAT_WAS_DONE: Migrated all 10 remaining MCP handler methods to use @JsonRpcParams with typed request records from mocapi-model, replacing loose String/Map/JsonNode parameters. Updated unit tests for McpPromptMethods and McpResourceMethods to use the new signatures, and added null-params tests for paginated list methods.
 VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests, spotless and license checks pass
 STATUS: MORE_WORK
-NEXT_SPEC: none
-NOTES: Added toErrorCallToolResult(Throwable) static helper to ToolsRegistry shared by both call paths. Added ThrowingTool and ErrorReturningTool test fixtures. Repurposed runtimeExceptionShouldReturnJsonInternalError controller test. Removed unused JsonRpcProtocol import from McpToolMethods. The McpRequestMeta.java deletion shown in git status is from a prior change, not this spec.
+NEXT_SPEC: 096-migrate-log-notification-to-model.md
+NOTES: McpLoggingMethods now validates null params/level explicitly. All four list methods (tools/list, prompts/list, resources/list, resources/templates/list) handle null params for clients that omit the params object. McpCompletionMethods params argument is accepted but unused since the handler returns empty completions.

@@ -17,8 +17,11 @@ package com.callibrity.mocapi.resources;
 
 import com.callibrity.mocapi.model.ListResourceTemplatesResult;
 import com.callibrity.mocapi.model.ListResourcesResult;
+import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
+import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -30,27 +33,30 @@ public class McpResourceMethods {
   private final ResourcesRegistry resourcesRegistry;
 
   @JsonRpcMethod("resources/list")
-  public ListResourcesResult listResources(String cursor) {
+  public ListResourcesResult listResources(@JsonRpcParams PaginatedRequestParams params) {
+    String cursor = params != null ? params.cursor() : null;
     return resourcesRegistry.listResources(cursor);
   }
 
   @JsonRpcMethod("resources/templates/list")
-  public ListResourceTemplatesResult listResourceTemplates(String cursor) {
+  public ListResourceTemplatesResult listResourceTemplates(
+      @JsonRpcParams PaginatedRequestParams params) {
+    String cursor = params != null ? params.cursor() : null;
     return resourcesRegistry.listResourceTemplates(cursor);
   }
 
   @JsonRpcMethod("resources/read")
-  public ReadResourceResult readResource(String uri) {
-    return resourcesRegistry.readResource(uri);
+  public ReadResourceResult readResource(@JsonRpcParams ResourceRequestParams params) {
+    return resourcesRegistry.readResource(params.uri());
   }
 
   @JsonRpcMethod("resources/subscribe")
-  public Map<String, Object> subscribe(String uri) {
+  public Map<String, Object> subscribe(@JsonRpcParams ResourceRequestParams params) {
     return Map.of();
   }
 
   @JsonRpcMethod("resources/unsubscribe")
-  public Map<String, Object> unsubscribe(String uri) {
+  public Map<String, Object> unsubscribe(@JsonRpcParams ResourceRequestParams params) {
     return Map.of();
   }
 }

@@ -18,7 +18,9 @@ package com.callibrity.mocapi.prompts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.model.GetPromptRequestParams;
 import com.callibrity.mocapi.model.GetPromptResult;
+import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptArgument;
 import com.callibrity.mocapi.model.PromptMessage;
@@ -68,8 +70,16 @@ class McpPromptMethodsTest {
   }
 
   @Test
+  void listPromptsShouldAcceptPaginatedParams() {
+    var response = methods.listPrompts(new PaginatedRequestParams(null, null));
+
+    assertThat(response.prompts()).hasSize(1);
+  }
+
+  @Test
   void getPromptShouldReturnMessages() {
-    var response = methods.getPrompt("greet", Map.of("name", "Mocapi"));
+    var response =
+        methods.getPrompt(new GetPromptRequestParams("greet", Map.of("name", "Mocapi"), null));
 
     assertThat(response.messages()).hasSize(1);
     assertThat(response.messages().getFirst().role()).isEqualTo(Role.USER);
@@ -81,15 +91,18 @@ class McpPromptMethodsTest {
 
   @Test
   void getPromptWithUnknownNameShouldThrow() {
-    assertThatThrownBy(() -> methods.getPrompt("unknown", Map.of()))
+    assertThatThrownBy(
+            () -> methods.getPrompt(new GetPromptRequestParams("unknown", Map.of(), null)))
         .isExactlyInstanceOf(JsonRpcException.class)
         .hasMessageContaining("Prompt not found: unknown");
   }
 
   @Test
   void argumentsShouldBePassedThrough() {
-    var response1 = methods.getPrompt("greet", Map.of("name", "Alice"));
-    var response2 = methods.getPrompt("greet", Map.of("name", "Bob"));
+    var response1 =
+        methods.getPrompt(new GetPromptRequestParams("greet", Map.of("name", "Alice"), null));
+    var response2 =
+        methods.getPrompt(new GetPromptRequestParams("greet", Map.of("name", "Bob"), null));
 
     assertThat(((TextContent) response1.messages().getFirst().content().getFirst()).text())
         .isEqualTo("Hello, Alice!");

@@ -18,8 +18,10 @@ package com.callibrity.mocapi.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
+import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -76,6 +78,13 @@ class McpResourceMethodsTest {
   }
 
   @Test
+  void listResourcesShouldAcceptPaginatedParams() {
+    var response = methods.listResources(new PaginatedRequestParams(null, null));
+
+    assertThat(response.resources()).hasSize(1);
+  }
+
+  @Test
   void listResourceTemplatesShouldReturnTemplates() {
     var response = methods.listResourceTemplates(null);
 
@@ -85,8 +94,15 @@ class McpResourceMethodsTest {
   }
 
   @Test
+  void listResourceTemplatesShouldAcceptPaginatedParams() {
+    var response = methods.listResourceTemplates(new PaginatedRequestParams(null, null));
+
+    assertThat(response.resourceTemplates()).hasSize(1);
+  }
+
+  @Test
   void readResourceShouldReturnContent() {
-    var response = methods.readResource("test://greeting");
+    var response = methods.readResource(new ResourceRequestParams("test://greeting", null));
 
     assertThat(response.contents()).hasSize(1);
     assertThat(response.contents().getFirst()).isInstanceOf(TextResourceContents.class);
@@ -95,20 +111,21 @@ class McpResourceMethodsTest {
 
   @Test
   void readResourceWithUnknownUriShouldThrow() {
-    assertThatThrownBy(() -> methods.readResource("test://unknown"))
+    assertThatThrownBy(
+            () -> methods.readResource(new ResourceRequestParams("test://unknown", null)))
         .isExactlyInstanceOf(JsonRpcException.class)
         .hasMessageContaining("Resource not found");
   }
 
   @Test
   void subscribeShouldReturnEmptyMap() {
-    var result = methods.subscribe("test://greeting");
+    var result = methods.subscribe(new ResourceRequestParams("test://greeting", null));
     assertThat(result).isEmpty();
   }
 
   @Test
   void unsubscribeShouldReturnEmptyMap() {
-    var result = methods.unsubscribe("test://greeting");
+    var result = methods.unsubscribe(new ResourceRequestParams("test://greeting", null));
     assertThat(result).isEmpty();
   }
 }

@@ -19,6 +19,7 @@ import com.callibrity.mocapi.http.McpRequestId;
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ListToolsResult;
+import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStream;
@@ -56,7 +57,8 @@ public class McpToolMethods {
   private final Duration elicitationTimeout;
 
   @JsonRpcMethod("tools/list")
-  public ListToolsResult listTools(String cursor) {
+  public ListToolsResult listTools(@JsonRpcParams PaginatedRequestParams params) {
+    String cursor = params != null ? params.cursor() : null;
     return toolsRegistry.listTools(cursor);
   }
 
