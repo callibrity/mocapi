@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.stream;
 
+import com.callibrity.mocapi.model.CreateMessageResult;
 import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.stream.elicitation.McpElicitationException;
@@ -189,6 +190,11 @@ public interface McpStreamContext<R> {
    * Sends a {@code sampling/createMessage} request to the client, blocking until a response is
    * received. The client's LLM processes the prompt and returns the result.
    *
+   * <p>The returned {@link CreateMessageResult} contains the typed {@link
+   * com.callibrity.mocapi.model.Role Role} and {@link com.callibrity.mocapi.model.ContentBlock
+   * ContentBlock} fields from the client response. Use {@link CreateMessageResult#text()} to
+   * extract the text from a {@link com.callibrity.mocapi.model.TextContent TextContent} response.
+   *
    * @param prompt the user prompt text
    * @param maxTokens the maximum number of tokens to generate
    * @return the sampling result containing the LLM response
@@ -196,5 +202,5 @@ public interface McpStreamContext<R> {
    * @throws McpSamplingException if the response cannot be processed
    * @throws McpSamplingNotSupportedException if the client does not support sampling
    */
-  SamplingResult sample(String prompt, int maxTokens);
+  CreateMessageResult sample(String prompt, int maxTokens);
 }

@@ -25,9 +25,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.model.ClientCapabilities;
+import com.callibrity.mocapi.model.CreateMessageResult;
 import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.ElicitationCapability;
 import com.callibrity.mocapi.model.LoggingLevel;
+import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.SamplingCapability;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionService;
@@ -550,9 +552,10 @@ class DefaultMcpStreamContextTest {
     when(mailbox.poll(any(Duration.class)))
         .thenReturn(Optional.of(new JsonRpcResult(resultPayload, null)));
 
-    SamplingResult result = context.sample("Say hello", 100);
+    CreateMessageResult result = context.sample("Say hello", 100);
 
-    assertThat(result.role()).isEqualTo("assistant");
+    assertThat(result.role()).isEqualTo(Role.ASSISTANT);
+    assertThat(result.text()).isEqualTo("Hello");
     verify(mailbox).delete();
   }
 

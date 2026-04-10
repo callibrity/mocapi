@@ -19,4 +19,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CreateMessageResult(
-    Role role, ContentBlock content, String model, String stopReason) {}
+    Role role, ContentBlock content, String model, String stopReason) {
+
+  /**
+   * Returns the text of the {@code content} block if it is a {@link TextContent}, or {@code null}
+   * otherwise.
+   */
+  public String text() {
+    return content instanceof TextContent textContent ? textContent.text() : null;
+  }
+}

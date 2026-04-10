@@ -17,12 +17,12 @@ package com.callibrity.mocapi.compat.conformance;
 
 import com.callibrity.mocapi.model.AudioContent;
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.CreateMessageResult;
 import com.callibrity.mocapi.model.EmbeddedResource;
 import com.callibrity.mocapi.model.ImageContent;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.stream.McpStreamContext;
-import com.callibrity.mocapi.stream.SamplingResult;
 import com.callibrity.mocapi.stream.elicitation.MultiSelectEnumSchemaBuilder;
 import com.callibrity.mocapi.stream.elicitation.SingleSelectEnumSchemaBuilder;
 import com.callibrity.mocapi.tools.annotation.ToolMethod;
@@ -339,7 +339,7 @@ public class ConformanceTools {
    */
   @ToolMethod(name = "test_sampling", description = "Tests sampling/createMessage for conformance")
   public CallToolResult testSampling(String prompt, McpStreamContext<CallToolResult> ctx) {
-    SamplingResult result = ctx.sample(prompt, 100);
+    CreateMessageResult result = ctx.sample(prompt, 100);
     String text = result.text();
     return new CallToolResult(List.of(new TextContent("LLM response: " + text, null)), null, null);
   }

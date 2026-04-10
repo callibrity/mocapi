@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T03:37:07-04:00
-ITERATION: 13
-SPEC_COMPLETED: 106-bean-oriented-elicit-overload.md
-WHAT_WAS_DONE: Added two bean-oriented elicit overloads to McpStreamContext — one accepting Class<T> and one accepting TypeReference<T>. Both delegate to the existing elicit(String, Consumer<RequestedSchemaBuilder>) method and deserialize accepted content via ObjectMapper.treeToValue, returning Optional.of(bean) on accept and Optional.empty() on decline/cancel. Schema validation runs before bean binding. Jackson exceptions propagate as-is for mismatched bean types.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests pass, 30 unit tests in DefaultMcpStreamContextTest pass (6 new: Class accept, TypeReference accept, decline empty, cancel empty, schema validation failure, mismatched bean DatabindException), spotless and license checks pass
+LAST_RUN: 2026-04-10T03:42:00-04:00
+ITERATION: 14
+SPEC_COMPLETED: 107-consolidate-sampling-result-with-model.md
+WHAT_WAS_DONE: Consolidated SamplingResult with model.CreateMessageResult — added text() helper to CreateMessageResult using sealed pattern match on TextContent, deleted SamplingResult facade from mocapi-core, changed McpStreamContext.sample() return type to CreateMessageResult, simplified parseSamplingResult to a one-liner, updated ConformanceTools and all sampling tests to use typed Role enum and ContentBlock instead of String/JsonNode.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 6 modules pass, 80 integration tests pass, 3 new unit tests in CreateMessageResultTest (text with TextContent, text with ImageContent returns null, text with null content returns null), spotless and license checks pass
 STATUS: MORE_WORK
-NEXT_SPEC: 107-consolidate-sampling-result-with-model.md
-NOTES: The new overloads use Jackson 3's treeToValue(JsonNode, TypeReference<T>) overload directly — no need for the readerFor/constructType workaround mentioned in the spec. JacksonException is unchecked in Jackson 3, so no checked exception handling needed in the overload bodies.
+NEXT_SPEC: 108-fix-elicitation-exception-javadoc.md
+NOTES: This is a source-level breaking change for tool authors: result.role() now returns Role enum (was String), result.content() now returns ContentBlock (was JsonNode). The text() helper works identically for the common TextContent case.

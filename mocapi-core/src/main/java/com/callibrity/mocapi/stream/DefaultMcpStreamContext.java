@@ -175,7 +175,7 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
   }
 
   @Override
-  public SamplingResult sample(String prompt, int maxTokens) {
+  public CreateMessageResult sample(String prompt, int maxTokens) {
     requireSamplingSupport();
 
     String jsonRpcId = UUID.randomUUID().toString();
@@ -251,16 +251,8 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
     }
   }
 
-  private SamplingResult parseSamplingResult(JsonRpcResult result) {
-    CreateMessageResult createMessageResult =
-        objectMapper.treeToValue(result.result(), CreateMessageResult.class);
-    String role = createMessageResult.role() != null ? createMessageResult.role().toJson() : null;
-    JsonNode content =
-        createMessageResult.content() != null
-            ? objectMapper.valueToTree(createMessageResult.content())
-            : null;
-    return new SamplingResult(
-        role, content, createMessageResult.model(), createMessageResult.stopReason());
+  private CreateMessageResult parseSamplingResult(JsonRpcResult result) {
+    return objectMapper.treeToValue(result.result(), CreateMessageResult.class);
   }
 
   private void requireElicitationSupport() {
