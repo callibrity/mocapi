@@ -40,23 +40,12 @@
             <version>${project.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-session-store-jdbc</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
+        <!-- Substrate PostgreSQL — single module providing Atom, Mailbox,
+             Journal, and Notifier implementations. The McpSessionStore
+             implementation in mocapi-core adapts Atom automatically. -->
         <dependency>
             <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-mailbox-postgresql</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-journal-postgresql</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-notifier-postgresql</artifactId>
+            <artifactId>substrate-postgresql</artifactId>
         </dependency>
 
         <dependency>

@@ -21,13 +21,17 @@ import com.callibrity.mocapi.MocapiAutoConfiguration;
 import com.callibrity.mocapi.tools.annotation.AnnotationMcpToolProviderFactory;
 import com.callibrity.ripcurl.autoconfigure.RipCurlAutoConfiguration;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.codec.jackson.JacksonCodecAutoConfiguration;
+import org.jwcarman.codec.jackson.JacksonCodecFactory;
+import org.jwcarman.codec.spi.CodecFactory;
 import org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration;
 import org.jwcarman.odyssey.autoconfigure.OdysseyAutoConfiguration;
-import org.jwcarman.substrate.autoconfigure.SubstrateAutoConfiguration;
+import org.jwcarman.substrate.core.autoconfigure.SubstrateAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import tools.jackson.databind.ObjectMapper;
 
 class MocapiToolsAutoConfigurationTest {
 
@@ -35,6 +39,7 @@ class MocapiToolsAutoConfigurationTest {
       new ApplicationContextRunner()
           .withPropertyValues(
               "mocapi.session-encryption-master-key=dGhpcy1pcy1hLTMyLWJ5dGUtZGV2LW9ubHkta2V5ISE=")
+          .withUserConfiguration(CodecFactoryConfiguration.class)
           .withConfiguration(
               AutoConfigurations.of(
                   MocapiToolsAutoConfiguration.class,
@@ -42,9 +47,16 @@ class MocapiToolsAutoConfigurationTest {
                   RipCurlAutoConfiguration.class,
                   MethodicalAutoConfiguration.class,
                   JacksonAutoConfiguration.class,
-                  JacksonCodecAutoConfiguration.class,
                   SubstrateAutoConfiguration.class,
                   OdysseyAutoConfiguration.class));
+
+  @Configuration(proxyBeanMethods = false)
+  static class CodecFactoryConfiguration {
+    @Bean
+    CodecFactory codecFactory(ObjectMapper objectMapper) {
+      return new JacksonCodecFactory(objectMapper);
+    }
+  }
 
   @Test
   void mcpCapabilityInitializes() {

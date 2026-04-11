@@ -18,6 +18,7 @@ package com.callibrity.mocapi.session;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -30,9 +31,10 @@ import java.time.Duration;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.odyssey.core.OdysseyStream;
-import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
-import org.jwcarman.odyssey.core.StreamSubscriberBuilder;
+import org.jwcarman.odyssey.core.Odyssey;
+import org.jwcarman.odyssey.core.OdysseyPublisher;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import tools.jackson.databind.JsonNode;
 
 class McpSessionServiceTest {
 
@@ -41,22 +43,28 @@ class McpSessionServiceTest {
   private McpSessionStore store;
   private McpSessionService service;
   private byte[] masterKey;
-  private OdysseyStreamRegistry streamRegistry;
+  private Odyssey odyssey;
+  private OdysseyPublisher<JsonNode> publisher;
 
   @BeforeEach
+  @SuppressWarnings("unchecked")
   void setUp() {
     store = mock(McpSessionStore.class);
-    streamRegistry = mock(OdysseyStreamRegistry.class);
-    OdysseyStream channelStream = mock(OdysseyStream.class);
-    when(streamRegistry.channel(any())).thenReturn(channelStream);
+    odyssey = mock(Odyssey.class);
+    publisher = (OdysseyPublisher<JsonNode>) mock(OdysseyPublisher.class);
+    when(publisher.name()).thenReturn("test-stream");
+    when(odyssey.publisher(anyString(), eq(JsonNode.class))).thenReturn(publisher);
+    when(odyssey.subscribe(anyString(), eq(JsonNode.class), any())).thenReturn(new SseEmitter());
+    when(odyssey.resume(anyString(), eq(JsonNode.class), anyString(), any()))
+        .thenReturn(new SseEmitter());
     masterKey = new byte[32];
     new SecureRandom().nextBytes(masterKey);
-    service = new McpSessionService(store, masterKey, TTL, streamRegistry);
+    service = new McpSessionService(store, masterKey, TTL, odyssey);
   }
 
   @Test
   void constructorRejectsInvalidKey() {
-    assertThatThrownBy(() -> new McpSessionService(store, new byte[16], TTL, streamRegistry))
+    assertThatThrownBy(() -> new McpSessionService(store, new byte[16], TTL, odyssey))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -92,14 +100,12 @@ class McpSessionServiceTest {
   }
 
   @Test
-  void deleteDelegatesToStoreAndCleansUpStream() {
-    OdysseyStream channelStream = mock(OdysseyStream.class);
-    when(streamRegistry.channel("sess-123")).thenReturn(channelStream);
-
+  void deleteDelegatesToStoreAndCleansUpNotificationChannel() {
     service.delete("sess-123");
 
     verify(store).delete("sess-123");
-    verify(channelStream).delete();
+    verify(odyssey).publisher("sess-123", JsonNode.class);
+    verify(publisher).delete();
   }
 
   @Test
@@ -162,47 +168,32 @@ class McpSessionServiceTest {
   }
 
   @Test
-  void createStreamDelegatesToRegistry() {
-    OdysseyStream ephemeral = mock(OdysseyStream.class);
-    when(streamRegistry.ephemeral()).thenReturn(ephemeral);
-
+  void createStreamDelegatesToOdyssey() {
     McpSessionStream result = service.createStream("sess-123");
 
     assertThat(result).isNotNull();
-    verify(streamRegistry).ephemeral();
+    verify(odyssey).publisher(anyString(), eq(JsonNode.class));
   }
 
   @Test
-  void notificationStreamReturnsSessionStream() {
-    OdysseyStream channel = mock(OdysseyStream.class);
-    when(streamRegistry.channel("sess-123")).thenReturn(channel);
-
+  void notificationStreamUsesSessionIdAsName() {
     McpSessionStream result = service.notificationStream("sess-123");
 
     assertThat(result).isNotNull();
-    verify(streamRegistry).channel("sess-123");
+    verify(odyssey).publisher("sess-123", JsonNode.class);
   }
 
   @Test
   void reconnectStreamDecryptsAndResumesAfter() {
     String sessionId = "sess-123";
-    String streamKey = "odyssey:ephemeral:abc";
+    String streamName = "stream-abc";
     String rawEventId = "event-456";
-    String encrypted = service.encrypt(sessionId, streamKey + ":" + rawEventId);
-
-    OdysseyStream stream = mock(OdysseyStream.class);
-    StreamSubscriberBuilder builder = mock(StreamSubscriberBuilder.class);
-    when(builder.mapper(any())).thenReturn(builder);
-    when(builder.resumeAfter(rawEventId))
-        .thenReturn(new org.springframework.web.servlet.mvc.method.annotation.SseEmitter());
-    when(stream.subscriber()).thenReturn(builder);
-    when(streamRegistry.stream(streamKey)).thenReturn(stream);
+    String encrypted = service.encrypt(sessionId, streamName + ":" + rawEventId);
 
     var emitter = service.reconnectStream(sessionId, encrypted);
 
     assertThat(emitter).isNotNull();
-    verify(streamRegistry).stream(streamKey);
-    verify(builder).resumeAfter(rawEventId);
+    verify(odyssey).resume(eq(streamName), eq(JsonNode.class), eq(rawEventId), any());
   }
 
   @Test

@@ -17,21 +17,21 @@ package com.callibrity.mocapi.redis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.callibrity.mocapi.session.McpSessionStore;
-import com.callibrity.mocapi.session.redis.RedisMcpSessionStore;
-import com.callibrity.mocapi.session.redis.RedisMcpSessionStoreAutoConfiguration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.substrate.journal.redis.RedisJournalAutoConfiguration;
-import org.jwcarman.substrate.journal.redis.RedisJournalSpi;
-import org.jwcarman.substrate.mailbox.redis.RedisMailboxAutoConfiguration;
-import org.jwcarman.substrate.mailbox.redis.RedisMailboxSpi;
-import org.jwcarman.substrate.notifier.redis.RedisNotifier;
-import org.jwcarman.substrate.notifier.redis.RedisNotifierAutoConfiguration;
-import org.jwcarman.substrate.spi.JournalSpi;
-import org.jwcarman.substrate.spi.MailboxSpi;
-import org.jwcarman.substrate.spi.Notifier;
+import org.jwcarman.substrate.core.atom.AtomSpi;
+import org.jwcarman.substrate.redis.RedisAutoConfiguration;
+import org.jwcarman.substrate.core.journal.JournalSpi;
+import org.jwcarman.substrate.core.mailbox.MailboxSpi;
+import org.jwcarman.substrate.core.notifier.NotifierSpi;
+import org.jwcarman.substrate.redis.atom.RedisAtomAutoConfiguration;
+import org.jwcarman.substrate.redis.atom.RedisAtomSpi;
+import org.jwcarman.substrate.redis.journal.RedisJournalAutoConfiguration;
+import org.jwcarman.substrate.redis.journal.RedisJournalSpi;
+import org.jwcarman.substrate.redis.mailbox.RedisMailboxAutoConfiguration;
+import org.jwcarman.substrate.redis.mailbox.RedisMailboxSpi;
+import org.jwcarman.substrate.redis.notifier.RedisNotifierAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -40,9 +40,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.testcontainers.containers.GenericContainer;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
+/**
+ * Verifies that pulling the mocapi-redis-spring-boot-starter on the classpath (with a real Redis
+ * running) produces the full distributed stack: Substrate's Redis backend provides all four SPIs
+ * (Atom, Mailbox, Journal, Notifier), and mocapi-core's {@link SubstrateAtomMcpSessionStore}
+ * adopts the Redis Atom for session storage.
+ */
 class RedisStarterAutoConfigurationIT {
 
   static GenericContainer<?> redis =
@@ -66,11 +70,6 @@ class RedisStarterAutoConfigurationIT {
       return new LettuceConnectionFactory(
           new RedisStandaloneConfiguration(redis.getHost(), redis.getMappedPort(6379)));
     }
-
-    @Bean
-    ObjectMapper objectMapper() {
-      return JsonMapper.builder().build();
-    }
   }
 
   private ApplicationContextRunner contextRunner() {
@@ -79,20 +78,20 @@ class RedisStarterAutoConfigurationIT {
         .withConfiguration(
             AutoConfigurations.of(
                 DataRedisAutoConfiguration.class,
-                RedisMcpSessionStoreAutoConfiguration.class,
+                RedisAutoConfiguration.class,
+                RedisAtomAutoConfiguration.class,
                 RedisMailboxAutoConfiguration.class,
                 RedisJournalAutoConfiguration.class,
                 RedisNotifierAutoConfiguration.class));
   }
 
   @Test
-  void redisBackedSessionStoreIsAutoConfigured() {
+  void redisBackedAtomSpiIsAutoConfigured() {
     contextRunner()
         .run(
             context -> {
-              assertThat(context).hasSingleBean(McpSessionStore.class);
-              assertThat(context.getBean(McpSessionStore.class))
-                  .isInstanceOf(RedisMcpSessionStore.class);
+              assertThat(context).hasSingleBean(AtomSpi.class);
+              assertThat(context.getBean(AtomSpi.class)).isInstanceOf(RedisAtomSpi.class);
             });
   }
 
@@ -117,12 +116,11 @@ class RedisStarterAutoConfigurationIT {
   }
 
   @Test
-  void redisBackedNotifierIsAutoConfigured() {
+  void redisBackedNotifierSpiIsAutoConfigured() {
     contextRunner()
         .run(
             context -> {
-              assertThat(context).hasSingleBean(Notifier.class);
-              assertThat(context.getBean(Notifier.class)).isInstanceOf(RedisNotifier.class);
+              assertThat(context).hasSingleBean(NotifierSpi.class);
             });
   }
 }

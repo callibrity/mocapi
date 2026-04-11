@@ -17,24 +17,24 @@ package com.callibrity.mocapi.hazelcast;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.callibrity.mocapi.session.McpSessionStore;
-import com.callibrity.mocapi.session.hazelcast.HazelcastMcpSessionStore;
-import com.callibrity.mocapi.session.hazelcast.HazelcastMcpSessionStoreAutoConfiguration;
 import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.substrate.journal.hazelcast.HazelcastJournalAutoConfiguration;
-import org.jwcarman.substrate.journal.hazelcast.HazelcastJournalSpi;
-import org.jwcarman.substrate.mailbox.hazelcast.HazelcastMailboxAutoConfiguration;
-import org.jwcarman.substrate.mailbox.hazelcast.HazelcastMailboxSpi;
-import org.jwcarman.substrate.notifier.hazelcast.HazelcastNotifier;
-import org.jwcarman.substrate.notifier.hazelcast.HazelcastNotifierAutoConfiguration;
-import org.jwcarman.substrate.spi.JournalSpi;
-import org.jwcarman.substrate.spi.MailboxSpi;
-import org.jwcarman.substrate.spi.Notifier;
+import org.jwcarman.substrate.core.atom.AtomSpi;
+import org.jwcarman.substrate.core.journal.JournalSpi;
+import org.jwcarman.substrate.core.mailbox.MailboxSpi;
+import org.jwcarman.substrate.core.notifier.NotifierSpi;
+import org.jwcarman.substrate.hazelcast.HazelcastAutoConfiguration;
+import org.jwcarman.substrate.hazelcast.atom.HazelcastAtomAutoConfiguration;
+import org.jwcarman.substrate.hazelcast.atom.HazelcastAtomSpi;
+import org.jwcarman.substrate.hazelcast.journal.HazelcastJournalAutoConfiguration;
+import org.jwcarman.substrate.hazelcast.journal.HazelcastJournalSpi;
+import org.jwcarman.substrate.hazelcast.mailbox.HazelcastMailboxAutoConfiguration;
+import org.jwcarman.substrate.hazelcast.mailbox.HazelcastMailboxSpi;
+import org.jwcarman.substrate.hazelcast.notifier.HazelcastNotifierAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -42,6 +42,12 @@ import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+/**
+ * Verifies that pulling the mocapi-hazelcast-spring-boot-starter on the classpath (with a real
+ * embedded Hazelcast instance) produces the full distributed stack: Substrate's Hazelcast backend
+ * provides all four SPIs (Atom, Mailbox, Journal, Notifier), which mocapi-core's session store
+ * adapter and stream context use via the {@code AtomFactory} and other factory beans.
+ */
 class HazelcastStarterAutoConfigurationIT {
 
   static HazelcastInstance hazelcastInstance;
@@ -80,20 +86,20 @@ class HazelcastStarterAutoConfigurationIT {
         .withUserConfiguration(HazelcastInfrastructureConfig.class)
         .withConfiguration(
             AutoConfigurations.of(
-                HazelcastMcpSessionStoreAutoConfiguration.class,
+                HazelcastAutoConfiguration.class,
+                HazelcastAtomAutoConfiguration.class,
                 HazelcastMailboxAutoConfiguration.class,
                 HazelcastJournalAutoConfiguration.class,
                 HazelcastNotifierAutoConfiguration.class));
   }
 
   @Test
-  void hazelcastBackedSessionStoreIsAutoConfigured() {
+  void hazelcastBackedAtomSpiIsAutoConfigured() {
     contextRunner()
         .run(
             context -> {
-              assertThat(context).hasSingleBean(McpSessionStore.class);
-              assertThat(context.getBean(McpSessionStore.class))
-                  .isInstanceOf(HazelcastMcpSessionStore.class);
+              assertThat(context).hasSingleBean(AtomSpi.class);
+              assertThat(context.getBean(AtomSpi.class)).isInstanceOf(HazelcastAtomSpi.class);
             });
   }
 
@@ -118,12 +124,11 @@ class HazelcastStarterAutoConfigurationIT {
   }
 
   @Test
-  void hazelcastBackedNotifierIsAutoConfigured() {
+  void hazelcastBackedNotifierSpiIsAutoConfigured() {
     contextRunner()
         .run(
             context -> {
-              assertThat(context).hasSingleBean(Notifier.class);
-              assertThat(context.getBean(Notifier.class)).isInstanceOf(HazelcastNotifier.class);
+              assertThat(context).hasSingleBean(NotifierSpi.class);
             });
   }
 }

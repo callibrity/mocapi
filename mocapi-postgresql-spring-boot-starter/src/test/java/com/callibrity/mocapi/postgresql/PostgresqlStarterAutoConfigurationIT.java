@@ -17,35 +17,38 @@ package com.callibrity.mocapi.postgresql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.callibrity.mocapi.session.McpSessionStore;
-import com.callibrity.mocapi.session.jdbc.JdbcMcpSessionStore;
-import com.callibrity.mocapi.session.jdbc.JdbcMcpSessionStoreAutoConfiguration;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.substrate.journal.postgresql.PostgresJournalAutoConfiguration;
-import org.jwcarman.substrate.journal.postgresql.PostgresJournalSpi;
-import org.jwcarman.substrate.mailbox.postgresql.PostgresMailboxAutoConfiguration;
-import org.jwcarman.substrate.mailbox.postgresql.PostgresMailboxSpi;
-import org.jwcarman.substrate.notifier.postgresql.PostgresNotifier;
-import org.jwcarman.substrate.notifier.postgresql.PostgresNotifierAutoConfiguration;
-import org.jwcarman.substrate.spi.JournalSpi;
-import org.jwcarman.substrate.spi.MailboxSpi;
-import org.jwcarman.substrate.spi.Notifier;
+import org.jwcarman.substrate.core.atom.AtomSpi;
+import org.jwcarman.substrate.core.journal.JournalSpi;
+import org.jwcarman.substrate.core.mailbox.MailboxSpi;
+import org.jwcarman.substrate.core.notifier.NotifierSpi;
+import org.jwcarman.substrate.postgresql.PostgresAutoConfiguration;
+import org.jwcarman.substrate.postgresql.atom.PostgresAtomAutoConfiguration;
+import org.jwcarman.substrate.postgresql.atom.PostgresAtomSpi;
+import org.jwcarman.substrate.postgresql.journal.PostgresJournalAutoConfiguration;
+import org.jwcarman.substrate.postgresql.journal.PostgresJournalSpi;
+import org.jwcarman.substrate.postgresql.mailbox.PostgresMailboxAutoConfiguration;
+import org.jwcarman.substrate.postgresql.mailbox.PostgresMailboxSpi;
+import org.jwcarman.substrate.postgresql.notifier.PostgresNotifierAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.jdbc.autoconfigure.JdbcClientAutoConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.JdbcTemplateAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.testcontainers.containers.PostgreSQLContainer;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+/**
+ * Verifies that pulling the mocapi-postgresql-spring-boot-starter on the classpath (with a real
+ * PostgreSQL container) produces the full distributed stack: Substrate's Postgres backend
+ * provides all four SPIs (Atom, Mailbox, Journal, Notifier) via LISTEN/NOTIFY.
+ */
 class PostgresqlStarterAutoConfigurationIT {
 
   static PostgreSQLContainer<?> postgres =
@@ -71,11 +74,6 @@ class PostgresqlStarterAutoConfigurationIT {
       ds.setUrl(postgres.getJdbcUrl());
       ds.setUsername(postgres.getUsername());
       ds.setPassword(postgres.getPassword());
-
-      var populator = new ResourceDatabasePopulator();
-      populator.addScript(new ClassPathResource("schema/mocapi-session-store-postgresql.sql"));
-      populator.execute(ds);
-
       return ds;
     }
 
@@ -89,26 +87,27 @@ class PostgresqlStarterAutoConfigurationIT {
     return new ApplicationContextRunner()
         .withUserConfiguration(PostgresInfrastructureConfig.class)
         .withPropertyValues(
-            "substrate.mailbox.postgresql.auto-create-schema=true",
-            "substrate.journal.postgresql.auto-create-schema=true")
+            "substrate.postgresql.atom.auto-create-schema=true",
+            "substrate.postgresql.mailbox.auto-create-schema=true",
+            "substrate.postgresql.journal.auto-create-schema=true")
         .withConfiguration(
             AutoConfigurations.of(
                 JdbcTemplateAutoConfiguration.class,
                 JdbcClientAutoConfiguration.class,
-                JdbcMcpSessionStoreAutoConfiguration.class,
+                PostgresAutoConfiguration.class,
+                PostgresAtomAutoConfiguration.class,
                 PostgresMailboxAutoConfiguration.class,
                 PostgresJournalAutoConfiguration.class,
                 PostgresNotifierAutoConfiguration.class));
   }
 
   @Test
-  void jdbcBackedSessionStoreIsAutoConfigured() {
+  void postgresBackedAtomSpiIsAutoConfigured() {
     contextRunner()
         .run(
             context -> {
-              assertThat(context).hasSingleBean(McpSessionStore.class);
-              assertThat(context.getBean(McpSessionStore.class))
-                  .isInstanceOf(JdbcMcpSessionStore.class);
+              assertThat(context).hasSingleBean(AtomSpi.class);
+              assertThat(context.getBean(AtomSpi.class)).isInstanceOf(PostgresAtomSpi.class);
             });
   }
 
@@ -133,12 +132,11 @@ class PostgresqlStarterAutoConfigurationIT {
   }
 
   @Test
-  void postgresBackedNotifierIsAutoConfigured() {
+  void postgresBackedNotifierSpiIsAutoConfigured() {
     contextRunner()
         .run(
             context -> {
-              assertThat(context).hasSingleBean(Notifier.class);
-              assertThat(context.getBean(Notifier.class)).isInstanceOf(PostgresNotifier.class);
+              assertThat(context).hasSingleBean(NotifierSpi.class);
             });
   }
 }

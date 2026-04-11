@@ -45,8 +45,10 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.substrate.core.Mailbox;
-import org.jwcarman.substrate.core.MailboxFactory;
+import org.jwcarman.substrate.BlockingSubscription;
+import org.jwcarman.substrate.NextResult;
+import org.jwcarman.substrate.mailbox.Mailbox;
+import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.mockito.ArgumentCaptor;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.DatabindException;
@@ -341,6 +343,26 @@ class DefaultMcpStreamContextTest {
     return (Mailbox<JsonRpcResponse>) (Mailbox<?>) mock(Mailbox.class);
   }
 
+  @SuppressWarnings("unchecked")
+  private BlockingSubscription<JsonRpcResponse> stubMailboxValue(
+      Mailbox<JsonRpcResponse> mailbox, JsonRpcResponse value) {
+    BlockingSubscription<JsonRpcResponse> subscription =
+        (BlockingSubscription<JsonRpcResponse>) mock(BlockingSubscription.class);
+    when(mailbox.subscribe()).thenReturn(subscription);
+    when(subscription.next(any(Duration.class))).thenReturn(new NextResult.Value<>(value));
+    return subscription;
+  }
+
+  @SuppressWarnings("unchecked")
+  private BlockingSubscription<JsonRpcResponse> stubMailboxTimeout(
+      Mailbox<JsonRpcResponse> mailbox) {
+    BlockingSubscription<JsonRpcResponse> subscription =
+        (BlockingSubscription<JsonRpcResponse>) mock(BlockingSubscription.class);
+    when(mailbox.subscribe()).thenReturn(subscription);
+    when(subscription.next(any(Duration.class))).thenReturn(new NextResult.Timeout<>());
+    return subscription;
+  }
+
   // --- Builder-based elicit tests ---
 
   @Test
@@ -348,13 +370,13 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
 
     JsonNode responseNode =
         objectMapper.valueToTree(
             Map.of("action", "accept", "content", Map.of("username", "Alice", "email", "a@b.com")));
-    when(mailbox.poll(any(Duration.class)))
-        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+    stubMailboxValue(mailbox, new JsonRpcResult(responseNode, null));
 
     ElicitResult result =
         context.elicit(
@@ -381,11 +403,11 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
 
     JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "decline"));
-    when(mailbox.poll(any(Duration.class)))
-        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+    stubMailboxValue(mailbox, new JsonRpcResult(responseNode, null));
 
     ElicitResult result = context.elicit("Enter info", schema -> schema.string("name", "Name"));
 
@@ -407,8 +429,9 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.empty());
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
+    stubMailboxTimeout(mailbox);
 
     assertThatThrownBy(() -> context.elicit("Enter info", schema -> schema.string("name", "Name")))
         .isInstanceOf(McpElicitationTimeoutException.class);
@@ -421,13 +444,13 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
 
     JsonNode responseNode =
         objectMapper.valueToTree(
             Map.of("action", "accept", "content", Map.of("age", "not-an-integer")));
-    when(mailbox.poll(any(Duration.class)))
-        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+    stubMailboxValue(mailbox, new JsonRpcResult(responseNode, null));
 
     assertThatThrownBy(() -> context.elicit("Enter info", schema -> schema.integer("age", "Age")))
         .isInstanceOf(McpElicitationException.class)
@@ -441,10 +464,11 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
 
     JsonRpcError rpcError = new JsonRpcError(-32600, "Invalid Request", null);
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(rpcError));
+    stubMailboxValue(mailbox, rpcError);
 
     assertThatThrownBy(() -> context.elicit("Enter info", schema -> schema.string("name", "Name")))
         .isInstanceOf(McpElicitationException.class)
@@ -462,13 +486,13 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
 
     JsonNode responseNode =
         objectMapper.valueToTree(
             Map.of("action", "accept", "content", Map.of("name", "Alice", "age", 30)));
-    when(mailbox.poll(any(Duration.class)))
-        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+    stubMailboxValue(mailbox, new JsonRpcResult(responseNode, null));
 
     Optional<UserForm> result =
         context.elicit(
@@ -485,13 +509,13 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
 
     JsonNode responseNode =
         objectMapper.valueToTree(
             Map.of("action", "accept", "content", Map.of("name", "Alice", "email", "a@b.com")));
-    when(mailbox.poll(any(Duration.class)))
-        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+    stubMailboxValue(mailbox, new JsonRpcResult(responseNode, null));
 
     Optional<Map<String, String>> result =
         context.elicit(
@@ -509,11 +533,11 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
 
     JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "decline"));
-    when(mailbox.poll(any(Duration.class)))
-        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+    stubMailboxValue(mailbox, new JsonRpcResult(responseNode, null));
 
     Optional<UserForm> result =
         context.elicit("Enter info", schema -> schema.string("name", "Name"), UserForm.class);
@@ -527,11 +551,11 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
 
     JsonNode responseNode = objectMapper.valueToTree(Map.of("action", "cancel"));
-    when(mailbox.poll(any(Duration.class)))
-        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+    stubMailboxValue(mailbox, new JsonRpcResult(responseNode, null));
 
     Optional<UserForm> result =
         context.elicit("Enter info", schema -> schema.string("name", "Name"), UserForm.class);
@@ -545,13 +569,13 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
 
     JsonNode responseNode =
         objectMapper.valueToTree(
             Map.of("action", "accept", "content", Map.of("age", "not-an-integer")));
-    when(mailbox.poll(any(Duration.class)))
-        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+    stubMailboxValue(mailbox, new JsonRpcResult(responseNode, null));
 
     assertThatThrownBy(
             () ->
@@ -568,13 +592,13 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithElicitation()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
 
     JsonNode responseNode =
         objectMapper.valueToTree(
             Map.of("action", "accept", "content", Map.of("totally", "wrong", "fields", "here")));
-    when(mailbox.poll(any(Duration.class)))
-        .thenReturn(Optional.of(new JsonRpcResult(responseNode, null)));
+    stubMailboxValue(mailbox, new JsonRpcResult(responseNode, null));
 
     assertThatThrownBy(
             () ->
@@ -599,13 +623,13 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithSampling()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
 
     JsonNode resultPayload =
         objectMapper.valueToTree(
             Map.of("role", "assistant", "content", Map.of("type", "text", "text", "Hello")));
-    when(mailbox.poll(any(Duration.class)))
-        .thenReturn(Optional.of(new JsonRpcResult(resultPayload, null)));
+    stubMailboxValue(mailbox, new JsonRpcResult(resultPayload, null));
 
     CreateMessageResult result = context.sample("Say hello", 100);
 
@@ -619,10 +643,11 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithSampling()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
 
     JsonRpcError rpcError = new JsonRpcError(-32600, "Invalid Request", null);
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.of(rpcError));
+    stubMailboxValue(mailbox, rpcError);
 
     assertThatThrownBy(() -> context.sample("Say hello", 100))
         .isInstanceOf(McpSamplingException.class)
@@ -636,8 +661,9 @@ class DefaultMcpStreamContextTest {
     when(sessionService.find("sess-1")).thenReturn(Optional.of(sessionWithSampling()));
     var context = createContext(null, "sess-1");
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.empty());
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
+    stubMailboxTimeout(mailbox);
 
     assertThatThrownBy(() -> context.sample("Say hello", 100))
         .isInstanceOf(McpSamplingTimeoutException.class);
@@ -663,13 +689,14 @@ class DefaultMcpStreamContextTest {
     Duration elicitationTimeout = Duration.ofMinutes(5);
     var context = createContextWithTimeouts("sess-1", elicitationTimeout, samplingTimeout);
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.empty());
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
+    BlockingSubscription<JsonRpcResponse> subscription = stubMailboxTimeout(mailbox);
 
     assertThatThrownBy(() -> context.sample("Say hello", 100))
         .isInstanceOf(McpSamplingTimeoutException.class);
 
-    verify(mailbox).poll(samplingTimeout);
+    verify(subscription).next(samplingTimeout);
     verify(mailbox).delete();
   }
 
@@ -680,13 +707,14 @@ class DefaultMcpStreamContextTest {
     Duration elicitationTimeout = Duration.ofMinutes(5);
     var context = createContextWithTimeouts("sess-1", elicitationTimeout, samplingTimeout);
     Mailbox<JsonRpcResponse> mailbox = mockMailbox();
-    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class))).thenReturn(mailbox);
-    when(mailbox.poll(any(Duration.class))).thenReturn(Optional.empty());
+    when(mailboxFactory.create(any(String.class), eq(JsonRpcResponse.class), any(Duration.class)))
+        .thenReturn(mailbox);
+    BlockingSubscription<JsonRpcResponse> subscription = stubMailboxTimeout(mailbox);
 
     assertThatThrownBy(() -> context.elicit("Enter info", schema -> schema.string("name", "Name")))
         .isInstanceOf(McpElicitationTimeoutException.class);
 
-    verify(mailbox).poll(elicitationTimeout);
+    verify(subscription).next(elicitationTimeout);
     verify(mailbox).delete();
   }
 }

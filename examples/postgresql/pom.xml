@@ -45,9 +45,11 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- All-in-one PostgreSQL starter: transitively brings substrate-postgresql
+             (Atom, Mailbox, Journal, Notifier) plus the mocapi core starter. -->
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-session-store-jdbc</artifactId>
+            <artifactId>mocapi-postgresql-spring-boot-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
 

@@ -17,27 +17,23 @@ package com.callibrity.mocapi.aws;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.callibrity.mocapi.model.ClientCapabilities;
-import com.callibrity.mocapi.model.Implementation;
-import com.callibrity.mocapi.session.McpSession;
-import com.callibrity.mocapi.session.McpSessionStore;
-import com.callibrity.mocapi.session.dynamodb.DynamoDbMcpSessionStore;
-import com.callibrity.mocapi.session.dynamodb.DynamoDbMcpSessionStoreAutoConfiguration;
 import java.net.URI;
-import java.time.Duration;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.substrate.journal.dynamodb.DynamoDbJournalAutoConfiguration;
-import org.jwcarman.substrate.journal.dynamodb.DynamoDbJournalSpi;
-import org.jwcarman.substrate.mailbox.dynamodb.DynamoDbMailboxAutoConfiguration;
-import org.jwcarman.substrate.mailbox.dynamodb.DynamoDbMailboxSpi;
-import org.jwcarman.substrate.notifier.sns.SnsNotifier;
-import org.jwcarman.substrate.notifier.sns.SnsNotifierAutoConfiguration;
-import org.jwcarman.substrate.spi.JournalSpi;
-import org.jwcarman.substrate.spi.MailboxSpi;
-import org.jwcarman.substrate.spi.Notifier;
+import org.jwcarman.substrate.core.atom.AtomSpi;
+import org.jwcarman.substrate.core.journal.JournalSpi;
+import org.jwcarman.substrate.core.mailbox.MailboxSpi;
+import org.jwcarman.substrate.core.notifier.NotifierSpi;
+import org.jwcarman.substrate.dynamodb.DynamoDbAutoConfiguration;
+import org.jwcarman.substrate.dynamodb.atom.DynamoDbAtomAutoConfiguration;
+import org.jwcarman.substrate.dynamodb.atom.DynamoDbAtomSpi;
+import org.jwcarman.substrate.dynamodb.journal.DynamoDbJournalAutoConfiguration;
+import org.jwcarman.substrate.dynamodb.journal.DynamoDbJournalSpi;
+import org.jwcarman.substrate.dynamodb.mailbox.DynamoDbMailboxAutoConfiguration;
+import org.jwcarman.substrate.dynamodb.mailbox.DynamoDbMailboxSpi;
+import org.jwcarman.substrate.sns.SnsAutoConfiguration;
+import org.jwcarman.substrate.sns.notifier.SnsNotifierAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -50,16 +46,16 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
-import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
-import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement;
-import software.amazon.awssdk.services.dynamodb.model.KeyType;
-import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+/**
+ * Verifies that pulling the mocapi-aws-spring-boot-starter on the classpath (with LocalStack
+ * emulating DynamoDB, SNS, and SQS) produces the full distributed stack: Substrate's DynamoDB
+ * backend provides Atom/Mailbox/Journal, and Substrate's SNS backend provides the Notifier.
+ */
 @Testcontainers
 class AwsStarterAutoConfigurationIT {
 
@@ -87,26 +83,6 @@ class AwsStarterAutoConfigurationIT {
             .credentialsProvider(credentials)
             .region(region)
             .build();
-
-    createSessionsTable();
-  }
-
-  private static void createSessionsTable() {
-    dynamoDbClient.createTable(
-        CreateTableRequest.builder()
-            .tableName("mocapi_sessions")
-            .keySchema(
-                KeySchemaElement.builder()
-                    .attributeName("session_id")
-                    .keyType(KeyType.HASH)
-                    .build())
-            .attributeDefinitions(
-                AttributeDefinition.builder()
-                    .attributeName("session_id")
-                    .attributeType(ScalarAttributeType.S)
-                    .build())
-            .billingMode("PAY_PER_REQUEST")
-            .build());
   }
 
   @AfterAll
@@ -156,27 +132,27 @@ class AwsStarterAutoConfigurationIT {
     return new ApplicationContextRunner()
         .withUserConfiguration(AwsInfrastructureConfig.class)
         .withPropertyValues(
-            "mocapi.session.dynamodb.verify-table=true",
-            "mocapi.session.dynamodb.ensure-ttl=false",
-            "substrate.mailbox.dynamodb.auto-create-table=true",
-            "substrate.journal.dynamodb.auto-create-table=true",
-            "substrate.notifier.sns.auto-create-topic=true")
+            "substrate.dynamodb.atom.auto-create-table=true",
+            "substrate.dynamodb.mailbox.auto-create-table=true",
+            "substrate.dynamodb.journal.auto-create-table=true",
+            "substrate.sns.notifier.auto-create-topic=true")
         .withConfiguration(
             AutoConfigurations.of(
-                DynamoDbMcpSessionStoreAutoConfiguration.class,
+                DynamoDbAutoConfiguration.class,
+                DynamoDbAtomAutoConfiguration.class,
                 DynamoDbMailboxAutoConfiguration.class,
                 DynamoDbJournalAutoConfiguration.class,
+                SnsAutoConfiguration.class,
                 SnsNotifierAutoConfiguration.class));
   }
 
   @Test
-  void dynamoDbBackedSessionStoreIsAutoConfigured() {
+  void dynamoDbBackedAtomSpiIsAutoConfigured() {
     contextRunner()
         .run(
             context -> {
-              assertThat(context).hasSingleBean(McpSessionStore.class);
-              assertThat(context.getBean(McpSessionStore.class))
-                  .isInstanceOf(DynamoDbMcpSessionStore.class);
+              assertThat(context).hasSingleBean(AtomSpi.class);
+              assertThat(context.getBean(AtomSpi.class)).isInstanceOf(DynamoDbAtomSpi.class);
             });
   }
 
@@ -201,30 +177,11 @@ class AwsStarterAutoConfigurationIT {
   }
 
   @Test
-  void snsBackedNotifierIsAutoConfigured() {
+  void snsBackedNotifierSpiIsAutoConfigured() {
     contextRunner()
         .run(
             context -> {
-              assertThat(context).hasSingleBean(Notifier.class);
-              assertThat(context.getBean(Notifier.class)).isInstanceOf(SnsNotifier.class);
-            });
-  }
-
-  @Test
-  void sessionStoreSaveFindRoundTrip() {
-    contextRunner()
-        .run(
-            context -> {
-              McpSessionStore store = context.getBean(McpSessionStore.class);
-              McpSession session =
-                  new McpSession(
-                          "2025-11-25",
-                          new ClientCapabilities(null, null, null),
-                          new Implementation("test-client", null, "1.0"))
-                      .withSessionId(UUID.randomUUID().toString());
-
-              store.save(session, Duration.ofHours(1));
-              assertThat(store.find(session.sessionId())).isPresent().hasValue(session);
+              assertThat(context).hasSingleBean(NotifierSpi.class);
             });
   }
 }

@@ -42,25 +42,20 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- DynamoDB-backed McpSessionStore -->
+        <!-- Substrate DynamoDB — single module providing Atom, Mailbox, and
+             Journal implementations. The McpSessionStore implementation in
+             mocapi-core adapts Atom automatically. DynamoDB has no notifier,
+             so substrate-sns is included separately below. -->
         <dependency>
-            <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-session-store-dynamodb</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.jwcarman.substrate</groupId>
+            <artifactId>substrate-dynamodb</artifactId>
         </dependency>
 
-        <!-- Substrate AWS backends -->
+        <!-- Substrate SNS — notifier-only backend. Pairs with substrate-dynamodb
+             to complete the four-SPI picture for AWS deployments. -->
         <dependency>
             <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-mailbox-dynamodb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-journal-dynamodb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-notifier-sns</artifactId>
+            <artifactId>substrate-sns</artifactId>
         </dependency>
 
         <!-- AWS SDK v2 clients -->

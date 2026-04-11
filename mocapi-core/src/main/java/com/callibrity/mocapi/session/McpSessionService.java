@@ -23,10 +23,10 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.UUID;
-import org.jwcarman.odyssey.core.OdysseyStream;
-import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
+import org.jwcarman.odyssey.core.Odyssey;
 import org.jwcarman.odyssey.core.SseEventMapper;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Single public API for all session concerns — lifecycle, encryption, lookup, and stream
@@ -38,15 +38,14 @@ public class McpSessionService {
   private final McpSessionStore store;
   private final byte[] masterKey;
   private final Duration ttl;
-  private final OdysseyStreamRegistry streamRegistry;
+  private final Odyssey odyssey;
 
-  public McpSessionService(
-      McpSessionStore store, byte[] masterKey, Duration ttl, OdysseyStreamRegistry streamRegistry) {
+  public McpSessionService(McpSessionStore store, byte[] masterKey, Duration ttl, Odyssey odyssey) {
     Ciphers.validateAesGcmKey(masterKey);
     this.store = store;
     this.masterKey = masterKey.clone();
     this.ttl = ttl;
-    this.streamRegistry = streamRegistry;
+    this.odyssey = odyssey;
   }
 
   /** Generates a session ID, saves the session to the store, and returns the ID. */
@@ -69,25 +68,28 @@ public class McpSessionService {
   /** Removes a session and its notification channel from the store. */
   public void delete(String sessionId) {
     store.delete(sessionId);
-    streamRegistry.channel(sessionId).delete();
+    odyssey.publisher(sessionId, JsonNode.class).delete();
   }
 
   /**
-   * Creates a new SSE stream bound to this session. Event IDs are encrypted with session-bound
-   * keys.
+   * Creates a new SSE stream bound to this session. The stream gets a random UUID name so multiple
+   * concurrent streams for the same session don't collide. Event IDs are encrypted with
+   * session-bound keys.
    *
    * @param sessionId the session that owns the stream
    * @return a new ephemeral stream with encrypted event IDs
    */
   public McpSessionStream createStream(String sessionId) {
-    return new DefaultMcpSessionStream(streamRegistry.ephemeral(), encryptingMapper(sessionId));
+    return new DefaultMcpSessionStream(
+        odyssey, UUID.randomUUID().toString(), encryptingMapper(sessionId));
   }
 
-  private SseEventMapper encryptingMapper(String sessionId) {
+  private SseEventMapper<JsonNode> encryptingMapper(String sessionId) {
     return event -> {
-      String plaintext = event.streamKey() + ":" + event.id();
+      String plaintext = event.streamName() + ":" + event.id();
       String encryptedId = encrypt(sessionId, plaintext);
-      SseEmitter.SseEventBuilder builder = SseEmitter.event().id(encryptedId).data(event.payload());
+      SseEmitter.SseEventBuilder builder =
+          SseEmitter.event().id(encryptedId).data(event.data().toString());
       if (event.eventType() != null) {
         builder.name(event.eventType());
       }
@@ -96,7 +98,7 @@ public class McpSessionService {
   }
 
   /**
-   * Reconnects to an existing SSE stream. Decrypts {@code lastEventId} to find the stream key and
+   * Reconnects to an existing SSE stream. Decrypts {@code lastEventId} to find the stream name and
    * resume position.
    *
    * @param sessionId the session ID for decryption
@@ -110,22 +112,22 @@ public class McpSessionService {
     if (colonIndex < 0) {
       throw new IllegalArgumentException("Invalid encrypted event ID format");
     }
-    String streamKey = plaintext.substring(0, colonIndex);
+    String streamName = plaintext.substring(0, colonIndex);
     String rawEventId = plaintext.substring(colonIndex + 1);
-    OdysseyStream stream = streamRegistry.stream(streamKey);
-    return stream.subscriber().mapper(encryptingMapper(sessionId)).resumeAfter(rawEventId);
+    return odyssey.resume(
+        streamName, JsonNode.class, rawEventId, cfg -> cfg.mapper(encryptingMapper(sessionId)));
   }
 
   /**
-   * Returns the session's notification channel as an {@link McpSessionStream}. The caller is
-   * responsible for publishing the priming event and subscribing.
+   * Returns the session's notification channel as an {@link McpSessionStream}. The channel name is
+   * the session ID, so every caller connecting to the same session's notifications shares one
+   * underlying journal.
    *
    * @param sessionId the session whose notification channel to return
    * @return the notification channel wrapped as an {@link McpSessionStream}
    */
   public McpSessionStream notificationStream(String sessionId) {
-    return new DefaultMcpSessionStream(
-        streamRegistry.channel(sessionId), encryptingMapper(sessionId));
+    return new DefaultMcpSessionStream(odyssey, sessionId, encryptingMapper(sessionId));
   }
 
   /** Updates the log level for the given session. */

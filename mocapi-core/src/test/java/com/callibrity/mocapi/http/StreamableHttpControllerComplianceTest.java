@@ -19,6 +19,7 @@ import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,10 +28,11 @@ import com.callibrity.mocapi.model.ClientCapabilities;
 import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.InitializeResult;
 import com.callibrity.mocapi.model.ServerCapabilities;
-import com.callibrity.mocapi.session.InMemoryMcpSessionStore;
 import com.callibrity.mocapi.session.McpSession;
 import com.callibrity.mocapi.session.McpSessionMethods;
 import com.callibrity.mocapi.session.McpSessionService;
+import com.callibrity.mocapi.session.McpSessionStore;
+import com.callibrity.mocapi.session.TestAtomSessionStore;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
@@ -40,7 +42,6 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -50,13 +51,13 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
-import org.jwcarman.odyssey.core.OdysseyStream;
-import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
-import org.jwcarman.odyssey.core.StreamSubscriberBuilder;
-import org.jwcarman.substrate.core.Mailbox;
-import org.jwcarman.substrate.core.MailboxFactory;
+import org.jwcarman.odyssey.core.Odyssey;
+import org.jwcarman.odyssey.core.OdysseyPublisher;
+import org.jwcarman.substrate.mailbox.Mailbox;
+import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -70,13 +71,14 @@ class StreamableHttpControllerComplianceTest {
   private static final Duration SESSION_TIMEOUT = Duration.ofHours(1);
 
   private StreamableHttpController controller;
-  private InMemoryMcpSessionStore sessionStore;
+  private McpSessionStore sessionStore;
   private McpSessionService sessionService;
   private ObjectMapper objectMapper;
-  private OdysseyStreamRegistry registry;
+  private Odyssey odyssey;
   private MailboxFactory mailboxFactory;
 
   @BeforeEach
+  @SuppressWarnings("unchecked")
   void setUp() {
     InitializeResult initializeResult =
         new InitializeResult(
@@ -84,25 +86,21 @@ class StreamableHttpControllerComplianceTest {
             new ServerCapabilities(null, null, null, null, null),
             new Implementation("test", null, "1.0"),
             null);
-    registry = mock(OdysseyStreamRegistry.class);
+    odyssey = mock(Odyssey.class);
+    OdysseyPublisher<JsonNode> publisher =
+        (OdysseyPublisher<JsonNode>) mock(OdysseyPublisher.class);
+    when(publisher.name()).thenReturn("test-stream");
+    when(odyssey.publisher(anyString(), eq(JsonNode.class))).thenReturn(publisher);
+    when(odyssey.subscribe(anyString(), eq(JsonNode.class), any())).thenReturn(new SseEmitter());
+    when(odyssey.resume(anyString(), eq(JsonNode.class), anyString(), any()))
+        .thenReturn(new SseEmitter());
 
-    OdysseyStream notificationStream = mock(OdysseyStream.class);
-    StreamSubscriberBuilder subscriberBuilder = mock(StreamSubscriberBuilder.class);
-    when(subscriberBuilder.mapper(any())).thenReturn(subscriberBuilder);
-    when(subscriberBuilder.subscribe()).thenReturn(new SseEmitter());
-    when(notificationStream.subscriber()).thenReturn(subscriberBuilder);
-    when(registry.channel(anyString())).thenReturn(notificationStream);
-
-    OdysseyStream ephemeralStream = mock(OdysseyStream.class);
-    when(ephemeralStream.subscribe()).thenReturn(new SseEmitter());
-    when(registry.ephemeral()).thenReturn(ephemeralStream);
-
-    sessionStore = new InMemoryMcpSessionStore();
     objectMapper = new ObjectMapper();
+    sessionStore = TestAtomSessionStore.create(objectMapper);
 
     byte[] masterKey = new byte[32];
     new SecureRandom().nextBytes(masterKey);
-    sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT, registry);
+    sessionService = new McpSessionService(sessionStore, masterKey, SESSION_TIMEOUT, odyssey);
 
     McpSessionMethods serverMethods = new McpSessionMethods(initializeResult);
     MethodInvokerFactory invokerFactory =
@@ -115,17 +113,12 @@ class StreamableHttpControllerComplianceTest {
 
     mailboxFactory = mock(MailboxFactory.class);
     Mailbox<?> mockMailbox = mock(Mailbox.class);
-    when(mailboxFactory.create(any(String.class), any(Class.class))).thenAnswer(_ -> mockMailbox);
+    when(mailboxFactory.connect(any(String.class), any(Class.class))).thenAnswer(_ -> mockMailbox);
 
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
     controller =
         new StreamableHttpController(
             dispatcher, validator, sessionService, objectMapper, mailboxFactory);
-  }
-
-  @AfterEach
-  void tearDown() {
-    sessionStore.shutdown();
   }
 
   private String createSession() {
@@ -226,14 +219,16 @@ class StreamableHttpControllerComplianceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void shouldDeleteNotificationStreamOnTermination() {
-      OdysseyStream stream = mock(OdysseyStream.class);
-      when(registry.channel(anyString())).thenReturn(stream);
+      OdysseyPublisher<JsonNode> publisher =
+          (OdysseyPublisher<JsonNode>) mock(OdysseyPublisher.class);
+      when(odyssey.publisher(anyString(), eq(JsonNode.class))).thenReturn(publisher);
       String sessionId = createSession();
 
       controller.handleDelete(sessionId, null);
 
-      verify(stream).delete();
+      verify(publisher).delete();
     }
 
     @Test
@@ -295,10 +290,6 @@ class StreamableHttpControllerComplianceTest {
 
     @Test
     void shouldCreateIndependentEphemeralStreamsForConcurrentInitialize() {
-      OdysseyStream ephemeralStream = mock(OdysseyStream.class);
-      when(ephemeralStream.subscribe()).thenReturn(new SseEmitter());
-      when(registry.ephemeral()).thenReturn(ephemeralStream);
-
       for (int i = 1; i <= 3; i++) {
         ObjectNode request = objectMapper.createObjectNode();
         request.put("jsonrpc", VERSION);

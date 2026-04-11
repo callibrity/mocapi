@@ -29,8 +29,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.substrate.core.Mailbox;
-import org.jwcarman.substrate.core.MailboxFactory;
+import org.jwcarman.substrate.mailbox.Mailbox;
+import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -79,7 +79,7 @@ class ToolsCallSamplingIT {
               return result;
             })
         .when(mailboxFactory)
-        .create(anyString(), any(Class.class));
+        .create(anyString(), any(Class.class), any(java.time.Duration.class));
 
     // Build tool call params
     var arguments = client.objectMapper().createObjectNode();
@@ -109,7 +109,7 @@ class ToolsCallSamplingIT {
     content.put("text", "42");
     samplingResult.put("model", "test-model");
 
-    Mailbox<JsonRpcResponse> mailbox = mailboxFactory.create(jsonRpcId, JsonRpcResponse.class);
+    Mailbox<JsonRpcResponse> mailbox = mailboxFactory.connect(jsonRpcId, JsonRpcResponse.class);
     mailbox.deliver(new JsonRpcResult(samplingResult, null));
 
     // Wait for async SSE stream to complete

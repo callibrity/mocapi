@@ -15,40 +15,49 @@
  */
 package com.callibrity.mocapi.session;
 
-import java.util.Map;
-import org.jwcarman.odyssey.core.OdysseyStream;
+import org.jwcarman.odyssey.core.Odyssey;
+import org.jwcarman.odyssey.core.OdysseyPublisher;
 import org.jwcarman.odyssey.core.SseEventMapper;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import tools.jackson.databind.JsonNode;
 
-/** Package-private implementation that wraps an {@link OdysseyStream} and encrypting mapper. */
+/**
+ * Package-private implementation that wraps an Odyssey stream identified by a stable name plus an
+ * encrypting {@link SseEventMapper} that rewrites outbound event IDs with session-bound encryption.
+ *
+ * <p>The publisher is adopted eagerly at construction time so {@link #publishJson(Object)}, {@link
+ * #subscribe()}, and {@link #resumeAfter(String)} can all share the same underlying journal without
+ * any additional create/adopt dance.
+ */
 class DefaultMcpSessionStream implements McpSessionStream {
 
-  private final OdysseyStream stream;
-  private final SseEventMapper mapper;
+  private final Odyssey odyssey;
+  private final OdysseyPublisher<JsonNode> publisher;
+  private final SseEventMapper<JsonNode> mapper;
 
-  DefaultMcpSessionStream(OdysseyStream stream, SseEventMapper mapper) {
-    this.stream = stream;
+  DefaultMcpSessionStream(Odyssey odyssey, String name, SseEventMapper<JsonNode> mapper) {
+    this.odyssey = odyssey;
+    this.publisher = odyssey.publisher(name, JsonNode.class);
     this.mapper = mapper;
   }
 
   @Override
   public void publishJson(Object payload) {
-    stream.publishJson(payload);
+    publisher.publish((JsonNode) payload);
   }
 
   @Override
   public void close() {
-    stream.close();
+    publisher.complete();
   }
 
   @Override
   public SseEmitter subscribe() {
-    stream.publishJson(Map.of());
-    return stream.subscriber().mapper(mapper).subscribe();
+    return odyssey.subscribe(publisher.name(), JsonNode.class, cfg -> cfg.mapper(mapper));
   }
 
   @Override
   public SseEmitter resumeAfter(String lastEventId) {
-    return stream.subscriber().mapper(mapper).resumeAfter(lastEventId);
+    return odyssey.resume(publisher.name(), JsonNode.class, lastEventId, cfg -> cfg.mapper(mapper));
   }
 }

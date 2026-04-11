@@ -54,8 +54,9 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import org.jwcarman.substrate.core.Mailbox;
-import org.jwcarman.substrate.core.MailboxFactory;
+import org.jwcarman.substrate.NextResult;
+import org.jwcarman.substrate.mailbox.Mailbox;
+import org.jwcarman.substrate.mailbox.MailboxFactory;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -277,14 +278,27 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
       Function<String, ? extends RuntimeException> errorExceptionFactory) {
     String jsonRpcId = UUID.randomUUID().toString();
     JsonRpcCall request = JsonRpcCall.of(method, params, objectMapper.valueToTree(jsonRpcId));
-    Mailbox<JsonRpcResponse> mailbox = mailboxFactory.create(jsonRpcId, JsonRpcResponse.class);
-    try {
+    Mailbox<JsonRpcResponse> mailbox =
+        mailboxFactory.create(jsonRpcId, JsonRpcResponse.class, timeout);
+    try (var subscription = mailbox.subscribe()) {
       stream.publishJson(toJsonTree(request));
-      Optional<JsonRpcResponse> raw = mailbox.poll(timeout);
-      if (raw.isEmpty()) {
-        throw timeoutExceptionFactory.apply(method + " timed out after " + timeout);
-      }
-      return switch (raw.get()) {
+      JsonRpcResponse response =
+          switch (subscription.next(timeout)) {
+            case NextResult.Value<JsonRpcResponse>(var value) -> value;
+            case NextResult.Timeout<JsonRpcResponse> __ ->
+                throw timeoutExceptionFactory.apply(method + " timed out after " + timeout);
+            case NextResult.Expired<JsonRpcResponse> __ ->
+                throw timeoutExceptionFactory.apply(
+                    method + " mailbox expired before client responded");
+            case NextResult.Deleted<JsonRpcResponse> __ ->
+                throw errorExceptionFactory.apply(
+                    method + " mailbox deleted before client responded");
+            case NextResult.Errored<JsonRpcResponse>(var cause) ->
+                throw errorExceptionFactory.apply(method + " errored: " + cause.getMessage());
+            case NextResult.Completed<JsonRpcResponse> __ ->
+                throw errorExceptionFactory.apply(method + " completed without a value");
+          };
+      return switch (response) {
         case JsonRpcError error ->
             throw errorExceptionFactory.apply("Client returned JSON-RPC error: " + error.error());
         case JsonRpcResult result -> result;

@@ -60,8 +60,17 @@
         </dependency>
         <dependency>
             <groupId>org.jwcarman.odyssey</groupId>
-            <artifactId>odyssey-core</artifactId>
-            <version>0.3.0</version>
+            <artifactId>odyssey</artifactId>
+            <version>${odyssey.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jwcarman.substrate</groupId>
+            <artifactId>substrate-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jwcarman.codec</groupId>
+            <artifactId>codec-jackson</artifactId>
+            <version>${codec.version}</version>
         </dependency>
         <dependency>
             <groupId>tools.jackson.core</groupId>

@@ -41,25 +41,12 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Hazelcast-backed McpSessionStore -->
-        <dependency>
-            <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-session-store-hazelcast</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <!-- Substrate Hazelcast backends -->
+        <!-- Substrate Hazelcast — single module providing Atom, Mailbox,
+             Journal, and Notifier implementations. The McpSessionStore
+             implementation in mocapi-core adapts Atom automatically. -->
         <dependency>
             <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-mailbox-hazelcast</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-journal-hazelcast</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-notifier-hazelcast</artifactId>
+            <artifactId>substrate-hazelcast</artifactId>
         </dependency>
 
         <!-- Hazelcast Spring integration -->

@@ -30,11 +30,11 @@ import com.callibrity.mocapi.prompts.PromptsRegistry;
 import com.callibrity.mocapi.resources.McpResourceMethods;
 import com.callibrity.mocapi.resources.ResourcesRegistry;
 import com.callibrity.mocapi.server.McpCompletionMethods;
-import com.callibrity.mocapi.session.InMemoryMcpSessionStore;
 import com.callibrity.mocapi.session.McpLoggingMethods;
 import com.callibrity.mocapi.session.McpSessionMethods;
 import com.callibrity.mocapi.session.McpSessionService;
 import com.callibrity.mocapi.session.McpSessionStore;
+import com.callibrity.mocapi.session.SubstrateAtomMcpSessionStore;
 import com.callibrity.mocapi.tools.McpToolMethods;
 import com.callibrity.mocapi.tools.ToolsRegistry;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
@@ -43,8 +43,10 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jwcarman.odyssey.core.OdysseyStreamRegistry;
-import org.jwcarman.substrate.core.MailboxFactory;
+import org.jwcarman.odyssey.core.Odyssey;
+import org.jwcarman.substrate.atom.AtomFactory;
+import org.jwcarman.substrate.core.autoconfigure.SubstrateAutoConfiguration;
+import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -56,7 +58,7 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.lang.Nullable;
 import tools.jackson.databind.ObjectMapper;
 
-@AutoConfiguration(after = ProjectInfoAutoConfiguration.class)
+@AutoConfiguration(after = {ProjectInfoAutoConfiguration.class, SubstrateAutoConfiguration.class})
 @EnableConfigurationProperties(MocapiProperties.class)
 @PropertySource("classpath:mocapi-defaults.properties")
 @RequiredArgsConstructor
@@ -104,21 +106,17 @@ public class MocapiAutoConfiguration {
     return new PromptsRegistry(List.of(), props.getPagination().getPageSize());
   }
 
-  @Bean(destroyMethod = "shutdown")
+  @Bean
   @ConditionalOnMissingBean(McpSessionStore.class)
-  public InMemoryMcpSessionStore mcpSessionStore() {
-    log.warn(
-        "No McpSessionStore implementation found; using in-memory fallback (single-node only). "
-            + "For clustered deployments, provide a McpSessionStore bean.");
-    return new InMemoryMcpSessionStore();
+  public McpSessionStore mcpSessionStore(AtomFactory atomFactory) {
+    return new SubstrateAtomMcpSessionStore(atomFactory, props.getSessionTimeout());
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public McpSessionService mcpSessionService(
-      McpSessionStore store, OdysseyStreamRegistry streamRegistry) {
+  public McpSessionService mcpSessionService(McpSessionStore store, Odyssey odyssey) {
     byte[] masterKey = Base64.getDecoder().decode(props.getSessionEncryptionMasterKey());
-    return new McpSessionService(store, masterKey, props.getSessionTimeout(), streamRegistry);
+    return new McpSessionService(store, masterKey, props.getSessionTimeout(), odyssey);
   }
 
   @Bean

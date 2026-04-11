@@ -34,7 +34,7 @@ import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jwcarman.substrate.core.MailboxFactory;
+import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;

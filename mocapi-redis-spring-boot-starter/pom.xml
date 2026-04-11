@@ -41,25 +41,12 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Redis-backed McpSessionStore -->
-        <dependency>
-            <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-session-store-redis</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <!-- Substrate Redis backends -->
+        <!-- Substrate Redis — single module providing Atom, Mailbox, Journal,
+             and Notifier implementations. The McpSessionStore implementation
+             in mocapi-core adapts Atom automatically. -->
         <dependency>
             <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-mailbox-redis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-journal-redis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-notifier-redis</artifactId>
+            <artifactId>substrate-redis</artifactId>
         </dependency>
 
         <!-- Spring Boot Redis starter — pulls in Lettuce and the

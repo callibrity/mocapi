@@ -29,8 +29,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.substrate.core.Mailbox;
-import org.jwcarman.substrate.core.MailboxFactory;
+import org.jwcarman.substrate.mailbox.Mailbox;
+import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -77,7 +77,7 @@ class ElicitationSep1330EnumsIT {
               return result;
             })
         .when(mailboxFactory)
-        .create(anyString(), any(Class.class));
+        .create(anyString(), any(Class.class), any(java.time.Duration.class));
 
     var arguments = client.objectMapper().createObjectNode();
     var params = new CallToolRequestParams("test_elicitation_sep1330_enums", arguments, null, null);
@@ -105,7 +105,7 @@ class ElicitationSep1330EnumsIT {
         "untitledMulti", client.objectMapper().createArrayNode().add("option1").add("option2"));
     content.set("titledMulti", client.objectMapper().createArrayNode().add("value1").add("value2"));
 
-    Mailbox<JsonRpcResponse> mailbox = mailboxFactory.create(jsonRpcId, JsonRpcResponse.class);
+    Mailbox<JsonRpcResponse> mailbox = mailboxFactory.connect(jsonRpcId, JsonRpcResponse.class);
     mailbox.deliver(new JsonRpcResult(elicitResult, null));
 
     mvcResult.getAsyncResult(5000);

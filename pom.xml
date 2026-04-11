@@ -58,13 +58,6 @@
         <module>mocapi-spring-boot-starter</module>
         <module>examples</module>
         <module>mocapi-compat</module>
-        <module>mocapi-session-store-redis</module>
-        <module>mocapi-session-store-hazelcast</module>
-        <module>mocapi-session-store-jdbc</module>
-        <module>mocapi-session-store-cassandra</module>
-        <module>mocapi-session-store-mongodb</module>
-        <module>mocapi-session-store-dynamodb</module>
-        <module>mocapi-session-store-nats</module>
         <module>mocapi-redis-spring-boot-starter</module>
         <module>mocapi-hazelcast-spring-boot-starter</module>
         <module>mocapi-postgresql-spring-boot-starter</module>
@@ -73,7 +66,9 @@
 
     <properties>
         <java.version>25</java.version>
-        <substrate.version>0.1.0</substrate.version>
+        <substrate.version>0.2.1</substrate.version>
+        <odyssey.version>0.7.0</odyssey.version>
+        <codec.version>0.1.0</codec.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <required.maven.version>3.6</required.maven.version>
 

@@ -35,8 +35,9 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jwcarman.substrate.core.Mailbox;
-import org.jwcarman.substrate.core.MailboxFactory;
+import org.jwcarman.substrate.mailbox.Mailbox;
+import org.jwcarman.substrate.mailbox.MailboxExpiredException;
+import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -264,12 +265,7 @@ public class StreamableHttpController {
           .contentType(MediaType.APPLICATION_JSON)
           .body(Map.of(ERROR_KEY, SESSION_REQUIRED));
     }
-    JsonNode idNode = result.id();
-    if (idNode != null && !idNode.isNull()) {
-      Mailbox<JsonRpcResponse> mailbox =
-          mailboxFactory.create(idNode.asString(), JsonRpcResponse.class);
-      mailbox.deliver(result);
-    }
+    deliverToMailboxIfPresent(result.id(), result);
     return ResponseEntity.accepted().build();
   }
 
@@ -279,13 +275,24 @@ public class StreamableHttpController {
           .contentType(MediaType.APPLICATION_JSON)
           .body(Map.of(ERROR_KEY, SESSION_REQUIRED));
     }
-    JsonNode idNode = error.id();
-    if (idNode != null && !idNode.isNull()) {
-      Mailbox<JsonRpcResponse> mailbox =
-          mailboxFactory.create(idNode.asString(), JsonRpcResponse.class);
-      mailbox.deliver(error);
-    }
+    deliverToMailboxIfPresent(error.id(), error);
     return ResponseEntity.accepted().build();
+  }
+
+  private void deliverToMailboxIfPresent(JsonNode idNode, JsonRpcResponse response) {
+    if (idNode == null || idNode.isNull()) {
+      return;
+    }
+    try {
+      Mailbox<JsonRpcResponse> mailbox =
+          mailboxFactory.connect(idNode.asString(), JsonRpcResponse.class);
+      mailbox.deliver(response);
+    } catch (MailboxExpiredException e) {
+      // Orphan client response — no tool was waiting on this correlation ID, or the tool's
+      // mailbox has already expired. Silently drop: the JSON-RPC spec allows unsolicited
+      // responses to be ignored, and mocapi has nowhere to route them.
+      log.debug("Dropped orphan client response for id {}: {}", idNode.asString(), e.getMessage());
+    }
   }
 
   private String createSessionFromParams(JsonNode params) {
