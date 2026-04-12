@@ -95,7 +95,7 @@ public class StreamableHttpController {
           case JsonRpcResult result -> handleClientResult(result, sessionId);
           case JsonRpcError error -> handleClientError(error, sessionId);
         };
-    log.info("Handled POST: {}", entity.getBody());
+    log.debug("Handled POST: {}", entity.getBody());
     return entity;
   }
 

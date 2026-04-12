@@ -66,8 +66,8 @@
 
     <properties>
         <java.version>25</java.version>
-        <substrate.version>0.2.1</substrate.version>
-        <odyssey.version>0.7.0</odyssey.version>
+        <substrate.version>0.3.0</substrate.version>
+        <odyssey.version>0.8.0</odyssey.version>
         <codec.version>0.1.0</codec.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <required.maven.version>3.6</required.maven.version>

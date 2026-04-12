@@ -297,6 +297,8 @@ public class DefaultMcpStreamContext<R> implements McpStreamContext<R> {
                 throw errorExceptionFactory.apply(method + " errored: " + cause.getMessage());
             case NextResult.Completed<JsonRpcResponse> __ ->
                 throw errorExceptionFactory.apply(method + " completed without a value");
+            case NextResult.Cancelled<JsonRpcResponse> __ ->
+                throw errorExceptionFactory.apply(method + " subscription was cancelled");
           };
       return switch (response) {
         case JsonRpcError error ->

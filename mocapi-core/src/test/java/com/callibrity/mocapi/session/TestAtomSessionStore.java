@@ -18,8 +18,10 @@ package com.callibrity.mocapi.session;
 import java.time.Duration;
 import org.jwcarman.codec.jackson.JacksonCodecFactory;
 import org.jwcarman.substrate.core.atom.DefaultAtomFactory;
+import org.jwcarman.substrate.core.lifecycle.ShutdownCoordinator;
 import org.jwcarman.substrate.core.memory.atom.InMemoryAtomSpi;
 import org.jwcarman.substrate.core.memory.notifier.InMemoryNotifier;
+import org.jwcarman.substrate.core.notifier.DefaultNotifier;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -39,12 +41,12 @@ public final class TestAtomSessionStore {
 
   public static SubstrateAtomMcpSessionStore create(
       ObjectMapper objectMapper, Duration sessionTimeout) {
+    var codecFactory = new JacksonCodecFactory(objectMapper);
+    var notifier = new DefaultNotifier(new InMemoryNotifier(), codecFactory);
     var atomFactory =
         new DefaultAtomFactory(
-            new InMemoryAtomSpi(),
-            new JacksonCodecFactory(objectMapper),
-            new InMemoryNotifier(),
-            sessionTimeout);
+            new InMemoryAtomSpi(), codecFactory, notifier, sessionTimeout,
+            new ShutdownCoordinator());
     return new SubstrateAtomMcpSessionStore(atomFactory, sessionTimeout);
   }
 }
