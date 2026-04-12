@@ -19,8 +19,6 @@ import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.tools.McpToolContextScopedValueResolver;
 import com.callibrity.mocapi.server.tools.McpToolProvider;
 import com.callibrity.mocapi.server.tools.McpToolsService;
-import com.callibrity.mocapi.server.tools.annotation.AnnotationMcpToolProviderFactory;
-import com.callibrity.mocapi.server.tools.annotation.DefaultAnnotationMcpToolProviderFactory;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import java.util.List;
@@ -75,13 +73,6 @@ public class MocapiServerToolsAutoConfiguration {
   @ConditionalOnMissingBean(MethodSchemaGenerator.class)
   public MethodSchemaGenerator mcpProtocolMethodSchemaGenerator(ObjectMapper mapper) {
     return new DefaultMethodSchemaGenerator(mapper, props.getSchemaVersion());
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(AnnotationMcpToolProviderFactory.class)
-  public AnnotationMcpToolProviderFactory mcpProtocolAnnotationMcpToolProviderFactory(
-      MethodSchemaGenerator generator, MethodInvokerFactory invokerFactory) {
-    return new DefaultAnnotationMcpToolProviderFactory(generator, invokerFactory);
   }
 
   @Bean

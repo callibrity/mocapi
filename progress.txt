@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T13:44:00-04:00
-ITERATION: 72
-SPEC_COMPLETED: 149e-delete-mocapi-core.md
-WHAT_WAS_DONE: Cleaned up remaining mocapi-core references from PRD.md (test example command and repository structure section). The mocapi-core directory and module were already removed in prior iterations; this spec just needed the documentation cleanup.
-VERIFICATION: mvn clean verify — BUILD SUCCESS across all 17 modules. MCP conformance: 39/39 compat tests pass. git grep "mocapi-core" returns zero hits outside specs/done/.
-STATUS: MORE_WORK
-NEXT_SPEC: 149f-delete-annotation-tool-provider-factory.md
-NOTES: The PRD.md repository structure section was updated minimally — replaced mocapi-core entry with mocapi-server and mocapi-model entries. The full structure has more modules now (compat, transport-streamable-http, various starters, examples) but a complete rewrite was out of scope for this spec.
+LAST_RUN: 2026-04-12T13:47:10-04:00
+ITERATION: 73
+SPEC_COMPLETED: 149f-delete-annotation-tool-provider-factory.md
+WHAT_WAS_DONE: Deleted AnnotationMcpToolProviderFactory interface and DefaultAnnotationMcpToolProviderFactory implementation. Removed the factory @Bean from MocapiServerToolsAutoConfiguration. Updated McpToolsServiceTest and AnnotationMcpToolTest to call AnnotationMcpTool.createTools() directly instead of going through the factory.
+VERIFICATION: mvn verify — BUILD SUCCESS across all 17 modules. Zero references to either deleted class remain in source or test code (confirmed via grep).
+STATUS: DONE
+NEXT_SPEC: none
+NOTES: The factory was pure indirection — ToolServiceMcpToolProvider already called AnnotationMcpTool.createTools() directly. The only consumers of the factory were the two test classes and the unused auto-config bean.

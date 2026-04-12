@@ -26,8 +26,7 @@ import com.callibrity.mocapi.server.CapturingTransport;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.session.McpSession;
-import com.callibrity.mocapi.server.tools.annotation.AnnotationMcpToolProviderFactory;
-import com.callibrity.mocapi.server.tools.annotation.DefaultAnnotationMcpToolProviderFactory;
+import com.callibrity.mocapi.server.tools.annotation.AnnotationMcpTool;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.util.HelloTool;
 import com.callibrity.mocapi.server.tools.util.InteractiveTool;
@@ -40,6 +39,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import org.mockito.Mock;
@@ -51,23 +51,27 @@ import tools.jackson.databind.node.JsonNodeFactory;
 class McpToolsServiceTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
-  private final AnnotationMcpToolProviderFactory factory =
-      new DefaultAnnotationMcpToolProviderFactory(
-          new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7),
-          new DefaultMethodInvokerFactory(
-              List.of(
-                  new McpToolContextScopedValueResolver(), new Jackson3ParameterResolver(mapper))));
+  private final DefaultMethodSchemaGenerator generator =
+      new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
+  private final MethodInvokerFactory invokerFactory =
+      new DefaultMethodInvokerFactory(
+          List.of(new McpToolContextScopedValueResolver(), new Jackson3ParameterResolver(mapper)));
 
   @Mock private McpResponseCorrelationService correlationService;
 
   private McpToolsService service;
 
+  private McpToolProvider createProvider(Object target) {
+    var tools = AnnotationMcpTool.createTools(generator, invokerFactory, target);
+    return () -> List.copyOf(tools);
+  }
+
   @BeforeEach
   void setUp() {
-    var helloProvider = factory.create(new HelloTool());
-    var interactiveProvider = factory.create(new InteractiveTool());
-    var throwingProvider = factory.create(new ThrowingTool());
-    var voidProvider = factory.create(new VoidTool());
+    var helloProvider = createProvider(new HelloTool());
+    var interactiveProvider = createProvider(new InteractiveTool());
+    var throwingProvider = createProvider(new ThrowingTool());
+    var voidProvider = createProvider(new VoidTool());
     service =
         new McpToolsService(
             List.of(helloProvider, interactiveProvider, throwingProvider, voidProvider),

@@ -35,16 +35,19 @@ class AnnotationMcpToolTest {
   private final MethodInvokerFactory invokerFactory =
       new DefaultMethodInvokerFactory(
           List.of(new McpToolContextScopedValueResolver(), new Jackson3ParameterResolver(mapper)));
-  private final AnnotationMcpToolProviderFactory factory =
-      new DefaultAnnotationMcpToolProviderFactory(
-          new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7), invokerFactory);
+  private final DefaultMethodSchemaGenerator generator =
+      new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
+
+  private List<AnnotationMcpTool> createTools(Object target) {
+    return AnnotationMcpTool.createTools(generator, invokerFactory, target);
+  }
 
   @Test
   void defaultAnnotationShouldGenerateCorrectMetadata() {
-    var tools = factory.create(new HelloTool());
-    assertThat(tools.getMcpTools()).hasSize(1);
+    var tools = createTools(new HelloTool());
+    assertThat(tools).hasSize(1);
 
-    var tool = tools.getMcpTools().getFirst();
+    var tool = tools.getFirst();
     assertThat(tool.descriptor().name()).isEqualTo("hello-tool.say-hello");
     assertThat(tool.descriptor().title()).isEqualTo("Hello Tool - Say Hello");
     assertThat(tool.descriptor().description()).isEqualTo("Hello Tool - Say Hello");
@@ -54,10 +57,10 @@ class AnnotationMcpToolTest {
 
   @Test
   void customAnnotationShouldReturnCorrectMetadata() {
-    var tools = factory.create(new CustomizedTool());
-    assertThat(tools.getMcpTools()).hasSize(1);
+    var tools = createTools(new CustomizedTool());
+    assertThat(tools).hasSize(1);
 
-    var tool = tools.getMcpTools().getFirst();
+    var tool = tools.getFirst();
     assertThat(tool.descriptor().name()).isEqualTo("custom-name");
     assertThat(tool.descriptor().title()).isEqualTo("Custom Title");
     assertThat(tool.descriptor().description()).isEqualTo("Custom description");
@@ -65,7 +68,7 @@ class AnnotationMcpToolTest {
 
   @Test
   void shouldCallSimpleToolCorrectly() {
-    var tool = factory.create(new HelloTool()).getMcpTools().getFirst();
+    var tool = createTools(new HelloTool()).getFirst();
     var result = tool.call(mapper.createObjectNode().put("name", "Mocapi"));
 
     assertThat(result).isNotNull();
@@ -75,7 +78,7 @@ class AnnotationMcpToolTest {
 
   @Test
   void interactiveToolShouldHaveOutputSchema() {
-    var tool = factory.create(new InteractiveTool()).getMcpTools().getFirst();
+    var tool = createTools(new InteractiveTool()).getFirst();
     assertThat(tool.descriptor().outputSchema()).isNotNull();
     assertThat(tool.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
   }
