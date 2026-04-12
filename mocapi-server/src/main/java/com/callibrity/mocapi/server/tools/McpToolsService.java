@@ -100,11 +100,7 @@ public class McpToolsService {
         params.arguments() != null ? params.arguments() : objectMapper.createObjectNode();
     McpTool tool = lookup(name);
     validateInput(name, args, tool);
-
-    if (!tool.isInteractive()) {
-      return invokeSimpleTool(name, tool, args);
-    }
-    return invokeInteractiveTool(name, tool, args, params);
+    return invokeTool(name, tool, args, params);
   }
 
   public McpTool lookup(String name) {
@@ -119,30 +115,16 @@ public class McpToolsService {
     return tools.isEmpty();
   }
 
-  private CallToolResult invokeSimpleTool(String name, McpTool tool, JsonNode args) {
-    try {
-      return toCallToolResult(tool.call(args));
-    } catch (JsonRpcException e) {
-      throw e;
-    } catch (Exception e) {
-      log.warn("Tool {} threw an unhandled exception", name, e);
-      return toErrorCallToolResult(e);
-    }
-  }
-
-  private CallToolResult invokeInteractiveTool(
+  private CallToolResult invokeTool(
       String name, McpTool tool, JsonNode args, CallToolRequestParams params) {
-    McpTransport transport = McpTransport.CURRENT.get();
+    McpTransport transport = McpTransport.CURRENT.isBound() ? McpTransport.CURRENT.get() : null;
     ValueNode progressToken = params.meta() != null ? params.meta().progressToken() : null;
-    DefaultMcpToolContext<?> ctx =
-        new DefaultMcpToolContext<>(transport, objectMapper, progressToken, correlationService);
+    DefaultMcpToolContext ctx =
+        new DefaultMcpToolContext(transport, objectMapper, progressToken, correlationService);
 
     try {
-      ScopedValue.where(McpToolContext.CURRENT, ctx).run(() -> tool.call(args));
-      if (ctx.isResultSent()) {
-        return toCallToolResult(ctx.getResult());
-      }
-      return toCallToolResult(null);
+      Object result = ScopedValue.where(McpToolContext.CURRENT, ctx).call(() -> tool.call(args));
+      return toCallToolResult(result);
     } catch (JsonRpcException e) {
       throw e;
     } catch (Exception e) {

@@ -289,7 +289,7 @@ public class CompatibilityTools {
   @ToolMethod(
       name = TEST_TOOL_WITH_LOGGING,
       description = "Sends log messages during execution for conformance testing")
-  public void withLogging(McpToolContext<CallToolResult> ctx) throws InterruptedException {
+  public CallToolResult withLogging(McpToolContext ctx) throws InterruptedException {
     ctx.log(
         com.callibrity.mocapi.model.LoggingLevel.INFO,
         TEST_TOOL_WITH_LOGGING,
@@ -304,9 +304,8 @@ public class CompatibilityTools {
         com.callibrity.mocapi.model.LoggingLevel.INFO,
         TEST_TOOL_WITH_LOGGING,
         "Tool execution completed");
-    ctx.sendResult(
-        new CallToolResult(
-            List.of(new TextContent("Logging test completed successfully", null)), null, null));
+    return new CallToolResult(
+        List.of(new TextContent("Logging test completed successfully", null)), null, null);
   }
 
   /**
@@ -336,15 +335,14 @@ public class CompatibilityTools {
   @ToolMethod(
       name = "test_tool_with_progress",
       description = "Reports progress notifications for conformance testing")
-  public void withProgress(McpToolContext<CallToolResult> ctx) throws InterruptedException {
+  public CallToolResult withProgress(McpToolContext ctx) throws InterruptedException {
     ctx.sendProgress(0, 100);
     Thread.sleep(50);
     ctx.sendProgress(50, 100);
     Thread.sleep(50);
     ctx.sendProgress(100, 100);
-    ctx.sendResult(
-        new CallToolResult(
-            List.of(new TextContent("Progress test completed successfully", null)), null, null));
+    return new CallToolResult(
+        List.of(new TextContent("Progress test completed successfully", null)), null, null);
   }
 
   /**
@@ -355,7 +353,7 @@ public class CompatibilityTools {
    *     Sampling Specification</a>
    */
   @ToolMethod(name = "test_sampling", description = "Tests sampling/createMessage for conformance")
-  public void testSampling(String prompt, McpToolContext<CallToolResult> ctx) {
+  public CallToolResult testSampling(String prompt, McpToolContext ctx) {
     var params =
         new CreateMessageRequestParams(
             List.of(new SamplingMessage(Role.USER, new TextContent(prompt, null))),
@@ -372,8 +370,7 @@ public class CompatibilityTools {
             null);
     CreateMessageResult result = ctx.sample(params);
     String text = result.text();
-    ctx.sendResult(
-        new CallToolResult(List.of(new TextContent("LLM response: " + text, null)), null, null));
+    return new CallToolResult(List.of(new TextContent("LLM response: " + text, null)), null, null);
   }
 
   /**
@@ -384,7 +381,7 @@ public class CompatibilityTools {
    *     Elicitation Specification</a>
    */
   @ToolMethod(name = "test_elicitation", description = "Tests elicitation/create for conformance")
-  public void testElicitation(String message, McpToolContext<CallToolResult> ctx) {
+  public CallToolResult testElicitation(String message, McpToolContext ctx) {
     var properties = new LinkedHashMap<String, PrimitiveSchemaDefinition>();
     properties.put("username", new StringSchema("User's response", null, null, null, null, null));
     properties.put("email", new StringSchema("User's email address", null, null, null, null, null));
@@ -392,14 +389,13 @@ public class CompatibilityTools {
     var params = new ElicitRequestFormParams("form", message, schema, null, null);
     var result = ctx.elicit(params);
     String content = result.isAccepted() ? result.getString("username") : "n/a";
-    ctx.sendResult(
-        new CallToolResult(
-            List.of(
-                new TextContent(
-                    "User response: action=" + result.action().toJson() + ", content=" + content,
-                    null)),
-            null,
-            null));
+    return new CallToolResult(
+        List.of(
+            new TextContent(
+                "User response: action=" + result.action().toJson() + ", content=" + content,
+                null)),
+        null,
+        null);
   }
 
   /**
@@ -412,7 +408,7 @@ public class CompatibilityTools {
   @ToolMethod(
       name = "test_elicitation_sep1034_defaults",
       description = "Tests elicitation with default values for conformance")
-  public void testElicitationDefaults(McpToolContext<CallToolResult> ctx) {
+  public CallToolResult testElicitationDefaults(McpToolContext ctx) {
     var properties = new LinkedHashMap<String, PrimitiveSchemaDefinition>();
     properties.put("name", new StringSchema("Name", null, null, null, null, "John Doe"));
     properties.put("age", new NumberSchema("integer", "Age", null, null, null, 30));
@@ -426,12 +422,10 @@ public class CompatibilityTools {
     var params =
         new ElicitRequestFormParams("form", "Enter defaults test data", schema, null, null);
     var result = ctx.elicit(params);
-    ctx.sendResult(
-        new CallToolResult(
-            List.of(
-                new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
-            null,
-            null));
+    return new CallToolResult(
+        List.of(new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
+        null,
+        null);
   }
 
   enum TitledOption {
@@ -493,7 +487,7 @@ public class CompatibilityTools {
   @ToolMethod(
       name = "test_elicitation_sep1330_enums",
       description = "Tests elicitation with enum variants for conformance")
-  public void testElicitationEnums(McpToolContext<CallToolResult> ctx) {
+  public CallToolResult testElicitationEnums(McpToolContext ctx) {
     var properties = new LinkedHashMap<String, PrimitiveSchemaDefinition>();
     properties.put(
         "untitledSingle",
@@ -542,11 +536,9 @@ public class CompatibilityTools {
     var schema = new RequestedSchema(properties, List.of());
     var params = new ElicitRequestFormParams("form", "Enum variants test", schema, null, null);
     var result = ctx.elicit(params);
-    ctx.sendResult(
-        new CallToolResult(
-            List.of(
-                new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
-            null,
-            null));
+    return new CallToolResult(
+        List.of(new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
+        null,
+        null);
   }
 }

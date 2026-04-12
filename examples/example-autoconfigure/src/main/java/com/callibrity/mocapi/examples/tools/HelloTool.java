@@ -35,7 +35,7 @@ public class HelloTool {
   @ToolMethod(
       name = "hello-elicitation",
       description = "Returns a greeting message after elicitation")
-  public void sayHelloElicitation(McpToolContext<HelloResponse> ctx) {
+  public HelloResponse sayHelloElicitation(McpToolContext ctx) {
     var properties =
         new LinkedHashMap<String, com.callibrity.mocapi.model.PrimitiveSchemaDefinition>();
     properties.put("firstName", new StringSchema("First Name", null, null, null, null, null));
@@ -46,7 +46,7 @@ public class HelloTool {
     var result = ctx.elicit(params);
     var firstName = result.getString("firstName");
     var lastName = result.getString("lastName");
-    ctx.sendResult(new HelloResponse(String.format("Hello, %s %s!", firstName, lastName)));
+    return new HelloResponse(String.format("Hello, %s %s!", firstName, lastName));
   }
 
   public record HelloResponse(String message) {}

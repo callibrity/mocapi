@@ -32,6 +32,7 @@ import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.util.HelloTool;
 import com.callibrity.mocapi.server.tools.util.InteractiveTool;
 import com.callibrity.mocapi.server.tools.util.ThrowingTool;
+import com.callibrity.mocapi.server.tools.util.VoidTool;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaVersion;
@@ -66,9 +67,10 @@ class McpToolsServiceTest {
     var helloProvider = factory.create(new HelloTool());
     var interactiveProvider = factory.create(new InteractiveTool());
     var throwingProvider = factory.create(new ThrowingTool());
+    var voidProvider = factory.create(new VoidTool());
     service =
         new McpToolsService(
-            List.of(helloProvider, interactiveProvider, throwingProvider),
+            List.of(helloProvider, interactiveProvider, throwingProvider, voidProvider),
             mapper,
             correlationService);
   }
@@ -77,9 +79,13 @@ class McpToolsServiceTest {
   void listToolsReturnsAllToolDescriptors() {
     var result = service.listTools(null);
 
-    assertThat(result.tools()).hasSize(3);
+    assertThat(result.tools()).hasSize(4);
     assertThat(result.tools().stream().map(t -> t.name()).toList())
-        .containsExactly("hello-tool.say-hello", "interactive-greet", "throwing-tool.explode");
+        .containsExactly(
+            "fire-and-forget",
+            "hello-tool.say-hello",
+            "interactive-greet",
+            "throwing-tool.explode");
     assertThat(result.nextCursor()).isNull();
   }
 
@@ -104,6 +110,20 @@ class McpToolsServiceTest {
     assertThat(result.isError()).isNull();
     assertThat(result.structuredContent()).isNotNull();
     assertThat(result.structuredContent().get("message").stringValue()).isEqualTo("Hello, World!");
+  }
+
+  @Test
+  void callVoidToolReturnsEmptyResult() {
+    var params =
+        new CallToolRequestParams(
+            "fire-and-forget", mapper.createObjectNode().put("message", "hello"), null, null);
+
+    var result = service.callTool(params);
+
+    assertThat(result.isError()).isNull();
+    assertThat(result.structuredContent()).isNull();
+    assertThat(result.content()).hasSize(1);
+    assertThat(((TextContent) result.content().getFirst()).text()).isEmpty();
   }
 
   @Test
@@ -224,5 +244,11 @@ class McpToolsServiceTest {
     var tool = service.lookup("hello-tool.say-hello");
     assertThat(tool.descriptor().outputSchema()).isNotNull();
     assertThat(tool.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
+  }
+
+  @Test
+  void voidToolHasNoOutputSchema() {
+    var tool = service.lookup("fire-and-forget");
+    assertThat(tool.descriptor().outputSchema()).isNull();
   }
 }

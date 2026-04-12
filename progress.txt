@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T12:57:00-04:00
-ITERATION: 69
-SPEC_COMPLETED: 149b-fix-transport-always-sse.md
-WHAT_WAS_DONE: Replaced BufferingTransport with OdysseyTransport for all post-initialize calls. Controller now creates OdysseyTransport + virtual thread + odyssey.subscribe() for every POST with a session ID, returning SSE always. Added completed guard to OdysseyTransport. Deleted BufferingTransport.java. Updated controller and transport unit tests.
-VERIFICATION: mvn verify -pl !mocapi-compat — BUILD SUCCESS across all modules. mocapi-compat was excluded because it had pre-existing failures (25/81 per spec 149d) unrelated to this change; spec 149d is specifically queued to fix those.
+LAST_RUN: 2026-04-12T13:21:00-04:00
+ITERATION: 70
+SPEC_COMPLETED: 149c-fix-tool-invocation-model.md
+WHAT_WAS_DONE: Refactored tool invocation model to three clean types (direct return, void, interactive). Removed McpToolContext generic type parameter and sendResult() method — tools now return values instead. Removed isInteractive()/isStreamable() from McpTool. Unified McpToolsService invocation to always bind McpToolContext via ScopedValue. Updated all tool implementations (examples, compat, test fixtures) to return values. Added VoidTool test fixture and tests for all three invocation types.
+VERIFICATION: mvn verify -pl !mocapi-compat — BUILD SUCCESS across all modules. mocapi-compat excluded due to pre-existing compilation failures (missing server.prompts/resources packages) that spec 149d will address.
 STATUS: MORE_WORK
-NEXT_SPEC: 149c-fix-tool-invocation-model.md
-NOTES: The always-SSE change means compat tests that asserted JSON content-type for post-initialize POSTs will now see text/event-stream. This is expected and will be addressed by spec 149d. mocapi-core was not modified.
+NEXT_SPEC: 149d-fix-compat-test-failures.md
+NOTES: McpToolContext is no longer generic. DefaultMcpToolContext no longer has sendResult/getResult/isResultSent. All interactive tools now return their result value directly instead of calling ctx.sendResult(). The ScopedValue binding is now done for every tool invocation (not just interactive ones), so McpToolContext is available to all tools if they declare it as a parameter.

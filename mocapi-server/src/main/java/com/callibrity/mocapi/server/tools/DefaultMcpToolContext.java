@@ -32,18 +32,15 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ValueNode;
 
 /**
- * Default {@link McpToolContext} implementation that sends notifications through an {@link
- * McpTransport} and captures the final result for the dispatch pipeline.
+ * Default {@link McpToolContext} implementation that delegates to an {@link McpTransport} for
+ * mid-execution communication (progress, logging, elicitation, sampling).
  */
-public class DefaultMcpToolContext<R> implements McpToolContext<R> {
+public class DefaultMcpToolContext implements McpToolContext {
 
   private final McpTransport transport;
   private final ObjectMapper objectMapper;
   private final ValueNode progressToken;
   private final McpResponseCorrelationService correlationService;
-
-  private R result;
-  private boolean resultSent;
 
   public DefaultMcpToolContext(
       McpTransport transport,
@@ -80,15 +77,6 @@ public class DefaultMcpToolContext<R> implements McpToolContext<R> {
   }
 
   @Override
-  public void sendResult(R result) {
-    if (resultSent) {
-      throw new IllegalStateException("Result already sent");
-    }
-    this.result = result;
-    this.resultSent = true;
-  }
-
-  @Override
   public ElicitResult elicit(ElicitRequestFormParams params) {
     try {
       return correlationService.sendAndAwait(
@@ -106,13 +94,5 @@ public class DefaultMcpToolContext<R> implements McpToolContext<R> {
     } catch (TimeoutException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  public R getResult() {
-    return result;
-  }
-
-  public boolean isResultSent() {
-    return resultSent;
   }
 }

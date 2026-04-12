@@ -37,9 +37,9 @@ public class CompatTools {
   }
 
   @ToolMethod(name = "stream", description = "A streaming tool that sends a progress notification")
-  public void stream(String message, McpToolContext<Map<String, Object>> ctx) {
+  public Map<String, Object> stream(String message, McpToolContext ctx) {
     ctx.sendProgress(1, 2);
-    ctx.sendResult(Map.of("message", message));
+    return Map.of("message", message);
   }
 
   public record GreetRequest(String name, int volume) {}

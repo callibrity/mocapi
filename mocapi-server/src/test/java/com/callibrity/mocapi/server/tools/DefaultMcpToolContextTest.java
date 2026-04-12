@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.server.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -55,7 +54,7 @@ class DefaultMcpToolContextTest {
   void sendProgressSendsNotificationThroughTransport() {
     var transport = new CapturingTransport();
     var token = JsonNodeFactory.instance.textNode("progress-1");
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, token, correlationService);
+    var ctx = new DefaultMcpToolContext(transport, mapper, token, correlationService);
 
     ctx.sendProgress(5, 10);
 
@@ -70,7 +69,7 @@ class DefaultMcpToolContextTest {
   @Test
   void sendProgressWithNullTokenIsNoOp() {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
+    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
 
     ctx.sendProgress(5, 10);
 
@@ -80,7 +79,7 @@ class DefaultMcpToolContextTest {
   @Test
   void logSendsNotificationThroughTransport() {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
+    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
 
     ctx.log(LoggingLevel.INFO, "test-logger", "hello");
 
@@ -95,7 +94,7 @@ class DefaultMcpToolContextTest {
   @Test
   void logBelowSessionLevelIsDropped() {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
+    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var session = new McpSession("2025-11-25", null, null, LoggingLevel.WARNING, "s1");
 
     ScopedValue.where(McpSession.CURRENT, session)
@@ -107,7 +106,7 @@ class DefaultMcpToolContextTest {
   @Test
   void logAtOrAboveSessionLevelIsSent() {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
+    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var session = new McpSession("2025-11-25", null, null, LoggingLevel.WARNING, "s1");
 
     ScopedValue.where(McpSession.CURRENT, session)
@@ -117,30 +116,9 @@ class DefaultMcpToolContextTest {
   }
 
   @Test
-  void sendResultCapturesResult() {
-    var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
-
-    ctx.sendResult("done");
-
-    assertThat(ctx.isResultSent()).isTrue();
-    assertThat(ctx.getResult()).isEqualTo("done");
-  }
-
-  @Test
-  void sendResultTwiceThrowsIllegalState() {
-    var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
-
-    ctx.sendResult("first");
-
-    assertThatThrownBy(() -> ctx.sendResult("second")).isInstanceOf(IllegalStateException.class);
-  }
-
-  @Test
   void elicitDelegatesToCorrelationService() throws Exception {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
+    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var requestParams =
         new ElicitRequestFormParams("form", "Please provide info", null, null, null);
     var expectedResult = new ElicitResult(ElicitAction.ACCEPT, mapper.createObjectNode());
@@ -165,7 +143,7 @@ class DefaultMcpToolContextTest {
   @Test
   void sampleDelegatesToCorrelationService() throws Exception {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
+    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var requestParams =
         new CreateMessageRequestParams(
             List.of(), null, null, null, null, 100, null, null, null, null, null, null);

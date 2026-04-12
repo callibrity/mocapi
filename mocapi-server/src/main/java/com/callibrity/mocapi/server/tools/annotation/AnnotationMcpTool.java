@@ -25,13 +25,9 @@ import com.callibrity.mocapi.server.tools.McpToolContext;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
 import java.util.List;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
-import org.apache.commons.lang3.reflect.TypeUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import tools.jackson.databind.JsonNode;
@@ -41,7 +37,6 @@ public class AnnotationMcpTool implements McpTool {
 
   private final Tool descriptor;
   private final MethodInvoker<JsonNode> invoker;
-  private final boolean interactive;
 
   public static List<AnnotationMcpTool> createTools(
       MethodSchemaGenerator generator, MethodInvokerFactory invokerFactory, Object targetObject) {
@@ -63,45 +58,8 @@ public class AnnotationMcpTool implements McpTool {
     String description = descriptionOf(targetObject, method, annotation);
     this.invoker = invokerFactory.create(method, targetObject, JsonNode.class);
     ObjectNode inputSchema = generator.generateInputSchema(targetObject, method);
-
-    boolean foundContext = false;
-    ObjectNode contextOutputSchema = null;
-    for (Parameter param : method.getParameters()) {
-      if (McpToolContext.class.isAssignableFrom(param.getType())) {
-        foundContext = true;
-        if (!isVoid(method)) {
-          throw new IllegalStateException(
-              "Interactive tool method "
-                  + targetObject.getClass().getName()
-                  + "."
-                  + method.getName()
-                  + " must return void — use ctx.sendResult(R) to deliver the final result"
-                  + " instead of returning it.");
-        }
-        Type genericType = param.getParameterizedType();
-        Map<TypeVariable<?>, Type> typeArgs =
-            TypeUtils.getTypeArguments(genericType, McpToolContext.class);
-        TypeVariable<?>[] typeParams = McpToolContext.class.getTypeParameters();
-        if (typeArgs != null && !typeArgs.isEmpty()) {
-          Type outputType = typeArgs.get(typeParams[0]);
-          Class<?> outputClass = TypeUtils.getRawType(outputType, null);
-          if (outputClass != null && outputClass != Void.class) {
-            contextOutputSchema = generator.generateSchema(outputClass);
-          }
-        }
-        break;
-      }
-    }
-    this.interactive = foundContext;
-
-    ObjectNode outputSchema;
-    if (foundContext) {
-      outputSchema = contextOutputSchema;
-    } else if (isVoid(method)) {
-      outputSchema = null;
-    } else {
-      outputSchema = generator.generateOutputSchema(targetObject, method);
-    }
+    ObjectNode outputSchema =
+        isVoid(method) ? null : generator.generateOutputSchema(targetObject, method);
     this.descriptor = new Tool(name, title, description, inputSchema, outputSchema);
   }
 
@@ -146,11 +104,6 @@ public class AnnotationMcpTool implements McpTool {
   @Override
   public Tool descriptor() {
     return descriptor;
-  }
-
-  @Override
-  public boolean isInteractive() {
-    return interactive;
   }
 
   @Override

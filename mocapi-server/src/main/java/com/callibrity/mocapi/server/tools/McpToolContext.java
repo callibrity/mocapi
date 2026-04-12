@@ -22,14 +22,14 @@ import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.LoggingLevel;
 
 /**
- * Context available to interactive tool methods. Provides methods for sending progress
- * notifications, log messages, and the final result during tool execution.
- *
- * @param <R> the result type of the tool
+ * Context available to tool methods that need mid-execution communication with the client. Provides
+ * methods for sending progress notifications, log messages, elicitation requests, and sampling
+ * requests. Tools return their final result via the method return value — this context is only for
+ * mid-execution communication.
  */
-public interface McpToolContext<R> {
+public interface McpToolContext {
 
-  ScopedValue<McpToolContext<?>> CURRENT = ScopedValue.newInstance();
+  ScopedValue<McpToolContext> CURRENT = ScopedValue.newInstance();
 
   /**
    * Sends a progress notification to the client.
@@ -48,14 +48,6 @@ public interface McpToolContext<R> {
    * @param message the log message
    */
   void log(LoggingLevel level, String logger, String message);
-
-  /**
-   * Sets the final result of the tool invocation. This is a terminal operation — calling it twice
-   * throws {@link IllegalStateException}.
-   *
-   * @param result the tool result
-   */
-  void sendResult(R result);
 
   /**
    * Sends an elicitation request to the client and blocks until the client responds.

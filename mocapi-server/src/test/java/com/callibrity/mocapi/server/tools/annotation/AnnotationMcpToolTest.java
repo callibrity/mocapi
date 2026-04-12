@@ -74,21 +74,10 @@ class AnnotationMcpToolTest {
   }
 
   @Test
-  void simpleToolShouldNotBeInteractive() {
-    var tool = factory.create(new HelloTool()).getMcpTools().getFirst();
-    assertThat(tool.isInteractive()).isFalse();
-  }
-
-  @Test
-  void interactiveToolShouldBeInteractive() {
-    var tool = factory.create(new InteractiveTool()).getMcpTools().getFirst();
-    assertThat(tool.isInteractive()).isTrue();
-  }
-
-  @Test
   void interactiveToolShouldHaveOutputSchema() {
     var tool = factory.create(new InteractiveTool()).getMcpTools().getFirst();
     assertThat(tool.descriptor().outputSchema()).isNotNull();
+    assertThat(tool.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
   }
 
   static class CustomizedTool {

@@ -22,11 +22,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 public class InteractiveTool {
   @ToolMethod(name = "interactive-greet", description = "Greets with progress")
-  public void greet(
-      @Schema(description = "The name to greet") String name, McpToolContext<HelloResponse> ctx) {
+  public HelloResponse greet(
+      @Schema(description = "The name to greet") String name, McpToolContext ctx) {
     ctx.sendProgress(1, 2);
     ctx.log(LoggingLevel.INFO, "interactive-greet", "Processing " + name);
     ctx.sendProgress(2, 2);
-    ctx.sendResult(new HelloResponse(String.format("Hello, %s!", name)));
+    return new HelloResponse(String.format("Hello, %s!", name));
   }
 }

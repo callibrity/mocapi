@@ -13,14 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.tools;
+package com.callibrity.mocapi.server.tools.util;
 
-import com.callibrity.mocapi.model.Tool;
-import tools.jackson.databind.JsonNode;
+import com.callibrity.mocapi.server.tools.annotation.ToolMethod;
 
-public interface McpTool {
+public class VoidTool {
 
-  Tool descriptor();
+  private String lastMessage;
 
-  Object call(JsonNode arguments);
+  @ToolMethod(name = "fire-and-forget", description = "Accepts input but returns nothing")
+  public void fireAndForget(String message) {
+    this.lastMessage = message;
+  }
+
+  public String lastMessage() {
+    return lastMessage;
+  }
 }
