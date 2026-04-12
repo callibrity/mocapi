@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.logging;
 
 import com.callibrity.mocapi.model.EmptyResult;
+import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.SetLevelRequestParams;
 import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.session.McpSessionService;
@@ -33,7 +34,7 @@ public class McpLoggingService {
     this.sessionService = sessionService;
   }
 
-  @JsonRpcMethod("logging/setLevel")
+  @JsonRpcMethod(McpMethods.LOGGING_SET_LEVEL)
   public EmptyResult setLevel(@JsonRpcParams SetLevelRequestParams params) {
     McpSession session = McpSession.CURRENT.get();
     sessionService.setLogLevel(session.sessionId(), params.level());

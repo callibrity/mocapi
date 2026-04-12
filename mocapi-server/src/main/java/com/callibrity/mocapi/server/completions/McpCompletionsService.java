@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server.completions;
 import com.callibrity.mocapi.model.CompleteRequestParams;
 import com.callibrity.mocapi.model.CompleteResult;
 import com.callibrity.mocapi.model.Completion;
+import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
@@ -30,7 +31,7 @@ public class McpCompletionsService {
   private static final CompleteResult EMPTY =
       new CompleteResult(new Completion(List.of(), 0, false));
 
-  @JsonRpcMethod("completion/complete")
+  @JsonRpcMethod(McpMethods.COMPLETION_COMPLETE)
   public CompleteResult complete(@JsonRpcParams CompleteRequestParams params) {
     return EMPTY;
   }

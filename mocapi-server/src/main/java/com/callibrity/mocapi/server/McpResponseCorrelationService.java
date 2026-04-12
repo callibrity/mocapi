@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.server;
 
+import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.JsonRpcResult;
@@ -53,7 +54,7 @@ public class McpResponseCorrelationService {
    * response.
    *
    * @param <T> the expected result type
-   * @param method the JSON-RPC method name (e.g., "elicitation/create")
+   * @param method the JSON-RPC method name (e.g., {@link McpMethods#ELICITATION_CREATE})
    * @param params the request parameters
    * @param resultType the class to deserialize the response result into
    * @param transport the transport to send the request through

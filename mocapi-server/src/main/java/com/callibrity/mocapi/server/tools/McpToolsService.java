@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.server.tools;
 
+import static com.callibrity.mocapi.model.McpMethods.TOOLS_CALL;
 import static com.callibrity.mocapi.model.McpMethods.TOOLS_LIST;
 import static java.util.Optional.ofNullable;
 
@@ -94,7 +95,7 @@ public class McpToolsService {
     return new ListToolsResult(page.items(), page.nextCursor());
   }
 
-  @JsonRpcMethod("tools/call")
+  @JsonRpcMethod(TOOLS_CALL)
   public CallToolResult callTool(@JsonRpcParams CallToolRequestParams params) {
     String name = params.name();
     JsonNode args =

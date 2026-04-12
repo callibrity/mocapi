@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T18:27:00-04:00
-ITERATION: 74
-SPEC_COMPLETED: 150e-mcp-server-compliance-test-suite.md
-WHAT_WAS_DONE: Created comprehensive MCP protocol compliance test suite with 14 test classes (67 tests total) in mocapi-server. Tests cover Initialize, Session Enforcement, Ping, Tools List/Call/Interactive, Resources List/Read/Subscribe, Prompts List/Get, Completion, Logging, Client Response, and Notification handling. All tests use CapturingTransport or mock McpTransport — zero HTTP, zero Spring context. Also created ComplianceTestSupport utility class with shared infrastructure (dispatcher builder, session store, context helpers). Linter refactored SubstrateAtomMcpSessionStore → AtomMcpSessionStore in session package (moved from autoconfigure); fixed all references.
-VERIFICATION: mvn -pl mocapi-server verify — BUILD SUCCESS. 144 tests (67 compliance + 77 existing), 0 failures. Full mvn verify fails in mocapi-transport-streamable-http due to pre-existing unstaged changes (StreamableHttpController constructor mismatch, deleted BufferingTransport) — not caused by this iteration.
+LAST_RUN: 2026-04-12T18:30:00-04:00
+ITERATION: 75
+SPEC_COMPLETED: 150a-use-mcpmethods-constants-everywhere.md
+WHAT_WAS_DONE: Replaced all hard-coded JSON-RPC method name strings in mocapi-server/src/main/java with McpMethods constants — 11 @JsonRpcMethod annotations across 7 service classes plus 2 notification string literals in DefaultMcpToolContext and 1 Javadoc reference in McpResponseCorrelationService.
+VERIFICATION: All 9 acceptance-criteria greps return zero results. mvn -pl mocapi-server verify — BUILD SUCCESS (144 tests, 0 failures). Full mvn verify fails in mocapi-transport-streamable-http due to pre-existing compilation errors (StreamableHttpController constructor mismatch, deleted BufferingTransport) — not caused by this iteration.
 STATUS: MORE_WORK
-NEXT_SPEC: 150a-use-mcpmethods-constants-everywhere.md
-NOTES: The linter split the original 150 spec into prerequisites (150a–150d) and renamed the test suite to 150e. The SubstrateAtomMcpSessionStore was renamed to AtomMcpSessionStore and moved to the session package by the linter — all references updated. The pre-existing transport module compilation errors need to be resolved separately (unstaged changes from prior work).
+NEXT_SPEC: 150b-server-capabilities-contributor.md
+NOTES: The pre-existing transport module compilation errors persist from prior iterations. Spotless reordered imports to alphabetical order as expected.

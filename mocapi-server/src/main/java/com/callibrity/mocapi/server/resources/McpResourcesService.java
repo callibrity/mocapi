@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server.resources;
 import com.callibrity.mocapi.model.EmptyResult;
 import com.callibrity.mocapi.model.ListResourceTemplatesResult;
 import com.callibrity.mocapi.model.ListResourcesResult;
+import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
@@ -97,20 +98,20 @@ public class McpResourcesService {
     this.pageSize = pageSize;
   }
 
-  @JsonRpcMethod("resources/list")
+  @JsonRpcMethod(McpMethods.RESOURCES_LIST)
   public ListResourcesResult listResources(@JsonRpcParams PaginatedRequestParams params) {
     var page = paginate(sortedResourceDescriptors, params);
     return new ListResourcesResult(page.items(), page.nextCursor());
   }
 
-  @JsonRpcMethod("resources/templates/list")
+  @JsonRpcMethod(McpMethods.RESOURCES_TEMPLATES_LIST)
   public ListResourceTemplatesResult listResourceTemplates(
       @JsonRpcParams PaginatedRequestParams params) {
     var page = paginate(sortedTemplateDescriptors, params);
     return new ListResourceTemplatesResult(page.items(), page.nextCursor());
   }
 
-  @JsonRpcMethod("resources/read")
+  @JsonRpcMethod(McpMethods.RESOURCES_READ)
   public ReadResourceResult readResource(@JsonRpcParams ResourceRequestParams params) {
     String uri = params.uri();
 
@@ -129,13 +130,13 @@ public class McpResourcesService {
         JsonRpcProtocol.INVALID_PARAMS, String.format("Resource not found: %s", uri));
   }
 
-  @JsonRpcMethod("resources/subscribe")
+  @JsonRpcMethod(McpMethods.RESOURCES_SUBSCRIBE)
   public EmptyResult subscribe(@JsonRpcParams ResourceRequestParams params) {
     subscriptions.add(params.uri());
     return EmptyResult.INSTANCE;
   }
 
-  @JsonRpcMethod("resources/unsubscribe")
+  @JsonRpcMethod(McpMethods.RESOURCES_UNSUBSCRIBE)
   public EmptyResult unsubscribe(@JsonRpcParams ResourceRequestParams params) {
     subscriptions.remove(params.uri());
     return EmptyResult.INSTANCE;

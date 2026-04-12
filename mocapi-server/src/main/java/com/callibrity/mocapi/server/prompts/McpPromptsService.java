@@ -20,6 +20,7 @@ import static java.util.Optional.ofNullable;
 import com.callibrity.mocapi.model.GetPromptRequestParams;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.ListPromptsResult;
+import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
@@ -61,13 +62,13 @@ public class McpPromptsService {
     this.pageSize = pageSize;
   }
 
-  @JsonRpcMethod("prompts/list")
+  @JsonRpcMethod(McpMethods.PROMPTS_LIST)
   public ListPromptsResult listPrompts(@JsonRpcParams PaginatedRequestParams params) {
     var page = paginate(sortedDescriptors, params);
     return new ListPromptsResult(page.items(), page.nextCursor());
   }
 
-  @JsonRpcMethod("prompts/get")
+  @JsonRpcMethod(McpMethods.PROMPTS_GET)
   public GetPromptResult getPrompt(@JsonRpcParams GetPromptRequestParams params) {
     String name = params.name();
     McpPrompt prompt = lookup(name);

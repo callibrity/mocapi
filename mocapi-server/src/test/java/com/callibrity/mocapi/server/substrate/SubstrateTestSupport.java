@@ -13,19 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.ping;
+package com.callibrity.mocapi.server.substrate;
 
-import com.callibrity.mocapi.model.EmptyResult;
-import com.callibrity.mocapi.model.McpMethods;
-import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
-
-/** Handles the ping method — returns an empty result. */
-@JsonRpcService
-public class McpPingService {
-
-  @JsonRpcMethod(McpMethods.PING)
-  public EmptyResult ping() {
-    return EmptyResult.INSTANCE;
-  }
-}
+public class SubstrateTestSupport {}

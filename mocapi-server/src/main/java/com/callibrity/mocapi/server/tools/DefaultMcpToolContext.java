@@ -60,7 +60,8 @@ public class DefaultMcpToolContext implements McpToolContext {
     }
     var params = new ProgressNotificationParams(progressToken, progress, (double) total, null);
     transport.send(
-        new JsonRpcNotification("2.0", "notifications/progress", objectMapper.valueToTree(params)));
+        new JsonRpcNotification(
+            "2.0", McpMethods.NOTIFICATIONS_PROGRESS, objectMapper.valueToTree(params)));
   }
 
   @Override
@@ -73,7 +74,8 @@ public class DefaultMcpToolContext implements McpToolContext {
     }
     var params = new LoggingMessageNotificationParams(level, logger, message, null);
     transport.send(
-        new JsonRpcNotification("2.0", "notifications/message", objectMapper.valueToTree(params)));
+        new JsonRpcNotification(
+            "2.0", McpMethods.NOTIFICATIONS_MESSAGE, objectMapper.valueToTree(params)));
   }
 
   @Override
