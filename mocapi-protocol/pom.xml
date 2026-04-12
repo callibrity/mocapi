@@ -106,7 +106,17 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.jwcarman.substrate</groupId>
+            <artifactId>substrate-core</artifactId>
+        </dependency>
 
+        <dependency>
+            <groupId>org.jwcarman.codec</groupId>
+            <artifactId>codec-jackson</artifactId>
+            <version>${codec.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

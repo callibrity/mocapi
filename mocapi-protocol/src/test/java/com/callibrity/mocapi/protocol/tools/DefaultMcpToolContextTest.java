@@ -17,24 +17,45 @@ package com.callibrity.mocapi.protocol.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.callibrity.mocapi.model.CreateMessageRequestParams;
+import com.callibrity.mocapi.model.CreateMessageResult;
+import com.callibrity.mocapi.model.ElicitAction;
+import com.callibrity.mocapi.model.ElicitRequestFormParams;
+import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.LoggingLevel;
+import com.callibrity.mocapi.model.McpMethods;
+import com.callibrity.mocapi.model.Role;
+import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.protocol.CapturingTransport;
+import com.callibrity.mocapi.protocol.McpResponseCorrelationService;
+import com.callibrity.mocapi.protocol.McpTransport;
 import com.callibrity.mocapi.protocol.session.McpSession;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
+@ExtendWith(MockitoExtension.class)
 class DefaultMcpToolContextTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
+
+  @Mock private McpResponseCorrelationService correlationService;
 
   @Test
   void sendProgressSendsNotificationThroughTransport() {
     var transport = new CapturingTransport();
     var token = JsonNodeFactory.instance.textNode("progress-1");
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, token);
+    var ctx = new DefaultMcpToolContext<String>(transport, mapper, token, correlationService);
 
     ctx.sendProgress(5, 10);
 
@@ -49,7 +70,7 @@ class DefaultMcpToolContextTest {
   @Test
   void sendProgressWithNullTokenIsNoOp() {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null);
+    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
 
     ctx.sendProgress(5, 10);
 
@@ -59,7 +80,7 @@ class DefaultMcpToolContextTest {
   @Test
   void logSendsNotificationThroughTransport() {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null);
+    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
 
     ctx.log(LoggingLevel.INFO, "test-logger", "hello");
 
@@ -74,7 +95,7 @@ class DefaultMcpToolContextTest {
   @Test
   void logBelowSessionLevelIsDropped() {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null);
+    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
     var session = new McpSession("2025-11-25", null, null, LoggingLevel.WARNING, "s1");
 
     ScopedValue.where(McpSession.CURRENT, session)
@@ -86,7 +107,7 @@ class DefaultMcpToolContextTest {
   @Test
   void logAtOrAboveSessionLevelIsSent() {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null);
+    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
     var session = new McpSession("2025-11-25", null, null, LoggingLevel.WARNING, "s1");
 
     ScopedValue.where(McpSession.CURRENT, session)
@@ -98,7 +119,7 @@ class DefaultMcpToolContextTest {
   @Test
   void sendResultCapturesResult() {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null);
+    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
 
     ctx.sendResult("done");
 
@@ -109,7 +130,7 @@ class DefaultMcpToolContextTest {
   @Test
   void sendResultTwiceThrowsIllegalState() {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null);
+    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
 
     ctx.sendResult("first");
 
@@ -117,20 +138,54 @@ class DefaultMcpToolContextTest {
   }
 
   @Test
-  void elicitThrowsUnsupportedOperation() {
+  void elicitDelegatesToCorrelationService() throws Exception {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null);
+    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
+    var requestParams =
+        new ElicitRequestFormParams("form", "Please provide info", null, null, null);
+    var expectedResult = new ElicitResult(ElicitAction.ACCEPT, mapper.createObjectNode());
+    when(correlationService.sendAndAwait(
+            eq(McpMethods.ELICITATION_CREATE),
+            eq(requestParams),
+            eq(ElicitResult.class),
+            any(McpTransport.class)))
+        .thenReturn(expectedResult);
 
-    assertThatThrownBy(() -> ctx.elicit("message"))
-        .isInstanceOf(UnsupportedOperationException.class);
+    var result = ctx.elicit(requestParams);
+
+    assertThat(result).isSameAs(expectedResult);
+    verify(correlationService)
+        .sendAndAwait(
+            eq(McpMethods.ELICITATION_CREATE),
+            eq(requestParams),
+            eq(ElicitResult.class),
+            eq(transport));
   }
 
   @Test
-  void sampleThrowsUnsupportedOperation() {
+  void sampleDelegatesToCorrelationService() throws Exception {
     var transport = new CapturingTransport();
-    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null);
+    var ctx = new DefaultMcpToolContext<String>(transport, mapper, null, correlationService);
+    var requestParams =
+        new CreateMessageRequestParams(
+            List.of(), null, null, null, null, 100, null, null, null, null, null, null);
+    var expectedResult =
+        new CreateMessageResult(Role.ASSISTANT, new TextContent("Hello", null), "model-1", "end");
+    when(correlationService.sendAndAwait(
+            eq(McpMethods.SAMPLING_CREATE_MESSAGE),
+            eq(requestParams),
+            eq(CreateMessageResult.class),
+            any(McpTransport.class)))
+        .thenReturn(expectedResult);
 
-    assertThatThrownBy(() -> ctx.sample("prompt", 100))
-        .isInstanceOf(UnsupportedOperationException.class);
+    var result = ctx.sample(requestParams);
+
+    assertThat(result).isSameAs(expectedResult);
+    verify(correlationService)
+        .sendAndAwait(
+            eq(McpMethods.SAMPLING_CREATE_MESSAGE),
+            eq(requestParams),
+            eq(CreateMessageResult.class),
+            eq(transport));
   }
 }

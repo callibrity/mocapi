@@ -23,6 +23,7 @@ import com.callibrity.mocapi.model.ListToolsResult;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.protocol.McpResponseCorrelationService;
 import com.callibrity.mocapi.protocol.McpTransport;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -58,14 +59,21 @@ public class McpToolsService {
   private final List<Tool> sortedDescriptors;
   private final ConcurrentHashMap<String, Schema> inputSchemas = new ConcurrentHashMap<>();
   private final ObjectMapper objectMapper;
+  private final McpResponseCorrelationService correlationService;
   private final int pageSize;
 
-  public McpToolsService(List<McpToolProvider> toolProviders, ObjectMapper objectMapper) {
-    this(toolProviders, objectMapper, DEFAULT_PAGE_SIZE);
+  public McpToolsService(
+      List<McpToolProvider> toolProviders,
+      ObjectMapper objectMapper,
+      McpResponseCorrelationService correlationService) {
+    this(toolProviders, objectMapper, correlationService, DEFAULT_PAGE_SIZE);
   }
 
   public McpToolsService(
-      List<McpToolProvider> toolProviders, ObjectMapper objectMapper, int pageSize) {
+      List<McpToolProvider> toolProviders,
+      ObjectMapper objectMapper,
+      McpResponseCorrelationService correlationService,
+      int pageSize) {
     var allTools =
         toolProviders.stream().flatMap(provider -> provider.getMcpTools().stream()).toList();
     this.tools = allTools.stream().collect(Collectors.toMap(t -> t.descriptor().name(), t -> t));
@@ -75,6 +83,7 @@ public class McpToolsService {
             .sorted(Comparator.comparing(Tool::name))
             .toList();
     this.objectMapper = objectMapper;
+    this.correlationService = correlationService;
     this.pageSize = pageSize;
   }
 
@@ -126,7 +135,7 @@ public class McpToolsService {
     McpTransport transport = McpTransport.CURRENT.get();
     ValueNode progressToken = params.meta() != null ? params.meta().progressToken() : null;
     DefaultMcpToolContext<?> ctx =
-        new DefaultMcpToolContext<>(transport, objectMapper, progressToken);
+        new DefaultMcpToolContext<>(transport, objectMapper, progressToken, correlationService);
 
     try {
       ScopedValue.where(McpToolContext.CURRENT, ctx).run(() -> tool.call(args));

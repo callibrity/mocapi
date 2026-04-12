@@ -48,6 +48,7 @@ class DefaultMcpProtocolTest {
 
   @Mock private McpSessionService sessionService;
   @Mock private JsonRpcDispatcher dispatcher;
+  @Mock private McpResponseCorrelationService correlationService;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final InitializeResult initializeResult =
@@ -62,7 +63,9 @@ class DefaultMcpProtocolTest {
 
   @BeforeEach
   void setUp() {
-    protocol = new DefaultMcpProtocol(sessionService, initializeResult, objectMapper, dispatcher);
+    protocol =
+        new DefaultMcpProtocol(
+            sessionService, initializeResult, objectMapper, dispatcher, correlationService);
     transport = new CapturingTransport();
   }
 
@@ -267,13 +270,14 @@ class DefaultMcpProtocolTest {
   }
 
   @Test
-  void responseMessagesAreIgnored() {
+  void responseMessagesAreDeliveredToCorrelationService() {
     JsonRpcResult response =
         new JsonRpcResult(
             JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(1));
 
     protocol.handle(noSessionContext(), response, transport);
 
+    verify(correlationService).deliver(response);
     assertThat(transport.messages()).isEmpty();
     assertThat(transport.events()).isEmpty();
 

@@ -15,6 +15,10 @@
  */
 package com.callibrity.mocapi.protocol.tools;
 
+import com.callibrity.mocapi.model.CreateMessageRequestParams;
+import com.callibrity.mocapi.model.CreateMessageResult;
+import com.callibrity.mocapi.model.ElicitRequestFormParams;
+import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.LoggingLevel;
 
 /**
@@ -53,14 +57,19 @@ public interface McpToolContext<R> {
    */
   void sendResult(R result);
 
-  /** Placeholder — throws {@link UnsupportedOperationException}. */
-  default Object elicit(String message) {
-    throw new UnsupportedOperationException(
-        "Elicitation is not yet supported in the protocol layer");
-  }
+  /**
+   * Sends an elicitation request to the client and blocks until the client responds.
+   *
+   * @param params the elicitation request parameters
+   * @return the client's elicitation result
+   */
+  ElicitResult elicit(ElicitRequestFormParams params);
 
-  /** Placeholder — throws {@link UnsupportedOperationException}. */
-  default Object sample(String prompt, int maxTokens) {
-    throw new UnsupportedOperationException("Sampling is not yet supported in the protocol layer");
-  }
+  /**
+   * Sends a sampling (createMessage) request to the client and blocks until the client responds.
+   *
+   * @param params the create-message request parameters
+   * @return the client's sampling result
+   */
+  CreateMessageResult sample(CreateMessageRequestParams params);
 }

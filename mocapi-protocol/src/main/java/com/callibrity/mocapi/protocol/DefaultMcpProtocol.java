@@ -24,7 +24,6 @@ import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
-import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import tools.jackson.databind.ObjectMapper;
 
@@ -37,26 +36,28 @@ public class DefaultMcpProtocol implements McpProtocol {
   private final InitializeResult initializeResult;
   private final ObjectMapper objectMapper;
   private final JsonRpcDispatcher dispatcher;
+  private final McpResponseCorrelationService correlationService;
 
   public DefaultMcpProtocol(
       McpSessionService sessionService,
       InitializeResult initializeResult,
       ObjectMapper objectMapper,
-      JsonRpcDispatcher dispatcher) {
+      JsonRpcDispatcher dispatcher,
+      McpResponseCorrelationService correlationService) {
     this.sessionService = sessionService;
     this.initializeResult = initializeResult;
     this.objectMapper = objectMapper;
     this.dispatcher = dispatcher;
+    this.correlationService = correlationService;
   }
 
   @Override
   public void handle(McpContext context, JsonRpcMessage message, McpTransport transport) {
-    if (message instanceof JsonRpcRequest request) {
-      switch (request) {
-        case JsonRpcCall call -> handleCall(context, call, transport);
-        case JsonRpcNotification notification ->
-            handleNotification(context, notification, transport);
-      }
+    switch (message) {
+      case JsonRpcCall call -> handleCall(context, call, transport);
+      case JsonRpcNotification notification -> handleNotification(context, notification, transport);
+      case JsonRpcResponse response -> correlationService.deliver(response);
+      default -> {}
     }
   }
 

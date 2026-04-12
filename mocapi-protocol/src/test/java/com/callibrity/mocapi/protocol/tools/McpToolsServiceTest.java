@@ -23,6 +23,7 @@ import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.RequestMeta;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.protocol.CapturingTransport;
+import com.callibrity.mocapi.protocol.McpResponseCorrelationService;
 import com.callibrity.mocapi.protocol.McpTransport;
 import com.callibrity.mocapi.protocol.session.McpSession;
 import com.callibrity.mocapi.protocol.tools.annotation.AnnotationMcpToolProviderFactory;
@@ -37,11 +38,15 @@ import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
+@ExtendWith(MockitoExtension.class)
 class McpToolsServiceTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
@@ -52,6 +57,8 @@ class McpToolsServiceTest {
               List.of(
                   new McpToolContextScopedValueResolver(), new Jackson3ParameterResolver(mapper))));
 
+  @Mock private McpResponseCorrelationService correlationService;
+
   private McpToolsService service;
 
   @BeforeEach
@@ -60,7 +67,10 @@ class McpToolsServiceTest {
     var interactiveProvider = factory.create(new InteractiveTool());
     var throwingProvider = factory.create(new ThrowingTool());
     service =
-        new McpToolsService(List.of(helloProvider, interactiveProvider, throwingProvider), mapper);
+        new McpToolsService(
+            List.of(helloProvider, interactiveProvider, throwingProvider),
+            mapper,
+            correlationService);
   }
 
   @Test
@@ -180,7 +190,7 @@ class McpToolsServiceTest {
 
   @Test
   void isEmptyReturnsTrueWhenNoTools() {
-    var emptyService = new McpToolsService(List.of(), mapper);
+    var emptyService = new McpToolsService(List.of(), mapper, correlationService);
     assertThat(emptyService.isEmpty()).isTrue();
   }
 
