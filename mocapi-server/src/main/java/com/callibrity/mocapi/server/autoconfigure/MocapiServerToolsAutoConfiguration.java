@@ -63,10 +63,7 @@ public class MocapiServerToolsAutoConfiguration {
       ObjectMapper objectMapper,
       McpResponseCorrelationService correlationService) {
     return new McpToolsService(
-        toolProviders,
-        objectMapper,
-        correlationService,
-        mocapiProperties.getPagination().getPageSize());
+        toolProviders, objectMapper, correlationService, mocapiProperties.pagination().pageSize());
   }
 
   @Bean

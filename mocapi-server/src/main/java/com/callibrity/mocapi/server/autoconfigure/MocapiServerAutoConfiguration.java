@@ -60,13 +60,13 @@ public class MocapiServerAutoConfiguration {
   @ConditionalOnMissingBean
   public Implementation mcpServerInfo(@Nullable BuildProperties buildProperties) {
     String version = buildProperties != null ? buildProperties.getVersion() : "unknown";
-    return new Implementation(props.getServerName(), props.getServerTitle(), version);
+    return new Implementation(props.serverName(), props.serverTitle(), version);
   }
 
   @Bean
   @ConditionalOnMissingBean(McpSessionStore.class)
   public McpSessionStore mcpProtocolSessionStore(AtomFactory atomFactory) {
-    return new AtomMcpSessionStore(atomFactory, props.getSessionTimeout());
+    return new AtomMcpSessionStore(atomFactory, props.sessionTimeout());
   }
 
   @Bean
@@ -76,7 +76,7 @@ public class MocapiServerAutoConfiguration {
       Implementation serverInfo,
       List<ServerCapabilitiesContributor> contributors) {
     return new McpSessionService(
-        store, props.getSessionTimeout(), serverInfo, props.getInstructions(), contributors);
+        store, props.sessionTimeout(), serverInfo, props.instructions(), contributors);
   }
 
   @Bean
@@ -84,7 +84,7 @@ public class MocapiServerAutoConfiguration {
   public McpResponseCorrelationService mcpProtocolCorrelationService(
       MailboxFactory mailboxFactory, ObjectMapper objectMapper) {
     return new McpResponseCorrelationService(
-        mailboxFactory, objectMapper, props.getElicitation().getTimeout());
+        mailboxFactory, objectMapper, props.elicitation().timeout());
   }
 
   @Bean
@@ -99,7 +99,7 @@ public class MocapiServerAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(McpPromptsService.class)
   public McpPromptsService mcpProtocolPromptsService(List<McpPromptProvider> promptProviders) {
-    return new McpPromptsService(promptProviders, props.getPagination().getPageSize());
+    return new McpPromptsService(promptProviders, props.pagination().pageSize());
   }
 
   @Bean
@@ -108,7 +108,7 @@ public class MocapiServerAutoConfiguration {
       List<McpResourceProvider> resourceProviders,
       List<McpResourceTemplateProvider> templateProviders) {
     return new McpResourcesService(
-        resourceProviders, templateProviders, props.getPagination().getPageSize());
+        resourceProviders, templateProviders, props.pagination().pageSize());
   }
 
   @Bean

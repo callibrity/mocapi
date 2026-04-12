@@ -17,40 +17,24 @@ package com.callibrity.mocapi.server.autoconfigure;
 
 import java.time.Duration;
 import java.util.List;
-import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "mocapi")
-@Data
-public class MocapiServerProperties {
+public record MocapiServerProperties(
+    String serverName,
+    String serverTitle,
+    String serverVersion,
+    String instructions,
+    Duration sessionTimeout,
+    List<String> allowedOrigins,
+    String sessionEncryptionMasterKey,
+    Elicitation elicitation,
+    Sampling sampling,
+    Pagination pagination) {
 
-  private String serverName;
-  private String serverTitle;
-  private String instructions;
-  private List<String> allowedOrigins = List.of("localhost", "127.0.0.1", "[::1]");
-  private Duration sessionTimeout = Duration.ofHours(1);
+  public record Elicitation(Duration timeout) {}
 
-  /** Base64-encoded 32-byte master key for session-bound encryption. */
-  private String sessionEncryptionMasterKey;
+  public record Sampling(Duration timeout) {}
 
-  private Elicitation elicitation = new Elicitation();
-
-  private Sampling sampling = new Sampling();
-
-  private Pagination pagination = new Pagination();
-
-  @Data
-  public static class Elicitation {
-    private Duration timeout = Duration.ofMinutes(5);
-  }
-
-  @Data
-  public static class Sampling {
-    private Duration timeout = Duration.ofSeconds(30);
-  }
-
-  @Data
-  public static class Pagination {
-    private int pageSize = 50;
-  }
+  public record Pagination(int pageSize) {}
 }

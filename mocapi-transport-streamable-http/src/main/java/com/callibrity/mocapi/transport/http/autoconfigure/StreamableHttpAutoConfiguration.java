@@ -41,7 +41,7 @@ public class StreamableHttpAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(McpRequestValidator.class)
   public McpRequestValidator mcpProtocolRequestValidator() {
-    return new McpRequestValidator(props.getAllowedOrigins());
+    return new McpRequestValidator(props.allowedOrigins());
   }
 
   @Bean
@@ -51,7 +51,7 @@ public class StreamableHttpAutoConfiguration {
       McpRequestValidator validator,
       Odyssey odyssey,
       ObjectMapper objectMapper) {
-    byte[] masterKey = Base64.getDecoder().decode(props.getSessionEncryptionMasterKey());
+    byte[] masterKey = Base64.getDecoder().decode(props.sessionEncryptionMasterKey());
     return new StreamableHttpController(protocol, validator, odyssey, objectMapper, masterKey);
   }
 }
