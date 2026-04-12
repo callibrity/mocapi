@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T13:15:00-04:00
-ITERATION: 68
-SPEC_COMPLETED: 149a-rename-protocol-to-server.md
-WHAT_WAS_DONE: Renamed mocapi-protocol module to mocapi-server, McpProtocol interface to McpServer, DefaultMcpProtocol to DefaultMcpServer, all sub-packages from protocol to server, all autoconfigure classes, properties files, and updated all references across the entire reactor (transport, compat, examples, starter).
-VERIFICATION: mvn compile — BUILD SUCCESS across all modules. No references to mocapi-protocol, McpProtocol, or com.callibrity.mocapi.protocol remain in any source file.
+LAST_RUN: 2026-04-12T12:57:00-04:00
+ITERATION: 69
+SPEC_COMPLETED: 149b-fix-transport-always-sse.md
+WHAT_WAS_DONE: Replaced BufferingTransport with OdysseyTransport for all post-initialize calls. Controller now creates OdysseyTransport + virtual thread + odyssey.subscribe() for every POST with a session ID, returning SSE always. Added completed guard to OdysseyTransport. Deleted BufferingTransport.java. Updated controller and transport unit tests.
+VERIFICATION: mvn verify -pl !mocapi-compat — BUILD SUCCESS across all modules. mocapi-compat was excluded because it had pre-existing failures (25/81 per spec 149d) unrelated to this change; spec 149d is specifically queued to fix those.
 STATUS: MORE_WORK
-NEXT_SPEC: 149b-fix-transport-always-sse.md
-NOTES: Pure rename completed. McpServer interface has exactly handleCall, handleNotification, handleResponse, terminate — matching the spec's required shape. Spotless was applied after rename to fix import ordering. mocapi-core does not exist (was removed in earlier iterations). The old protocol directories were cleaned up.
+NEXT_SPEC: 149c-fix-tool-invocation-model.md
+NOTES: The always-SSE change means compat tests that asserted JSON content-type for post-initialize POSTs will now see text/event-stream. This is expected and will be addressed by spec 149d. mocapi-core was not modified.

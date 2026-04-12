@@ -34,6 +34,8 @@ import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -129,36 +131,27 @@ class StreamableHttpControllerTest {
   class PostWithSession {
 
     @Test
-    void callWithSessionReturnsJsonForSimpleResponse() {
-      doAnswer(
-              invocation -> {
-                McpTransport transport = invocation.getArgument(2);
-                transport.send(
-                    new JsonRpcResult(
-                        JsonNodeFactory.instance.objectNode(),
-                        JsonNodeFactory.instance.numberNode(1)));
-                return null;
-              })
-          .when(protocol)
-          .handleCall(any(), any(), any());
+    void callWithSessionReturnsSseEmitter() {
+      SseEmitter emitter = new SseEmitter();
+      when(odyssey.publisher(anyString(), eq(JsonRpcMessage.class))).thenReturn(publisher);
+      when(odyssey.subscribe(anyString(), eq(JsonRpcMessage.class), any())).thenReturn(emitter);
 
       ObjectNode request = callRequest("tools/list");
       var response = post(request, null, "session-1", POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
-      assertThat(response.getBody()).isInstanceOf(JsonRpcResult.class);
+      assertThat(response.getBody()).isSameAs(emitter);
     }
 
     @Test
-    void callWithSessionUsesBufferingTransport() {
+    void callWithSessionUsesOdysseyTransport() throws Exception {
+      CountDownLatch latch = new CountDownLatch(1);
+      when(odyssey.publisher(anyString(), eq(JsonRpcMessage.class))).thenReturn(publisher);
+      when(odyssey.subscribe(anyString(), eq(JsonRpcMessage.class), any()))
+          .thenReturn(new SseEmitter());
       doAnswer(
               invocation -> {
-                McpTransport transport = invocation.getArgument(2);
-                transport.send(
-                    new JsonRpcResult(
-                        JsonNodeFactory.instance.objectNode(),
-                        JsonNodeFactory.instance.numberNode(1)));
+                latch.countDown();
                 return null;
               })
           .when(protocol)
@@ -166,7 +159,8 @@ class StreamableHttpControllerTest {
 
       post(callRequest("ping"), null, "session-1", POST_ACCEPT, null);
 
-      verify(protocol).handleCall(any(), any(), any(BufferingTransport.class));
+      assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
+      verify(protocol).handleCall(any(), any(), any(OdysseyTransport.class));
     }
 
     @Test

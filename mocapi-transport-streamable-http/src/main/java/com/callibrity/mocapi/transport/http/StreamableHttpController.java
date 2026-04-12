@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Base64;
 import java.util.List;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.odyssey.core.Odyssey;
 import org.jwcarman.odyssey.core.SseEventMapper;
@@ -175,24 +176,17 @@ public class StreamableHttpController {
       protocol.handleCall(context, call, transport);
       return transport.toResponseEntity();
     }
-    BufferingTransport buf = new BufferingTransport();
-    protocol.handleCall(context, call, buf);
-    if (buf.isSimpleResponse()) {
-      return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(buf.singleResponse());
-    }
-    SseEmitter emitter = new SseEmitter();
-    Thread.startVirtualThread(
-        () -> {
-          try {
-            for (JsonRpcMessage msg : buf.messages()) {
-              emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(msg)));
-            }
-            emitter.complete();
-          } catch (Exception e) {
-            emitter.completeWithError(e);
-          }
-        });
-    return ResponseEntity.ok().body(emitter);
+
+    String streamName = UUID.randomUUID().toString();
+    var publisher = odyssey.publisher(streamName, JsonRpcMessage.class);
+    var transport = new OdysseyTransport(publisher);
+
+    Thread.ofVirtual().start(() -> protocol.handleCall(context, call, transport));
+
+    return ResponseEntity.ok()
+        .body(
+            odyssey.subscribe(
+                streamName, JsonRpcMessage.class, cfg -> cfg.mapper(encryptingMapper(sessionId))));
   }
 
   private ResponseEntity<Object> handleNotification(

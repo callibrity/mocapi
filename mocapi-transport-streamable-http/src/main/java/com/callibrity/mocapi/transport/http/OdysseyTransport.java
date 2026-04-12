@@ -29,6 +29,7 @@ import org.jwcarman.odyssey.core.OdysseyPublisher;
 class OdysseyTransport implements McpTransport {
 
   private final OdysseyPublisher<JsonRpcMessage> publisher;
+  private boolean completed;
 
   OdysseyTransport(OdysseyPublisher<JsonRpcMessage> publisher) {
     this.publisher = publisher;
@@ -36,9 +37,13 @@ class OdysseyTransport implements McpTransport {
 
   @Override
   public void send(JsonRpcMessage message) {
+    if (completed) {
+      throw new IllegalStateException("Transport completed");
+    }
     publisher.publish(message);
     if (message instanceof JsonRpcResponse) {
       publisher.complete();
+      completed = true;
     }
   }
 

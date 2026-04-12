@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.transport.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -80,6 +81,17 @@ class OdysseyTransportTest {
     when(publisher.name()).thenReturn("stream-abc");
 
     assertThat(transport.streamName()).isEqualTo("stream-abc");
+  }
+
+  @Test
+  void sendAfterCompletionThrows() {
+    var result = new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1));
+    transport.send(result);
+
+    var call = JsonRpcCall.of("tools/list", null, intNode(2));
+    assertThatThrownBy(() -> transport.send(call))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Transport completed");
   }
 
   @Test
