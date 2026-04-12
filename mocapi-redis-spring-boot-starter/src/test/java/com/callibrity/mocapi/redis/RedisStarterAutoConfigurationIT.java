@@ -21,10 +21,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.substrate.core.atom.AtomSpi;
-import org.jwcarman.substrate.redis.RedisAutoConfiguration;
 import org.jwcarman.substrate.core.journal.JournalSpi;
 import org.jwcarman.substrate.core.mailbox.MailboxSpi;
 import org.jwcarman.substrate.core.notifier.NotifierSpi;
+import org.jwcarman.substrate.redis.RedisAutoConfiguration;
 import org.jwcarman.substrate.redis.atom.RedisAtomAutoConfiguration;
 import org.jwcarman.substrate.redis.atom.RedisAtomSpi;
 import org.jwcarman.substrate.redis.journal.RedisJournalAutoConfiguration;
@@ -44,8 +44,8 @@ import org.testcontainers.containers.GenericContainer;
 /**
  * Verifies that pulling the mocapi-redis-spring-boot-starter on the classpath (with a real Redis
  * running) produces the full distributed stack: Substrate's Redis backend provides all four SPIs
- * (Atom, Mailbox, Journal, Notifier), and mocapi-core's {@link SubstrateAtomMcpSessionStore}
- * adopts the Redis Atom for session storage.
+ * (Atom, Mailbox, Journal, Notifier), and mocapi-core's {@link SubstrateAtomMcpSessionStore} adopts
+ * the Redis Atom for session storage.
  */
 class RedisStarterAutoConfigurationIT {
 

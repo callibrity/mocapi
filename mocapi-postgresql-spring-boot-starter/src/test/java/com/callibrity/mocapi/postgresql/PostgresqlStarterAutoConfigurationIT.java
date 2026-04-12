@@ -46,8 +46,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Verifies that pulling the mocapi-postgresql-spring-boot-starter on the classpath (with a real
- * PostgreSQL container) produces the full distributed stack: Substrate's Postgres backend
- * provides all four SPIs (Atom, Mailbox, Journal, Notifier) via LISTEN/NOTIFY.
+ * PostgreSQL container) produces the full distributed stack: Substrate's Postgres backend provides
+ * all four SPIs (Atom, Mailbox, Journal, Notifier) via LISTEN/NOTIFY.
  */
 class PostgresqlStarterAutoConfigurationIT {
 

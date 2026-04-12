@@ -45,7 +45,10 @@ public final class TestAtomSessionStore {
     var notifier = new DefaultNotifier(new InMemoryNotifier(), codecFactory);
     var atomFactory =
         new DefaultAtomFactory(
-            new InMemoryAtomSpi(), codecFactory, notifier, sessionTimeout,
+            new InMemoryAtomSpi(),
+            codecFactory,
+            notifier,
+            sessionTimeout,
             new ShutdownCoordinator());
     return new SubstrateAtomMcpSessionStore(atomFactory, sessionTimeout);
   }

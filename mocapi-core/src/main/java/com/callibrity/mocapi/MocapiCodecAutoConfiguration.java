@@ -32,12 +32,11 @@ import tools.jackson.databind.ObjectMapper;
  * because substrate's own @Bean methods check for a {@code CodecFactory} bean at the moment their
  * {@code @ConditionalOnBean} is evaluated — if the bean is registered later in the processing
  * order, substrate silently skips building its factory beans. Mocapi always wants those factories
- * to exist (that's how mocapi's session store, streaming, and elicitation work), so mocapi owns
- * the responsibility of ensuring a {@code CodecFactory} is present before substrate looks for
- * one.
+ * to exist (that's how mocapi's session store, streaming, and elicitation work), so mocapi owns the
+ * responsibility of ensuring a {@code CodecFactory} is present before substrate looks for one.
  *
- * <p>If the application already provides its own {@code CodecFactory} bean (e.g., because the
- * user wired a custom one or because {@code codec-jackson} beat this module to it), the
+ * <p>If the application already provides its own {@code CodecFactory} bean (e.g., because the user
+ * wired a custom one or because {@code codec-jackson} beat this module to it), the
  * {@code @ConditionalOnMissingBean} guard steps aside.
  */
 @AutoConfiguration(before = SubstrateAutoConfiguration.class)
