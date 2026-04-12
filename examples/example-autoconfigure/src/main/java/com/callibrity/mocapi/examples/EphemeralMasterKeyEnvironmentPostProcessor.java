@@ -31,8 +31,9 @@ import org.springframework.core.env.MapPropertySource;
  * configured.
  *
  * <p>Implemented as an {@link EnvironmentPostProcessor} because {@link
- * com.callibrity.mocapi.MocapiProperties} binding happens before any {@code @AutoConfiguration}
- * class executes — a {@code @Bean} method or {@code @PostConstruct} would fire too late.
+ * com.callibrity.mocapi.protocol.autoconfigure.MocapiProtocolProperties} binding happens before any
+ * {@code @AutoConfiguration} class executes — a {@code @Bean} method or {@code @PostConstruct}
+ * would fire too late.
  *
  * <p>Any explicit value (env var, system property, configured property source) is respected. When a
  * key is generated, a WARN-level log line explains what happened and how to opt out so nobody

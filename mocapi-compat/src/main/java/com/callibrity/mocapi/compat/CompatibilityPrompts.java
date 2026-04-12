@@ -24,7 +24,8 @@ import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.TextResourceContents;
-import com.callibrity.mocapi.prompts.McpPrompt;
+import com.callibrity.mocapi.protocol.prompts.McpPrompt;
+import com.callibrity.mocapi.protocol.prompts.McpPromptProvider;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -111,105 +112,116 @@ public class CompatibilityPrompts {
               });
 
   @Bean
-  public McpPrompt simplePrompt() {
-    return new McpPrompt() {
-      @Override
-      public Prompt descriptor() {
-        return new Prompt("test_simple_prompt", null, "A simple test prompt", null, List.of());
-      }
+  public McpPromptProvider simplePrompt() {
+    McpPrompt prompt =
+        new McpPrompt() {
+          @Override
+          public Prompt descriptor() {
+            return new Prompt("test_simple_prompt", null, "A simple test prompt", null, List.of());
+          }
 
-      @Override
-      public GetPromptResult get(Map<String, String> arguments) {
-        return new GetPromptResult(
-            "A simple test prompt",
-            List.of(
-                new PromptMessage(
-                    Role.USER, new TextContent("This is a simple prompt for testing.", null))));
-      }
-    };
+          @Override
+          public GetPromptResult get(Map<String, String> arguments) {
+            return new GetPromptResult(
+                "A simple test prompt",
+                List.of(
+                    new PromptMessage(
+                        Role.USER, new TextContent("This is a simple prompt for testing.", null))));
+          }
+        };
+    return () -> List.of(prompt);
   }
 
   @Bean
-  public McpPrompt promptWithArguments() {
-    return new McpPrompt() {
-      @Override
-      public Prompt descriptor() {
-        return new Prompt(
-            "test_prompt_with_arguments",
-            null,
-            "A test prompt with arguments",
-            null,
-            List.of(
-                new PromptArgument("arg1", "First argument", true),
-                new PromptArgument("arg2", "Second argument", true)));
-      }
+  public McpPromptProvider promptWithArguments() {
+    McpPrompt prompt =
+        new McpPrompt() {
+          @Override
+          public Prompt descriptor() {
+            return new Prompt(
+                "test_prompt_with_arguments",
+                null,
+                "A test prompt with arguments",
+                null,
+                List.of(
+                    new PromptArgument("arg1", "First argument", true),
+                    new PromptArgument("arg2", "Second argument", true)));
+          }
 
-      @Override
-      public GetPromptResult get(Map<String, String> arguments) {
-        String arg1 = arguments != null ? arguments.getOrDefault("arg1", "") : "";
-        String arg2 = arguments != null ? arguments.getOrDefault("arg2", "") : "";
-        return new GetPromptResult(
-            "A test prompt with arguments",
-            List.of(
-                new PromptMessage(
-                    Role.USER,
-                    new TextContent(
-                        String.format("Prompt with arguments: arg1='%s', arg2='%s'", arg1, arg2),
-                        null))));
-      }
-    };
+          @Override
+          public GetPromptResult get(Map<String, String> arguments) {
+            String arg1 = arguments != null ? arguments.getOrDefault("arg1", "") : "";
+            String arg2 = arguments != null ? arguments.getOrDefault("arg2", "") : "";
+            return new GetPromptResult(
+                "A test prompt with arguments",
+                List.of(
+                    new PromptMessage(
+                        Role.USER,
+                        new TextContent(
+                            String.format(
+                                "Prompt with arguments: arg1='%s', arg2='%s'", arg1, arg2),
+                            null))));
+          }
+        };
+    return () -> List.of(prompt);
   }
 
   @Bean
-  public McpPrompt promptWithEmbeddedResource() {
-    return new McpPrompt() {
-      @Override
-      public Prompt descriptor() {
-        return new Prompt(
-            "test_prompt_with_embedded_resource",
-            null,
-            "A test prompt with an embedded resource",
-            null,
-            List.of(new PromptArgument("resourceUri", "URI of the resource to embed", true)));
-      }
+  public McpPromptProvider promptWithEmbeddedResource() {
+    McpPrompt prompt =
+        new McpPrompt() {
+          @Override
+          public Prompt descriptor() {
+            return new Prompt(
+                "test_prompt_with_embedded_resource",
+                null,
+                "A test prompt with an embedded resource",
+                null,
+                List.of(new PromptArgument("resourceUri", "URI of the resource to embed", true)));
+          }
 
-      @Override
-      public GetPromptResult get(Map<String, String> arguments) {
-        String resourceUri = arguments != null ? arguments.getOrDefault("resourceUri", "") : "";
-        return new GetPromptResult(
-            "A test prompt with an embedded resource",
-            List.of(
-                new PromptMessage(
-                    Role.USER,
-                    new EmbeddedResource(
-                        new TextResourceContents(
-                            resourceUri, "text/plain", "Embedded resource content for testing."),
-                        null)),
-                new PromptMessage(
-                    Role.USER,
-                    new TextContent("Please process the embedded resource above.", null))));
-      }
-    };
+          @Override
+          public GetPromptResult get(Map<String, String> arguments) {
+            String resourceUri = arguments != null ? arguments.getOrDefault("resourceUri", "") : "";
+            return new GetPromptResult(
+                "A test prompt with an embedded resource",
+                List.of(
+                    new PromptMessage(
+                        Role.USER,
+                        new EmbeddedResource(
+                            new TextResourceContents(
+                                resourceUri,
+                                "text/plain",
+                                "Embedded resource content for testing."),
+                            null)),
+                    new PromptMessage(
+                        Role.USER,
+                        new TextContent("Please process the embedded resource above.", null))));
+          }
+        };
+    return () -> List.of(prompt);
   }
 
   @Bean
-  public McpPrompt promptWithImage() {
-    return new McpPrompt() {
-      @Override
-      public Prompt descriptor() {
-        return new Prompt(
-            "test_prompt_with_image", null, "A test prompt with an image", null, List.of());
-      }
+  public McpPromptProvider promptWithImage() {
+    McpPrompt prompt =
+        new McpPrompt() {
+          @Override
+          public Prompt descriptor() {
+            return new Prompt(
+                "test_prompt_with_image", null, "A test prompt with an image", null, List.of());
+          }
 
-      @Override
-      public GetPromptResult get(Map<String, String> arguments) {
-        return new GetPromptResult(
-            "A test prompt with an image",
-            List.of(
-                new PromptMessage(Role.USER, new ImageContent(TINY_PNG, "image/png", null)),
-                new PromptMessage(
-                    Role.USER, new TextContent("Please analyze the image above.", null))));
-      }
-    };
+          @Override
+          public GetPromptResult get(Map<String, String> arguments) {
+            return new GetPromptResult(
+                "A test prompt with an image",
+                List.of(
+                    new PromptMessage(Role.USER, new ImageContent(TINY_PNG, "image/png", null)),
+                    new PromptMessage(
+                        Role.USER, new TextContent("Please analyze the image above.", null))));
+          }
+        };
+    return () -> List.of(prompt);
   }
 }

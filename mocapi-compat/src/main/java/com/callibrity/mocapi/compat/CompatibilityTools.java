@@ -16,21 +16,35 @@
 package com.callibrity.mocapi.compat;
 
 import com.callibrity.mocapi.model.AudioContent;
+import com.callibrity.mocapi.model.BooleanSchema;
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.CreateMessageRequestParams;
 import com.callibrity.mocapi.model.CreateMessageResult;
+import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.EmbeddedResource;
+import com.callibrity.mocapi.model.EnumItemsSchema;
+import com.callibrity.mocapi.model.EnumOption;
 import com.callibrity.mocapi.model.ImageContent;
+import com.callibrity.mocapi.model.LegacyTitledEnumSchema;
+import com.callibrity.mocapi.model.NumberSchema;
+import com.callibrity.mocapi.model.PrimitiveSchemaDefinition;
+import com.callibrity.mocapi.model.RequestedSchema;
+import com.callibrity.mocapi.model.Role;
+import com.callibrity.mocapi.model.SamplingMessage;
+import com.callibrity.mocapi.model.StringSchema;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.TextResourceContents;
-import com.callibrity.mocapi.stream.McpStreamContext;
-import com.callibrity.mocapi.stream.elicitation.MultiSelectEnumSchemaBuilder;
-import com.callibrity.mocapi.stream.elicitation.SingleSelectEnumSchemaBuilder;
-import com.callibrity.mocapi.tools.annotation.ToolMethod;
-import com.callibrity.mocapi.tools.annotation.ToolService;
-import java.util.Arrays;
+import com.callibrity.mocapi.model.TitledEnumItemsSchema;
+import com.callibrity.mocapi.model.TitledMultiSelectEnumSchema;
+import com.callibrity.mocapi.model.TitledSingleSelectEnumSchema;
+import com.callibrity.mocapi.model.UntitledMultiSelectEnumSchema;
+import com.callibrity.mocapi.model.UntitledSingleSelectEnumSchema;
+import com.callibrity.mocapi.protocol.tools.McpToolContext;
+import com.callibrity.mocapi.protocol.tools.annotation.ToolMethod;
+import com.callibrity.mocapi.protocol.tools.annotation.ToolService;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * Tools required by the {@code @modelcontextprotocol/conformance} npx suite. Each tool method
@@ -275,7 +289,7 @@ public class CompatibilityTools {
   @ToolMethod(
       name = TEST_TOOL_WITH_LOGGING,
       description = "Sends log messages during execution for conformance testing")
-  public void withLogging(McpStreamContext<CallToolResult> ctx) throws InterruptedException {
+  public void withLogging(McpToolContext<CallToolResult> ctx) throws InterruptedException {
     ctx.log(
         com.callibrity.mocapi.model.LoggingLevel.INFO,
         TEST_TOOL_WITH_LOGGING,
@@ -322,7 +336,7 @@ public class CompatibilityTools {
   @ToolMethod(
       name = "test_tool_with_progress",
       description = "Reports progress notifications for conformance testing")
-  public void withProgress(McpStreamContext<CallToolResult> ctx) throws InterruptedException {
+  public void withProgress(McpToolContext<CallToolResult> ctx) throws InterruptedException {
     ctx.sendProgress(0, 100);
     Thread.sleep(50);
     ctx.sendProgress(50, 100);
@@ -341,8 +355,22 @@ public class CompatibilityTools {
    *     Sampling Specification</a>
    */
   @ToolMethod(name = "test_sampling", description = "Tests sampling/createMessage for conformance")
-  public void testSampling(String prompt, McpStreamContext<CallToolResult> ctx) {
-    CreateMessageResult result = ctx.sample(prompt, 100);
+  public void testSampling(String prompt, McpToolContext<CallToolResult> ctx) {
+    var params =
+        new CreateMessageRequestParams(
+            List.of(new SamplingMessage(Role.USER, new TextContent(prompt, null))),
+            null,
+            null,
+            null,
+            null,
+            100,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
+    CreateMessageResult result = ctx.sample(params);
     String text = result.text();
     ctx.sendResult(
         new CallToolResult(List.of(new TextContent("LLM response: " + text, null)), null, null));
@@ -356,14 +384,13 @@ public class CompatibilityTools {
    *     Elicitation Specification</a>
    */
   @ToolMethod(name = "test_elicitation", description = "Tests elicitation/create for conformance")
-  public void testElicitation(String message, McpStreamContext<CallToolResult> ctx) {
-    var result =
-        ctx.elicit(
-            message,
-            schema -> {
-              schema.string("username", "User's response");
-              schema.string("email", "User's email address");
-            });
+  public void testElicitation(String message, McpToolContext<CallToolResult> ctx) {
+    var properties = new LinkedHashMap<String, PrimitiveSchemaDefinition>();
+    properties.put("username", new StringSchema("User's response", null, null, null, null, null));
+    properties.put("email", new StringSchema("User's email address", null, null, null, null, null));
+    var schema = new RequestedSchema(properties, List.of("username", "email"));
+    var params = new ElicitRequestFormParams("form", message, schema, null, null);
+    var result = ctx.elicit(params);
     String content = result.isAccepted() ? result.getString("username") : "n/a";
     ctx.sendResult(
         new CallToolResult(
@@ -385,17 +412,20 @@ public class CompatibilityTools {
   @ToolMethod(
       name = "test_elicitation_sep1034_defaults",
       description = "Tests elicitation with default values for conformance")
-  public void testElicitationDefaults(McpStreamContext<CallToolResult> ctx) {
-    var result =
-        ctx.elicit(
-            "Enter defaults test data",
-            schema -> {
-              schema.string("name", "Name", "John Doe");
-              schema.integer("age", "Age", 30);
-              schema.number("score", "Score", 95.5);
-              schema.choose("status", List.of("active", "inactive", "pending"), "active");
-              schema.bool("verified", "Verified", true);
-            });
+  public void testElicitationDefaults(McpToolContext<CallToolResult> ctx) {
+    var properties = new LinkedHashMap<String, PrimitiveSchemaDefinition>();
+    properties.put("name", new StringSchema("Name", null, null, null, null, "John Doe"));
+    properties.put("age", new NumberSchema("integer", "Age", null, null, null, 30));
+    properties.put("score", new NumberSchema("number", "Score", null, null, null, 95.5));
+    properties.put(
+        "status",
+        new UntitledSingleSelectEnumSchema(
+            null, null, List.of("active", "inactive", "pending"), "active"));
+    properties.put("verified", new BooleanSchema("Verified", null, true));
+    var schema = new RequestedSchema(properties, List.of());
+    var params =
+        new ElicitRequestFormParams("form", "Enter defaults test data", schema, null, null);
+    var result = ctx.elicit(params);
     ctx.sendResult(
         new CallToolResult(
             List.of(
@@ -458,37 +488,60 @@ public class CompatibilityTools {
    *     Elicitation Specification</a>
    */
   @SuppressWarnings(
-      "deprecation") // Conformance test exercises deprecated chooseLegacy() per MCP spec backward
-  // compatibility
+      "deprecation") // Conformance test exercises deprecated LegacyTitledEnumSchema per MCP spec
+  // backward compatibility
   @ToolMethod(
       name = "test_elicitation_sep1330_enums",
       description = "Tests elicitation with enum variants for conformance")
-  public void testElicitationEnums(McpStreamContext<CallToolResult> ctx) {
-    Consumer<SingleSelectEnumSchemaBuilder<TitledOption>> titledSingle =
-        b -> b.titled(TitledOption::toString);
-    Consumer<MultiSelectEnumSchemaBuilder<TitledMultiOption>> titledMulti =
-        b -> b.titled(TitledMultiOption::toString);
-    var result =
-        ctx.elicit(
-            "Enum variants test",
-            schema -> {
-              schema.choose("untitledSingle", List.of("option1", "option2", "option3"));
-              schema.choose(
-                  "titledSingle",
-                  Arrays.asList(TitledOption.values()),
-                  TitledOption::value,
-                  titledSingle);
-              schema.chooseLegacy(
-                  "legacyEnum",
-                  List.of("opt1", "opt2", "opt3"),
-                  List.of("Option One", "Option Two", "Option Three"));
-              schema.chooseMany("untitledMulti", List.of("option1", "option2", "option3"));
-              schema.chooseMany(
-                  "titledMulti",
-                  Arrays.asList(TitledMultiOption.values()),
-                  TitledMultiOption::value,
-                  titledMulti);
-            });
+  public void testElicitationEnums(McpToolContext<CallToolResult> ctx) {
+    var properties = new LinkedHashMap<String, PrimitiveSchemaDefinition>();
+    properties.put(
+        "untitledSingle",
+        new UntitledSingleSelectEnumSchema(
+            null, null, List.of("option1", "option2", "option3"), null));
+    properties.put(
+        "titledSingle",
+        new TitledSingleSelectEnumSchema(
+            null,
+            null,
+            List.of(
+                new EnumOption("value1", "First Option"),
+                new EnumOption("value2", "Second Option"),
+                new EnumOption("value3", "Third Option")),
+            null));
+    properties.put(
+        "legacyEnum",
+        new LegacyTitledEnumSchema(
+            null,
+            null,
+            List.of("opt1", "opt2", "opt3"),
+            List.of("Option One", "Option Two", "Option Three"),
+            null));
+    properties.put(
+        "untitledMulti",
+        new UntitledMultiSelectEnumSchema(
+            null,
+            null,
+            null,
+            null,
+            new EnumItemsSchema(List.of("option1", "option2", "option3")),
+            null));
+    properties.put(
+        "titledMulti",
+        new TitledMultiSelectEnumSchema(
+            null,
+            null,
+            null,
+            null,
+            new TitledEnumItemsSchema(
+                List.of(
+                    new EnumOption("value1", "First Choice"),
+                    new EnumOption("value2", "Second Choice"),
+                    new EnumOption("value3", "Third Choice"))),
+            null));
+    var schema = new RequestedSchema(properties, List.of());
+    var params = new ElicitRequestFormParams("form", "Enum variants test", schema, null, null);
+    var result = ctx.elicit(params);
     ctx.sendResult(
         new CallToolResult(
             List.of(

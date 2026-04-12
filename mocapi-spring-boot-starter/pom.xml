@@ -40,13 +40,6 @@
             <artifactId>mocapi-transport-streamable-http</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Keep mocapi-core for now — it still provides the old
-             controller path. Will be removed in spec 148k. -->
-        <dependency>
-            <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         <dependency>
             <groupId>org.jwcarman.methodical</groupId>
             <artifactId>methodical-jackson3</artifactId>

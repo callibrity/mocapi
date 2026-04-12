@@ -28,7 +28,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Base64;
 import java.util.List;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.odyssey.core.Odyssey;
 import org.jwcarman.odyssey.core.SseEventMapper;
@@ -162,6 +161,9 @@ public class StreamableHttpController {
     if (sessionId == null) {
       return ResponseEntity.badRequest().build();
     }
+    if (sessionService.find(sessionId).isEmpty()) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
     protocol.terminate(sessionId);
     return ResponseEntity.noContent().build();
   }
@@ -173,14 +175,23 @@ public class StreamableHttpController {
       protocol.handleCall(context, call, transport);
       return transport.toResponseEntity();
     }
-    var publisher = odyssey.publisher(UUID.randomUUID().toString(), JsonRpcMessage.class);
-    OdysseyTransport transport = new OdysseyTransport(publisher);
-    SseEmitter emitter =
-        odyssey.subscribe(
-            transport.streamName(),
-            JsonRpcMessage.class,
-            cfg -> cfg.mapper(encryptingMapper(sessionId)));
-    Thread.startVirtualThread(() -> protocol.handleCall(context, call, transport));
+    BufferingTransport buf = new BufferingTransport();
+    protocol.handleCall(context, call, buf);
+    if (buf.isSimpleResponse()) {
+      return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(buf.singleResponse());
+    }
+    SseEmitter emitter = new SseEmitter();
+    Thread.startVirtualThread(
+        () -> {
+          try {
+            for (JsonRpcMessage msg : buf.messages()) {
+              emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(msg)));
+            }
+            emitter.complete();
+          } catch (Exception e) {
+            emitter.completeWithError(e);
+          }
+        });
     return ResponseEntity.ok().body(emitter);
   }
 

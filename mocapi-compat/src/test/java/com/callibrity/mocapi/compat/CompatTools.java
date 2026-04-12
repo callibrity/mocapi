@@ -15,10 +15,10 @@
  */
 package com.callibrity.mocapi.compat;
 
-import com.callibrity.mocapi.stream.McpStreamContext;
-import com.callibrity.mocapi.tools.annotation.McpToolParams;
-import com.callibrity.mocapi.tools.annotation.ToolMethod;
-import com.callibrity.mocapi.tools.annotation.ToolService;
+import com.callibrity.mocapi.protocol.tools.McpToolContext;
+import com.callibrity.mocapi.protocol.tools.annotation.McpToolParams;
+import com.callibrity.mocapi.protocol.tools.annotation.ToolMethod;
+import com.callibrity.mocapi.protocol.tools.annotation.ToolService;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.Map;
@@ -37,7 +37,7 @@ public class CompatTools {
   }
 
   @ToolMethod(name = "stream", description = "A streaming tool that sends a progress notification")
-  public void stream(String message, McpStreamContext<Map<String, Object>> ctx) {
+  public void stream(String message, McpToolContext<Map<String, Object>> ctx) {
     ctx.sendProgress(1, 2);
     ctx.sendResult(Map.of("message", message));
   }

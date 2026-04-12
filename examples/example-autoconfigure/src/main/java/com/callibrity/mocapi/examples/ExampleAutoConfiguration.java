@@ -15,10 +15,10 @@
  */
 package com.callibrity.mocapi.examples;
 
-import com.callibrity.mocapi.MocapiAutoConfiguration;
 import com.callibrity.mocapi.examples.tools.CountdownTool;
 import com.callibrity.mocapi.examples.tools.HelloTool;
 import com.callibrity.mocapi.examples.tools.Rot13Tool;
+import com.callibrity.mocapi.protocol.autoconfigure.MocapiProtocolAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 
@@ -27,10 +27,10 @@ import org.springframework.context.annotation.Bean;
  * every backend example (in-memory, redis, hazelcast, postgresql, ...) exposes the same set of
  * tools simply by depending on this module.
  *
- * <p>Registered before {@link MocapiAutoConfiguration} so that the example tools are present when
- * mocapi's tools registry scans for {@code @ToolService} beans.
+ * <p>Registered before {@link MocapiProtocolAutoConfiguration} so that the example tools are
+ * present when mocapi's tools registry scans for {@code @ToolService} beans.
  */
-@AutoConfiguration(before = MocapiAutoConfiguration.class)
+@AutoConfiguration(before = MocapiProtocolAutoConfiguration.class)
 public class ExampleAutoConfiguration {
 
   @Bean

@@ -44,8 +44,8 @@ import org.testcontainers.containers.GenericContainer;
 /**
  * Verifies that pulling the mocapi-redis-spring-boot-starter on the classpath (with a real Redis
  * running) produces the full distributed stack: Substrate's Redis backend provides all four SPIs
- * (Atom, Mailbox, Journal, Notifier), and mocapi-core's {@link SubstrateAtomMcpSessionStore} adopts
- * the Redis Atom for session storage.
+ * (Atom, Mailbox, Journal, Notifier), and the {@code SubstrateAtomMcpSessionStore} adopts the Redis
+ * Atom for session storage.
  */
 class RedisStarterAutoConfigurationIT {
 

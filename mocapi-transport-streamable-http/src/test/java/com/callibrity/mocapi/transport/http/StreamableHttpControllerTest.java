@@ -129,32 +129,44 @@ class StreamableHttpControllerTest {
   class PostWithSession {
 
     @Test
-    void callWithSessionReturnsSseEmitter() {
-      SseEmitter emitter = new SseEmitter();
-      when(publisher.name()).thenReturn("stream-123");
-      when(odyssey.publisher(anyString(), eq(JsonRpcMessage.class))).thenReturn(publisher);
-      when(odyssey.subscribe(eq("stream-123"), eq(JsonRpcMessage.class), any()))
-          .thenReturn(emitter);
+    void callWithSessionReturnsJsonForSimpleResponse() {
+      doAnswer(
+              invocation -> {
+                McpTransport transport = invocation.getArgument(2);
+                transport.send(
+                    new JsonRpcResult(
+                        JsonNodeFactory.instance.objectNode(),
+                        JsonNodeFactory.instance.numberNode(1)));
+                return null;
+              })
+          .when(protocol)
+          .handleCall(any(), any(), any());
 
       ObjectNode request = callRequest("tools/list");
       var response = post(request, null, "session-1", POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-      assertThat(response.getBody()).isSameAs(emitter);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+      assertThat(response.getBody()).isInstanceOf(JsonRpcResult.class);
     }
 
     @Test
-    void callWithSessionUsesVirtualThread() throws InterruptedException {
-      SseEmitter emitter = new SseEmitter();
-      when(publisher.name()).thenReturn("stream-v");
-      when(odyssey.publisher(anyString(), eq(JsonRpcMessage.class))).thenReturn(publisher);
-      when(odyssey.subscribe(eq("stream-v"), eq(JsonRpcMessage.class), any())).thenReturn(emitter);
+    void callWithSessionUsesBufferingTransport() {
+      doAnswer(
+              invocation -> {
+                McpTransport transport = invocation.getArgument(2);
+                transport.send(
+                    new JsonRpcResult(
+                        JsonNodeFactory.instance.objectNode(),
+                        JsonNodeFactory.instance.numberNode(1)));
+                return null;
+              })
+          .when(protocol)
+          .handleCall(any(), any(), any());
 
       post(callRequest("ping"), null, "session-1", POST_ACCEPT, null);
 
-      // Protocol is called asynchronously on a virtual thread — wait for it
-      verify(protocol, org.mockito.Mockito.timeout(5000))
-          .handleCall(any(), any(), any(OdysseyTransport.class));
+      verify(protocol).handleCall(any(), any(), any(BufferingTransport.class));
     }
 
     @Test
@@ -299,10 +311,19 @@ class StreamableHttpControllerTest {
 
     @Test
     void delegatesToProtocolTerminate() {
+      when(sessionService.find("session-1"))
+          .thenReturn(Optional.of(new McpSession("2025-11-25", null, null)));
       var response = controller.handleDelete("session-1", null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
       verify(protocol).terminate("session-1");
+    }
+
+    @Test
+    void returns404ForUnknownSession() {
+      when(sessionService.find("unknown")).thenReturn(Optional.empty());
+      var response = controller.handleDelete("unknown", null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test

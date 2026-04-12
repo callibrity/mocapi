@@ -45,8 +45,8 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Verifies that pulling the mocapi-hazelcast-spring-boot-starter on the classpath (with a real
  * embedded Hazelcast instance) produces the full distributed stack: Substrate's Hazelcast backend
- * provides all four SPIs (Atom, Mailbox, Journal, Notifier), which mocapi-core's session store
- * adapter and stream context use via the {@code AtomFactory} and other factory beans.
+ * provides all four SPIs (Atom, Mailbox, Journal, Notifier), which the session store adapter and
+ * stream context use via the {@code AtomFactory} and other factory beans.
  */
 class HazelcastStarterAutoConfigurationIT {
 

@@ -15,9 +15,14 @@
  */
 package com.callibrity.mocapi.examples.tools;
 
-import com.callibrity.mocapi.stream.McpStreamContext;
-import com.callibrity.mocapi.tools.annotation.ToolMethod;
-import com.callibrity.mocapi.tools.annotation.ToolService;
+import com.callibrity.mocapi.model.ElicitRequestFormParams;
+import com.callibrity.mocapi.model.RequestedSchema;
+import com.callibrity.mocapi.model.StringSchema;
+import com.callibrity.mocapi.protocol.tools.McpToolContext;
+import com.callibrity.mocapi.protocol.tools.annotation.ToolMethod;
+import com.callibrity.mocapi.protocol.tools.annotation.ToolService;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 @ToolService
 public class HelloTool {
@@ -30,11 +35,15 @@ public class HelloTool {
   @ToolMethod(
       name = "hello-elicitation",
       description = "Returns a greeting message after elicitation")
-  public void sayHelloElicitation(McpStreamContext<HelloResponse> ctx) {
-    var result =
-        ctx.elicit(
-            "Please tell me about yourself!",
-            schema -> schema.string("firstName", "First Name").string("lastName", "Last Name"));
+  public void sayHelloElicitation(McpToolContext<HelloResponse> ctx) {
+    var properties =
+        new LinkedHashMap<String, com.callibrity.mocapi.model.PrimitiveSchemaDefinition>();
+    properties.put("firstName", new StringSchema("First Name", null, null, null, null, null));
+    properties.put("lastName", new StringSchema("Last Name", null, null, null, null, null));
+    var schema = new RequestedSchema(properties, List.of("firstName", "lastName"));
+    var params =
+        new ElicitRequestFormParams("form", "Please tell me about yourself!", schema, null, null);
+    var result = ctx.elicit(params);
     var firstName = result.getString("firstName");
     var lastName = result.getString("lastName");
     ctx.sendResult(new HelloResponse(String.format("Hello, %s %s!", firstName, lastName)));

@@ -45,7 +45,6 @@ import org.jwcarman.substrate.core.autoconfigure.SubstrateAutoConfiguration;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
 import org.springframework.boot.autoconfigure.info.ProjectInfoAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.info.BuildProperties;
@@ -54,13 +53,8 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.lang.Nullable;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Auto-configuration for MCP protocol beans. Activates only when mocapi-core's legacy
- * auto-configuration is absent, preventing duplicate JSON-RPC method registrations and controller
- * mapping conflicts during the transition period.
- */
+/** Auto-configuration for MCP protocol beans. */
 @AutoConfiguration(after = {ProjectInfoAutoConfiguration.class, SubstrateAutoConfiguration.class})
-@ConditionalOnMissingClass("com.callibrity.mocapi.MocapiAutoConfiguration")
 @EnableConfigurationProperties(MocapiProtocolProperties.class)
 @PropertySource("classpath:mocapi-protocol-defaults.properties")
 @RequiredArgsConstructor

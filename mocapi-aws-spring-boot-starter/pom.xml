@@ -43,9 +43,9 @@
         </dependency>
 
         <!-- Substrate DynamoDB — single module providing Atom, Mailbox, and
-             Journal implementations. The McpSessionStore implementation in
-             mocapi-core adapts Atom automatically. DynamoDB has no notifier,
-             so substrate-sns is included separately below. -->
+             Journal implementations. The McpSessionStore adapts Atom
+             automatically. DynamoDB has no notifier, so substrate-sns
+             is included separately below. -->
         <dependency>
             <groupId>org.jwcarman.substrate</groupId>
             <artifactId>substrate-dynamodb</artifactId>

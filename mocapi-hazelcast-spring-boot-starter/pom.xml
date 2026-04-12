@@ -43,7 +43,7 @@
 
         <!-- Substrate Hazelcast — single module providing Atom, Mailbox,
              Journal, and Notifier implementations. The McpSessionStore
-             implementation in mocapi-core adapts Atom automatically. -->
+             adapts Atom automatically. -->
         <dependency>
             <groupId>org.jwcarman.substrate</groupId>
             <artifactId>substrate-hazelcast</artifactId>

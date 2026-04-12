@@ -42,8 +42,8 @@
         </dependency>
 
         <!-- Substrate Redis — single module providing Atom, Mailbox, Journal,
-             and Notifier implementations. The McpSessionStore implementation
-             in mocapi-core adapts Atom automatically. -->
+             and Notifier implementations. The McpSessionStore adapts Atom
+             automatically. -->
         <dependency>
             <groupId>org.jwcarman.substrate</groupId>
             <artifactId>substrate-redis</artifactId>

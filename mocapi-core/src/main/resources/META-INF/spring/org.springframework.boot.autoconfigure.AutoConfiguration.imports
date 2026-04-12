@@ -1,5 +1,0 @@
-com.callibrity.mocapi.MocapiCodecAutoConfiguration
-com.callibrity.mocapi.tools.MocapiToolsAutoConfiguration
-com.callibrity.mocapi.resources.MocapiResourcesAutoConfiguration
-com.callibrity.mocapi.prompts.MocapiPromptsAutoConfiguration
-com.callibrity.mocapi.MocapiAutoConfiguration

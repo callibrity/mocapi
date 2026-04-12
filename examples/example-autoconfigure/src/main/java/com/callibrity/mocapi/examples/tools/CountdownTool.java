@@ -15,9 +15,9 @@
  */
 package com.callibrity.mocapi.examples.tools;
 
-import com.callibrity.mocapi.stream.McpStreamContext;
-import com.callibrity.mocapi.tools.annotation.ToolMethod;
-import com.callibrity.mocapi.tools.annotation.ToolService;
+import com.callibrity.mocapi.protocol.tools.McpToolContext;
+import com.callibrity.mocapi.protocol.tools.annotation.ToolMethod;
+import com.callibrity.mocapi.protocol.tools.annotation.ToolService;
 
 @ToolService
 public class CountdownTool {
@@ -25,7 +25,7 @@ public class CountdownTool {
   @ToolMethod(
       name = "countdown",
       description = "Counts down from the given number, sending progress updates via SSE")
-  public void countdown(int from, McpStreamContext<CountdownResponse> ctx) {
+  public void countdown(int from, McpToolContext<CountdownResponse> ctx) {
     for (int i = from; i > 0; i--) {
       ctx.sendProgress(from - i, from);
       try {
