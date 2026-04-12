@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T18:34:00-04:00
-ITERATION: 76
-SPEC_COMPLETED: 150b-server-capabilities-contributor.md
-WHAT_WAS_DONE: Created ServerCapabilitiesContributor interface and ServerCapabilitiesBuilder class in com.callibrity.mocapi.server, then implemented ServerCapabilitiesContributor on all 5 service classes (McpToolsService, McpResourcesService, McpPromptsService, McpLoggingService, McpCompletionsService) with contribute() methods matching the spec.
-VERIFICATION: mvn compile -pl mocapi-server -am — BUILD SUCCESS (main sources compile cleanly). mvn verify -pl mocapi-server -am (excluding pre-existing substrate test compilation error) — BUILD SUCCESS, all tests pass. Full mvn verify fails in mocapi-transport-streamable-http (pre-existing StreamableHttpController constructor mismatch, deleted BufferingTransport) and mocapi-server test compilation (pre-existing SubstrateTestSupport.java syntax error) — neither caused by this iteration.
+LAST_RUN: 2026-04-12T18:56:00-04:00
+ITERATION: 77
+SPEC_COMPLETED: 150c-move-initialize-to-session-service.md
+WHAT_WAS_DONE: Moved initialize handler from DefaultMcpServer to McpSessionService as a @JsonRpcMethod. McpSessionService now receives Implementation, instructions, and List<ServerCapabilitiesContributor> and builds InitializeResult via buildCapabilities(). DefaultMcpServer no longer has InitializeResult, ObjectMapper, or handleInitialize — it dispatches initialize through the JSON-RPC dispatcher with conditional ScopedValue binding (transport only for initialize, session+transport for all others). Auto-config updated: removed InitializeResult bean, added Implementation bean, rewired McpSessionService and DefaultMcpServer. All compliance tests and unit tests updated for new buildServer signatures.
+VERIFICATION: mvn verify -pl mocapi-server -am — BUILD SUCCESS, 145 tests pass, 0 failures. Full mvn verify fails in mocapi-transport-streamable-http (pre-existing StreamableHttpController constructor mismatch) — not caused by this iteration.
 STATUS: MORE_WORK
-NEXT_SPEC: 150c-move-initialize-to-session-service.md
-NOTES: Pre-existing issues persist: (1) SubstrateTestSupport.java in mocapi-server/src/test has a compilation error at line 37 and missing license header — this is new compared to iteration 75 and blocks full mvn verify on mocapi-server. (2) mocapi-transport-streamable-http has constructor mismatch and missing BufferingTransport class. Spotless reordered imports in McpLoggingService.java as expected.
+NEXT_SPEC: 150d-server-properties-record-and-defaults.md
+NOTES: Pre-existing issues persist: (1) mocapi-transport-streamable-http has StreamableHttpController constructor mismatch in tests. ComplianceTestSupport.buildServer now creates McpSessionService internally and includes it in the dispatcher alongside any additional services — tests no longer pass a pre-built dispatcher.

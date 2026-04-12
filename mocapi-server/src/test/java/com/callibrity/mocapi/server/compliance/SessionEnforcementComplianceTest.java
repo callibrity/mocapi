@@ -18,7 +18,6 @@ package com.callibrity.mocapi.server.compliance;
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.McpServer;
@@ -45,9 +44,7 @@ class SessionEnforcementComplianceTest {
   @BeforeEach
   void setUp() {
     sessionStore = inMemorySessionStore();
-    server =
-        buildServer(
-            sessionStore, new ServerCapabilities(null, null, null, null, null), call -> null);
+    server = buildServer(sessionStore, new ServerCapabilities(null, null, null, null, null));
   }
 
   @Nested
@@ -80,7 +77,8 @@ class SessionEnforcementComplianceTest {
 
       server.handleCall(withSession(sessionId), call("tools/list"), transport);
 
-      verifyNoMoreInteractions(transport);
+      var msg = captureMessage(transport);
+      assertThat(msg).isNotNull();
     }
   }
 

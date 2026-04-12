@@ -38,12 +38,11 @@ class NotificationComplianceTest {
 
   @BeforeEach
   void setUp() {
-    var dispatcher = buildDispatcher(MAPPER, new McpPingService());
     server =
         buildServer(
             inMemorySessionStore(),
             new ServerCapabilities(null, null, null, null, null),
-            dispatcher);
+            new McpPingService());
   }
 
   @Test

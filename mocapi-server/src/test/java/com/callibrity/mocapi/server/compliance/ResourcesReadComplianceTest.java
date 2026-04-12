@@ -83,12 +83,11 @@ class ResourcesReadComplianceTest {
     var service =
         new McpResourcesService(List.of(() -> List.of(textResource, blobResource)), List.of());
 
-    var dispatcher = buildDispatcher(MAPPER, service);
     server =
         buildServer(
             inMemorySessionStore(),
             new ServerCapabilities(null, null, null, new ResourcesCapability(null, null), null),
-            dispatcher);
+            service);
   }
 
   @Test

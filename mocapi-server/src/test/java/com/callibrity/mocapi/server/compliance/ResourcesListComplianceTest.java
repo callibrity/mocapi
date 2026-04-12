@@ -102,12 +102,11 @@ class ResourcesListComplianceTest {
             List.of(() -> List.of(fileResource, configResource)),
             List.of(() -> List.of(userTemplate)));
 
-    var dispatcher = buildDispatcher(MAPPER, resourcesService);
     server =
         buildServer(
             inMemorySessionStore(),
             new ServerCapabilities(null, null, null, new ResourcesCapability(null, null), null),
-            dispatcher);
+            resourcesService);
   }
 
   @Test
@@ -145,12 +144,11 @@ class ResourcesListComplianceTest {
     McpResource r3 = simpleResource("file:///c.txt", "c", "C");
 
     var pagedService = new McpResourcesService(List.of(() -> List.of(r1, r2, r3)), List.of(), 2);
-    var dispatcher = buildDispatcher(MAPPER, pagedService);
     var pagedServer =
         buildServer(
             inMemorySessionStore(),
             new ServerCapabilities(null, null, null, new ResourcesCapability(null, null), null),
-            dispatcher);
+            pagedService);
 
     var sessionId = initializeAndGetSessionId(pagedServer);
     var transport1 = mock(McpTransport.class);

@@ -50,9 +50,7 @@ class InitializeComplianceTest {
   @BeforeEach
   void setUp() {
     sessionStore = inMemorySessionStore();
-    server =
-        buildServer(
-            sessionStore, new ServerCapabilities(null, null, null, null, null), call -> null);
+    server = buildServer(sessionStore, new ServerCapabilities(null, null, null, null, null));
   }
 
   @Test
@@ -206,7 +204,7 @@ class InitializeComplianceTest {
     }
 
     private McpServer buildServerWithCapabilities(ServerCapabilities caps) {
-      return ComplianceTestSupport.buildServer(inMemorySessionStore(), caps, call -> null);
+      return ComplianceTestSupport.buildServer(inMemorySessionStore(), caps);
     }
   }
 }

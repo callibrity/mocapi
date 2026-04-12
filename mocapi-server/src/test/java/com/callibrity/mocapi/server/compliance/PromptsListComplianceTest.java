@@ -87,12 +87,11 @@ class PromptsListComplianceTest {
         };
 
     var service = new McpPromptsService(List.of(() -> List.of(greetPrompt, simplePrompt)));
-    var dispatcher = buildDispatcher(MAPPER, service);
     server =
         buildServer(
             inMemorySessionStore(),
             new ServerCapabilities(null, null, null, null, new PromptsCapability(null)),
-            dispatcher);
+            service);
   }
 
   @Test
@@ -163,12 +162,11 @@ class PromptsListComplianceTest {
     }
 
     var service = new McpPromptsService(List.of(() -> List.copyOf(prompts)), 2);
-    var dispatcher = buildDispatcher(MAPPER, service);
     var pagedServer =
         buildServer(
             inMemorySessionStore(),
             new ServerCapabilities(null, null, null, null, new PromptsCapability(null)),
-            dispatcher);
+            service);
 
     var sessionId = initializeAndGetSessionId(pagedServer);
     var transport1 = mock(McpTransport.class);

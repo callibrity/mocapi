@@ -50,7 +50,6 @@ class ClientResponseComplianceTest {
         buildServer(
             inMemorySessionStore(),
             new ServerCapabilities(null, null, null, null, null),
-            call -> null,
             correlationService);
   }
 

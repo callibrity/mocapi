@@ -15,20 +15,62 @@
  */
 package com.callibrity.mocapi.server.session;
 
+import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.model.InitializeRequestParams;
+import com.callibrity.mocapi.model.InitializeResult;
 import com.callibrity.mocapi.model.LoggingLevel;
+import com.callibrity.mocapi.model.McpMethods;
+import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.server.McpEvent;
+import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.ServerCapabilitiesBuilder;
+import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
+import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
+import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Orchestrates session lifecycle: create, find, delete, and log-level updates. */
+/** Orchestrates session lifecycle: create, find, delete, log-level updates, and initialize. */
+@JsonRpcService
 public class McpSessionService {
 
   private final McpSessionStore store;
   private final Duration ttl;
+  private final Implementation serverInfo;
+  private final String instructions;
+  private final List<ServerCapabilitiesContributor> contributors;
 
-  public McpSessionService(McpSessionStore store, Duration ttl) {
+  public McpSessionService(
+      McpSessionStore store,
+      Duration ttl,
+      Implementation serverInfo,
+      String instructions,
+      List<ServerCapabilitiesContributor> contributors) {
     this.store = store;
     this.ttl = ttl;
+    this.serverInfo = serverInfo;
+    this.instructions = instructions;
+    this.contributors = contributors;
+  }
+
+  @JsonRpcMethod(McpMethods.INITIALIZE)
+  public InitializeResult initialize(@JsonRpcParams InitializeRequestParams params) {
+    McpSession session =
+        new McpSession(params.protocolVersion(), params.capabilities(), params.clientInfo());
+    String sessionId = create(session);
+    McpTransport transport = McpTransport.CURRENT.get();
+    transport.emit(new McpEvent.SessionInitialized(sessionId, params.protocolVersion()));
+    return new InitializeResult(
+        InitializeResult.PROTOCOL_VERSION, buildCapabilities(), serverInfo, instructions);
+  }
+
+  private ServerCapabilities buildCapabilities() {
+    var builder = new ServerCapabilitiesBuilder();
+    contributors.forEach(c -> c.contribute(builder));
+    return builder.build();
   }
 
   /** Generates a session ID, saves the session to the store, and returns the ID. */

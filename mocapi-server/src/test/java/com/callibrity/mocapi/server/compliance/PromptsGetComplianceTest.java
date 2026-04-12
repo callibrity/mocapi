@@ -73,12 +73,11 @@ class PromptsGetComplianceTest {
         };
 
     var service = new McpPromptsService(List.of(() -> List.of(greetPrompt)));
-    var dispatcher = buildDispatcher(MAPPER, service);
     server =
         buildServer(
             inMemorySessionStore(),
             new ServerCapabilities(null, null, null, null, new PromptsCapability(null)),
-            dispatcher);
+            service);
   }
 
   @Test

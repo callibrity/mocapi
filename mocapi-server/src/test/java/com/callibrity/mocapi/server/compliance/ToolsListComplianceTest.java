@@ -62,24 +62,22 @@ class ToolsListComplianceTest {
             MAPPER,
             mock(com.callibrity.mocapi.server.McpResponseCorrelationService.class));
 
-    var dispatcher = buildDispatcher(MAPPER, toolsService);
     server =
         buildServer(
             inMemorySessionStore(),
             new ServerCapabilities(new ToolsCapability(null), null, null, null, null),
-            dispatcher);
+            toolsService);
 
     var emptyToolsService =
         new McpToolsService(
             List.of(),
             MAPPER,
             mock(com.callibrity.mocapi.server.McpResponseCorrelationService.class));
-    var emptyDispatcher = buildDispatcher(MAPPER, emptyToolsService);
     emptyServer =
         buildServer(
             inMemorySessionStore(),
             new ServerCapabilities(null, null, null, null, null),
-            emptyDispatcher);
+            emptyToolsService);
   }
 
   @Test
@@ -138,12 +136,11 @@ class ToolsListComplianceTest {
             mock(com.callibrity.mocapi.server.McpResponseCorrelationService.class),
             2);
 
-    var dispatcher = buildDispatcher(MAPPER, toolsService);
     var pagedServer =
         buildServer(
             inMemorySessionStore(),
             new ServerCapabilities(new ToolsCapability(null), null, null, null, null),
-            dispatcher);
+            toolsService);
 
     var sessionId = initializeAndGetSessionId(pagedServer);
 

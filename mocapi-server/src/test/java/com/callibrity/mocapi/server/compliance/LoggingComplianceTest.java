@@ -22,13 +22,12 @@ import static org.mockito.Mockito.mock;
 import com.callibrity.mocapi.model.LoggingCapability;
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.logging.McpLoggingService;
-import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.ripcurl.core.JsonRpcResult;
-import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -49,14 +48,10 @@ class LoggingComplianceTest {
   @BeforeEach
   void setUp() {
     sessionStore = inMemorySessionStore();
-    var sessionService = new McpSessionService(sessionStore, Duration.ofHours(1));
+    var caps = new ServerCapabilities(null, new LoggingCapability(), null, null, null);
+    var sessionService = buildSessionService(sessionStore, caps);
     var loggingService = new McpLoggingService(sessionService);
-    var dispatcher = buildDispatcher(MAPPER, loggingService);
-    server =
-        buildServer(
-            sessionStore,
-            new ServerCapabilities(null, new LoggingCapability(), null, null, null),
-            dispatcher);
+    server = buildServer(sessionService, mock(McpResponseCorrelationService.class), loggingService);
   }
 
   @Test

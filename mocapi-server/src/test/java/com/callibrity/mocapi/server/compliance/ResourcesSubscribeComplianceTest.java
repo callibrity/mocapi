@@ -44,13 +44,11 @@ class ResourcesSubscribeComplianceTest {
 
   @BeforeEach
   void setUp() {
-    var service = new McpResourcesService(List.of(), List.of());
-    var dispatcher = buildDispatcher(MAPPER, service);
     server =
         buildServer(
             inMemorySessionStore(),
             new ServerCapabilities(null, null, null, new ResourcesCapability(true, null), null),
-            dispatcher);
+            new McpResourcesService(List.of(), List.of()));
   }
 
   @Test

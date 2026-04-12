@@ -27,13 +27,12 @@ import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.ResourcesCapability;
 import com.callibrity.mocapi.server.ServerCapabilitiesBuilder;
 import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
+import com.callibrity.mocapi.server.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
-import java.nio.ByteBuffer;
-import java.util.Base64;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -103,15 +102,14 @@ public class McpResourcesService implements ServerCapabilitiesContributor {
 
   @JsonRpcMethod(McpMethods.RESOURCES_LIST)
   public ListResourcesResult listResources(@JsonRpcParams PaginatedRequestParams params) {
-    var page = paginate(sortedResourceDescriptors, params);
-    return new ListResourcesResult(page.items(), page.nextCursor());
+    return Cursors.paginate(sortedResourceDescriptors, params, pageSize, ListResourcesResult::new);
   }
 
   @JsonRpcMethod(McpMethods.RESOURCES_TEMPLATES_LIST)
   public ListResourceTemplatesResult listResourceTemplates(
       @JsonRpcParams PaginatedRequestParams params) {
-    var page = paginate(sortedTemplateDescriptors, params);
-    return new ListResourceTemplatesResult(page.items(), page.nextCursor());
+    return Cursors.paginate(
+        sortedTemplateDescriptors, params, pageSize, ListResourceTemplatesResult::new);
   }
 
   @JsonRpcMethod(McpMethods.RESOURCES_READ)
@@ -159,30 +157,4 @@ public class McpResourcesService implements ServerCapabilitiesContributor {
   public boolean isSubscribed(String uri) {
     return subscriptions.contains(uri);
   }
-
-  private <T> Page<T> paginate(List<T> all, PaginatedRequestParams params) {
-    String cursor = params == null ? null : params.cursor();
-    int offset = Math.clamp(decodeCursor(cursor), 0, all.size());
-    int end = Math.min(offset + pageSize, all.size());
-    List<T> page = List.copyOf(all.subList(offset, end));
-    String nextCursor = end < all.size() ? encodeCursor(end) : null;
-    return new Page<>(page, nextCursor);
-  }
-
-  private static String encodeCursor(int offset) {
-    return Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(offset).array());
-  }
-
-  private static int decodeCursor(String cursor) {
-    if (cursor == null) {
-      return 0;
-    }
-    try {
-      return ByteBuffer.wrap(Base64.getDecoder().decode(cursor)).getInt();
-    } catch (Exception _) {
-      throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "Invalid cursor");
-    }
-  }
-
-  private record Page<T>(List<T> items, String nextCursor) {}
 }

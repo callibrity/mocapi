@@ -21,9 +21,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.model.Implementation;
-import com.callibrity.mocapi.model.InitializeResult;
-import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcCall;
@@ -39,7 +36,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,60 +47,49 @@ class DefaultMcpServerTest {
   @Mock private JsonRpcDispatcher dispatcher;
   @Mock private McpResponseCorrelationService correlationService;
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-  private final InitializeResult initializeResult =
-      new InitializeResult(
-          PROTOCOL_VERSION,
-          new ServerCapabilities(null, null, null, null, null),
-          new Implementation("mocapi", null, "1.0"),
-          null);
-
   private DefaultMcpServer protocol;
   private CapturingTransport transport;
 
   @BeforeEach
   void setUp() {
-    protocol =
-        new DefaultMcpServer(
-            sessionService, initializeResult, objectMapper, dispatcher, correlationService);
+    protocol = new DefaultMcpServer(sessionService, dispatcher, correlationService);
     transport = new CapturingTransport();
   }
 
   @Test
-  void initializeCreatesSessionEmitsEventAndSendsResult() {
-    when(sessionService.create(any(McpSession.class))).thenReturn("new-session-id");
-
-    var params =
-        objectMapper.valueToTree(
-            new java.util.LinkedHashMap<>() {
-              {
-                put("protocolVersion", PROTOCOL_VERSION);
-                put("capabilities", new java.util.LinkedHashMap<>());
-                put(
-                    "clientInfo",
-                    new java.util.LinkedHashMap<>() {
-                      {
-                        put("name", "test-client");
-                        put("version", "1.0");
-                      }
-                    });
-              }
+  void initializeCallIsDispatchedWithTransportBound() {
+    JsonRpcResult dispatchResult =
+        new JsonRpcResult(
+            JsonNodeFactory.instance.objectNode().put("protocolVersion", PROTOCOL_VERSION),
+            JsonNodeFactory.instance.numberNode(1));
+    when(dispatcher.dispatch(any(JsonRpcCall.class)))
+        .thenAnswer(
+            _ -> {
+              assertThat(McpTransport.CURRENT.isBound()).isTrue();
+              assertThat(McpTransport.CURRENT.get()).isSameAs(transport);
+              assertThat(McpSession.CURRENT.isBound()).isFalse();
+              return dispatchResult;
             });
-    JsonRpcCall call = JsonRpcCall.of("initialize", params, JsonNodeFactory.instance.numberNode(1));
+
+    JsonRpcCall call = JsonRpcCall.of("initialize", null, JsonNodeFactory.instance.numberNode(1));
 
     protocol.handleCall(noSessionContext(), call, transport);
 
-    assertThat(transport.events()).hasSize(1);
-    McpEvent.SessionInitialized event = (McpEvent.SessionInitialized) transport.events().getFirst();
-    assertThat(event.sessionId()).isEqualTo("new-session-id");
-    assertThat(event.protocolVersion()).isEqualTo(PROTOCOL_VERSION);
-
+    verify(dispatcher).dispatch(call);
     assertThat(transport.messages()).hasSize(1);
-    assertThat(transport.messages().getFirst()).isInstanceOf(JsonRpcResult.class);
-    JsonRpcResult result = (JsonRpcResult) transport.messages().getFirst();
-    assertThat(result.result().path("protocolVersion").asString()).isEqualTo(PROTOCOL_VERSION);
+    assertThat(transport.messages().getFirst()).isSameAs(dispatchResult);
+  }
 
-    verifyNoInteractions(dispatcher);
+  @Test
+  void initializeCallDoesNotRequireSessionId() {
+    when(dispatcher.dispatch(any(JsonRpcCall.class))).thenReturn(null);
+
+    JsonRpcCall call = JsonRpcCall.of("initialize", null, JsonNodeFactory.instance.numberNode(1));
+
+    protocol.handleCall(noSessionContext(), call, transport);
+
+    verify(dispatcher).dispatch(call);
+    verifyNoInteractions(sessionService);
   }
 
   @Test

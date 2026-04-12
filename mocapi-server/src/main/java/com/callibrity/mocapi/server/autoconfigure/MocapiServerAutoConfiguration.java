@@ -15,17 +15,11 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
-import com.callibrity.mocapi.model.CompletionsCapability;
 import com.callibrity.mocapi.model.Implementation;
-import com.callibrity.mocapi.model.InitializeResult;
-import com.callibrity.mocapi.model.LoggingCapability;
-import com.callibrity.mocapi.model.PromptsCapability;
-import com.callibrity.mocapi.model.ResourcesCapability;
-import com.callibrity.mocapi.model.ServerCapabilities;
-import com.callibrity.mocapi.model.ToolsCapability;
 import com.callibrity.mocapi.server.DefaultMcpServer;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.logging.McpLoggingService;
 import com.callibrity.mocapi.server.ping.McpPingService;
@@ -37,7 +31,6 @@ import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.session.AtomMcpSessionStore;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.server.session.McpSessionStore;
-import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -65,22 +58,9 @@ public class MocapiServerAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public InitializeResult mcpProtocolInitializeResult(
-      McpToolsService toolsService,
-      McpResourcesService resourcesService,
-      McpPromptsService promptsService,
-      @Nullable BuildProperties buildProperties) {
+  public Implementation mcpServerInfo(@Nullable BuildProperties buildProperties) {
     String version = buildProperties != null ? buildProperties.getVersion() : "unknown";
-    ToolsCapability tools = toolsService.isEmpty() ? null : new ToolsCapability(false);
-    ResourcesCapability resources =
-        resourcesService.isEmpty() ? null : new ResourcesCapability(false, false);
-    PromptsCapability prompts = promptsService.isEmpty() ? null : new PromptsCapability(false);
-    return new InitializeResult(
-        InitializeResult.PROTOCOL_VERSION,
-        new ServerCapabilities(
-            tools, new LoggingCapability(), new CompletionsCapability(), resources, prompts),
-        new Implementation(props.getServerName(), props.getServerTitle(), version),
-        props.getInstructions());
+    return new Implementation(props.getServerName(), props.getServerTitle(), version);
   }
 
   @Bean
@@ -91,8 +71,12 @@ public class MocapiServerAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(McpSessionService.class)
-  public McpSessionService mcpProtocolSessionService(McpSessionStore store) {
-    return new McpSessionService(store, props.getSessionTimeout());
+  public McpSessionService mcpProtocolSessionService(
+      McpSessionStore store,
+      Implementation serverInfo,
+      List<ServerCapabilitiesContributor> contributors) {
+    return new McpSessionService(
+        store, props.getSessionTimeout(), serverInfo, props.getInstructions(), contributors);
   }
 
   @Bean
@@ -107,12 +91,9 @@ public class MocapiServerAutoConfiguration {
   @ConditionalOnMissingBean(McpServer.class)
   public DefaultMcpServer mcpProtocol(
       McpSessionService sessionService,
-      InitializeResult initializeResult,
-      ObjectMapper objectMapper,
       JsonRpcDispatcher dispatcher,
       McpResponseCorrelationService correlationService) {
-    return new DefaultMcpServer(
-        sessionService, initializeResult, objectMapper, dispatcher, correlationService);
+    return new DefaultMcpServer(sessionService, dispatcher, correlationService);
   }
 
   @Bean

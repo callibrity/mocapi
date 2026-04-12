@@ -96,12 +96,11 @@ class ToolsCallInteractiveComplianceTest {
             MAPPER,
             mock(McpResponseCorrelationService.class));
 
-    var dispatcher = buildDispatcher(MAPPER, toolsService);
     server =
         buildServer(
             sessionStore,
             new ServerCapabilities(new ToolsCapability(null), null, null, null, null),
-            dispatcher);
+            toolsService);
   }
 
   @Test

@@ -42,13 +42,11 @@ class CompletionComplianceTest {
 
   @BeforeEach
   void setUp() {
-    var service = new McpCompletionsService();
-    var dispatcher = buildDispatcher(MAPPER, service);
     server =
         buildServer(
             inMemorySessionStore(),
             new ServerCapabilities(null, null, new CompletionsCapability(), null, null),
-            dispatcher);
+            new McpCompletionsService());
   }
 
   @Test

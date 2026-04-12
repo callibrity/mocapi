@@ -17,14 +17,8 @@ package com.callibrity.mocapi.server.autoconfigure;
 
 import com.callibrity.mocapi.server.session.AtomMcpSessionStore;
 import com.callibrity.mocapi.server.session.McpSessionStore;
+import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import java.time.Duration;
-import org.jwcarman.codec.jackson.JacksonCodecFactory;
-import org.jwcarman.substrate.core.atom.DefaultAtomFactory;
-import org.jwcarman.substrate.core.lifecycle.ShutdownCoordinator;
-import org.jwcarman.substrate.core.memory.atom.InMemoryAtomSpi;
-import org.jwcarman.substrate.core.memory.notifier.InMemoryNotifier;
-import org.jwcarman.substrate.core.notifier.DefaultNotifier;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Creates a real {@link McpSessionStore} backed by in-memory substrate primitives for testing. Same
@@ -34,16 +28,7 @@ public final class SessionStoreTestSupport {
 
   private SessionStoreTestSupport() {}
 
-  public static McpSessionStore inMemory(ObjectMapper objectMapper) {
-    var codecFactory = new JacksonCodecFactory(objectMapper);
-    var notifier = new DefaultNotifier(new InMemoryNotifier(), codecFactory);
-    var atomFactory =
-        new DefaultAtomFactory(
-            new InMemoryAtomSpi(),
-            codecFactory,
-            notifier,
-            Duration.ofHours(1),
-            new ShutdownCoordinator());
-    return new AtomMcpSessionStore(atomFactory, Duration.ofHours(1));
+  public static McpSessionStore create() {
+    return new AtomMcpSessionStore(SubstrateTestSupport.atomFactory(), Duration.ofHours(1));
   }
 }

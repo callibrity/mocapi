@@ -28,6 +28,7 @@ import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
 import com.callibrity.mocapi.server.autoconfigure.SessionStoreTestSupport;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.server.session.McpSessionStore;
@@ -70,26 +71,42 @@ final class ComplianceTestSupport {
     return new DefaultJsonRpcDispatcher(providers);
   }
 
+  // --- Session service ---
+
+  static McpSessionService buildSessionService(
+      McpSessionStore store, ServerCapabilities capabilities) {
+    return new McpSessionService(
+        store,
+        Duration.ofHours(1),
+        new Implementation("test-server", "Test Server", "1.0.0"),
+        null,
+        capabilitiesContributors(capabilities));
+  }
+
   // --- Server ---
+
+  static McpServer buildServer(
+      McpSessionService sessionService,
+      McpResponseCorrelationService correlationService,
+      Object... services) {
+    Object[] allServices = new Object[services.length + 1];
+    allServices[0] = sessionService;
+    System.arraycopy(services, 0, allServices, 1, services.length);
+    var dispatcher = buildDispatcher(MAPPER, allServices);
+    return new DefaultMcpServer(sessionService, dispatcher, correlationService);
+  }
 
   static McpServer buildServer(
       McpSessionStore store,
       ServerCapabilities capabilities,
-      JsonRpcDispatcher dispatcher,
-      McpResponseCorrelationService correlationService) {
-    var sessionService = new McpSessionService(store, Duration.ofHours(1));
-    var initResult =
-        new InitializeResult(
-            PROTOCOL_VERSION,
-            capabilities,
-            new Implementation("test-server", "Test Server", "1.0.0"),
-            null);
-    return new DefaultMcpServer(sessionService, initResult, MAPPER, dispatcher, correlationService);
+      McpResponseCorrelationService correlationService,
+      Object... services) {
+    return buildServer(buildSessionService(store, capabilities), correlationService, services);
   }
 
   static McpServer buildServer(
-      McpSessionStore store, ServerCapabilities capabilities, JsonRpcDispatcher dispatcher) {
-    return buildServer(store, capabilities, dispatcher, mock(McpResponseCorrelationService.class));
+      McpSessionStore store, ServerCapabilities capabilities, Object... services) {
+    return buildServer(store, capabilities, mock(McpResponseCorrelationService.class), services);
   }
 
   // --- Context ---
@@ -179,7 +196,21 @@ final class ComplianceTestSupport {
   // --- Session store (real implementation with in-memory substrate) ---
 
   static McpSessionStore inMemorySessionStore() {
-    return SessionStoreTestSupport.inMemory(MAPPER);
+    return SessionStoreTestSupport.create();
+  }
+
+  // --- Capabilities contributors ---
+
+  private static List<ServerCapabilitiesContributor> capabilitiesContributors(
+      ServerCapabilities capabilities) {
+    return List.of(
+        builder -> {
+          if (capabilities.tools() != null) builder.tools(capabilities.tools());
+          if (capabilities.resources() != null) builder.resources(capabilities.resources());
+          if (capabilities.prompts() != null) builder.prompts(capabilities.prompts());
+          if (capabilities.logging() != null) builder.logging(capabilities.logging());
+          if (capabilities.completions() != null) builder.completions(capabilities.completions());
+        });
   }
 
   // --- ID generation ---
