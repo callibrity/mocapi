@@ -36,5 +36,6 @@
         <module>redis</module>
         <module>hazelcast</module>
         <module>postgresql</module>
+        <module>nats</module>
     </modules>
 </project>
