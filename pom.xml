@@ -63,6 +63,7 @@
         <module>mocapi-hazelcast-spring-boot-starter</module>
         <module>mocapi-postgresql-spring-boot-starter</module>
         <module>mocapi-aws-spring-boot-starter</module>
+        <module>mocapi-transport-streamable-http</module>
     </modules>
 
     <properties>

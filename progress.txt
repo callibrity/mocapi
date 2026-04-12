@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T09:50:32-04:00
-ITERATION: 63
-SPEC_COMPLETED: 148h-refactor-mcpprotocol-interface.md
-WHAT_WAS_DONE: Refactored McpProtocol interface from a single handle(McpContext, JsonRpcMessage, McpTransport) method to three explicit message-type methods: handleCall(McpContext, JsonRpcCall, McpTransport), handleNotification(McpContext, JsonRpcNotification), handleResponse(McpContext, JsonRpcResponse), plus terminate(String sessionId). Updated DefaultMcpProtocol to implement the new interface — promoted private methods to public @Override, removed McpTransport binding from notification handling (no notification handler uses it), added handleResponse delegating to correlation service, and added terminate delegating to sessionService.delete(). Updated all tests to call the typed methods directly and added a terminateDeletesSession test.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 17 modules passed (11 DefaultMcpProtocolTest tests including new terminateDeletesSession test; mocapi-core unchanged; all other modules pass)
+LAST_RUN: 2026-04-12T10:03:49-04:00
+ITERATION: 64
+SPEC_COMPLETED: 148i-transport-streamable-http-module.md
+WHAT_WAS_DONE: Created the mocapi-transport-streamable-http module with SynchronousTransport (buffers single response, captures SessionInitialized for MCP-Session-Id header), OdysseyTransport (wraps OdysseyPublisher<JsonRpcMessage>, auto-completes on response), StreamableHttpController (thin HTTP adapter delegating to McpProtocol — POST without session uses SynchronousTransport for JSON, POST with session uses OdysseyTransport + virtual thread for SSE, GET subscribes to notification channel, DELETE delegates to protocol.terminate()), McpRequestValidator (header validation), Ciphers (AES-GCM encryption duplicated from core), and encrypting SseEventMapper for session-bound encrypted event IDs.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 18 modules passed (31 new tests: 6 SynchronousTransportTest, 5 OdysseyTransportTest, 20 StreamableHttpControllerTest covering initialize JSON response, SSE for session calls, 202 for notifications/responses, GET subscription, GET resume with encrypted Last-Event-ID, DELETE termination, and header validation)
 STATUS: MORE_WORK
-NEXT_SPEC: 148i-transport-streamable-http-module.md
-NOTES: handleNotification no longer binds McpTransport.CURRENT to ScopedValue since no notification handler reads it. Only handleCall binds the transport. The terminate method simply delegates to sessionService.delete() — future specs may add event emission (SessionTerminated) if needed.
+NEXT_SPEC: 148j-wire-starter-and-autoconfig.md
+NOTES: Ciphers was duplicated from mocapi-core into the transport module (package-private) since we cannot modify or depend on mocapi-core. McpRequestValidator was also duplicated. The controller uses protocol-layer McpSessionService for session validation on GET. The notification channel stream name is the session ID. OdysseyTransport creates a UUID-named ephemeral stream per POST request. Session validation for POST is done by the protocol, not the controller.
