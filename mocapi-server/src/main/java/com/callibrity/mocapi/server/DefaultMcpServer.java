@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.server;
 
+import static com.callibrity.mocapi.model.McpMethods.INITIALIZE;
+
 import com.callibrity.mocapi.model.InitializeRequestParams;
 import com.callibrity.mocapi.model.InitializeResult;
 import com.callibrity.mocapi.server.session.McpSession;
@@ -28,8 +30,6 @@ import tools.jackson.databind.ObjectMapper;
 
 /** Default {@link McpServer} that handles session lifecycle and JSON-RPC dispatch. */
 public class DefaultMcpServer implements McpServer {
-
-  private static final String INITIALIZE = "initialize";
 
   private final McpSessionService sessionService;
   private final InitializeResult initializeResult;

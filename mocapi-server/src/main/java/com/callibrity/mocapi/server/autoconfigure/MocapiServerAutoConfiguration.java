@@ -34,6 +34,7 @@ import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourceProvider;
 import com.callibrity.mocapi.server.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
+import com.callibrity.mocapi.server.session.AtomMcpSessionStore;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.mocapi.server.tools.McpToolsService;
@@ -85,7 +86,7 @@ public class MocapiServerAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(McpSessionStore.class)
   public McpSessionStore mcpProtocolSessionStore(AtomFactory atomFactory) {
-    return new SubstrateAtomMcpSessionStore(atomFactory, props.getSessionTimeout());
+    return new AtomMcpSessionStore(atomFactory, props.getSessionTimeout());
   }
 
   @Bean

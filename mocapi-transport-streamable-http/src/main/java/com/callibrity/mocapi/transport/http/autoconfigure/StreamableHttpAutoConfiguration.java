@@ -18,7 +18,6 @@ package com.callibrity.mocapi.transport.http.autoconfigure;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerProperties;
-import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.transport.http.McpRequestValidator;
 import com.callibrity.mocapi.transport.http.StreamableHttpController;
 import java.util.Base64;
@@ -50,11 +49,9 @@ public class StreamableHttpAutoConfiguration {
   public StreamableHttpController mcpProtocolStreamableHttpController(
       McpServer protocol,
       McpRequestValidator validator,
-      McpSessionService sessionService,
       Odyssey odyssey,
       ObjectMapper objectMapper) {
     byte[] masterKey = Base64.getDecoder().decode(props.getSessionEncryptionMasterKey());
-    return new StreamableHttpController(
-        protocol, validator, sessionService, odyssey, objectMapper, masterKey);
+    return new StreamableHttpController(protocol, validator, odyssey, objectMapper, masterKey);
   }
 }

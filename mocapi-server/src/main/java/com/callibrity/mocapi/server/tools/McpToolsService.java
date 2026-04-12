@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.server.tools;
 
+import static com.callibrity.mocapi.model.McpMethods.TOOLS_LIST;
 import static java.util.Optional.ofNullable;
 
 import com.callibrity.mocapi.model.CallToolRequestParams;
@@ -87,7 +88,7 @@ public class McpToolsService {
     this.pageSize = pageSize;
   }
 
-  @JsonRpcMethod("tools/list")
+  @JsonRpcMethod(TOOLS_LIST)
   public ListToolsResult listTools(@JsonRpcParams PaginatedRequestParams params) {
     var page = paginate(sortedDescriptors, params);
     return new ListToolsResult(page.items(), page.nextCursor());

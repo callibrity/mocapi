@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.autoconfigure;
+package com.callibrity.mocapi.server.session;
 
-import com.callibrity.mocapi.server.session.McpSession;
-import com.callibrity.mocapi.server.session.McpSessionStore;
 import java.time.Duration;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +22,7 @@ import org.jwcarman.substrate.atom.AtomExpiredException;
 import org.jwcarman.substrate.atom.AtomFactory;
 
 @RequiredArgsConstructor
-class SubstrateAtomMcpSessionStore implements McpSessionStore {
+public class AtomMcpSessionStore implements McpSessionStore {
 
   private final AtomFactory atomFactory;
   private final Duration sessionTimeout;
