@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T09:21:25-04:00
-ITERATION: 59
-SPEC_COMPLETED: 148d-protocol-tools-support.md
-WHAT_WAS_DONE: Added tool registration and dispatch to mocapi-protocol: McpTool/McpToolProvider interfaces, McpToolsService (@JsonRpcService with tools/list and tools/call), McpToolContext<R> interface with DefaultMcpToolContext (sendProgress, log, sendResult via McpTransport; elicit/sample throw UnsupportedOperationException), @ToolMethod/@ToolService/@McpToolParams annotations, AnnotationMcpTool with schema generation (VicTools), McpToolContextScopedValueResolver for Methodical parameter injection, Names/Parameters utilities. Added ScopedValue<McpTransport> CURRENT to McpTransport and bound it in DefaultMcpProtocol dispatch. Added dependencies: victools, json-skema, methodical-jackson3, commons-lang3, swagger-annotations, jakarta.validation, spring-context.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 17 modules passed (45 tests in mocapi-protocol: 14 McpToolsServiceTest + 15 AnnotationMcpToolTest + 10 DefaultMcpProtocolTest + 6 McpSessionServiceTest + DefaultMcpToolContextTest)
+LAST_RUN: 2026-04-12T09:27:53-04:00
+ITERATION: 60
+SPEC_COMPLETED: 148e-protocol-resources-support.md
+WHAT_WAS_DONE: Added resource registration and dispatch to mocapi-protocol: McpResource/McpResourceTemplate interfaces, McpResourceProvider/McpResourceTemplateProvider functional interfaces, McpResourcesService (@JsonRpcService with resources/list, resources/templates/list, resources/read, resources/subscribe, resources/unsubscribe). Subscription tracking via ConcurrentHashMap keyset. URI template matching via Spring UriTemplate (added spring-web dependency). Pagination uses same Base64-encoded cursor pattern as McpToolsService.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 17 modules passed (60 tests in mocapi-protocol: 15 McpResourcesServiceTest + 14 McpToolsServiceTest + 15 AnnotationMcpToolTest + 10 DefaultMcpProtocolTest + 6 McpSessionServiceTest)
 STATUS: MORE_WORK
-NEXT_SPEC: 148e-protocol-resources-support.md
-NOTES: McpToolContextScopedValueResolver MUST be registered before Jackson3ParameterResolver in the MethodInvokerFactory — Jackson's resolver is greedy and will try to deserialize McpToolContext from JSON args, returning null. This ordering requirement should be documented for the autoconfigure spec. McpTransport now has a CURRENT ScopedValue bound during dispatch in DefaultMcpProtocol. No mocapi-core files were modified.
+NEXT_SPEC: 148f-protocol-prompts-completions-logging.md
+NOTES: Added spring-web dependency to mocapi-protocol pom.xml for UriTemplate. No mocapi-core files were modified. The subscribe/unsubscribe methods register interest but do not deliver notifications (as spec requires — notification delivery is a transport concern).
