@@ -18,7 +18,7 @@ package com.callibrity.mocapi.transport.http;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.protocol.McpEvent;
+import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import org.junit.jupiter.api.Test;

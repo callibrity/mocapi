@@ -18,9 +18,9 @@ package com.callibrity.mocapi.examples.tools;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.RequestedSchema;
 import com.callibrity.mocapi.model.StringSchema;
-import com.callibrity.mocapi.protocol.tools.McpToolContext;
-import com.callibrity.mocapi.protocol.tools.annotation.ToolMethod;
-import com.callibrity.mocapi.protocol.tools.annotation.ToolService;
+import com.callibrity.mocapi.server.tools.McpToolContext;
+import com.callibrity.mocapi.server.tools.annotation.ToolMethod;
+import com.callibrity.mocapi.server.tools.annotation.ToolService;
 import java.util.LinkedHashMap;
 import java.util.List;
 

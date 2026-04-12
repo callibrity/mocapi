@@ -15,10 +15,10 @@
  */
 package com.callibrity.mocapi.compat;
 
-import com.callibrity.mocapi.protocol.tools.McpToolContext;
-import com.callibrity.mocapi.protocol.tools.annotation.McpToolParams;
-import com.callibrity.mocapi.protocol.tools.annotation.ToolMethod;
-import com.callibrity.mocapi.protocol.tools.annotation.ToolService;
+import com.callibrity.mocapi.server.tools.McpToolContext;
+import com.callibrity.mocapi.server.tools.annotation.McpToolParams;
+import com.callibrity.mocapi.server.tools.annotation.ToolMethod;
+import com.callibrity.mocapi.server.tools.annotation.ToolService;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.Map;

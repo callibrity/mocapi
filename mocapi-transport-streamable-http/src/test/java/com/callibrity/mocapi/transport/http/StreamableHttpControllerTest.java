@@ -23,12 +23,12 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.protocol.McpContext;
-import com.callibrity.mocapi.protocol.McpEvent;
-import com.callibrity.mocapi.protocol.McpProtocol;
-import com.callibrity.mocapi.protocol.McpTransport;
-import com.callibrity.mocapi.protocol.session.McpSession;
-import com.callibrity.mocapi.protocol.session.McpSessionService;
+import com.callibrity.mocapi.server.McpContext;
+import com.callibrity.mocapi.server.McpEvent;
+import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.session.McpSession;
+import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.security.SecureRandom;
@@ -57,7 +57,7 @@ class StreamableHttpControllerTest {
   private static final String POST_ACCEPT = "application/json, text/event-stream";
   private static final String SSE_ACCEPT = "text/event-stream";
 
-  @Mock private McpProtocol protocol;
+  @Mock private McpServer protocol;
   @Mock private McpSessionService sessionService;
   @Mock private Odyssey odyssey;
   @Mock private OdysseyPublisher<JsonRpcMessage> publisher;

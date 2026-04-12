@@ -15,8 +15,8 @@
  */
 package com.callibrity.mocapi.transport.http;
 
-import com.callibrity.mocapi.protocol.McpEvent;
-import com.callibrity.mocapi.protocol.McpTransport;
+import com.callibrity.mocapi.server.McpEvent;
+import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import java.util.ArrayList;

@@ -17,9 +17,9 @@ package com.callibrity.mocapi.transport.http;
 
 import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
 
-import com.callibrity.mocapi.protocol.McpContext;
-import com.callibrity.mocapi.protocol.McpProtocol;
-import com.callibrity.mocapi.protocol.session.McpSessionService;
+import com.callibrity.mocapi.server.McpContext;
+import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
@@ -49,14 +49,14 @@ import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Thin HTTP adapter for the MCP Streamable HTTP transport. Delegates all protocol logic to {@link
- * McpProtocol} and handles only HTTP/SSE transport concerns.
+ * McpServer} and handles only HTTP/SSE transport concerns.
  */
 @Slf4j
 @RestController
 @RequestMapping("${mocapi.endpoint:/mcp}")
 public class StreamableHttpController {
 
-  private final McpProtocol protocol;
+  private final McpServer protocol;
   private final McpRequestValidator validator;
   private final McpSessionService sessionService;
   private final Odyssey odyssey;
@@ -64,7 +64,7 @@ public class StreamableHttpController {
   private final byte[] masterKey;
 
   public StreamableHttpController(
-      McpProtocol protocol,
+      McpServer protocol,
       McpRequestValidator validator,
       McpSessionService sessionService,
       Odyssey odyssey,

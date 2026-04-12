@@ -15,10 +15,10 @@
  */
 package com.callibrity.mocapi.transport.http.autoconfigure;
 
-import com.callibrity.mocapi.protocol.McpProtocol;
-import com.callibrity.mocapi.protocol.autoconfigure.MocapiProtocolAutoConfiguration;
-import com.callibrity.mocapi.protocol.autoconfigure.MocapiProtocolProperties;
-import com.callibrity.mocapi.protocol.session.McpSessionService;
+import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
+import com.callibrity.mocapi.server.autoconfigure.MocapiServerProperties;
+import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.transport.http.McpRequestValidator;
 import com.callibrity.mocapi.transport.http.StreamableHttpController;
 import java.util.Base64;
@@ -31,13 +31,13 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import tools.jackson.databind.ObjectMapper;
 
-@AutoConfiguration(after = MocapiProtocolAutoConfiguration.class)
-@ConditionalOnBean(McpProtocol.class)
-@EnableConfigurationProperties(MocapiProtocolProperties.class)
+@AutoConfiguration(after = MocapiServerAutoConfiguration.class)
+@ConditionalOnBean(McpServer.class)
+@EnableConfigurationProperties(MocapiServerProperties.class)
 @RequiredArgsConstructor
 public class StreamableHttpAutoConfiguration {
 
-  private final MocapiProtocolProperties props;
+  private final MocapiServerProperties props;
 
   @Bean
   @ConditionalOnMissingBean(McpRequestValidator.class)
@@ -48,7 +48,7 @@ public class StreamableHttpAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(StreamableHttpController.class)
   public StreamableHttpController mcpProtocolStreamableHttpController(
-      McpProtocol protocol,
+      McpServer protocol,
       McpRequestValidator validator,
       McpSessionService sessionService,
       Odyssey odyssey,

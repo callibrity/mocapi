@@ -54,7 +54,7 @@
 
     <modules>
         <module>mocapi-model</module>
-        <module>mocapi-protocol</module>
+        <module>mocapi-server</module>
         <module>mocapi-spring-boot-starter</module>
         <module>examples</module>
         <module>mocapi-compat</module>

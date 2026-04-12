@@ -31,7 +31,7 @@ import org.springframework.core.env.MapPropertySource;
  * configured.
  *
  * <p>Implemented as an {@link EnvironmentPostProcessor} because {@link
- * com.callibrity.mocapi.protocol.autoconfigure.MocapiProtocolProperties} binding happens before any
+ * com.callibrity.mocapi.server.autoconfigure.MocapiServerProperties} binding happens before any
  * {@code @AutoConfiguration} class executes — a {@code @Bean} method or {@code @PostConstruct}
  * would fire too late.
  *

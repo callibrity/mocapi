@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T12:00:00-04:00
-ITERATION: 67
-SPEC_COMPLETED: none
-WHAT_WAS_DONE: Human resolved blocker — rewrote remaining specs as 149a-149e with precise architecture decisions. Key decisions made: (1) Rename mocapi-protocol → mocapi-server, McpProtocol → McpServer. (2) Always-SSE for post-initialize calls — transport type determined solely by presence/absence of MCP-Session-Id header. No header → SynchronousTransport (JSON). Has header → OdysseyTransport (SSE + virtual thread). (3) Delete BufferingTransport. (4) McpServer interface has handleCall(context, call, transport), handleNotification(context, notification), handleResponse(context, response), terminate(sessionId). Only handleCall takes a transport. (5) Three tool invocation types: direct return, void return, interactive (McpToolContext param). Tools always return values — no sendResult(). (6) McpToolContext is a thin wrapper around McpTransport for mid-execution comms (sendProgress, log, elicit, sample). (7) Error handling: JsonRpcException → JsonRpcError (protocol failure). Other exceptions → CallToolResult(isError=true) (tool failure). (8) Delete isStreamable/isInteractive — every tool invoked identically. (9) Virtual thread dispatch is a transport concern, not server concern — McpServer is purely synchronous code.
-VERIFICATION: n/a
+LAST_RUN: 2026-04-12T13:15:00-04:00
+ITERATION: 68
+SPEC_COMPLETED: 149a-rename-protocol-to-server.md
+WHAT_WAS_DONE: Renamed mocapi-protocol module to mocapi-server, McpProtocol interface to McpServer, DefaultMcpProtocol to DefaultMcpServer, all sub-packages from protocol to server, all autoconfigure classes, properties files, and updated all references across the entire reactor (transport, compat, examples, starter).
+VERIFICATION: mvn compile — BUILD SUCCESS across all modules. No references to mocapi-protocol, McpProtocol, or com.callibrity.mocapi.protocol remain in any source file.
 STATUS: MORE_WORK
-NEXT_SPEC: 149a-rename-protocol-to-server.md
-NOTES: Ralph completed 148a-148j (protocol module with full MCP support + transport module + auto-config wiring). mocapi-core still exists but will be deleted in 149e. The 25 compat IT failures from the prior run are caused by the synchronous BufferingTransport deadlock — 149b fixes this with always-SSE + OdysseyTransport + virtual thread. Execute specs in order: 149a (rename), 149b (fix transport), 149c (fix tool model), 149d (fix compat tests), 149e (delete core). Each spec has exact code examples — follow them precisely, do not improvise alternative approaches.
+NEXT_SPEC: 149b-fix-transport-always-sse.md
+NOTES: Pure rename completed. McpServer interface has exactly handleCall, handleNotification, handleResponse, terminate — matching the spec's required shape. Spotless was applied after rename to fix import ordering. mocapi-core does not exist (was removed in earlier iterations). The old protocol directories were cleaned up.
