@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T09:27:53-04:00
-ITERATION: 60
-SPEC_COMPLETED: 148e-protocol-resources-support.md
-WHAT_WAS_DONE: Added resource registration and dispatch to mocapi-protocol: McpResource/McpResourceTemplate interfaces, McpResourceProvider/McpResourceTemplateProvider functional interfaces, McpResourcesService (@JsonRpcService with resources/list, resources/templates/list, resources/read, resources/subscribe, resources/unsubscribe). Subscription tracking via ConcurrentHashMap keyset. URI template matching via Spring UriTemplate (added spring-web dependency). Pagination uses same Base64-encoded cursor pattern as McpToolsService.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 17 modules passed (60 tests in mocapi-protocol: 15 McpResourcesServiceTest + 14 McpToolsServiceTest + 15 AnnotationMcpToolTest + 10 DefaultMcpProtocolTest + 6 McpSessionServiceTest)
+LAST_RUN: 2026-04-12T09:32:03-04:00
+ITERATION: 61
+SPEC_COMPLETED: 148f-protocol-prompts-completions-logging.md
+WHAT_WAS_DONE: Added McpPromptsService (prompts/list, prompts/get with pagination), McpCompletionsService (completion/complete returning empty completion), McpLoggingService (logging/setLevel delegating to McpSessionService via ScopedValue), and McpPingService (ping returning EmptyResult). Created McpPrompt/McpPromptProvider interfaces following the same pattern as McpResource/McpResourceProvider. All four services are @JsonRpcService classes in their own packages under mocapi-protocol.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 17 modules passed (74 tests in mocapi-protocol: 13 McpPromptsServiceTest + 15 McpResourcesServiceTest + 14 McpToolsServiceTest + 15 AnnotationMcpToolTest + 1 DefaultMcpToolContextTest + 1 McpCompletionsServiceTest + 1 McpLoggingServiceTest + 1 McpPingServiceTest + 10 DefaultMcpProtocolTest + 6 McpSessionServiceTest)
 STATUS: MORE_WORK
-NEXT_SPEC: 148f-protocol-prompts-completions-logging.md
-NOTES: Added spring-web dependency to mocapi-protocol pom.xml for UriTemplate. No mocapi-core files were modified. The subscribe/unsubscribe methods register interest but do not deliver notifications (as spec requires — notification delivery is a transport concern).
+NEXT_SPEC: 148g-protocol-response-correlation.md
+NOTES: No mocapi-core files were modified. The completion/complete handler returns an empty Completion (no values, total=0, hasMore=false) — actual completion logic can be plugged in later via a provider pattern if needed. McpLoggingService reads the current session from McpSession.CURRENT ScopedValue to get the session ID for setLogLevel.
