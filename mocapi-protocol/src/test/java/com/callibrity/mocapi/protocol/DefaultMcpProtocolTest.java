@@ -31,6 +31,7 @@ import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -91,7 +92,7 @@ class DefaultMcpProtocolTest {
             });
     JsonRpcCall call = JsonRpcCall.of("initialize", params, JsonNodeFactory.instance.numberNode(1));
 
-    protocol.handle(noSessionContext(), call, transport);
+    protocol.handleCall(noSessionContext(), call, transport);
 
     assertThat(transport.events()).hasSize(1);
     McpEvent.SessionInitialized event = (McpEvent.SessionInitialized) transport.events().getFirst();
@@ -110,7 +111,7 @@ class DefaultMcpProtocolTest {
   void nonInitializeCallWithoutSessionIdReturnsError() {
     JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(1));
 
-    protocol.handle(noSessionContext(), call, transport);
+    protocol.handleCall(noSessionContext(), call, transport);
 
     assertThat(transport.messages()).hasSize(1);
     assertThat(transport.messages().getFirst()).isInstanceOf(JsonRpcError.class);
@@ -127,7 +128,7 @@ class DefaultMcpProtocolTest {
 
     JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(1));
 
-    protocol.handle(sessionContext("unknown"), call, transport);
+    protocol.handleCall(sessionContext("unknown"), call, transport);
 
     assertThat(transport.messages()).hasSize(1);
     assertThat(transport.messages().getFirst()).isInstanceOf(JsonRpcError.class);
@@ -156,7 +157,7 @@ class DefaultMcpProtocolTest {
             JsonNodeFactory.instance.numberNode(2));
     when(dispatcher.dispatch(call)).thenReturn(dispatchResult);
 
-    protocol.handle(sessionContext("valid"), call, transport);
+    protocol.handleCall(sessionContext("valid"), call, transport);
 
     verify(dispatcher).dispatch(call);
     assertThat(transport.messages()).hasSize(1);
@@ -184,7 +185,7 @@ class DefaultMcpProtocolTest {
                   JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(3));
             });
 
-    protocol.handle(sessionContext("valid"), call, transport);
+    protocol.handleCall(sessionContext("valid"), call, transport);
 
     verify(dispatcher).dispatch(call);
   }
@@ -203,7 +204,7 @@ class DefaultMcpProtocolTest {
     JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(4));
     when(dispatcher.dispatch(call)).thenReturn(null);
 
-    protocol.handle(sessionContext("valid"), call, transport);
+    protocol.handleCall(sessionContext("valid"), call, transport);
 
     verify(dispatcher).dispatch(call);
     assertThat(transport.messages()).isEmpty();
@@ -224,10 +225,9 @@ class DefaultMcpProtocolTest {
         new JsonRpcNotification("2.0", "notifications/initialized", null);
     when(dispatcher.dispatch(notification)).thenReturn(null);
 
-    protocol.handle(sessionContext("valid"), notification, transport);
+    protocol.handleNotification(sessionContext("valid"), notification);
 
     verify(dispatcher).dispatch(notification);
-    assertThat(transport.messages()).isEmpty();
   }
 
   @Test
@@ -251,7 +251,7 @@ class DefaultMcpProtocolTest {
               return null;
             });
 
-    protocol.handle(sessionContext("valid"), notification, transport);
+    protocol.handleNotification(sessionContext("valid"), notification);
 
     verify(dispatcher).dispatch(notification);
   }
@@ -261,27 +261,31 @@ class DefaultMcpProtocolTest {
     JsonRpcNotification notification =
         new JsonRpcNotification("2.0", "notifications/initialized", null);
 
-    protocol.handle(noSessionContext(), notification, transport);
-
-    assertThat(transport.messages()).isEmpty();
-    assertThat(transport.events()).isEmpty();
+    protocol.handleNotification(noSessionContext(), notification);
 
     verifyNoInteractions(dispatcher);
   }
 
   @Test
   void responseMessagesAreDeliveredToCorrelationService() {
-    JsonRpcResult response =
+    JsonRpcResponse response =
         new JsonRpcResult(
             JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(1));
 
-    protocol.handle(noSessionContext(), response, transport);
+    protocol.handleResponse(noSessionContext(), response);
 
     verify(correlationService).deliver(response);
-    assertThat(transport.messages()).isEmpty();
-    assertThat(transport.events()).isEmpty();
 
     verifyNoInteractions(dispatcher);
+  }
+
+  @Test
+  void terminateDeletesSession() {
+    protocol.terminate("session-to-delete");
+
+    verify(sessionService).delete("session-to-delete");
+    verifyNoInteractions(dispatcher);
+    verifyNoInteractions(correlationService);
   }
 
   private static McpContext noSessionContext() {

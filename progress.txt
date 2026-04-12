@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T09:44:38-04:00
-ITERATION: 62
-SPEC_COMPLETED: 148g-protocol-response-correlation.md
-WHAT_WAS_DONE: Added Mailbox-based response correlation to the protocol module. Created McpResponseCorrelationService using Substrate MailboxFactory for UUID-keyed request/response pairing. Updated DefaultMcpProtocol.handle() to deliver JsonRpcResponse messages to the correlation service instead of ignoring them. Replaced McpToolContext.elicit()/sample() placeholder methods with real implementations that delegate through the correlation service. Updated DefaultMcpToolContext, McpToolsService, and all existing tests to wire through the new correlation service.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 17 modules passed (78 tests in mocapi-protocol: 4 McpResponseCorrelationServiceTest + 10 DefaultMcpProtocolTest + 10 DefaultMcpToolContextTest + 14 McpToolsServiceTest + 15 AnnotationMcpToolTest + 13 McpPromptsServiceTest + 15 McpResourcesServiceTest + 6 McpSessionServiceTest + 1 McpCompletionsServiceTest + 1 McpLoggingServiceTest + 1 McpPingServiceTest = 78 total; mocapi-core, mocapi-example, starters, and compatibility tests all pass)
+LAST_RUN: 2026-04-12T09:50:32-04:00
+ITERATION: 63
+SPEC_COMPLETED: 148h-refactor-mcpprotocol-interface.md
+WHAT_WAS_DONE: Refactored McpProtocol interface from a single handle(McpContext, JsonRpcMessage, McpTransport) method to three explicit message-type methods: handleCall(McpContext, JsonRpcCall, McpTransport), handleNotification(McpContext, JsonRpcNotification), handleResponse(McpContext, JsonRpcResponse), plus terminate(String sessionId). Updated DefaultMcpProtocol to implement the new interface — promoted private methods to public @Override, removed McpTransport binding from notification handling (no notification handler uses it), added handleResponse delegating to correlation service, and added terminate delegating to sessionService.delete(). Updated all tests to call the typed methods directly and added a terminateDeletesSession test.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 17 modules passed (11 DefaultMcpProtocolTest tests including new terminateDeletesSession test; mocapi-core unchanged; all other modules pass)
 STATUS: MORE_WORK
-NEXT_SPEC: 148h-refactor-mcpprotocol-interface.md
-NOTES: Added substrate-core dependency to mocapi-protocol pom.xml. Added codec-jackson as test-scoped dependency for in-memory mailbox test wiring. McpToolContext interface now uses typed parameters (ElicitRequestFormParams, CreateMessageRequestParams) and typed returns (ElicitResult, CreateMessageResult) instead of the old String/Object placeholders. The correlation service uses a 5-minute mailbox TTL by default. DefaultMcpToolContext wraps TimeoutException in RuntimeException for the interface contract.
+NEXT_SPEC: 148i-transport-streamable-http-module.md
+NOTES: handleNotification no longer binds McpTransport.CURRENT to ScopedValue since no notification handler reads it. Only handleCall binds the transport. The terminate method simply delegates to sessionService.delete() — future specs may add event emission (SessionTerminated) if needed.

@@ -21,7 +21,6 @@ import com.callibrity.mocapi.protocol.session.McpSession;
 import com.callibrity.mocapi.protocol.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
-import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
@@ -52,16 +51,7 @@ public class DefaultMcpProtocol implements McpProtocol {
   }
 
   @Override
-  public void handle(McpContext context, JsonRpcMessage message, McpTransport transport) {
-    switch (message) {
-      case JsonRpcCall call -> handleCall(context, call, transport);
-      case JsonRpcNotification notification -> handleNotification(context, notification, transport);
-      case JsonRpcResponse response -> correlationService.deliver(response);
-      default -> {}
-    }
-  }
-
-  private void handleCall(McpContext context, JsonRpcCall call, McpTransport transport) {
+  public void handleCall(McpContext context, JsonRpcCall call, McpTransport transport) {
     if (INITIALIZE.equals(call.method())) {
       handleInitialize(call, transport);
       return;
@@ -85,8 +75,8 @@ public class DefaultMcpProtocol implements McpProtocol {
     }
   }
 
-  private void handleNotification(
-      McpContext context, JsonRpcNotification notification, McpTransport transport) {
+  @Override
+  public void handleNotification(McpContext context, JsonRpcNotification notification) {
     if (INITIALIZE.equals(notification.method())) {
       return;
     }
@@ -98,9 +88,17 @@ public class DefaultMcpProtocol implements McpProtocol {
       return;
     }
     McpSession session = sessionOpt.get();
-    ScopedValue.where(McpSession.CURRENT, session)
-        .where(McpTransport.CURRENT, transport)
-        .run(() -> dispatcher.dispatch(notification));
+    ScopedValue.where(McpSession.CURRENT, session).run(() -> dispatcher.dispatch(notification));
+  }
+
+  @Override
+  public void handleResponse(McpContext context, JsonRpcResponse response) {
+    correlationService.deliver(response);
+  }
+
+  @Override
+  public void terminate(String sessionId) {
+    sessionService.delete(sessionId);
   }
 
   private void handleInitialize(JsonRpcCall call, McpTransport transport) {

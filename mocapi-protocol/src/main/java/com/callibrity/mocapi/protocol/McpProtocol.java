@@ -15,8 +15,17 @@
  */
 package com.callibrity.mocapi.protocol;
 
-import com.callibrity.ripcurl.core.JsonRpcMessage;
+import com.callibrity.ripcurl.core.JsonRpcCall;
+import com.callibrity.ripcurl.core.JsonRpcNotification;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
 
 public interface McpProtocol {
-  void handle(McpContext context, JsonRpcMessage message, McpTransport transport);
+
+  void handleCall(McpContext context, JsonRpcCall call, McpTransport transport);
+
+  void handleNotification(McpContext context, JsonRpcNotification notification);
+
+  void handleResponse(McpContext context, JsonRpcResponse response);
+
+  void terminate(String sessionId);
 }
