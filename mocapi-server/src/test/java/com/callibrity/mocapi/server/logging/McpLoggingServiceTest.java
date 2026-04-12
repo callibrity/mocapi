@@ -31,7 +31,7 @@ class McpLoggingServiceTest {
   void setLevelDelegatesToSessionService() {
     McpSessionService sessionService = mock(McpSessionService.class);
     McpLoggingService service = new McpLoggingService(sessionService);
-    McpSession session = new McpSession("2025-11-25", null, null, LoggingLevel.WARNING, "sess-1");
+    McpSession session = new McpSession("sess-1", "2025-11-25", null, null, LoggingLevel.WARNING);
 
     var result =
         ScopedValue.where(McpSession.CURRENT, session)

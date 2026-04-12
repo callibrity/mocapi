@@ -133,7 +133,7 @@ class StreamableHttpControllerTest {
     @BeforeEach
     void setUpSession() {
       when(sessionService.find("session-1"))
-          .thenReturn(Optional.of(new McpSession("2025-11-25", null, null)));
+          .thenReturn(Optional.of(new McpSession("session-1", "2025-11-25", null, null)));
     }
 
     @Test
@@ -267,7 +267,7 @@ class StreamableHttpControllerTest {
     void subscribesToNotificationChannel() {
       SseEmitter emitter = new SseEmitter();
       when(sessionService.find("session-1"))
-          .thenReturn(Optional.of(new McpSession("2025-11-25", null, null)));
+          .thenReturn(Optional.of(new McpSession("session-1", "2025-11-25", null, null)));
       when(odyssey.subscribe(eq("session-1"), eq(JsonRpcMessage.class), any())).thenReturn(emitter);
 
       var response = controller.handleGet("session-1", null, SSE_ACCEPT, null);
@@ -305,7 +305,7 @@ class StreamableHttpControllerTest {
     @Test
     void resumeWithLastEventIdDelegatesToOdyssey() {
       when(sessionService.find("session-1"))
-          .thenReturn(Optional.of(new McpSession("2025-11-25", null, null)));
+          .thenReturn(Optional.of(new McpSession("session-1", "2025-11-25", null, null)));
       SseEmitter emitter = new SseEmitter();
       when(odyssey.resume(anyString(), eq(JsonRpcMessage.class), anyString(), any()))
           .thenReturn(emitter);
@@ -334,7 +334,7 @@ class StreamableHttpControllerTest {
     @Test
     void delegatesToProtocolTerminate() {
       when(sessionService.find("session-1"))
-          .thenReturn(Optional.of(new McpSession("2025-11-25", null, null)));
+          .thenReturn(Optional.of(new McpSession("session-1", "2025-11-25", null, null)));
       var response = controller.handleDelete("session-1", null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);

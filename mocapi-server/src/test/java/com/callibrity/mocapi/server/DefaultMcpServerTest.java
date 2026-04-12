@@ -128,11 +128,11 @@ class DefaultMcpServerTest {
   void callWithValidSessionDispatchesAndSendsResult() {
     McpSession session =
         new McpSession(
+            "valid",
             PROTOCOL_VERSION,
             null,
             null,
-            com.callibrity.mocapi.model.LoggingLevel.WARNING,
-            "valid");
+            com.callibrity.mocapi.model.LoggingLevel.WARNING);
     when(sessionService.find("valid")).thenReturn(Optional.of(session));
 
     JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(2));
@@ -153,11 +153,11 @@ class DefaultMcpServerTest {
   void callWithValidSessionBindsSessionToScopedValue() {
     McpSession session =
         new McpSession(
+            "valid",
             PROTOCOL_VERSION,
             null,
             null,
-            com.callibrity.mocapi.model.LoggingLevel.WARNING,
-            "valid");
+            com.callibrity.mocapi.model.LoggingLevel.WARNING);
     when(sessionService.find("valid")).thenReturn(Optional.of(session));
 
     JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(3));
@@ -179,11 +179,11 @@ class DefaultMcpServerTest {
   void callDispatchReturningNullSendsNothing() {
     McpSession session =
         new McpSession(
+            "valid",
             PROTOCOL_VERSION,
             null,
             null,
-            com.callibrity.mocapi.model.LoggingLevel.WARNING,
-            "valid");
+            com.callibrity.mocapi.model.LoggingLevel.WARNING);
     when(sessionService.find("valid")).thenReturn(Optional.of(session));
 
     JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(4));
@@ -199,11 +199,11 @@ class DefaultMcpServerTest {
   void notificationWithValidSessionDispatches() {
     McpSession session =
         new McpSession(
+            "valid",
             PROTOCOL_VERSION,
             null,
             null,
-            com.callibrity.mocapi.model.LoggingLevel.WARNING,
-            "valid");
+            com.callibrity.mocapi.model.LoggingLevel.WARNING);
     when(sessionService.find("valid")).thenReturn(Optional.of(session));
 
     JsonRpcNotification notification =
@@ -219,11 +219,11 @@ class DefaultMcpServerTest {
   void notificationWithValidSessionBindsSessionToScopedValue() {
     McpSession session =
         new McpSession(
+            "valid",
             PROTOCOL_VERSION,
             null,
             null,
-            com.callibrity.mocapi.model.LoggingLevel.WARNING,
-            "valid");
+            com.callibrity.mocapi.model.LoggingLevel.WARNING);
     when(sessionService.find("valid")).thenReturn(Optional.of(session));
 
     JsonRpcNotification notification =

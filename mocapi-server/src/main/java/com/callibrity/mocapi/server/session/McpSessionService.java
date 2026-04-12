@@ -58,9 +58,11 @@ public class McpSessionService {
 
   @JsonRpcMethod(McpMethods.INITIALIZE)
   public InitializeResult initialize(@JsonRpcParams InitializeRequestParams params) {
+    String sessionId = UUID.randomUUID().toString();
     McpSession session =
-        new McpSession(params.protocolVersion(), params.capabilities(), params.clientInfo());
-    String sessionId = create(session);
+        new McpSession(
+            sessionId, params.protocolVersion(), params.capabilities(), params.clientInfo());
+    create(session);
     McpTransport transport = McpTransport.CURRENT.get();
     transport.emit(new McpEvent.SessionInitialized(sessionId, params.protocolVersion()));
     return new InitializeResult(
@@ -73,11 +75,10 @@ public class McpSessionService {
     return builder.build();
   }
 
-  /** Generates a session ID, saves the session to the store, and returns the ID. */
+  /** Saves the session to the store and returns the session ID. */
   public String create(McpSession session) {
-    String sessionId = UUID.randomUUID().toString();
-    store.save(session.withSessionId(sessionId), ttl);
-    return sessionId;
+    store.save(session, ttl);
+    return session.sessionId();
   }
 
   /** Looks up a session by ID, extending TTL on hit. */

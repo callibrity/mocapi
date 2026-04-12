@@ -50,27 +50,28 @@ class McpSessionServiceTest {
   }
 
   @Test
-  void createGeneratesIdAndSavesToStore() {
+  void createSavesToStoreAndReturnsSessionId() {
     McpSession session =
         new McpSession(
+            "my-session-id",
             "2025-11-25",
             new ClientCapabilities(null, null, null),
             new Implementation("test", null, "1.0"));
 
     String sessionId = service.create(session);
 
-    assertThat(sessionId).isNotBlank();
+    assertThat(sessionId).isEqualTo("my-session-id");
     ArgumentCaptor<McpSession> captor = ArgumentCaptor.forClass(McpSession.class);
     verify(store).save(captor.capture(), eq(TTL));
     McpSession saved = captor.getValue();
-    assertThat(saved.sessionId()).isEqualTo(sessionId);
+    assertThat(saved.sessionId()).isEqualTo("my-session-id");
     assertThat(saved.protocolVersion()).isEqualTo("2025-11-25");
   }
 
   @Test
   void findReturnSessionAndTouchesTtl() {
     McpSession session =
-        new McpSession("2025-11-25", null, null, LoggingLevel.WARNING, "session-1");
+        new McpSession("session-1", "2025-11-25", null, null, LoggingLevel.WARNING);
     when(store.find("session-1")).thenReturn(Optional.of(session));
 
     Optional<McpSession> result = service.find("session-1");
@@ -98,7 +99,7 @@ class McpSessionServiceTest {
   @Test
   void setLogLevelUpdatesSessionInStore() {
     McpSession session =
-        new McpSession("2025-11-25", null, null, LoggingLevel.WARNING, "session-1");
+        new McpSession("session-1", "2025-11-25", null, null, LoggingLevel.WARNING);
     when(store.find("session-1")).thenReturn(Optional.of(session));
 
     service.setLogLevel("session-1", LoggingLevel.DEBUG);

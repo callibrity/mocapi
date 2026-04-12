@@ -95,7 +95,7 @@ class DefaultMcpToolContextTest {
   void logBelowSessionLevelIsDropped() {
     var transport = new CapturingTransport();
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
-    var session = new McpSession("2025-11-25", null, null, LoggingLevel.WARNING, "s1");
+    var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.WARNING);
 
     ScopedValue.where(McpSession.CURRENT, session)
         .run(() -> ctx.log(LoggingLevel.DEBUG, "test", "dropped"));
@@ -107,7 +107,7 @@ class DefaultMcpToolContextTest {
   void logAtOrAboveSessionLevelIsSent() {
     var transport = new CapturingTransport();
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
-    var session = new McpSession("2025-11-25", null, null, LoggingLevel.WARNING, "s1");
+    var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.WARNING);
 
     ScopedValue.where(McpSession.CURRENT, session)
         .run(() -> ctx.log(LoggingLevel.ERROR, "test", "sent"));

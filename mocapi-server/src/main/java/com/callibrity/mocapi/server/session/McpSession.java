@@ -21,28 +21,26 @@ import com.callibrity.mocapi.model.LoggingLevel;
 
 /** Immutable record of the client data captured during the MCP initialize handshake. */
 public record McpSession(
+    String sessionId,
     String protocolVersion,
     ClientCapabilities capabilities,
     Implementation clientInfo,
-    LoggingLevel logLevel,
-    String sessionId) {
+    LoggingLevel logLevel) {
 
   public static final ScopedValue<McpSession> CURRENT = ScopedValue.newInstance();
 
-  /** Creates a session with the default log level (LoggingLevel.WARNING) and no session ID. */
+  /** Creates a session with the default log level (LoggingLevel.WARNING). */
   public McpSession(
-      String protocolVersion, ClientCapabilities capabilities, Implementation clientInfo) {
-    this(protocolVersion, capabilities, clientInfo, LoggingLevel.WARNING, null);
+      String sessionId,
+      String protocolVersion,
+      ClientCapabilities capabilities,
+      Implementation clientInfo) {
+    this(sessionId, protocolVersion, capabilities, clientInfo, LoggingLevel.WARNING);
   }
 
   /** Returns a copy of this session with the given log level. */
   public McpSession withLogLevel(LoggingLevel logLevel) {
-    return new McpSession(protocolVersion, capabilities, clientInfo, logLevel, sessionId);
-  }
-
-  /** Returns a copy of this session with the given session ID. */
-  public McpSession withSessionId(String sessionId) {
-    return new McpSession(protocolVersion, capabilities, clientInfo, logLevel, sessionId);
+    return new McpSession(sessionId, protocolVersion, capabilities, clientInfo, logLevel);
   }
 
   /** Returns true if the client supports form-based elicitation. */

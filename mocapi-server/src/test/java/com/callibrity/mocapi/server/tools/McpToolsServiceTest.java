@@ -133,7 +133,7 @@ class McpToolsServiceTest {
   @Test
   void callInteractiveToolWithProgressAndResult() {
     var transport = new CapturingTransport();
-    var session = new McpSession("2025-11-25", null, null, LoggingLevel.DEBUG, "test-session");
+    var session = new McpSession("test-session", "2025-11-25", null, null, LoggingLevel.DEBUG);
     var progressToken = JsonNodeFactory.instance.textNode("tok-1");
     var meta = new RequestMeta(progressToken);
     var params =
