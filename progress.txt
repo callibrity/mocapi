@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-10T12:50:00-04:00
-ITERATION: 54
-SPEC_COMPLETED: 146-mocapi-session-store-nats.md
-WHAT_WAS_DONE: Created new mocapi-session-store-nats module providing a NATS JetStream KV backed McpSessionStore. NatsMcpSessionStore implements all five McpSessionStore methods using the KeyValue/KeyValueManagement APIs with idempotent bucket creation, bucket-level TTL, and tombstone filtering. NatsMcpSessionStoreAutoConfiguration activates when a Connection bean is present. 12 tests cover all store operations, bucket config verification, TTL expiration (via Awaitility), and auto-configuration conditionals (FilteredClassLoader, missing bean, positive case with mocks).
-VERIFICATION: mvn verify -pl mocapi-session-store-nats,mocapi-compat -am — BUILD SUCCESS, 12 tests in NATS module (0 failures), 81 tests in compat module (0 failures). Spotless and license checks pass. Pre-existing RedisMcpSessionStoreAutoConfigurationTest.userProvidedBeanTakesPrecedence failure remains (unrelated).
+LAST_RUN: 2026-04-12T01:00:00-04:00
+ITERATION: 55
+SPEC_COMPLETED: none
+WHAT_WAS_DONE: Human resolved blocker — executed specs 147 (Atom session store migration) and 148 (McpProtocol/McpTransport architecture design) inline. Major codebase changes since iteration 54: seven mocapi-session-store-* modules deleted, InMemoryMcpSessionStore deleted, SubstrateAtomMcpSessionStore added to mocapi-core, substrate bumped 0.1.0→0.3.0, odyssey bumped 0.3.0→0.8.1 (artifact renamed odyssey-core→odyssey), codec-jackson added, Mailbox API migrated to BlockingSubscription/NextResult, Odyssey API migrated from OdysseyStreamRegistry to Odyssey facade, all four starter poms updated to use consolidated substrate-<backend> modules, NATS example app added. 623 tests green, MCP conformance 39/39.
+VERIFICATION: n/a
 STATUS: MORE_WORK
-NEXT_SPEC: none
-NOTES: jnats 2.25.2 used (matches substrate-mailbox-nats version; substrate-bom does not manage jnats directly). No testcontainers:nats module exists on Maven Central — used GenericContainer with nats:latest image and -js flag instead. The nested TtlFilteringTest uses a separate NATS container with 1-second bucket TTL to verify expiration without Thread.sleep.
+NEXT_SPEC: 148a-module-scaffolding-protocol-transport-split.md
+NOTES: The five 148a-148e specs implement the McpProtocol/McpTransport architecture — splitting mocapi-core into mocapi-protocol (transport-agnostic) and mocapi-transport-streamable-http (Spring MVC + Odyssey SSE). Execute in order: 148a (scaffolding), 148b (transport impls), 148c (DefaultMcpProtocol), 148d (wire into controller), 148e (cleanup + verify). The interfaces McpProtocol, McpTransport, McpContext, and McpLifecycleEvent already exist in com.callibrity.mocapi. Always-SSE for post-initialize POST responses. Session enforcement moves from controller to protocol. Threading (virtual threads) is a transport concern, not protocol.
