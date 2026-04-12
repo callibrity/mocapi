@@ -23,6 +23,9 @@ import com.callibrity.mocapi.model.ListPromptsResult;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Prompt;
+import com.callibrity.mocapi.model.PromptsCapability;
+import com.callibrity.mocapi.server.ServerCapabilitiesBuilder;
+import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
@@ -37,7 +40,7 @@ import java.util.stream.Collectors;
 
 /** Manages prompt registration, lookup, pagination, and JSON-RPC dispatch. */
 @JsonRpcService
-public class McpPromptsService {
+public class McpPromptsService implements ServerCapabilitiesContributor {
 
   public static final int DEFAULT_PAGE_SIZE = 50;
 
@@ -86,6 +89,13 @@ public class McpPromptsService {
 
   public boolean isEmpty() {
     return prompts.isEmpty();
+  }
+
+  @Override
+  public void contribute(ServerCapabilitiesBuilder builder) {
+    if (!isEmpty()) {
+      builder.prompts(new PromptsCapability(false));
+    }
   }
 
   private <T> Page<T> paginate(List<T> all, PaginatedRequestParams params) {

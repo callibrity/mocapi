@@ -25,8 +25,11 @@ import com.callibrity.mocapi.model.ListToolsResult;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.model.ToolsCapability;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.ServerCapabilitiesBuilder;
+import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
@@ -53,7 +56,7 @@ import tools.jackson.databind.node.ValueNode;
 /** Manages tool registration, lookup, input validation, pagination, and JSON-RPC dispatch. */
 @Slf4j
 @JsonRpcService
-public class McpToolsService {
+public class McpToolsService implements ServerCapabilitiesContributor {
 
   public static final int DEFAULT_PAGE_SIZE = 50;
 
@@ -115,6 +118,13 @@ public class McpToolsService {
 
   public boolean isEmpty() {
     return tools.isEmpty();
+  }
+
+  @Override
+  public void contribute(ServerCapabilitiesBuilder builder) {
+    if (!isEmpty()) {
+      builder.tools(new ToolsCapability(false));
+    }
   }
 
   private CallToolResult invokeTool(

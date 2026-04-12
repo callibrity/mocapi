@@ -24,6 +24,9 @@ import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplate;
+import com.callibrity.mocapi.model.ResourcesCapability;
+import com.callibrity.mocapi.server.ServerCapabilitiesBuilder;
+import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
@@ -42,7 +45,7 @@ import org.springframework.web.util.UriTemplate;
 
 /** Manages resource registration, lookup, pagination, subscriptions, and JSON-RPC dispatch. */
 @JsonRpcService
-public class McpResourcesService {
+public class McpResourcesService implements ServerCapabilitiesContributor {
 
   public static final int DEFAULT_PAGE_SIZE = 50;
 
@@ -144,6 +147,13 @@ public class McpResourcesService {
 
   public boolean isEmpty() {
     return resources.isEmpty() && templates.isEmpty();
+  }
+
+  @Override
+  public void contribute(ServerCapabilitiesBuilder builder) {
+    if (!isEmpty()) {
+      builder.resources(new ResourcesCapability(false, false));
+    }
   }
 
   public boolean isSubscribed(String uri) {

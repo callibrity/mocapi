@@ -16,8 +16,11 @@
 package com.callibrity.mocapi.server.logging;
 
 import com.callibrity.mocapi.model.EmptyResult;
+import com.callibrity.mocapi.model.LoggingCapability;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.SetLevelRequestParams;
+import com.callibrity.mocapi.server.ServerCapabilitiesBuilder;
+import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
 import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -26,7 +29,7 @@ import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 
 /** Handles logging/setLevel by updating the session's log level via McpSessionService. */
 @JsonRpcService
-public class McpLoggingService {
+public class McpLoggingService implements ServerCapabilitiesContributor {
 
   private final McpSessionService sessionService;
 
@@ -39,5 +42,10 @@ public class McpLoggingService {
     McpSession session = McpSession.CURRENT.get();
     sessionService.setLogLevel(session.sessionId(), params.level());
     return EmptyResult.INSTANCE;
+  }
+
+  @Override
+  public void contribute(ServerCapabilitiesBuilder builder) {
+    builder.logging(new LoggingCapability());
   }
 }
