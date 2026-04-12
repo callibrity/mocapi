@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.callibrity.mocapi.model.CallToolRequestParams;
+import com.callibrity.mocapi.model.RequestMeta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,7 +74,9 @@ class ContentNegotiationIT {
 
     var arguments = client.objectMapper().createObjectNode();
     arguments.put("message", "hello streaming");
-    var params = new CallToolRequestParams("stream", arguments, null, null);
+    var meta =
+        new RequestMeta(client.objectMapper().getNodeFactory().textNode("test-progress-token"));
+    var params = new CallToolRequestParams("stream", arguments, null, meta);
 
     client
         .post(

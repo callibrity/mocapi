@@ -29,6 +29,7 @@ import java.security.GeneralSecurityException;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.odyssey.core.Odyssey;
 import org.jwcarman.odyssey.core.SseEventMapper;
@@ -95,7 +96,19 @@ public class StreamableHttpController {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
     if (!validator.isValidProtocolVersion(protocolVersion)) {
-      return ResponseEntity.badRequest().build();
+      return jsonRpcError(
+          HttpStatus.BAD_REQUEST, -32600, "Invalid MCP-Protocol-Version: " + protocolVersion);
+    }
+
+    boolean isInitialize =
+        message instanceof JsonRpcCall call && "initialize".equals(call.method());
+    if (!isInitialize) {
+      if (sessionId == null) {
+        return sessionError(message, HttpStatus.BAD_REQUEST, "MCP-Session-Id header is required");
+      }
+      if (sessionService.find(sessionId).isEmpty()) {
+        return sessionError(message, HttpStatus.NOT_FOUND, "Session not found or expired");
+      }
     }
 
     McpContext context = new SimpleContext(sessionId, protocolVersion);
@@ -160,10 +173,10 @@ public class StreamableHttpController {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
     if (sessionId == null) {
-      return ResponseEntity.badRequest().build();
+      return simpleJsonError(HttpStatus.BAD_REQUEST, "MCP-Session-Id header is required");
     }
     if (sessionService.find(sessionId).isEmpty()) {
-      return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+      return simpleJsonError(HttpStatus.NOT_FOUND, "Session not found or expired");
     }
     protocol.terminate(sessionId);
     return ResponseEntity.noContent().build();
@@ -177,11 +190,46 @@ public class StreamableHttpController {
       return transport.toResponseEntity();
     }
 
+    BufferingTransport transport = new BufferingTransport();
+    Thread.ofVirtual().start(() -> protocol.handleCall(context, call, transport));
+
+    JsonRpcMessage first;
+    try {
+      first = transport.poll(500, TimeUnit.MILLISECONDS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    if (first instanceof JsonRpcResponse resp) {
+      return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resp);
+    }
+
+    // Streaming or blocked call — set up SSE and forward messages
     String streamName = UUID.randomUUID().toString();
     var publisher = odyssey.publisher(streamName, JsonRpcMessage.class);
-    var transport = new OdysseyTransport(publisher);
+    if (first != null) {
+      publisher.publish(first);
+    }
 
-    Thread.ofVirtual().start(() -> protocol.handleCall(context, call, transport));
+    Thread.ofVirtual()
+        .start(
+            () -> {
+              try {
+                JsonRpcMessage msg;
+                while ((msg = transport.poll(30, TimeUnit.SECONDS)) != null) {
+                  publisher.publish(msg);
+                  if (msg instanceof JsonRpcResponse) {
+                    publisher.complete();
+                    return;
+                  }
+                }
+                publisher.complete();
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                publisher.complete();
+              }
+            });
 
     return ResponseEntity.ok()
         .body(
@@ -205,6 +253,29 @@ public class StreamableHttpController {
     }
     protocol.handleResponse(context, response);
     return ResponseEntity.accepted().build();
+  }
+
+  private ResponseEntity<Object> jsonRpcError(HttpStatus status, int code, String message) {
+    ObjectNode node = objectMapper.createObjectNode();
+    node.put("jsonrpc", VERSION);
+    ObjectNode error = node.putObject("error");
+    error.put("code", code);
+    error.put("message", message);
+    return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(node);
+  }
+
+  private ResponseEntity<Object> simpleJsonError(HttpStatus status, String message) {
+    ObjectNode node = objectMapper.createObjectNode();
+    node.put("error", message);
+    return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(node);
+  }
+
+  private ResponseEntity<Object> sessionError(
+      JsonRpcMessage message, HttpStatus status, String errorMessage) {
+    if (message instanceof JsonRpcCall) {
+      return jsonRpcError(status, -32600, errorMessage);
+    }
+    return simpleJsonError(status, errorMessage);
   }
 
   private SseEmitter reconnect(String sessionId, String lastEventId) {

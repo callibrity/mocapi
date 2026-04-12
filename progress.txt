@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T13:21:00-04:00
-ITERATION: 70
-SPEC_COMPLETED: 149c-fix-tool-invocation-model.md
-WHAT_WAS_DONE: Refactored tool invocation model to three clean types (direct return, void, interactive). Removed McpToolContext generic type parameter and sendResult() method — tools now return values instead. Removed isInteractive()/isStreamable() from McpTool. Unified McpToolsService invocation to always bind McpToolContext via ScopedValue. Updated all tool implementations (examples, compat, test fixtures) to return values. Added VoidTool test fixture and tests for all three invocation types.
-VERIFICATION: mvn verify -pl !mocapi-compat — BUILD SUCCESS across all modules. mocapi-compat excluded due to pre-existing compilation failures (missing server.prompts/resources packages) that spec 149d will address.
+LAST_RUN: 2026-04-12T13:42:00-04:00
+ITERATION: 71
+SPEC_COMPLETED: 149d-fix-compat-test-failures.md
+WHAT_WAS_DONE: Fixed all 44 compat IT test failures across three categories: (1) content negotiation — created BufferingTransport for adaptive JSON/SSE response selection (simple calls return JSON, streaming/blocking calls return SSE), (2) session validation — added HTTP-level session validation in StreamableHttpController returning 400/404 with proper error bodies for missing/unknown sessions, (3) error bodies — added JSON-RPC error bodies for protocol version errors, simple JSON error bodies for DELETE/response session errors. Also fixed 4 elicitation/sampling tests that referenced wrong mailbox type (JsonRpcResponse → JsonNode) after correlation service refactoring, and fixed ContentNegotiationIT to provide a progress token for the streaming tool test.
+VERIFICATION: mvn verify — BUILD SUCCESS across all 18 modules. mocapi-compat: 81/81 tests pass (was 37/81). mocapi-transport-streamable-http: 34/34 unit tests pass.
 STATUS: MORE_WORK
-NEXT_SPEC: 149d-fix-compat-test-failures.md
-NOTES: McpToolContext is no longer generic. DefaultMcpToolContext no longer has sendResult/getResult/isResultSent. All interactive tools now return their result value directly instead of calling ctx.sendResult(). The ScopedValue binding is now done for every tool invocation (not just interactive ones), so McpToolContext is available to all tools if they declare it as a parameter.
+NEXT_SPEC: 149e-delete-mocapi-core.md
+NOTES: BufferingTransport uses a 500ms poll timeout to decide between JSON and SSE response modes. Calls completing within 500ms with only a response get JSON; calls that timeout (elicitation/sampling) or send notifications first (progress/logging) get SSE. The OdysseyTransport class is no longer used by the controller but retained for now — spec 149e may clean it up. mocapi-core was NOT modified (constraint satisfied — mocapi-core doesn't exist in the reactor anymore anyway).

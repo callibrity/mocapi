@@ -130,8 +130,36 @@ class StreamableHttpControllerTest {
   @Nested
   class PostWithSession {
 
+    @BeforeEach
+    void setUpSession() {
+      when(sessionService.find("session-1"))
+          .thenReturn(Optional.of(new McpSession("2025-11-25", null, null)));
+    }
+
     @Test
-    void callWithSessionReturnsSseEmitter() {
+    void callReturnsJsonWhenResponseIsImmediate() {
+      doAnswer(
+              invocation -> {
+                McpTransport transport = invocation.getArgument(2);
+                transport.send(
+                    new JsonRpcResult(
+                        JsonNodeFactory.instance.objectNode(),
+                        JsonNodeFactory.instance.numberNode(1)));
+                return null;
+              })
+          .when(protocol)
+          .handleCall(any(), any(), any());
+
+      ObjectNode request = callRequest("tools/list");
+      var response = post(request, null, "session-1", POST_ACCEPT, null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+      assertThat(response.getBody()).isInstanceOf(JsonRpcResult.class);
+    }
+
+    @Test
+    void callReturnsSseWhenResponseIsDelayed() {
       SseEmitter emitter = new SseEmitter();
       when(odyssey.publisher(anyString(), eq(JsonRpcMessage.class))).thenReturn(publisher);
       when(odyssey.subscribe(anyString(), eq(JsonRpcMessage.class), any())).thenReturn(emitter);
@@ -144,7 +172,7 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void callWithSessionUsesOdysseyTransport() throws Exception {
+    void callWithSessionUsesBufferingTransport() throws Exception {
       CountDownLatch latch = new CountDownLatch(1);
       when(odyssey.publisher(anyString(), eq(JsonRpcMessage.class))).thenReturn(publisher);
       when(odyssey.subscribe(anyString(), eq(JsonRpcMessage.class), any()))
@@ -160,7 +188,7 @@ class StreamableHttpControllerTest {
       post(callRequest("ping"), null, "session-1", POST_ACCEPT, null);
 
       assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
-      verify(protocol).handleCall(any(), any(), any(OdysseyTransport.class));
+      verify(protocol).handleCall(any(), any(), any(BufferingTransport.class));
     }
 
     @Test
