@@ -32,8 +32,20 @@
     <dependencies>
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-protocol</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-transport-streamable-http</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Keep mocapi-core for now — it still provides the old
+             controller path. Will be removed in spec 148k. -->
+        <dependency>
+            <groupId>com.callibrity.mocapi</groupId>
             <artifactId>mocapi-core</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jwcarman.methodical</groupId>
