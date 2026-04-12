@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T08:58:42-04:00
-ITERATION: 57
-SPEC_COMPLETED: 148b-protocol-session-management.md
-WHAT_WAS_DONE: Created session management in mocapi-protocol: McpSession record, McpSessionStore SPI, McpSessionService (create/find/delete/setLogLevel), DefaultMcpProtocol skeleton (initialize handshake, session enforcement, unknown-session error), and CapturingTransport test utility. Added mocapi-model and spring-boot-starter-test dependencies. 12 unit tests covering all acceptance criteria.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 17 modules passed (12 new tests in mocapi-protocol: 6 DefaultMcpProtocolTest + 6 McpSessionServiceTest)
+LAST_RUN: 2026-04-12T09:05:05-04:00
+ITERATION: 58
+SPEC_COMPLETED: 148c-protocol-jsonrpc-dispatch.md
+WHAT_WAS_DONE: Added JSON-RPC dispatch to DefaultMcpProtocol: wired JsonRpcDispatcher as constructor dependency, dispatch JsonRpcCall (send response via transport), dispatch JsonRpcNotification (no response), ignore JsonRpcResponse, bind McpSession to ScopedValue before dispatch. Added ripcurl-autoconfigure dependency to mocapi-protocol.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 17 modules passed (16 tests in mocapi-protocol: 10 DefaultMcpProtocolTest + 6 McpSessionServiceTest)
 STATUS: MORE_WORK
-NEXT_SPEC: 148c-protocol-jsonrpc-dispatch.md
-NOTES: DefaultMcpProtocol currently ignores all non-initialize messages after session validation — tools/resources/prompts dispatch will be added in 148c+. McpSession in protocol.session mirrors the shape of the one in mocapi-core.session (same fields, withers, capability checks) but is a fresh implementation. No mocapi-core files were modified.
+NEXT_SPEC: 148d-protocol-tools-support.md
+NOTES: DefaultMcpProtocol now dispatches all non-initialize calls/notifications through JsonRpcDispatcher with session bound to McpSession.CURRENT ScopedValue. No method handlers registered yet — tools/resources/prompts dispatch comes in 148d+. ripcurl-autoconfigure added to pom for annotation-based method registration support needed by later specs. No mocapi-core files were modified.

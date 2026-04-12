@@ -20,13 +20,15 @@ import com.callibrity.mocapi.model.InitializeResult;
 import com.callibrity.mocapi.protocol.session.McpSession;
 import com.callibrity.mocapi.protocol.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcCall;
+import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
 import tools.jackson.databind.ObjectMapper;
 
-/** Skeleton {@link McpProtocol} that handles session enforcement and the initialize handshake. */
+/** Default {@link McpProtocol} that handles session lifecycle and JSON-RPC dispatch. */
 public class DefaultMcpProtocol implements McpProtocol {
 
   private static final String INITIALIZE = "initialize";
@@ -34,14 +36,17 @@ public class DefaultMcpProtocol implements McpProtocol {
   private final McpSessionService sessionService;
   private final InitializeResult initializeResult;
   private final ObjectMapper objectMapper;
+  private final JsonRpcDispatcher dispatcher;
 
   public DefaultMcpProtocol(
       McpSessionService sessionService,
       InitializeResult initializeResult,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      JsonRpcDispatcher dispatcher) {
     this.sessionService = sessionService;
     this.initializeResult = initializeResult;
     this.objectMapper = objectMapper;
+    this.dispatcher = dispatcher;
   }
 
   @Override
@@ -63,8 +68,16 @@ public class DefaultMcpProtocol implements McpProtocol {
       transport.send(call.error(JsonRpcProtocol.INVALID_REQUEST, "Missing session ID"));
       return;
     }
-    if (sessionService.find(context.sessionId()).isEmpty()) {
+    var sessionOpt = sessionService.find(context.sessionId());
+    if (sessionOpt.isEmpty()) {
       transport.send(call.error(JsonRpcProtocol.INVALID_REQUEST, "Unknown session"));
+      return;
+    }
+    McpSession session = sessionOpt.get();
+    JsonRpcResponse response =
+        ScopedValue.where(McpSession.CURRENT, session).call(() -> dispatcher.dispatch(call));
+    if (response != null) {
+      transport.send(response);
     }
   }
 
@@ -75,7 +88,12 @@ public class DefaultMcpProtocol implements McpProtocol {
     if (context.sessionId() == null || context.sessionId().isBlank()) {
       return;
     }
-    sessionService.find(context.sessionId());
+    var sessionOpt = sessionService.find(context.sessionId());
+    if (sessionOpt.isEmpty()) {
+      return;
+    }
+    McpSession session = sessionOpt.get();
+    ScopedValue.where(McpSession.CURRENT, session).run(() -> dispatcher.dispatch(notification));
   }
 
   private void handleInitialize(JsonRpcCall call, McpTransport transport) {

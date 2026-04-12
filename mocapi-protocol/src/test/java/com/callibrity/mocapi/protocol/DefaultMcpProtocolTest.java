@@ -17,6 +17,8 @@ package com.callibrity.mocapi.protocol;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.model.Implementation;
@@ -25,6 +27,7 @@ import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.protocol.session.McpSession;
 import com.callibrity.mocapi.protocol.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcCall;
+import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
@@ -35,7 +38,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
@@ -45,6 +47,7 @@ class DefaultMcpProtocolTest {
   private static final String PROTOCOL_VERSION = "2025-11-25";
 
   @Mock private McpSessionService sessionService;
+  @Mock private JsonRpcDispatcher dispatcher;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final InitializeResult initializeResult =
@@ -59,7 +62,7 @@ class DefaultMcpProtocolTest {
 
   @BeforeEach
   void setUp() {
-    protocol = new DefaultMcpProtocol(sessionService, initializeResult, objectMapper);
+    protocol = new DefaultMcpProtocol(sessionService, initializeResult, objectMapper, dispatcher);
     transport = new CapturingTransport();
   }
 
@@ -67,7 +70,7 @@ class DefaultMcpProtocolTest {
   void initializeCreatesSessionEmitsEventAndSendsResult() {
     when(sessionService.create(any(McpSession.class))).thenReturn("new-session-id");
 
-    JsonNode params =
+    var params =
         objectMapper.valueToTree(
             new java.util.LinkedHashMap<>() {
               {
@@ -96,6 +99,8 @@ class DefaultMcpProtocolTest {
     assertThat(transport.messages().getFirst()).isInstanceOf(JsonRpcResult.class);
     JsonRpcResult result = (JsonRpcResult) transport.messages().getFirst();
     assertThat(result.result().path("protocolVersion").asString()).isEqualTo(PROTOCOL_VERSION);
+
+    verifyNoInteractions(dispatcher);
   }
 
   @Test
@@ -109,6 +114,8 @@ class DefaultMcpProtocolTest {
     JsonRpcError error = (JsonRpcError) transport.messages().getFirst();
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
     assertThat(error.error().message()).isEqualTo("Missing session ID");
+
+    verifyNoInteractions(dispatcher);
   }
 
   @Test
@@ -124,10 +131,12 @@ class DefaultMcpProtocolTest {
     JsonRpcError error = (JsonRpcError) transport.messages().getFirst();
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
     assertThat(error.error().message()).isEqualTo("Unknown session");
+
+    verifyNoInteractions(dispatcher);
   }
 
   @Test
-  void nonInitializeCallWithValidSessionSendsNothing() {
+  void callWithValidSessionDispatchesAndSendsResult() {
     McpSession session =
         new McpSession(
             PROTOCOL_VERSION,
@@ -137,12 +146,111 @@ class DefaultMcpProtocolTest {
             "valid");
     when(sessionService.find("valid")).thenReturn(Optional.of(session));
 
-    JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(1));
+    JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(2));
+    JsonRpcResult dispatchResult =
+        new JsonRpcResult(
+            JsonNodeFactory.instance.objectNode().put("tools", "[]"),
+            JsonNodeFactory.instance.numberNode(2));
+    when(dispatcher.dispatch(call)).thenReturn(dispatchResult);
 
     protocol.handle(sessionContext("valid"), call, transport);
 
+    verify(dispatcher).dispatch(call);
+    assertThat(transport.messages()).hasSize(1);
+    assertThat(transport.messages().getFirst()).isSameAs(dispatchResult);
+  }
+
+  @Test
+  void callWithValidSessionBindsSessionToScopedValue() {
+    McpSession session =
+        new McpSession(
+            PROTOCOL_VERSION,
+            null,
+            null,
+            com.callibrity.mocapi.model.LoggingLevel.WARNING,
+            "valid");
+    when(sessionService.find("valid")).thenReturn(Optional.of(session));
+
+    JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(3));
+    when(dispatcher.dispatch(call))
+        .thenAnswer(
+            _ -> {
+              assertThat(McpSession.CURRENT.isBound()).isTrue();
+              assertThat(McpSession.CURRENT.get()).isSameAs(session);
+              return new JsonRpcResult(
+                  JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(3));
+            });
+
+    protocol.handle(sessionContext("valid"), call, transport);
+
+    verify(dispatcher).dispatch(call);
+  }
+
+  @Test
+  void callDispatchReturningNullSendsNothing() {
+    McpSession session =
+        new McpSession(
+            PROTOCOL_VERSION,
+            null,
+            null,
+            com.callibrity.mocapi.model.LoggingLevel.WARNING,
+            "valid");
+    when(sessionService.find("valid")).thenReturn(Optional.of(session));
+
+    JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(4));
+    when(dispatcher.dispatch(call)).thenReturn(null);
+
+    protocol.handle(sessionContext("valid"), call, transport);
+
+    verify(dispatcher).dispatch(call);
     assertThat(transport.messages()).isEmpty();
-    assertThat(transport.events()).isEmpty();
+  }
+
+  @Test
+  void notificationWithValidSessionDispatches() {
+    McpSession session =
+        new McpSession(
+            PROTOCOL_VERSION,
+            null,
+            null,
+            com.callibrity.mocapi.model.LoggingLevel.WARNING,
+            "valid");
+    when(sessionService.find("valid")).thenReturn(Optional.of(session));
+
+    JsonRpcNotification notification =
+        new JsonRpcNotification("2.0", "notifications/initialized", null);
+    when(dispatcher.dispatch(notification)).thenReturn(null);
+
+    protocol.handle(sessionContext("valid"), notification, transport);
+
+    verify(dispatcher).dispatch(notification);
+    assertThat(transport.messages()).isEmpty();
+  }
+
+  @Test
+  void notificationWithValidSessionBindsSessionToScopedValue() {
+    McpSession session =
+        new McpSession(
+            PROTOCOL_VERSION,
+            null,
+            null,
+            com.callibrity.mocapi.model.LoggingLevel.WARNING,
+            "valid");
+    when(sessionService.find("valid")).thenReturn(Optional.of(session));
+
+    JsonRpcNotification notification =
+        new JsonRpcNotification("2.0", "notifications/initialized", null);
+    when(dispatcher.dispatch(notification))
+        .thenAnswer(
+            _ -> {
+              assertThat(McpSession.CURRENT.isBound()).isTrue();
+              assertThat(McpSession.CURRENT.get()).isSameAs(session);
+              return null;
+            });
+
+    protocol.handle(sessionContext("valid"), notification, transport);
+
+    verify(dispatcher).dispatch(notification);
   }
 
   @Test
@@ -154,6 +262,8 @@ class DefaultMcpProtocolTest {
 
     assertThat(transport.messages()).isEmpty();
     assertThat(transport.events()).isEmpty();
+
+    verifyNoInteractions(dispatcher);
   }
 
   @Test
@@ -166,6 +276,8 @@ class DefaultMcpProtocolTest {
 
     assertThat(transport.messages()).isEmpty();
     assertThat(transport.events()).isEmpty();
+
+    verifyNoInteractions(dispatcher);
   }
 
   private static McpContext noSessionContext() {
