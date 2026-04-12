@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T13:42:00-04:00
-ITERATION: 71
-SPEC_COMPLETED: 149d-fix-compat-test-failures.md
-WHAT_WAS_DONE: Fixed all 44 compat IT test failures across three categories: (1) content negotiation — created BufferingTransport for adaptive JSON/SSE response selection (simple calls return JSON, streaming/blocking calls return SSE), (2) session validation — added HTTP-level session validation in StreamableHttpController returning 400/404 with proper error bodies for missing/unknown sessions, (3) error bodies — added JSON-RPC error bodies for protocol version errors, simple JSON error bodies for DELETE/response session errors. Also fixed 4 elicitation/sampling tests that referenced wrong mailbox type (JsonRpcResponse → JsonNode) after correlation service refactoring, and fixed ContentNegotiationIT to provide a progress token for the streaming tool test.
-VERIFICATION: mvn verify — BUILD SUCCESS across all 18 modules. mocapi-compat: 81/81 tests pass (was 37/81). mocapi-transport-streamable-http: 34/34 unit tests pass.
+LAST_RUN: 2026-04-12T13:44:00-04:00
+ITERATION: 72
+SPEC_COMPLETED: 149e-delete-mocapi-core.md
+WHAT_WAS_DONE: Cleaned up remaining mocapi-core references from PRD.md (test example command and repository structure section). The mocapi-core directory and module were already removed in prior iterations; this spec just needed the documentation cleanup.
+VERIFICATION: mvn clean verify — BUILD SUCCESS across all 17 modules. MCP conformance: 39/39 compat tests pass. git grep "mocapi-core" returns zero hits outside specs/done/.
 STATUS: MORE_WORK
-NEXT_SPEC: 149e-delete-mocapi-core.md
-NOTES: BufferingTransport uses a 500ms poll timeout to decide between JSON and SSE response modes. Calls completing within 500ms with only a response get JSON; calls that timeout (elicitation/sampling) or send notifications first (progress/logging) get SSE. The OdysseyTransport class is no longer used by the controller but retained for now — spec 149e may clean it up. mocapi-core was NOT modified (constraint satisfied — mocapi-core doesn't exist in the reactor anymore anyway).
+NEXT_SPEC: 149f-delete-annotation-tool-provider-factory.md
+NOTES: The PRD.md repository structure section was updated minimally — replaced mocapi-core entry with mocapi-server and mocapi-model entries. The full structure has more modules now (compat, transport-streamable-http, various starters, examples) but a complete rewrite was out of scope for this spec.

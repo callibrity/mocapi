@@ -50,7 +50,7 @@ mvn verify
 mvn test
 
 # Run a single test class
-mvn test -pl mocapi-core -Dtest=McpServerTest
+mvn test -pl mocapi-server -Dtest=McpServerTest
 
 # Run integration tests only
 mvn failsafe:integration-test failsafe:verify -pl mocapi-example
@@ -103,13 +103,8 @@ catches them automatically before compilation.
 
 ```
 mocapi-parent (pom.xml)          Multi-module Maven parent
-├── mocapi-core/                 Core MCP protocol abstractions, JSON-RPC types, utilities
-│   └── src/main/java/com/callibrity/mocapi/
-│       ├── server/              McpServer, McpServerCapability, ServerInfo
-│       │   ├── jsonrpc/         JSON-RPC annotations and exception hierarchy
-│       │   ├── invoke/          JsonMethodInvoker for reflective method dispatch
-│       │   └── util/            Names, Parameters, LazyInitializer utilities
-│       └── client/              ClientCapabilities, ClientInfo records
+├── mocapi-server/               Core MCP server, JSON-RPC dispatch, protocol types
+├── mocapi-model/                MCP model types (shared DTOs and records)
 ├── mocapi-tools/                MCP tools capability (@ToolService/@Tool)
 │   └── src/main/java/com/callibrity/mocapi/tools/
 │       ├── annotation/          @Tool, @ToolService, AnnotationMcpTool
