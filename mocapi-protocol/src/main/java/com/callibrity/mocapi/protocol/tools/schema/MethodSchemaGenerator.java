@@ -13,15 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.protocol;
+package com.callibrity.mocapi.protocol.tools.schema;
 
-import com.callibrity.ripcurl.core.JsonRpcMessage;
+import java.lang.reflect.Method;
+import tools.jackson.databind.node.ObjectNode;
 
-public interface McpTransport {
+public interface MethodSchemaGenerator {
 
-  ScopedValue<McpTransport> CURRENT = ScopedValue.newInstance();
+  ObjectNode generateInputSchema(Object targetObject, Method method);
 
-  void emit(McpEvent event);
+  ObjectNode generateOutputSchema(Object targetObject, Method method);
 
-  void send(JsonRpcMessage message);
+  ObjectNode generateSchema(Class<?> type);
 }

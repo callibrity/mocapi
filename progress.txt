@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T09:05:05-04:00
-ITERATION: 58
-SPEC_COMPLETED: 148c-protocol-jsonrpc-dispatch.md
-WHAT_WAS_DONE: Added JSON-RPC dispatch to DefaultMcpProtocol: wired JsonRpcDispatcher as constructor dependency, dispatch JsonRpcCall (send response via transport), dispatch JsonRpcNotification (no response), ignore JsonRpcResponse, bind McpSession to ScopedValue before dispatch. Added ripcurl-autoconfigure dependency to mocapi-protocol.
-VERIFICATION: mvn verify — BUILD SUCCESS, all 17 modules passed (16 tests in mocapi-protocol: 10 DefaultMcpProtocolTest + 6 McpSessionServiceTest)
+LAST_RUN: 2026-04-12T09:21:25-04:00
+ITERATION: 59
+SPEC_COMPLETED: 148d-protocol-tools-support.md
+WHAT_WAS_DONE: Added tool registration and dispatch to mocapi-protocol: McpTool/McpToolProvider interfaces, McpToolsService (@JsonRpcService with tools/list and tools/call), McpToolContext<R> interface with DefaultMcpToolContext (sendProgress, log, sendResult via McpTransport; elicit/sample throw UnsupportedOperationException), @ToolMethod/@ToolService/@McpToolParams annotations, AnnotationMcpTool with schema generation (VicTools), McpToolContextScopedValueResolver for Methodical parameter injection, Names/Parameters utilities. Added ScopedValue<McpTransport> CURRENT to McpTransport and bound it in DefaultMcpProtocol dispatch. Added dependencies: victools, json-skema, methodical-jackson3, commons-lang3, swagger-annotations, jakarta.validation, spring-context.
+VERIFICATION: mvn verify — BUILD SUCCESS, all 17 modules passed (45 tests in mocapi-protocol: 14 McpToolsServiceTest + 15 AnnotationMcpToolTest + 10 DefaultMcpProtocolTest + 6 McpSessionServiceTest + DefaultMcpToolContextTest)
 STATUS: MORE_WORK
-NEXT_SPEC: 148d-protocol-tools-support.md
-NOTES: DefaultMcpProtocol now dispatches all non-initialize calls/notifications through JsonRpcDispatcher with session bound to McpSession.CURRENT ScopedValue. No method handlers registered yet — tools/resources/prompts dispatch comes in 148d+. ripcurl-autoconfigure added to pom for annotation-based method registration support needed by later specs. No mocapi-core files were modified.
+NEXT_SPEC: 148e-protocol-resources-support.md
+NOTES: McpToolContextScopedValueResolver MUST be registered before Jackson3ParameterResolver in the MethodInvokerFactory — Jackson's resolver is greedy and will try to deserialize McpToolContext from JSON args, returning null. This ordering requirement should be documented for the autoconfigure spec. McpTransport now has a CURRENT ScopedValue bound during dispatch in DefaultMcpProtocol. No mocapi-core files were modified.

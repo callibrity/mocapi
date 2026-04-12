@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.protocol;
+package com.callibrity.mocapi.protocol.tools.util;
 
-import com.callibrity.ripcurl.core.JsonRpcMessage;
+import com.callibrity.mocapi.protocol.tools.annotation.ToolMethod;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-public interface McpTransport {
-
-  ScopedValue<McpTransport> CURRENT = ScopedValue.newInstance();
-
-  void emit(McpEvent event);
-
-  void send(JsonRpcMessage message);
+public class HelloTool {
+  @ToolMethod
+  public HelloResponse sayHello(
+      @Schema(name = "Name", description = "The person's name") String name) {
+    return new HelloResponse(String.format("Hello, %s!", name));
+  }
 }

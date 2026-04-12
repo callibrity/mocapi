@@ -54,7 +54,8 @@ public class DefaultMcpProtocol implements McpProtocol {
     if (message instanceof JsonRpcRequest request) {
       switch (request) {
         case JsonRpcCall call -> handleCall(context, call, transport);
-        case JsonRpcNotification notification -> handleNotification(context, notification);
+        case JsonRpcNotification notification ->
+            handleNotification(context, notification, transport);
       }
     }
   }
@@ -75,13 +76,16 @@ public class DefaultMcpProtocol implements McpProtocol {
     }
     McpSession session = sessionOpt.get();
     JsonRpcResponse response =
-        ScopedValue.where(McpSession.CURRENT, session).call(() -> dispatcher.dispatch(call));
+        ScopedValue.where(McpSession.CURRENT, session)
+            .where(McpTransport.CURRENT, transport)
+            .call(() -> dispatcher.dispatch(call));
     if (response != null) {
       transport.send(response);
     }
   }
 
-  private void handleNotification(McpContext context, JsonRpcNotification notification) {
+  private void handleNotification(
+      McpContext context, JsonRpcNotification notification, McpTransport transport) {
     if (INITIALIZE.equals(notification.method())) {
       return;
     }
@@ -93,7 +97,9 @@ public class DefaultMcpProtocol implements McpProtocol {
       return;
     }
     McpSession session = sessionOpt.get();
-    ScopedValue.where(McpSession.CURRENT, session).run(() -> dispatcher.dispatch(notification));
+    ScopedValue.where(McpSession.CURRENT, session)
+        .where(McpTransport.CURRENT, transport)
+        .run(() -> dispatcher.dispatch(notification));
   }
 
   private void handleInitialize(JsonRpcCall call, McpTransport transport) {

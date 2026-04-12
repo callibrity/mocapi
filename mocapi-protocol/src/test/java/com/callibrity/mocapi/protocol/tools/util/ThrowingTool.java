@@ -13,15 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.protocol;
+package com.callibrity.mocapi.protocol.tools.util;
 
-import com.callibrity.ripcurl.core.JsonRpcMessage;
+import com.callibrity.mocapi.protocol.tools.annotation.ToolMethod;
 
-public interface McpTransport {
-
-  ScopedValue<McpTransport> CURRENT = ScopedValue.newInstance();
-
-  void emit(McpEvent event);
-
-  void send(JsonRpcMessage message);
+public class ThrowingTool {
+  @ToolMethod
+  public String explode(String input) {
+    throw new RuntimeException("tool went boom");
+  }
 }

@@ -13,15 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.protocol;
+package com.callibrity.mocapi.protocol.tools;
 
-import com.callibrity.ripcurl.core.JsonRpcMessage;
+import com.callibrity.mocapi.model.Tool;
+import tools.jackson.databind.JsonNode;
 
-public interface McpTransport {
+public interface McpTool {
 
-  ScopedValue<McpTransport> CURRENT = ScopedValue.newInstance();
+  Tool descriptor();
 
-  void emit(McpEvent event);
+  Object call(JsonNode arguments);
 
-  void send(JsonRpcMessage message);
+  default boolean isInteractive() {
+    return false;
+  }
 }
