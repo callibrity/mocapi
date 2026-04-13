@@ -59,23 +59,22 @@ a JSON-RPC call (not notifications/responses) needs the async pattern. This incl
 
 The session validation tests (`postWithoutSessionId`, `postWithUnknownSession`, etc.)
 return synchronous error responses (400, 404) — these do NOT need async dispatch.
-But they currently expect JSON error bodies that our controller returns as empty.
-Update the controller to return JSON error bodies:
+These are HTTP-level errors, not JSON-RPC errors — there is no JSON-RPC request to
+respond to. The controller returns empty bodies with the appropriate HTTP status code.
 
-For missing session (400):
-```json
-{"jsonrpc":"2.0","error":{"code":-32600,"message":"MCP-Session-Id header is required"}}
-```
-
-For unknown session (404):
-```json
-{"jsonrpc":"2.0","error":{"code":-32600,"message":"Session not found or expired"}}
-```
+Update the compat tests to assert only the HTTP status code, removing any
+`jsonPath("$.error.*")` assertions:
+- `postWithoutSessionIdOnNonInitializeReturns400` — assert `status().isBadRequest()` only
+- `postWithUnknownSessionIdReturns404` — assert `status().isNotFound()` only
+- `postToDeletedSessionReturns404` — assert `status().isNotFound()` only
+- `deleteWithUnknownSessionIdReturns404` — assert `status().isNotFound()` only
+- `deleteWithoutSessionIdReturns400` — assert `status().isBadRequest()` only
 
 ### ClientResponseIT
 
-Tests that send client responses/notifications without session IDs — these are
-synchronous (controller returns 400 directly). Fix the JSON error body as above.
+Tests that send client responses/notifications without session IDs — these return
+HTTP 400 with empty bodies (HTTP-level error). Update to assert only status code,
+no JSON-RPC error body assertions.
 
 ### FullConversationIT
 
