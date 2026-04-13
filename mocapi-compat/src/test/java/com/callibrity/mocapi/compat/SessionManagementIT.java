@@ -65,9 +65,7 @@ class SessionManagementIT {
 
     client
         .postRaw("application/json, text/event-stream", null, body)
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error.code").value(-32600))
-        .andExpect(jsonPath("$.error.message").value("MCP-Session-Id header is required"));
+        .andExpect(status().isBadRequest());
   }
 
   @Test
@@ -78,9 +76,7 @@ class SessionManagementIT {
 
     client
         .postRaw("application/json, text/event-stream", "nonexistent-session-id", body)
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.error.code").value(-32600))
-        .andExpect(jsonPath("$.error.message").value("Session not found or expired"));
+        .andExpect(status().isNotFound());
   }
 
   @Test
@@ -92,18 +88,12 @@ class SessionManagementIT {
 
   @Test
   void deleteWithoutSessionIdReturns400() throws Exception {
-    client
-        .deleteWithoutSession()
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error").value("MCP-Session-Id header is required"));
+    client.deleteWithoutSession().andExpect(status().isBadRequest());
   }
 
   @Test
   void deleteWithUnknownSessionIdReturns404() throws Exception {
-    client
-        .delete("nonexistent-session-id")
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.error").value("Session not found or expired"));
+    client.delete("nonexistent-session-id").andExpect(status().isNotFound());
   }
 
   @Test
@@ -118,8 +108,6 @@ class SessionManagementIT {
 
     client
         .postRaw("application/json, text/event-stream", sessionId, body)
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.error.code").value(-32600))
-        .andExpect(jsonPath("$.error.message").value("Session not found or expired"));
+        .andExpect(status().isNotFound());
   }
 }

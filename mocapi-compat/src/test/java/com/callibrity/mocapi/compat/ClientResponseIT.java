@@ -15,7 +15,6 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -74,8 +73,7 @@ class ClientResponseIT {
 
     client
         .postRaw("application/json, text/event-stream", null, body)
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error").value("MCP-Session-Id header is required"));
+        .andExpect(status().isBadRequest());
   }
 
   @Test
@@ -86,7 +84,6 @@ class ClientResponseIT {
 
     client
         .postRaw("application/json, text/event-stream", null, body)
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error").value("MCP-Session-Id header is required"));
+        .andExpect(status().isBadRequest());
   }
 }

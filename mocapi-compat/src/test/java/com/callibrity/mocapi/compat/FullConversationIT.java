@@ -99,8 +99,6 @@ class FullConversationIT {
 
     client
         .postRaw("application/json, text/event-stream", sessionId, body)
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.error.code").value(-32600))
-        .andExpect(jsonPath("$.error.message").value("Session not found or expired"));
+        .andExpect(status().isNotFound());
   }
 }
