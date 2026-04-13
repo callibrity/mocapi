@@ -22,10 +22,10 @@
     <parent>
         <groupId>com.callibrity.mocapi</groupId>
         <artifactId>mocapi-parent</artifactId>
-        <version>0.2.0-SNAPSHOT</version>
+        <version>0.1.0-SNAPSHOT</version>
     </parent>
     <artifactId>mocapi-spring-boot-starter</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <name>Mocapi - Spring Boot Starter</name>
     <description>A Spring Boot Starter for Mocapi</description>
 
