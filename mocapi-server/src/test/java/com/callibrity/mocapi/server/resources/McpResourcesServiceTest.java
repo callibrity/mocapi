@@ -227,7 +227,9 @@ class McpResourcesServiceTest {
     var t1 = template("test://items/{id}", "T1", "first", "text/plain");
     var t2 = template("test://items/{id}", "T2", "duplicate", "text/plain");
 
-    assertThatThrownBy(() -> new McpResourcesService(List.of(), List.of(() -> List.of(t1, t2))))
+    List<McpResourceTemplateProvider> tools = List.of(() -> List.of(t1, t2));
+    List<McpResourceProvider> emptyList = List.of();
+    assertThatThrownBy(() -> new McpResourcesService(emptyList, tools))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Duplicate URI template");
   }
