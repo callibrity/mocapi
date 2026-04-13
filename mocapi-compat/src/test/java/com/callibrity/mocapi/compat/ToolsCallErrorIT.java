@@ -15,8 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -48,13 +48,14 @@ class ToolsCallErrorIT {
     var arguments = client.objectMapper().createObjectNode();
     var params = new CallToolRequestParams("test_error_handling", arguments, null, null);
 
-    client
-        .post(sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.isError").value(true))
-        .andExpect(jsonPath("$.result.content[0].type").value("text"))
-        .andExpect(
-            jsonPath("$.result.content[0].text")
-                .value("This tool intentionally returns an error for testing"));
+    JsonNode response =
+        client.call(
+            sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(2));
+
+    JsonNode result = response.get("result");
+    assertThat(result.get("isError").asBoolean()).isTrue();
+    assertThat(result.get("content").get(0).get("type").asString()).isEqualTo("text");
+    assertThat(result.get("content").get(0).get("text").asString())
+        .isEqualTo("This tool intentionally returns an error for testing");
   }
 }

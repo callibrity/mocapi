@@ -15,8 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +24,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -44,53 +44,58 @@ class ToolDiscoveryIT {
   void toolsListReturnsArrayOfTools() throws Exception {
     String sessionId = client.initialize();
 
-    client
-        .post(sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(1))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.tools").isArray())
-        .andExpect(jsonPath("$.result.tools").isNotEmpty());
+    JsonNode response =
+        client.call(
+            sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(1));
+
+    JsonNode tools = response.get("result").get("tools");
+    assertThat(tools.isArray()).isTrue();
+    assertThat(tools.isEmpty()).isFalse();
   }
 
   @Test
   void eachToolHasNameField() throws Exception {
     String sessionId = client.initialize();
 
-    client
-        .post(sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(1))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.tools[0].name").isString())
-        .andExpect(jsonPath("$.result.tools[0].name").isNotEmpty());
+    JsonNode response =
+        client.call(
+            sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(1));
+
+    JsonNode firstTool = response.get("result").get("tools").get(0);
+    assertThat(firstTool.get("name").isTextual()).isTrue();
+    assertThat(firstTool.get("name").asString()).isNotEmpty();
   }
 
   @Test
   void eachToolHasInputSchemaField() throws Exception {
     String sessionId = client.initialize();
 
-    client
-        .post(sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(1))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.tools[0].inputSchema").exists());
+    JsonNode response =
+        client.call(
+            sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(1));
+
+    assertThat(response.get("result").get("tools").get(0).has("inputSchema")).isTrue();
   }
 
   @Test
   void paginationIncludesNextCursorWhenMoreToolsExist() throws Exception {
     String sessionId = client.initialize();
 
-    // Request with page size that should include all tools — CompatTools has 2 tools
-    // With default page size, all tools fit on one page, so nextCursor should be null
-    client
-        .post(sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(1))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.tools").isArray());
+    JsonNode response =
+        client.call(
+            sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(1));
+
+    assertThat(response.get("result").get("tools").isArray()).isTrue();
   }
 
   @Test
   void finalPageHasNullNextCursor() throws Exception {
     String sessionId = client.initialize();
 
-    client
-        .post(sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(1))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.nextCursor").doesNotExist());
+    JsonNode response =
+        client.call(
+            sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(1));
+
+    assertThat(response.get("result").has("nextCursor")).isFalse();
   }
 }

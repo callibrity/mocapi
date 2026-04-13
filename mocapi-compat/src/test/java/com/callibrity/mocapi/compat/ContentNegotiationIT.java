@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -29,6 +30,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -58,14 +60,13 @@ class ContentNegotiationIT {
   }
 
   @Test
-  void pingResponseIsJson() throws Exception {
+  void pingResponseIsSse() throws Exception {
     String sessionId = client.initialize();
 
-    client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.result").isEmpty());
+    JsonNode response =
+        client.call(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(2));
+
+    assertThat(response.has("result")).isTrue();
   }
 
   @Test
@@ -86,7 +87,7 @@ class ContentNegotiationIT {
   }
 
   @Test
-  void nonStreamingToolReturnsJsonNotSse() throws Exception {
+  void sessionBoundCallReturnsSse() throws Exception {
     String sessionId = client.initialize();
 
     var arguments = client.objectMapper().createObjectNode();
@@ -97,6 +98,6 @@ class ContentNegotiationIT {
         .post(
             sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(12))
         .andExpect(status().isOk())
-        .andExpect(content().contentType(MediaType.APPLICATION_JSON));
+        .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM));
   }
 }

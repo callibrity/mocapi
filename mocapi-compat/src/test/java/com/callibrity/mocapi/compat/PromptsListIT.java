@@ -16,8 +16,6 @@
 package com.callibrity.mocapi.compat;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -47,21 +45,12 @@ class PromptsListIT {
   void promptsListReturnsAllConformancePrompts() throws Exception {
     String sessionId = client.initialize();
 
-    String body =
-        client
-            .post(
-                sessionId,
-                "prompts/list",
-                null,
-                client.objectMapper().getNodeFactory().numberNode(2))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.result.prompts").isArray())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+    JsonNode response =
+        client.call(
+            sessionId, "prompts/list", null, client.objectMapper().getNodeFactory().numberNode(2));
 
-    ObjectNode response = (ObjectNode) client.objectMapper().readTree(body);
-    var prompts = response.get("result").get("prompts");
+    JsonNode prompts = response.get("result").get("prompts");
+    assertThat(prompts.isArray()).isTrue();
 
     var names = new ArrayList<String>();
     for (var prompt : prompts) {

@@ -15,8 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -48,24 +48,28 @@ class ToolsCallMixedContentIT {
     var arguments = client.objectMapper().createObjectNode();
     var params = new CallToolRequestParams("test_multiple_content_types", arguments, null, null);
 
-    client
-        .post(sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.content.length()").value(3))
-        .andExpect(jsonPath("$.result.content[0].type").value("text"))
-        .andExpect(jsonPath("$.result.content[0].text").value("Multiple content types test:"))
-        .andExpect(jsonPath("$.result.content[1].type").value("image"))
-        .andExpect(jsonPath("$.result.content[1].mimeType").value("image/png"))
-        .andExpect(
-            jsonPath("$.result.content[1].data")
-                .value(
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwzAAAAAElFTkSuQmCC"))
-        .andExpect(jsonPath("$.result.content[2].type").value("resource"))
-        .andExpect(
-            jsonPath("$.result.content[2].resource.uri").value("test://mixed-content-resource"))
-        .andExpect(jsonPath("$.result.content[2].resource.mimeType").value("application/json"))
-        .andExpect(
-            jsonPath("$.result.content[2].resource.text")
-                .value("{\"test\":\"data\",\"value\":123}"));
+    JsonNode response =
+        client.call(
+            sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(2));
+
+    JsonNode content = response.get("result").get("content");
+    assertThat(content.size()).isEqualTo(3);
+
+    assertThat(content.get(0).get("type").asString()).isEqualTo("text");
+    assertThat(content.get(0).get("text").asString()).isEqualTo("Multiple content types test:");
+
+    assertThat(content.get(1).get("type").asString()).isEqualTo("image");
+    assertThat(content.get(1).get("mimeType").asString()).isEqualTo("image/png");
+    assertThat(content.get(1).get("data").asString())
+        .isEqualTo(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwzAAAAAElFTkSuQmCC");
+
+    assertThat(content.get(2).get("type").asString()).isEqualTo("resource");
+    assertThat(content.get(2).get("resource").get("uri").asString())
+        .isEqualTo("test://mixed-content-resource");
+    assertThat(content.get(2).get("resource").get("mimeType").asString())
+        .isEqualTo("application/json");
+    assertThat(content.get(2).get("resource").get("text").asString())
+        .isEqualTo("{\"test\":\"data\",\"value\":123}");
   }
 }

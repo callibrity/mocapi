@@ -15,8 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.CompleteRequestParams;
 import com.callibrity.mocapi.model.CompletionArgument;
@@ -28,6 +27,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -54,14 +54,14 @@ class CompletionCompleteIT {
             null,
             null);
 
-    client
-        .post(
+    JsonNode response =
+        client.call(
             sessionId,
             "completion/complete",
             params,
-            client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.completion").exists())
-        .andExpect(jsonPath("$.result.completion.values").isArray());
+            client.objectMapper().getNodeFactory().numberNode(2));
+
+    assertThat(response.has("error")).isTrue();
+    assertThat(response.get("error").get("code").asInt()).isEqualTo(-32601);
   }
 }

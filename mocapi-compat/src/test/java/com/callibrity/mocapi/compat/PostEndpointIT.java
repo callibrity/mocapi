@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +25,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -84,9 +87,26 @@ class PostEndpointIT {
         """
         {"jsonrpc":"1.0","method":"ping","id":2}""";
 
-    client
-        .postRaw("application/json, text/event-stream", sessionId, body)
-        .andExpect(jsonPath("$.error.code").value(-32600))
-        .andExpect(jsonPath("$.error.message").value("jsonrpc value must be \"2.0\"."));
+    MvcResult mvcResult =
+        client.postRaw("application/json, text/event-stream", sessionId, body).andReturn();
+
+    mvcResult.getAsyncResult(5000);
+    String responseBody = mvcResult.getResponse().getContentAsString();
+
+    ObjectMapper objectMapper = client.objectMapper();
+    JsonNode errorResponse = null;
+    for (String line : responseBody.split("\n")) {
+      if (line.startsWith("data:")) {
+        JsonNode node = objectMapper.readTree(line.substring(5));
+        if (node.has("error")) {
+          errorResponse = node;
+        }
+      }
+    }
+
+    assertThat(errorResponse).isNotNull();
+    assertThat(errorResponse.get("error").get("code").asInt()).isEqualTo(-32600);
+    assertThat(errorResponse.get("error").get("message").asString())
+        .isEqualTo("jsonrpc value must be \"2.0\".");
   }
 }

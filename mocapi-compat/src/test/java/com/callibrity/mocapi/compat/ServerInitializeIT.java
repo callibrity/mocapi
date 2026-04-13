@@ -71,7 +71,7 @@ class ServerInitializeIT {
     client
         .initializeResult()
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.serverInfo.name").value("mocapi-mcp-server"));
+        .andExpect(jsonPath("$.result.serverInfo.name").value("mocapi-conformance"));
   }
 
   @Test

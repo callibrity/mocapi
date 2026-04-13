@@ -15,8 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.ResourceRequestParams;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -47,18 +47,18 @@ class ResourcesTemplatesReadIT {
 
     var params = new ResourceRequestParams("test://template/123/data", null);
 
-    client
-        .post(
+    JsonNode response =
+        client.call(
             sessionId,
             "resources/read",
             params,
-            client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.contents").isArray())
-        .andExpect(jsonPath("$.result.contents[0].uri").value("test://template/123/data"))
-        .andExpect(jsonPath("$.result.contents[0].mimeType").value("application/json"))
-        .andExpect(
-            jsonPath("$.result.contents[0].text")
-                .value("{\"id\":\"123\",\"templateTest\":true,\"data\":\"Data for ID: 123\"}"));
+            client.objectMapper().getNodeFactory().numberNode(2));
+
+    JsonNode contents = response.get("result").get("contents");
+    assertThat(contents.isArray()).isTrue();
+    assertThat(contents.get(0).get("uri").asString()).isEqualTo("test://template/123/data");
+    assertThat(contents.get(0).get("mimeType").asString()).isEqualTo("application/json");
+    assertThat(contents.get(0).get("text").asString())
+        .isEqualTo("{\"id\":\"123\",\"templateTest\":true,\"data\":\"Data for ID: 123\"}");
   }
 }

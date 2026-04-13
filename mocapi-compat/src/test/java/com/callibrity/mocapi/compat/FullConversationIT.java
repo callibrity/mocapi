@@ -27,6 +27,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -62,32 +63,35 @@ class FullConversationIT {
     client.notify(sessionId, "notifications/initialized", null).andExpect(status().isAccepted());
 
     // 3. tools/list — receive tool definitions
-    client
-        .post(sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.tools").isArray())
-        .andExpect(jsonPath("$.result.tools").isNotEmpty())
-        .andExpect(jsonPath("$.result.tools[0].name").isString());
+    JsonNode toolsResponse =
+        client.call(
+            sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(2));
+
+    JsonNode tools = toolsResponse.get("result").get("tools");
+    assertThat(tools.isArray()).isTrue();
+    assertThat(tools.isEmpty()).isFalse();
+    assertThat(tools.get(0).get("name").isTextual()).isTrue();
 
     // 4. tools/call for echo tool — receive structured content result
     var arguments = client.objectMapper().createObjectNode();
     arguments.put("message", "hello world");
     var callParams = new CallToolRequestParams("echo", arguments, null, null);
 
-    client
-        .post(
+    JsonNode callResponse =
+        client.call(
             sessionId,
             "tools/call",
             callParams,
-            client.objectMapper().getNodeFactory().numberNode(3))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.structuredContent.message").value("hello world"));
+            client.objectMapper().getNodeFactory().numberNode(3));
+
+    assertThat(callResponse.get("result").get("structuredContent").get("message").asString())
+        .isEqualTo("hello world");
 
     // 5. ping — receive pong (empty result)
-    client
-        .post(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(4))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isEmpty());
+    JsonNode pingResponse =
+        client.call(sessionId, "ping", null, client.objectMapper().getNodeFactory().numberNode(4));
+
+    assertThat(pingResponse.get("result").isEmpty()).isTrue();
 
     // 6. DELETE — 204
     client.delete(sessionId).andExpect(status().isNoContent());

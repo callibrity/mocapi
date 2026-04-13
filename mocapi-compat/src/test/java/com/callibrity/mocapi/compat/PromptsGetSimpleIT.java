@@ -15,8 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.GetPromptRequestParams;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -47,15 +47,15 @@ class PromptsGetSimpleIT {
 
     var params = new GetPromptRequestParams("test_simple_prompt", null, null);
 
-    client
-        .post(
-            sessionId, "prompts/get", params, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.messages").isArray())
-        .andExpect(jsonPath("$.result.messages[0].role").value("user"))
-        .andExpect(jsonPath("$.result.messages[0].content.type").value("text"))
-        .andExpect(
-            jsonPath("$.result.messages[0].content.text")
-                .value("This is a simple prompt for testing."));
+    JsonNode response =
+        client.call(
+            sessionId, "prompts/get", params, client.objectMapper().getNodeFactory().numberNode(2));
+
+    JsonNode messages = response.get("result").get("messages");
+    assertThat(messages.isArray()).isTrue();
+    assertThat(messages.get(0).get("role").asString()).isEqualTo("user");
+    assertThat(messages.get(0).get("content").get("type").asString()).isEqualTo("text");
+    assertThat(messages.get(0).get("content").get("text").asString())
+        .isEqualTo("This is a simple prompt for testing.");
   }
 }

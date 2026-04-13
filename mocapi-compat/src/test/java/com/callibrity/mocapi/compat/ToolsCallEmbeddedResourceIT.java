@@ -15,8 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -48,14 +48,15 @@ class ToolsCallEmbeddedResourceIT {
     var arguments = client.objectMapper().createObjectNode();
     var params = new CallToolRequestParams("test_embedded_resource", arguments, null, null);
 
-    client
-        .post(sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.content[0].type").value("resource"))
-        .andExpect(jsonPath("$.result.content[0].resource.uri").value("test://embedded-resource"))
-        .andExpect(jsonPath("$.result.content[0].resource.mimeType").value("text/plain"))
-        .andExpect(
-            jsonPath("$.result.content[0].resource.text")
-                .value("This is an embedded resource content."));
+    JsonNode response =
+        client.call(
+            sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(2));
+
+    JsonNode content = response.get("result").get("content").get(0);
+    assertThat(content.get("type").asString()).isEqualTo("resource");
+    assertThat(content.get("resource").get("uri").asString()).isEqualTo("test://embedded-resource");
+    assertThat(content.get("resource").get("mimeType").asString()).isEqualTo("text/plain");
+    assertThat(content.get("resource").get("text").asString())
+        .isEqualTo("This is an embedded resource content.");
   }
 }

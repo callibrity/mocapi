@@ -86,17 +86,23 @@ public class StreamableHttpController {
       @RequestHeader(value = "Origin", required = false) String origin) {
 
     if (!acceptsJsonAndSse(accept)) {
-      return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
+      return jsonRpcError(HttpStatus.NOT_ACCEPTABLE, -32000,
+          "Not Acceptable: Client must accept both application/json and text/event-stream");
     }
     if (!validator.isValidOrigin(origin)) {
-      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, "Forbidden: Invalid Origin");
+    }
+    if (!validator.isValidProtocolVersion(protocolVersion)) {
+      return jsonRpcError(HttpStatus.BAD_REQUEST, -32000,
+          "Bad Request: Unsupported protocol version: " + protocolVersion);
     }
     if (server.requiresSession(message)) {
       if (Strings.isEmpty(sessionId)) {
-        return ResponseEntity.badRequest().build();
+        return jsonRpcError(HttpStatus.BAD_REQUEST, -32000,
+            "Bad Request: MCP-Session-Id header is required");
       }
       if (!server.sessionExists(sessionId)) {
-        return ResponseEntity.notFound().build();
+        return jsonRpcError(HttpStatus.NOT_FOUND, -32001, "Session not found");
       }
     }
 

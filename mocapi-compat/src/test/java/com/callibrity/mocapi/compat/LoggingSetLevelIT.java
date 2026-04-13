@@ -15,8 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.SetLevelRequestParams;
@@ -27,6 +26,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -48,14 +48,14 @@ class LoggingSetLevelIT {
 
     var params = new SetLevelRequestParams(LoggingLevel.DEBUG, null);
 
-    client
-        .post(
+    JsonNode response =
+        client.call(
             sessionId,
             "logging/setLevel",
             params,
-            client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isMap())
-        .andExpect(jsonPath("$.result.length()").value(0));
+            client.objectMapper().getNodeFactory().numberNode(2));
+
+    assertThat(response.get("result").isObject()).isTrue();
+    assertThat(response.get("result").isEmpty()).isTrue();
   }
 }

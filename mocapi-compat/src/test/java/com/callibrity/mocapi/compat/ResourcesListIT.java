@@ -16,8 +16,6 @@
 package com.callibrity.mocapi.compat;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -47,21 +45,15 @@ class ResourcesListIT {
   void resourcesListReturnsAllConformanceResources() throws Exception {
     String sessionId = client.initialize();
 
-    String body =
-        client
-            .post(
-                sessionId,
-                "resources/list",
-                null,
-                client.objectMapper().getNodeFactory().numberNode(2))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.result.resources").isArray())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+    JsonNode response =
+        client.call(
+            sessionId,
+            "resources/list",
+            null,
+            client.objectMapper().getNodeFactory().numberNode(2));
 
-    ObjectNode response = (ObjectNode) client.objectMapper().readTree(body);
-    var resources = response.get("result").get("resources");
+    JsonNode resources = response.get("result").get("resources");
+    assertThat(resources.isArray()).isTrue();
 
     var uris = new ArrayList<String>();
     for (var resource : resources) {
@@ -76,21 +68,15 @@ class ResourcesListIT {
   void resourcesTemplatesListReturnsTemplates() throws Exception {
     String sessionId = client.initialize();
 
-    String body =
-        client
-            .post(
-                sessionId,
-                "resources/templates/list",
-                null,
-                client.objectMapper().getNodeFactory().numberNode(2))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.result.resourceTemplates").isArray())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+    JsonNode response =
+        client.call(
+            sessionId,
+            "resources/templates/list",
+            null,
+            client.objectMapper().getNodeFactory().numberNode(2));
 
-    ObjectNode response = (ObjectNode) client.objectMapper().readTree(body);
-    var templates = response.get("result").get("resourceTemplates");
+    JsonNode templates = response.get("result").get("resourceTemplates");
+    assertThat(templates.isArray()).isTrue();
 
     var uriTemplates = new ArrayList<String>();
     for (var template : templates) {

@@ -15,8 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.GetPromptRequestParams;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -47,21 +47,25 @@ class PromptsGetWithImageIT {
 
     var params = new GetPromptRequestParams("test_prompt_with_image", null, null);
 
-    client
-        .post(
-            sessionId, "prompts/get", params, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.messages").isArray())
-        .andExpect(jsonPath("$.result.messages[0].role").value("user"))
-        .andExpect(jsonPath("$.result.messages[0].content.type").value("image"))
-        .andExpect(jsonPath("$.result.messages[0].content.mimeType").value("image/png"))
-        .andExpect(
-            jsonPath("$.result.messages[0].content.data")
-                .value(
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwzAAAAAElFTkSuQmCC"))
-        .andExpect(jsonPath("$.result.messages[1].role").value("user"))
-        .andExpect(jsonPath("$.result.messages[1].content.type").value("text"))
-        .andExpect(
-            jsonPath("$.result.messages[1].content.text").value("Please analyze the image above."));
+    JsonNode response =
+        client.call(
+            sessionId, "prompts/get", params, client.objectMapper().getNodeFactory().numberNode(2));
+
+    JsonNode messages = response.get("result").get("messages");
+    assertThat(messages.isArray()).isTrue();
+
+    JsonNode msg0 = messages.get(0);
+    assertThat(msg0.get("role").asString()).isEqualTo("user");
+    assertThat(msg0.get("content").get("type").asString()).isEqualTo("image");
+    assertThat(msg0.get("content").get("mimeType").asString()).isEqualTo("image/png");
+    assertThat(msg0.get("content").get("data").asString())
+        .isEqualTo(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwzAAAAAElFTkSuQmCC");
+
+    JsonNode msg1 = messages.get(1);
+    assertThat(msg1.get("role").asString()).isEqualTo("user");
+    assertThat(msg1.get("content").get("type").asString()).isEqualTo("text");
+    assertThat(msg1.get("content").get("text").asString())
+        .isEqualTo("Please analyze the image above.");
   }
 }

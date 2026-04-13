@@ -17,6 +17,7 @@ package com.callibrity.mocapi.compat;
 
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import tools.jackson.databind.JsonNode;
@@ -270,6 +271,34 @@ public class McpClient {
             .contentType(MediaType.APPLICATION_JSON)
             .accept(MediaType.APPLICATION_JSON, TEXT_EVENT_STREAM)
             .content(objectMapper.writeValueAsString(request)));
+  }
+
+  public JsonNode call(String sessionId, String method, Object params, JsonNode id)
+      throws Exception {
+    MvcResult mvcResult = post(sessionId, method, params, id).andReturn();
+    mvcResult.getAsyncResult(5000);
+    String body = mvcResult.getResponse().getContentAsString();
+    return lastJsonRpcResponse(body);
+  }
+
+  public String callRawSse(String sessionId, String method, Object params, JsonNode id)
+      throws Exception {
+    MvcResult mvcResult = post(sessionId, method, params, id).andReturn();
+    mvcResult.getAsyncResult(5000);
+    return mvcResult.getResponse().getContentAsString();
+  }
+
+  private JsonNode lastJsonRpcResponse(String sseBody) {
+    JsonNode last = null;
+    for (String line : sseBody.split("\n")) {
+      if (line.startsWith("data:")) {
+        JsonNode node = objectMapper.readTree(line.substring(5));
+        if (node.has("id")) {
+          last = node;
+        }
+      }
+    }
+    return last;
   }
 
   public ObjectMapper objectMapper() {

@@ -15,8 +15,7 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -48,14 +48,15 @@ class ToolsCallImageIT {
     var arguments = client.objectMapper().createObjectNode();
     var params = new CallToolRequestParams("test_image_content", arguments, null, null);
 
-    client
-        .post(sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(2))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.content[0].type").value("image"))
-        .andExpect(
-            jsonPath("$.result.content[0].data")
-                .value(
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwzAAAAAElFTkSuQmCC"))
-        .andExpect(jsonPath("$.result.content[0].mimeType").value("image/png"));
+    JsonNode response =
+        client.call(
+            sessionId, "tools/call", params, client.objectMapper().getNodeFactory().numberNode(2));
+
+    JsonNode content = response.get("result").get("content").get(0);
+    assertThat(content.get("type").asString()).isEqualTo("image");
+    assertThat(content.get("data").asString())
+        .isEqualTo(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwzAAAAAElFTkSuQmCC");
+    assertThat(content.get("mimeType").asString()).isEqualTo("image/png");
   }
 }

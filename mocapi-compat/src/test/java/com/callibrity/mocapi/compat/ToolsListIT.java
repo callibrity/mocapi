@@ -16,9 +16,8 @@
 package com.callibrity.mocapi.compat;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
 
 @SpringBootTest(classes = CompatibilityApplication.class)
 @AutoConfigureMockMvc
@@ -46,20 +45,14 @@ class ToolsListIT {
   void toolsListReturnsAllConformanceTools() throws Exception {
     String sessionId = client.initialize();
 
-    String body =
-        client
-            .post(
-                sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(2))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.result.tools").isArray())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+    JsonNode response =
+        client.call(
+            sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(2));
 
-    ObjectNode response = (ObjectNode) client.objectMapper().readTree(body);
-    var tools = response.get("result").get("tools");
+    JsonNode tools = response.get("result").get("tools");
+    assertThat(tools.isArray()).isTrue();
 
-    var toolNames = new java.util.ArrayList<String>();
+    var toolNames = new ArrayList<String>();
     for (var tool : tools) {
       toolNames.add(tool.get("name").asString());
     }
