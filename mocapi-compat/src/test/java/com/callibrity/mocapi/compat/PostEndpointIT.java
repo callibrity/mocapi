@@ -23,6 +23,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -47,50 +50,16 @@ class PostEndpointIT {
     client = new McpClient(mockMvc);
   }
 
-  @Test
-  void missingAcceptHeaderReturns406() throws Exception {
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {"application/json", "text/event-stream"})
+  void invalidAcceptHeaderReturns406(String accept) throws Exception {
     String body =
         """
         {"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}""";
 
     client
-        .postRaw(null, null, body)
-        .andExpect(status().isNotAcceptable())
-        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.error.code").value(-32000))
-        .andExpect(
-            jsonPath("$.error.message")
-                .value(
-                    "Not Acceptable: Client must accept both application/json and text/event-stream"))
-        .andExpect(jsonPath("$.id").value(nullValue()));
-  }
-
-  @Test
-  void acceptWithOnlyJsonReturns406() throws Exception {
-    String body =
-        """
-        {"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}""";
-
-    client
-        .postRaw("application/json", null, body)
-        .andExpect(status().isNotAcceptable())
-        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.error.code").value(-32000))
-        .andExpect(
-            jsonPath("$.error.message")
-                .value(
-                    "Not Acceptable: Client must accept both application/json and text/event-stream"))
-        .andExpect(jsonPath("$.id").value(nullValue()));
-  }
-
-  @Test
-  void acceptWithOnlySseReturns406() throws Exception {
-    String body =
-        """
-        {"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}""";
-
-    client
-        .postRaw("text/event-stream", null, body)
+        .postRaw(accept, null, body)
         .andExpect(status().isNotAcceptable())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.error.code").value(-32000))
