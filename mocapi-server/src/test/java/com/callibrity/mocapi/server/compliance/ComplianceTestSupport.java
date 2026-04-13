@@ -67,14 +67,14 @@ final class ComplianceTestSupport {
 
   // --- Dispatcher ---
 
-  static JsonRpcDispatcher buildDispatcher(ObjectMapper mapper, Object... services) {
+  static JsonRpcDispatcher buildDispatcher(Object... services) {
     var invokerFactory =
         new DefaultMethodInvokerFactory(
             List.of(
                 new McpSessionResolver(),
                 new McpTransportResolver(),
-                new JsonRpcParamsResolver(mapper)));
-    var factory = new DefaultAnnotationJsonRpcMethodProviderFactory(mapper, invokerFactory);
+                new JsonRpcParamsResolver(MAPPER)));
+    var factory = new DefaultAnnotationJsonRpcMethodProviderFactory(MAPPER, invokerFactory);
     var providers = Arrays.stream(services).map(factory::create).toList();
     return new DefaultJsonRpcDispatcher(providers);
   }
@@ -101,7 +101,7 @@ final class ComplianceTestSupport {
     allServices[0] = sessionService;
     allServices[1] = new McpLifecycleService(sessionService);
     System.arraycopy(services, 0, allServices, 2, services.length);
-    var dispatcher = buildDispatcher(MAPPER, allServices);
+    var dispatcher = buildDispatcher(allServices);
     return new DefaultMcpServer(sessionService, dispatcher, correlationService);
   }
 

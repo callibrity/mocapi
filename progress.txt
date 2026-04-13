@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T22:15:00-04:00
-ITERATION: 81
-SPEC_COMPLETED: 152-remove-capturing-transport.md
-WHAT_WAS_DONE: Deleted CapturingTransport and replaced all 13 usages across 4 test files with mock(McpTransport.class) + ArgumentCaptor, using standard Mockito patterns.
-VERIFICATION: mvn verify -pl mocapi-server -am — BUILD SUCCESS, 152 tests pass, 0 failures. Spotless + license checks clean. No references to CapturingTransport remain in mocapi-server.
-STATUS: MORE_WORK
-NEXT_SPEC: 153-inline-mapper-in-build-dispatcher.md
-NOTES: Pre-existing mocapi-transport-streamable-http test compilation error remains unchanged — not caused by this iteration.
+LAST_RUN: 2026-04-12T22:16:17-04:00
+ITERATION: 82
+SPEC_COMPLETED: 153-inline-mapper-in-build-dispatcher.md
+WHAT_WAS_DONE: Removed the ObjectMapper parameter from ComplianceTestSupport.buildDispatcher() and inlined the MAPPER constant; updated the single call site in buildServer().
+VERIFICATION: mvn verify -pl mocapi-server -am — BUILD SUCCESS, 152 tests pass, 0 failures. Spotless + license checks clean.
+STATUS: DONE
+NEXT_SPEC: none
+NOTES: No more specs in specs/. ObjectMapper import retained because MAPPER field declaration and valueToTree calls still use it. Pre-existing mocapi-transport-streamable-http test compilation error remains unchanged.
