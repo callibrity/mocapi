@@ -169,7 +169,7 @@ class ToolsListComplianceTest {
     emptyServer.handleCall(withSession(sessionId, emptyServer), call("tools/list"), transport);
 
     var result = captureResult(transport);
-    assertThat(result.result().path("tools").size()).isEqualTo(0);
+    assertThat(result.result().path("tools").size()).isZero();
     assertThat(result.result().has("nextCursor")).isFalse();
   }
 

@@ -70,7 +70,7 @@ class FullConversationIT {
     JsonNode tools = toolsResponse.get("result").get("tools");
     assertThat(tools.isArray()).isTrue();
     assertThat(tools.isEmpty()).isFalse();
-    assertThat(tools.get(0).get("name").isTextual()).isTrue();
+    assertThat(tools.get(0).get("name").isString()).isTrue();
 
     // 4. tools/call for echo tool — receive structured content result
     var arguments = client.objectMapper().createObjectNode();

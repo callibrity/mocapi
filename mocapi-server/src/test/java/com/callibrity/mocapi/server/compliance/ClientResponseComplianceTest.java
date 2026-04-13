@@ -58,7 +58,7 @@ class ClientResponseComplianceTest {
     var response =
         new JsonRpcResult(
             MAPPER.createObjectNode().put("value", "ok"),
-            JsonNodeFactory.instance.textNode("corr-1"));
+            JsonNodeFactory.instance.stringNode("corr-1"));
 
     server.handleResponse(noSession(), response);
 
@@ -68,7 +68,7 @@ class ClientResponseComplianceTest {
   @Test
   void handle_response_with_error_delivers_to_correlation_service() {
     var response =
-        new JsonRpcError(-32600, "Bad request", JsonNodeFactory.instance.textNode("corr-2"));
+        new JsonRpcError(-32600, "Bad request", JsonNodeFactory.instance.stringNode("corr-2"));
 
     server.handleResponse(noSession(), response);
 
@@ -79,7 +79,7 @@ class ClientResponseComplianceTest {
   void handle_response_with_unknown_correlation_id_does_not_crash() {
     var response =
         new JsonRpcResult(
-            MAPPER.createObjectNode(), JsonNodeFactory.instance.textNode("unknown-id"));
+            MAPPER.createObjectNode(), JsonNodeFactory.instance.stringNode("unknown-id"));
 
     server.handleResponse(noSession(), response);
 

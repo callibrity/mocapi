@@ -160,8 +160,8 @@ class McpPromptsServiceTest {
 
   @Test
   void invalidCursorThrowsException() {
-    assertThatThrownBy(
-            () -> service.listPrompts(new PaginatedRequestParams("not-valid-base64!!!", null)))
+    var params = new PaginatedRequestParams("not-valid-base64!!!", null);
+    assertThatThrownBy(() -> service.listPrompts(params))
         .isInstanceOf(JsonRpcException.class)
         .hasMessageContaining("Invalid cursor");
   }

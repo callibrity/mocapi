@@ -56,7 +56,7 @@ class DefaultMcpToolContextTest {
   @Test
   void sendProgressSendsNotificationThroughTransport() {
     var transport = mock(McpTransport.class);
-    var token = JsonNodeFactory.instance.textNode("progress-1");
+    var token = JsonNodeFactory.instance.stringNode("progress-1");
     var ctx = new DefaultMcpToolContext(transport, mapper, token, correlationService);
 
     ctx.sendProgress(5, 10);
@@ -123,7 +123,7 @@ class DefaultMcpToolContextTest {
   }
 
   @Test
-  void elicitDelegatesToCorrelationService() throws Exception {
+  void elicitDelegatesToCorrelationService() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var requestParams =
@@ -140,15 +140,11 @@ class DefaultMcpToolContextTest {
 
     assertThat(result).isSameAs(expectedResult);
     verify(correlationService)
-        .sendAndAwait(
-            eq(McpMethods.ELICITATION_CREATE),
-            eq(requestParams),
-            eq(ElicitResult.class),
-            eq(transport));
+        .sendAndAwait(McpMethods.ELICITATION_CREATE, requestParams, ElicitResult.class, transport);
   }
 
   @Test
-  void sampleDelegatesToCorrelationService() throws Exception {
+  void sampleDelegatesToCorrelationService() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var requestParams =
@@ -168,9 +164,9 @@ class DefaultMcpToolContextTest {
     assertThat(result).isSameAs(expectedResult);
     verify(correlationService)
         .sendAndAwait(
-            eq(McpMethods.SAMPLING_CREATE_MESSAGE),
-            eq(requestParams),
-            eq(CreateMessageResult.class),
-            eq(transport));
+            McpMethods.SAMPLING_CREATE_MESSAGE,
+            requestParams,
+            CreateMessageResult.class,
+            transport);
   }
 }

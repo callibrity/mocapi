@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.compliance;
 
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.McpServer;
@@ -49,15 +50,21 @@ class NotificationComplianceTest {
   void notifications_initialized_processed_without_error() {
     var sessionId = initializeAndGetSessionId(server);
 
-    server.handleNotification(
-        withSession(sessionId, server), notification("notifications/initialized"));
+    assertThatNoException()
+        .isThrownBy(
+            () ->
+                server.handleNotification(
+                    withSession(sessionId, server), notification("notifications/initialized")));
   }
 
   @Test
   void unknown_notification_method_silently_ignored() {
     var sessionId = initializeAndGetSessionId(server);
 
-    server.handleNotification(
-        withSession(sessionId, server), notification("notifications/unknown_method"));
+    assertThatNoException()
+        .isThrownBy(
+            () ->
+                server.handleNotification(
+                    withSession(sessionId, server), notification("notifications/unknown_method")));
   }
 }

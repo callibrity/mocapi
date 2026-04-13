@@ -36,7 +36,7 @@ public class AtomMcpSessionStore implements McpSessionStore {
   public void update(String sessionId, McpSession session) {
     try {
       atomFactory.connect(sessionId, McpSession.class).set(session, sessionTimeout);
-    } catch (AtomExpiredException e) {
+    } catch (AtomExpiredException _) {
       // Session expired between find and update — silently swallow.
     }
   }
@@ -48,7 +48,7 @@ public class AtomMcpSessionStore implements McpSessionStore {
     }
     try {
       return Optional.of(atomFactory.connect(sessionId, McpSession.class).get().value());
-    } catch (AtomExpiredException e) {
+    } catch (AtomExpiredException _) {
       return Optional.empty();
     }
   }

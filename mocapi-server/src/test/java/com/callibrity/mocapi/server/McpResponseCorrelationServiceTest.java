@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.model.ElicitAction;
@@ -117,13 +118,11 @@ class McpResponseCorrelationServiceTest {
     var shortTimeoutService =
         new McpResponseCorrelationService(mailboxFactory, objectMapper, Duration.ofMillis(200));
 
+    var params = objectMapper.createObjectNode().put("message", "Hello");
     assertThatThrownBy(
             () ->
                 shortTimeoutService.sendAndAwait(
-                    "elicitation/create",
-                    objectMapper.createObjectNode().put("message", "Hello"),
-                    ElicitResult.class,
-                    transport))
+                    "elicitation/create", params, ElicitResult.class, transport))
         .isInstanceOf(McpClientResponseTimeoutException.class)
         .hasMessageContaining("Timed out");
   }
@@ -134,7 +133,7 @@ class McpResponseCorrelationServiceTest {
         new JsonRpcResult(
             objectMapper.createObjectNode(), objectMapper.valueToTree("nonexistent-id"));
 
-    service.deliver(response);
+    assertThatNoException().isThrownBy(() -> service.deliver(response));
   }
 
   @Test

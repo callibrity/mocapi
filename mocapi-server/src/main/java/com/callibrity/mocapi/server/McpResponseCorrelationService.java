@@ -72,7 +72,7 @@ public class McpResponseCorrelationService {
 
     try (var subscription = mailbox.subscribe()) {
       JsonNode paramsNode = objectMapper.valueToTree(params);
-      JsonNode idNode = JsonNodeFactory.instance.textNode(correlationId);
+      JsonNode idNode = JsonNodeFactory.instance.stringNode(correlationId);
       JsonRpcCall call = new JsonRpcCall("2.0", method, paramsNode, idNode);
       transport.send(call);
 

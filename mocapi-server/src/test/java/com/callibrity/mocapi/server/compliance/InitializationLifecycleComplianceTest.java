@@ -17,6 +17,7 @@ package com.callibrity.mocapi.server.compliance;
 
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.model.McpMethods;
@@ -89,26 +90,37 @@ class InitializationLifecycleComplianceTest {
   void notifications_cancelled_is_accepted() {
     var sessionId = initializeAndGetSessionId(server);
 
-    server.handleNotification(
-        withSession(sessionId, server),
-        notification(
-            McpMethods.NOTIFICATIONS_CANCELLED,
-            java.util.Map.of("requestId", 42, "reason", "user cancelled")));
+    assertThatNoException()
+        .isThrownBy(
+            () ->
+                server.handleNotification(
+                    withSession(sessionId, server),
+                    notification(
+                        McpMethods.NOTIFICATIONS_CANCELLED,
+                        java.util.Map.of("requestId", 42, "reason", "user cancelled"))));
   }
 
   @Test
   void notifications_roots_list_changed_is_accepted() {
     var sessionId = initializeAndGetSessionId(server);
 
-    server.handleNotification(
-        withSession(sessionId, server), notification(McpMethods.NOTIFICATIONS_ROOTS_LIST_CHANGED));
+    assertThatNoException()
+        .isThrownBy(
+            () ->
+                server.handleNotification(
+                    withSession(sessionId, server),
+                    notification(McpMethods.NOTIFICATIONS_ROOTS_LIST_CHANGED)));
   }
 
   @Test
   void non_initialized_notification_is_silently_dropped_before_handshake() {
     var sessionId = initializeWithoutCompletingHandshake(server);
 
-    server.handleNotification(
-        withSession(sessionId, server), notification(McpMethods.NOTIFICATIONS_ROOTS_LIST_CHANGED));
+    assertThatNoException()
+        .isThrownBy(
+            () ->
+                server.handleNotification(
+                    withSession(sessionId, server),
+                    notification(McpMethods.NOTIFICATIONS_ROOTS_LIST_CHANGED)));
   }
 }

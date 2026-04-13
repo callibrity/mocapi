@@ -216,8 +216,8 @@ class McpResourcesServiceTest {
 
   @Test
   void invalidCursorThrowsException() {
-    assertThatThrownBy(
-            () -> service.listResources(new PaginatedRequestParams("not-valid-base64!!!", null)))
+    var params = new PaginatedRequestParams("not-valid-base64!!!", null);
+    assertThatThrownBy(() -> service.listResources(params))
         .isInstanceOf(JsonRpcException.class)
         .hasMessageContaining("Invalid cursor");
   }

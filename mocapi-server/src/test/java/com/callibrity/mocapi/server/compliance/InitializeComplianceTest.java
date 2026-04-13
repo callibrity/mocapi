@@ -33,6 +33,8 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * MCP 2025-11-25 § Lifecycle — Initialize.
@@ -134,34 +136,15 @@ class InitializeComplianceTest {
   @Nested
   class Capabilities_reflect_registrations {
 
-    @Test
-    void empty_tool_registry_has_null_tools_capability() {
+    @ParameterizedTest
+    @ValueSource(strings = {"tools", "resources", "prompts"})
+    void empty_registry_has_null_capability(String capability) {
       var transport = mock(McpTransport.class);
 
       server.handleCall(noSession(), initializeCall(), transport);
 
       var result = captureResult(transport);
-      assertThat(result.result().path("capabilities").has("tools")).isFalse();
-    }
-
-    @Test
-    void empty_resource_registry_has_null_resources_capability() {
-      var transport = mock(McpTransport.class);
-
-      server.handleCall(noSession(), initializeCall(), transport);
-
-      var result = captureResult(transport);
-      assertThat(result.result().path("capabilities").has("resources")).isFalse();
-    }
-
-    @Test
-    void empty_prompt_registry_has_null_prompts_capability() {
-      var transport = mock(McpTransport.class);
-
-      server.handleCall(noSession(), initializeCall(), transport);
-
-      var result = captureResult(transport);
-      assertThat(result.result().path("capabilities").has("prompts")).isFalse();
+      assertThat(result.result().path("capabilities").has(capability)).isFalse();
     }
 
     @Test

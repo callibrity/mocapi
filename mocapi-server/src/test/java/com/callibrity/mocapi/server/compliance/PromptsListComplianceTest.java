@@ -129,7 +129,6 @@ class PromptsListComplianceTest {
 
     var result = captureResult(transport);
     var prompts = result.result().path("prompts");
-    com.callibrity.ripcurl.core.JsonRpcResult unused = null;
     tools.jackson.databind.JsonNode greet = null;
     for (var p : prompts) {
       if ("greet".equals(p.path("name").asString())) {

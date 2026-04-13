@@ -26,6 +26,7 @@ import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.RequestMeta;
 import com.callibrity.mocapi.model.TextContent;
+import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.session.McpSession;
@@ -90,7 +91,7 @@ class McpToolsServiceTest {
     var result = service.listTools(null);
 
     assertThat(result.tools()).hasSize(4);
-    assertThat(result.tools().stream().map(t -> t.name()).toList())
+    assertThat(result.tools().stream().map(Tool::name).toList())
         .containsExactly(
             "fire-and-forget",
             "hello-tool.say-hello",
@@ -140,7 +141,7 @@ class McpToolsServiceTest {
   void callInteractiveToolWithProgressAndResult() {
     var transport = mock(McpTransport.class);
     var session = new McpSession("test-session", "2025-11-25", null, null, LoggingLevel.DEBUG);
-    var progressToken = JsonNodeFactory.instance.textNode("tok-1");
+    var progressToken = JsonNodeFactory.instance.stringNode("tok-1");
     var meta = new RequestMeta(progressToken);
     var params =
         new CallToolRequestParams(

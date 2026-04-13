@@ -141,7 +141,7 @@ class ToolsCallInteractiveComplianceTest {
     verify(transport, atLeast(3)).send(captor.capture());
     var notifications =
         captor.getAllValues().stream()
-            .filter(m -> m instanceof JsonRpcNotification)
+            .filter(JsonRpcNotification.class::isInstance)
             .map(m -> (JsonRpcNotification) m)
             .filter(n -> "notifications/progress".equals(n.method()))
             .toList();
@@ -168,7 +168,7 @@ class ToolsCallInteractiveComplianceTest {
     verify(transport, atLeast(3)).send(captor.capture());
     var logNotifications =
         captor.getAllValues().stream()
-            .filter(m -> m instanceof JsonRpcNotification)
+            .filter(JsonRpcNotification.class::isInstance)
             .map(m -> (JsonRpcNotification) m)
             .filter(n -> "notifications/message".equals(n.method()))
             .toList();
@@ -195,7 +195,7 @@ class ToolsCallInteractiveComplianceTest {
     verify(transport, atLeast(3)).send(captor.capture());
     var progressNotifications =
         captor.getAllValues().stream()
-            .filter(m -> m instanceof JsonRpcNotification)
+            .filter(JsonRpcNotification.class::isInstance)
             .map(m -> (JsonRpcNotification) m)
             .filter(n -> "notifications/progress".equals(n.method()))
             .toList();
