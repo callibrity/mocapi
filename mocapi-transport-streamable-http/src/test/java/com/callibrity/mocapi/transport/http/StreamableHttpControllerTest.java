@@ -125,6 +125,12 @@ class StreamableHttpControllerTest {
   @Nested
   class PostWithSession {
 
+    @BeforeEach
+    void setUpSession() {
+      when(protocol.requiresSession(any())).thenReturn(true);
+      when(protocol.sessionExists("session-1")).thenReturn(true);
+    }
+
     @Test
     void callWithSessionReturnsSse() {
       SseEmitter emitter = new SseEmitter();
@@ -200,24 +206,26 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void notificationWithoutSessionReturns202() {
+    void notificationWithoutSessionReturns400() {
+      when(protocol.requiresSession(any())).thenReturn(true);
       ObjectNode notification = objectMapper.createObjectNode();
       notification.put("jsonrpc", "2.0");
       notification.put("method", "notifications/initialized");
 
       var response = post(notification, null, null, POST_ACCEPT, null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
-    void responseWithoutSessionReturns202() {
+    void responseWithoutSessionReturns400() {
+      when(protocol.requiresSession(any())).thenReturn(true);
       ObjectNode jsonRpcResponse = objectMapper.createObjectNode();
       jsonRpcResponse.put("jsonrpc", "2.0");
       jsonRpcResponse.put("id", 1);
       jsonRpcResponse.putObject("result");
 
       var response = post(jsonRpcResponse, null, null, POST_ACCEPT, null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -226,6 +234,7 @@ class StreamableHttpControllerTest {
 
     @Test
     void subscribesToNotificationChannel() {
+      when(protocol.sessionExists("session-1")).thenReturn(true);
       SseEmitter emitter = new SseEmitter();
       when(odyssey.subscribe(eq("session-1"), eq(JsonRpcMessage.class), any())).thenReturn(emitter);
 
@@ -249,6 +258,7 @@ class StreamableHttpControllerTest {
 
     @Test
     void resumeWithLastEventIdDelegatesToOdyssey() {
+      when(protocol.sessionExists("session-1")).thenReturn(true);
       SseEmitter emitter = new SseEmitter();
       when(odyssey.resume(anyString(), eq(JsonRpcMessage.class), anyString(), any()))
           .thenReturn(emitter);
@@ -275,6 +285,7 @@ class StreamableHttpControllerTest {
 
     @Test
     void delegatesToProtocolTerminate() {
+      when(protocol.sessionExists("session-1")).thenReturn(true);
       var response = controller.handleDelete("session-1", null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
