@@ -186,7 +186,6 @@ public class StreamableHttpController {
       SseEmitter emitter =
           odyssey.subscribe(
               sessionId, JsonRpcMessage.class, cfg -> cfg.mapper(encryptingMapper(sessionId)));
-      sendPrimingEvent(emitter, sessionId, sessionId);
       return ResponseEntity.ok().body(emitter);
     } catch (IllegalArgumentException _) {
       return ResponseEntity.badRequest().build();
@@ -221,6 +220,7 @@ public class StreamableHttpController {
             streamName,
             JsonRpcMessage.class,
             cfg -> cfg.mapper(encryptingMapper(context.sessionId())));
+    sendPrimingEvent(emitter, context.sessionId(), streamName);
     return ResponseEntity.ok().contentType(MediaType.TEXT_EVENT_STREAM).body(emitter);
   }
 
