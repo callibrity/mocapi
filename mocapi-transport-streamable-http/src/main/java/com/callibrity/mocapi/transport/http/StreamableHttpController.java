@@ -68,6 +68,7 @@ public class StreamableHttpController {
   public static final String MCP_PROTOCOL_VERSION_HEADER = "MCP-Protocol-Version";
   public static final String LAST_EVENT_ID_HEADER = "Last-Event-ID";
   public static final String INVALID_ORIGIN_MESSAGE = "Forbidden: Invalid Origin";
+  private static final String PRIMING_EVENT_ID = "PRIMING";
   private final McpServer server;
   private final McpRequestValidator validator;
   private final Odyssey odyssey;
@@ -194,7 +195,7 @@ public class StreamableHttpController {
   }
 
   private void sendPrimingEvent(SseEmitter emitter, String sessionId, String streamName) {
-    String primingPlaintext = streamName + ":0";
+    String primingPlaintext = streamName + ":" + PRIMING_EVENT_ID;
     String encryptedId = encrypt(sessionId, primingPlaintext);
     try {
       emitter.send(SseEmitter.event().id(encryptedId).data(""));
@@ -244,11 +245,11 @@ public class StreamableHttpController {
     }
     String streamName = plaintext.substring(0, colonIndex);
     String rawEventId = plaintext.substring(colonIndex + 1);
-    return odyssey.resume(
-        streamName,
-        JsonRpcMessage.class,
-        rawEventId,
-        cfg -> cfg.mapper(encryptingMapper(sessionId)));
+    var mapper = encryptingMapper(sessionId);
+    if (PRIMING_EVENT_ID.equals(rawEventId)) {
+      return odyssey.subscribe(streamName, JsonRpcMessage.class, cfg -> cfg.mapper(mapper));
+    }
+    return odyssey.resume(streamName, JsonRpcMessage.class, rawEventId, cfg -> cfg.mapper(mapper));
   }
 
   private SseEventMapper<JsonRpcMessage> encryptingMapper(String sessionId) {
