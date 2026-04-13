@@ -86,20 +86,24 @@ public class StreamableHttpController {
       @RequestHeader(value = "Origin", required = false) String origin) {
 
     if (!acceptsJsonAndSse(accept)) {
-      return jsonRpcError(HttpStatus.NOT_ACCEPTABLE, -32000,
+      return jsonRpcError(
+          HttpStatus.NOT_ACCEPTABLE,
+          -32000,
           "Not Acceptable: Client must accept both application/json and text/event-stream");
     }
     if (!validator.isValidOrigin(origin)) {
       return jsonRpcError(HttpStatus.FORBIDDEN, -32000, "Forbidden: Invalid Origin");
     }
     if (!validator.isValidProtocolVersion(protocolVersion)) {
-      return jsonRpcError(HttpStatus.BAD_REQUEST, -32000,
+      return jsonRpcError(
+          HttpStatus.BAD_REQUEST,
+          -32000,
           "Bad Request: Unsupported protocol version: " + protocolVersion);
     }
     if (server.requiresSession(message)) {
       if (Strings.isEmpty(sessionId)) {
-        return jsonRpcError(HttpStatus.BAD_REQUEST, -32000,
-            "Bad Request: MCP-Session-Id header is required");
+        return jsonRpcError(
+            HttpStatus.BAD_REQUEST, -32000, "Bad Request: MCP-Session-Id header is required");
       }
       if (!server.sessionExists(sessionId)) {
         return jsonRpcError(HttpStatus.NOT_FOUND, -32001, "Session not found");
@@ -117,13 +121,7 @@ public class StreamableHttpController {
 
   @ExceptionHandler(HttpMessageNotReadableException.class)
   public ResponseEntity<Object> handleUnreadableBody(HttpMessageNotReadableException ex) {
-    String message = rootCauseMessage(ex);
-    ObjectNode node = objectMapper.createObjectNode();
-    node.put("jsonrpc", VERSION);
-    ObjectNode error = node.putObject("error");
-    error.put("code", -32600);
-    error.put("message", message);
-    return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON).body(node);
+    return jsonRpcError(HttpStatus.BAD_REQUEST, -32700, "Parse error: " + rootCauseMessage(ex));
   }
 
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -134,13 +132,16 @@ public class StreamableHttpController {
       @RequestHeader(value = "Origin", required = false) String origin) {
 
     if (!acceptsSse(accept)) {
-      return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
+      return jsonRpcError(
+          HttpStatus.NOT_ACCEPTABLE,
+          -32000,
+          "Not Acceptable: Client must accept text/event-stream");
     }
     if (!validator.isValidOrigin(origin)) {
-      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, "Forbidden: Invalid Origin");
     }
     if (!server.sessionExists(sessionId)) {
-      return ResponseEntity.notFound().build();
+      return jsonRpcError(HttpStatus.NOT_FOUND, -32001, "Session not found");
     }
     try {
       if (lastEventId != null) {
@@ -161,10 +162,10 @@ public class StreamableHttpController {
       @RequestHeader(value = "Origin", required = false) String origin) {
 
     if (!validator.isValidOrigin(origin)) {
-      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, "Forbidden: Invalid Origin");
     }
     if (!server.sessionExists(sessionId)) {
-      return ResponseEntity.notFound().build();
+      return jsonRpcError(HttpStatus.NOT_FOUND, -32001, "Session not found");
     }
     server.terminate(sessionId);
     return ResponseEntity.noContent().build();
@@ -251,6 +252,16 @@ public class StreamableHttpController {
     } catch (GeneralSecurityException e) {
       throw new IllegalArgumentException("Invalid or tampered encrypted token", e);
     }
+  }
+
+  private ResponseEntity<Object> jsonRpcError(HttpStatus status, int code, String message) {
+    ObjectNode node = objectMapper.createObjectNode();
+    node.put("jsonrpc", VERSION);
+    ObjectNode error = node.putObject("error");
+    error.put("code", code);
+    error.put("message", message);
+    node.putNull("id");
+    return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(node);
   }
 
   private static String rootCauseMessage(Throwable t) {
