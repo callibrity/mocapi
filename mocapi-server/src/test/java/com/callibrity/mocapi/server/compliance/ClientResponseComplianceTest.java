@@ -15,7 +15,10 @@
  */
 package com.callibrity.mocapi.server.compliance;
 
-import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
+import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.MAPPER;
+import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.buildServer;
+import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.inMemorySessionStore;
+import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.noSession;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
