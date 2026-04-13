@@ -25,6 +25,7 @@ import com.callibrity.mocapi.model.LoggingLevel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -35,10 +36,11 @@ class McpToolContextDefaultMethodsTest {
 
   static class CapturingContext implements McpToolContext {
     final List<LogEntry> entries = new ArrayList<>();
+    ElicitRequestFormParams lastElicitParams;
 
     @Override
     public void sendProgress(long progress, long total) {
-      // Not under test — only logging default methods are exercised here
+      // Not under test — only default methods are exercised here
     }
 
     @Override
@@ -48,7 +50,8 @@ class McpToolContextDefaultMethodsTest {
 
     @Override
     public ElicitResult elicit(ElicitRequestFormParams params) {
-      throw new UnsupportedOperationException("Not under test");
+      lastElicitParams = params;
+      return new ElicitResult(com.callibrity.mocapi.model.ElicitAction.ACCEPT, null);
     }
 
     @Override
@@ -81,6 +84,36 @@ class McpToolContextDefaultMethodsTest {
         Arguments.of(LoggingLevel.CRITICAL, (LogInvoker) McpToolContext::critical),
         Arguments.of(LoggingLevel.ALERT, (LogInvoker) McpToolContext::alert),
         Arguments.of(LoggingLevel.EMERGENCY, (LogInvoker) McpToolContext::emergency));
+  }
+
+  @Test
+  void fluentElicitBuildsSchemaAndDelegatesToElicit() {
+    var ctx = new CapturingContext();
+
+    ctx.elicit(
+        "Enter your info",
+        schema -> schema.string("name", "Your name").string("email", "Email", s -> s.email()));
+
+    assertThat(ctx.lastElicitParams).isNotNull();
+    assertThat(ctx.lastElicitParams.mode()).isEqualTo("form");
+    assertThat(ctx.lastElicitParams.message()).isEqualTo("Enter your info");
+    assertThat(ctx.lastElicitParams.requestedSchema()).isNotNull();
+    assertThat(ctx.lastElicitParams.requestedSchema().properties()).containsKeys("name", "email");
+    assertThat(ctx.lastElicitParams.requestedSchema().required()).contains("name", "email");
+  }
+
+  @Test
+  void fluentElicitWithOptionalFieldExcludesFromRequired() {
+    var ctx = new CapturingContext();
+
+    ctx.elicit(
+        "Optional test",
+        schema ->
+            schema
+                .string("required", "Required")
+                .string("optional", "Optional", s -> s.optional()));
+
+    assertThat(ctx.lastElicitParams.requestedSchema().required()).containsExactly("required");
   }
 
   @FunctionalInterface
