@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-13T09:08:00-04:00
-ITERATION: 92
-SPEC_COMPLETED: 163-fix-sse-priming-event-in-mockmvc.md
-WHAT_WAS_DONE: Fixed SSE priming event causing ResponseBodyEmitter already completed warnings in MockMvc tests by splitting the catch block in sendPrimingEvent — IOException still logs a warning, IllegalStateException (expected in MockMvc where the emitter completes before send) is downgraded to debug level.
-VERIFICATION: mvn verify — BUILD SUCCESS. All 18 modules pass. No ResponseBodyEmitter warnings in test output. SseStreamIT (7 tests), DnsRebindingProtectionIT (6 tests), and all other compat tests pass clean.
+LAST_RUN: 2026-04-13T09:13:00-04:00
+ITERATION: 93
+SPEC_COMPLETED: 164-remove-backend-specific-starters.md
+WHAT_WAS_DONE: Deleted all four backend-specific starter modules (redis, hazelcast, postgresql, aws) and removed them from the parent POM. Updated example POMs (redis, hazelcast, postgresql) to depend directly on substrate-* backends plus their Spring Boot integration deps. Moved integration tests from starters to corresponding example modules with failsafe configured.
+VERIFICATION: mvn verify -pl '!mocapi-compat' — BUILD SUCCESS. All 13 modules pass. Redis (4 IT), Hazelcast (4 IT), PostgreSQL (4 IT) integration tests all green.
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: The priming event still works in production (real HTTP) where the emitter is active. In MockMvc, the emitter completes before sendPrimingEvent runs due to MockMvc's synchronous async handling — this is expected and the debug log documents it without polluting test output.
+NOTES: The AWS starter's integration test (AwsStarterAutoConfigurationIT) was deleted since there is no AWS example module to move it to. It tested Substrate's DynamoDB/SNS auto-configuration, not mocapi code. The NATS example already used direct substrate-nats dependency (no starter existed for it), so it served as the model for this migration.

@@ -46,10 +46,14 @@ A `@ToolMethod` method receives its arguments as method parameters and returns a
 
 ```java
 @ToolMethod(name = "add", description = "Adds two numbers")
-public int add(int a, int b) {
-    return a + b;
+public AddResult add(int a, int b) {
+    return new AddResult(a + b);
 }
+
+public record AddResult(int sum) {}
 ```
+
+Tool methods should return records or objects, not scalar types. The framework serializes the return value to JSON and includes it as `structuredContent` in the response. Scalar returns (int, String, etc.) produce text-only content without structured data.
 
 ### Naming
 

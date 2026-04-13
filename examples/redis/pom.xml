@@ -29,8 +29,7 @@
     <name>Mocapi - Example (Redis)</name>
     <description>
         Mocapi example app with Redis-backed session store, mailbox,
-        journal, and notifier. Uses mocapi-redis-spring-boot-starter
-        for one-dependency setup.
+        journal, and notifier.
     </description>
 
     <properties>
@@ -45,9 +44,13 @@
         </dependency>
 
         <dependency>
-            <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-redis-spring-boot-starter</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.jwcarman.substrate</groupId>
+            <artifactId>substrate-redis</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
         <!-- Auto-starts docker-compose.yml on application startup -->
@@ -55,6 +58,24 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-docker-compose</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.vaadin.external.google</groupId>
+                    <artifactId>android-json</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>1.20.4</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -64,6 +85,18 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

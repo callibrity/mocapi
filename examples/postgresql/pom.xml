@@ -45,12 +45,9 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- All-in-one PostgreSQL starter: transitively brings substrate-postgresql
-             (Atom, Mailbox, Journal, Notifier) plus the mocapi core starter. -->
         <dependency>
-            <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-postgresql-spring-boot-starter</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.jwcarman.substrate</groupId>
+            <artifactId>substrate-postgresql</artifactId>
         </dependency>
 
         <!-- JDBC driver -->
@@ -72,6 +69,30 @@
             <artifactId>spring-boot-docker-compose</artifactId>
             <optional>true</optional>
         </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.vaadin.external.google</groupId>
+                    <artifactId>android-json</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>1.20.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>1.20.4</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -80,6 +101,18 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
