@@ -16,7 +16,10 @@
 package com.callibrity.mocapi.server.tools.annotation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.api.tools.McpToolContext;
+import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.callibrity.mocapi.api.tools.ToolMethod;
 import com.callibrity.mocapi.server.tools.McpToolContextResolver;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
@@ -84,10 +87,53 @@ class AnnotationMcpToolTest {
     assertThat(tool.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
   }
 
+  @Test
+  void voidToolShouldHaveNullOutputSchema() {
+    var tools = createTools(new BoxedVoidTool());
+    assertThat(tools).hasSize(1);
+    assertThat(tools.getFirst().descriptor().outputSchema()).isNull();
+  }
+
+  @Test
+  void mcpToolParamsWithOtherNonContextParamShouldThrow() {
+    assertThatThrownBy(() -> createTools(new InvalidMixedParamsTool()))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("@McpToolParams");
+  }
+
+  @Test
+  void mcpToolParamsWithContextParamOnlyShouldSucceed() {
+    var tools = createTools(new ValidParamsWithContextTool());
+    assertThat(tools).hasSize(1);
+  }
+
   static class CustomizedTool {
     @ToolMethod(name = "custom-name", title = "Custom Title", description = "Custom description")
     public String doWork(String input) {
       return input;
+    }
+  }
+
+  static class BoxedVoidTool {
+    @ToolMethod
+    public Void doNothing(String input) {
+      return null;
+    }
+  }
+
+  static class InvalidMixedParamsTool {
+    @ToolMethod
+    public String doWork(@McpToolParams String params, String extra) {
+      return params;
+    }
+  }
+
+  record SimpleParams(String value) {}
+
+  static class ValidParamsWithContextTool {
+    @ToolMethod
+    public String doWork(@McpToolParams SimpleParams params, McpToolContext ctx) {
+      return params.value();
     }
   }
 }

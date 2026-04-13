@@ -62,7 +62,7 @@ class DefaultMethodSchemaGeneratorTest {
       ObjectNode schema = generator.generateInputSchema(target, method);
 
       assertThat(schema.has("$schema")).isTrue();
-      assertThat(schema.get("type").asText()).isEqualTo("object");
+      assertThat(schema.get("type").asString()).isEqualTo("object");
       assertThat(schema.has("properties")).isTrue();
 
       ObjectNode properties = (ObjectNode) schema.get("properties");
@@ -83,7 +83,7 @@ class DefaultMethodSchemaGeneratorTest {
 
       boolean hasName = false;
       for (var element : required) {
-        if ("name".equals(element.asText())) {
+        if ("name".equals(element.asString())) {
           hasName = true;
         }
       }
@@ -97,8 +97,8 @@ class DefaultMethodSchemaGeneratorTest {
 
       ObjectNode schema = generator.generateInputSchema(target, method);
 
-      assertThat(schema.get("$schema").asText()).contains("draft-07");
-      assertThat(schema.get("type").asText()).isEqualTo("object");
+      assertThat(schema.get("$schema").asString()).contains("draft-07");
+      assertThat(schema.get("type").asString()).isEqualTo("object");
     }
   }
 
@@ -123,7 +123,7 @@ class DefaultMethodSchemaGeneratorTest {
 
       assertThat(schema).isNotNull();
       assertThat(schema.has("type")).isTrue();
-      assertThat(schema.get("type").asText()).isEqualTo("string");
+      assertThat(schema.get("type").asString()).isEqualTo("string");
     }
   }
 }
