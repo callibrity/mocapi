@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server.tools.schema;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import java.lang.reflect.Parameter;
 import org.junit.jupiter.api.Test;
 
@@ -39,6 +40,14 @@ class ParametersTest {
 
   void schemaWithTitle(@Schema(title = "Custom Title") String value) {
     // Reflective target — non-blank @Schema title
+  }
+
+  void nullableParam(@Nullable String value) {
+    // Reflective target — @Nullable annotated parameter
+  }
+
+  void schemaNotRequired(@Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED) String value) {
+    // Reflective target — @Schema with NOT_REQUIRED requiredMode
   }
 
   // --- Tests ---
@@ -63,5 +72,19 @@ class ParametersTest {
     Parameter param =
         getClass().getDeclaredMethod("schemaWithTitle", String.class).getParameters()[0];
     assertThat(Parameters.titleOf(param)).isEqualTo("Custom Title");
+  }
+
+  @Test
+  void isRequiredShouldReturnFalseWhenNullableAnnotationPresent() throws Exception {
+    Parameter param =
+        getClass().getDeclaredMethod("nullableParam", String.class).getParameters()[0];
+    assertThat(Parameters.isRequired(param)).isFalse();
+  }
+
+  @Test
+  void isRequiredShouldReturnFalseWhenSchemaRequiredModeIsNotRequired() throws Exception {
+    Parameter param =
+        getClass().getDeclaredMethod("schemaNotRequired", String.class).getParameters()[0];
+    assertThat(Parameters.isRequired(param)).isFalse();
   }
 }

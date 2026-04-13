@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.mocapi.model.ElicitAction;
 import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.ripcurl.core.JsonRpcCall;
+import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.time.Duration;
@@ -200,6 +201,44 @@ class McpResponseCorrelationServiceTest {
 
     assertThat(result0.get().content().get("value").asString()).isEqualTo("first");
     assertThat(result1.get().content().get("value").asString()).isEqualTo("second");
+  }
+
+  @Test
+  void deliverWithJsonRpcErrorDoesNotDeliverToMailbox() throws Exception {
+    var transport = new LatchingTransport(1);
+
+    var resultRef = new AtomicReference<ElicitResult>();
+    var shortTimeoutService =
+        new McpResponseCorrelationService(mailboxFactory, objectMapper, Duration.ofMillis(300));
+
+    var thread =
+        Thread.ofVirtual()
+            .start(
+                () -> {
+                  try {
+                    resultRef.set(
+                        shortTimeoutService.sendAndAwait(
+                            "elicitation/create",
+                            objectMapper.createObjectNode().put("message", "Name?"),
+                            ElicitResult.class,
+                            transport));
+                  } catch (McpClientResponseTimeoutException _) {
+                    // Expected — error response should not deliver, so the call times out
+                  }
+                });
+
+    assertThat(transport.awaitMessages(5, TimeUnit.SECONDS)).isTrue();
+    var sentCall = (JsonRpcCall) transport.messages().getFirst();
+    String correlationId = sentCall.id().asString();
+
+    // Deliver an error response instead of a result
+    var errorResponse =
+        new JsonRpcError(-32600, "Bad request", objectMapper.valueToTree(correlationId));
+    service.deliver(errorResponse);
+
+    thread.join(Duration.ofSeconds(2));
+    // The result should remain null because the error was not delivered to the mailbox
+    assertThat(resultRef.get()).isNull();
   }
 
   /** Thread-safe transport with a latch to signal when expected messages have been sent. */

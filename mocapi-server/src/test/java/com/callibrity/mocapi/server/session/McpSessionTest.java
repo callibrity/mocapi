@@ -118,6 +118,22 @@ class McpSessionTest {
   }
 
   @Test
+  void supportsSamplingReturnsFalseWhenSamplingNull() {
+    var capabilities = new ClientCapabilities(null, null, null);
+    var session = new McpSession("s1", "2025-11-25", capabilities, null);
+
+    assertThat(session.supportsSampling()).isFalse();
+  }
+
+  @Test
+  void supportsRootsReturnsFalseWhenRootsNull() {
+    var capabilities = new ClientCapabilities(null, null, null);
+    var session = new McpSession("s1", "2025-11-25", capabilities, null);
+
+    assertThat(session.supportsRoots()).isFalse();
+  }
+
+  @Test
   void sessionPreservesClientInfo() {
     var clientInfo = new Implementation("test-client", "Test", "1.0");
     var session = new McpSession("s1", "2025-11-25", null, clientInfo);

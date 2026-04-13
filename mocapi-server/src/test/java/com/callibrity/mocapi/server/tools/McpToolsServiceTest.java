@@ -285,4 +285,36 @@ class McpToolsServiceTest {
     var tool = service.lookup("fire-and-forget");
     assertThat(tool.descriptor().outputSchema()).isNull();
   }
+
+  @Test
+  void callToolWithNullArgumentsFallsToEmptyObject() {
+    var params = new CallToolRequestParams("fire-and-forget", null, null, null);
+
+    // Null arguments are replaced with an empty ObjectNode, which then fails schema validation
+    // because the tool requires a "message" property — proving the null-to-empty fallback executed.
+    assertThatThrownBy(() -> service.callTool(params))
+        .isInstanceOf(JsonRpcException.class)
+        .hasMessageContaining("required");
+  }
+
+  @Test
+  void toCallToolResultWithNonObjectResultHasNullStructuredContent() {
+    var result = service.toCallToolResult("just a string");
+
+    assertThat(result.isError()).isNull();
+    assertThat(result.structuredContent()).isNull();
+    assertThat(result.content()).hasSize(1);
+    assertThat(((TextContent) result.content().getFirst()).text()).contains("just a string");
+  }
+
+  @Test
+  void toErrorCallToolResultUsesToStringWhenMessageIsNull() {
+    var exception = new RuntimeException((String) null);
+    var result = McpToolsService.toErrorCallToolResult(exception);
+
+    assertThat(result.isError()).isTrue();
+    assertThat(result.content()).hasSize(1);
+    String text = ((TextContent) result.content().getFirst()).text();
+    assertThat(text).isEqualTo(exception.toString());
+  }
 }

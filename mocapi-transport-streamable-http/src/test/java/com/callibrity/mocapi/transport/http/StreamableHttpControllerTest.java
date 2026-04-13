@@ -256,6 +256,27 @@ class StreamableHttpControllerTest {
       var response = post(jsonRpcResponse, null, null, POST_ACCEPT, null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
+
+    @Test
+    void postWithSessionNotFoundReturns404() {
+      when(protocol.createContext(any(), any()))
+          .thenReturn(new McpContextResult.SessionNotFound(-32001, "Session not found"));
+
+      var response = post(callRequest("ping"), null, "unknown", POST_ACCEPT, null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void postWithProtocolVersionMismatchReturns400() {
+      when(protocol.createContext(any(), any()))
+          .thenReturn(
+              new McpContextResult.ProtocolVersionMismatch(-32002, "Protocol version mismatch"));
+
+      var response = post(callRequest("ping"), "wrong-version", "s1", POST_ACCEPT, null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
   }
 
   @Nested
@@ -344,6 +365,27 @@ class StreamableHttpControllerTest {
 
       var response =
           controller.handleGet("session-1", null, "not!!!valid~base64", SSE_ACCEPT, null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void getWithSessionNotFoundReturns404() {
+      when(protocol.createContext(eq("unknown"), any()))
+          .thenReturn(new McpContextResult.SessionNotFound(-32001, "Session not found"));
+
+      var response = controller.handleGet("unknown", null, null, SSE_ACCEPT, null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void getWithProtocolVersionMismatchReturns400() {
+      when(protocol.createContext(eq("session-1"), any()))
+          .thenReturn(
+              new McpContextResult.ProtocolVersionMismatch(-32002, "Protocol version mismatch"));
+
+      var response = controller.handleGet("session-1", "wrong-version", null, SSE_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
