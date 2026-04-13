@@ -16,6 +16,9 @@
 package com.callibrity.mocapi.compat;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -49,7 +53,16 @@ class PostEndpointIT {
         """
         {"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}""";
 
-    client.postRaw(null, null, body).andExpect(status().isNotAcceptable());
+    client
+        .postRaw(null, null, body)
+        .andExpect(status().isNotAcceptable())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.error.code").value(-32000))
+        .andExpect(
+            jsonPath("$.error.message")
+                .value(
+                    "Not Acceptable: Client must accept both application/json and text/event-stream"))
+        .andExpect(jsonPath("$.id").value(nullValue()));
   }
 
   @Test
@@ -58,7 +71,16 @@ class PostEndpointIT {
         """
         {"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}""";
 
-    client.postRaw("application/json", null, body).andExpect(status().isNotAcceptable());
+    client
+        .postRaw("application/json", null, body)
+        .andExpect(status().isNotAcceptable())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.error.code").value(-32000))
+        .andExpect(
+            jsonPath("$.error.message")
+                .value(
+                    "Not Acceptable: Client must accept both application/json and text/event-stream"))
+        .andExpect(jsonPath("$.id").value(nullValue()));
   }
 
   @Test
@@ -67,7 +89,16 @@ class PostEndpointIT {
         """
         {"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}""";
 
-    client.postRaw("text/event-stream", null, body).andExpect(status().isNotAcceptable());
+    client
+        .postRaw("text/event-stream", null, body)
+        .andExpect(status().isNotAcceptable())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.error.code").value(-32000))
+        .andExpect(
+            jsonPath("$.error.message")
+                .value(
+                    "Not Acceptable: Client must accept both application/json and text/event-stream"))
+        .andExpect(jsonPath("$.id").value(nullValue()));
   }
 
   @Test

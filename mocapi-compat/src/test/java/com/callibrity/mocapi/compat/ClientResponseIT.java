@@ -15,6 +15,9 @@
  */
 package com.callibrity.mocapi.compat;
 
+import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -73,7 +77,12 @@ class ClientResponseIT {
 
     client
         .postRaw("application/json, text/event-stream", null, body)
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isBadRequest())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.error.code").value(-32000))
+        .andExpect(
+            jsonPath("$.error.message").value("Bad Request: MCP-Session-Id header is required"))
+        .andExpect(jsonPath("$.id").value(nullValue()));
   }
 
   @Test
@@ -84,6 +93,11 @@ class ClientResponseIT {
 
     client
         .postRaw("application/json, text/event-stream", null, body)
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isBadRequest())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.error.code").value(-32000))
+        .andExpect(
+            jsonPath("$.error.message").value("Bad Request: MCP-Session-Id header is required"))
+        .andExpect(jsonPath("$.id").value(nullValue()));
   }
 }

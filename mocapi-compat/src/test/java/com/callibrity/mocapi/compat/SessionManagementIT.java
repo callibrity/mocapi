@@ -16,6 +16,9 @@
 package com.callibrity.mocapi.compat;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.JsonNode;
@@ -65,7 +69,12 @@ class SessionManagementIT {
 
     client
         .postRaw("application/json, text/event-stream", null, body)
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isBadRequest())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.error.code").value(-32000))
+        .andExpect(
+            jsonPath("$.error.message").value("Bad Request: MCP-Session-Id header is required"))
+        .andExpect(jsonPath("$.id").value(nullValue()));
   }
 
   @Test
@@ -76,7 +85,11 @@ class SessionManagementIT {
 
     client
         .postRaw("application/json, text/event-stream", "nonexistent-session-id", body)
-        .andExpect(status().isNotFound());
+        .andExpect(status().isNotFound())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.error.code").value(-32001))
+        .andExpect(jsonPath("$.error.message").value("Session not found"))
+        .andExpect(jsonPath("$.id").value(nullValue()));
   }
 
   @Test
@@ -93,7 +106,13 @@ class SessionManagementIT {
 
   @Test
   void deleteWithUnknownSessionIdReturns404() throws Exception {
-    client.delete("nonexistent-session-id").andExpect(status().isNotFound());
+    client
+        .delete("nonexistent-session-id")
+        .andExpect(status().isNotFound())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.error.code").value(-32001))
+        .andExpect(jsonPath("$.error.message").value("Session not found"))
+        .andExpect(jsonPath("$.id").value(nullValue()));
   }
 
   @Test
@@ -108,6 +127,10 @@ class SessionManagementIT {
 
     client
         .postRaw("application/json, text/event-stream", sessionId, body)
-        .andExpect(status().isNotFound());
+        .andExpect(status().isNotFound())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.error.code").value(-32001))
+        .andExpect(jsonPath("$.error.message").value("Session not found"))
+        .andExpect(jsonPath("$.id").value(nullValue()));
   }
 }

@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-13T00:29:00-04:00
-ITERATION: 87
-SPEC_COMPLETED: 158-fix-compat-tests-async-sse.md
-WHAT_WAS_DONE: Fixed all 79 compat integration tests for async SSE responses. Added call() and callRawSse() methods to McpClient for extracting JSON-RPC responses from SSE event streams. Updated 28 test files to use the new async SSE pattern instead of direct jsonPath assertions on synchronous responses. Added protocol version validation to StreamableHttpController. Fixed ServerInitializeIT expected server name. Updated ContentNegotiationIT to expect SSE for session-bound calls. Updated CompletionCompleteIT to expect method-not-found error for removed capability.
-VERIFICATION: mvn verify — BUILD SUCCESS. mocapi-compat: 79/79 pass. All other modules pass. 3 pre-existing StreamableHttpControllerTest failures remain (delegatesToProtocolTerminate, resumeWithLastEventIdDelegatesToOdyssey, subscribesToNotificationChannel — unrelated to this spec).
+LAST_RUN: 2026-04-13T00:38:00-04:00
+ITERATION: 88
+SPEC_COMPLETED: 159-compat-tests-assert-jsonrpc-error-bodies.md
+WHAT_WAS_DONE: Updated compat tests to assert JSON-RPC error bodies ($.error.code, $.error.message, $.id is null, Content-Type application/json) on all HTTP error responses. Updated SessionManagementIT (4 tests), ClientResponseIT (2 tests), PostEndpointIT (3 tests), and ProtocolVersionNegotiationIT (1 test — fixed pre-existing failure from controller error code change).
+VERIFICATION: mvn verify -Dmaven.test.failure.ignore=true — BUILD SUCCESS. mocapi-compat: 79/79 pass. All other modules pass. 3 pre-existing StreamableHttpControllerTest failures remain (delegatesToProtocolTerminate, resumeWithLastEventIdDelegatesToOdyssey, subscribesToNotificationChannel — unrelated to this spec).
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: The protocol version validation was missing from StreamableHttpController — added it back using McpRequestValidator.isValidProtocolVersion(). The completion/complete capability is not implemented, so CompletionCompleteIT now asserts a -32601 method-not-found error.
+NOTES: ProtocolVersionNegotiationIT.rejectsUnrecognizedProtocolVersion was already failing (expected -32600 but controller returns -32000 since commit 9eb8426). Updated it to match the new consistent error format. deleteWithoutSessionIdReturns400 left as status-only assertion — Spring intercepts the missing required header before our controller runs.

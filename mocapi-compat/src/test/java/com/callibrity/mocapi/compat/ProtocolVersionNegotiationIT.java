@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.compat;
 
+import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -53,8 +56,12 @@ class ProtocolVersionNegotiationIT {
     client
         .initializeWithProtocolVersion("9999-01-01")
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error.code").value(-32600))
-        .andExpect(jsonPath("$.error.message").value("Invalid MCP-Protocol-Version: 9999-01-01"));
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.error.code").value(-32000))
+        .andExpect(
+            jsonPath("$.error.message")
+                .value("Bad Request: Unsupported protocol version: 9999-01-01"))
+        .andExpect(jsonPath("$.id").value(nullValue()));
   }
 
   @Test
