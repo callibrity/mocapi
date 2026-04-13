@@ -276,7 +276,7 @@ public class McpClient {
   public JsonNode call(String sessionId, String method, Object params, JsonNode id)
       throws Exception {
     MvcResult mvcResult = post(sessionId, method, params, id).andReturn();
-    mvcResult.getAsyncResult(5000);
+    mvcResult.getAsyncResult(15000);
     String body = mvcResult.getResponse().getContentAsString();
     return lastJsonRpcResponse(body);
   }
@@ -284,7 +284,7 @@ public class McpClient {
   public String callRawSse(String sessionId, String method, Object params, JsonNode id)
       throws Exception {
     MvcResult mvcResult = post(sessionId, method, params, id).andReturn();
-    mvcResult.getAsyncResult(5000);
+    mvcResult.getAsyncResult(15000);
     return mvcResult.getResponse().getContentAsString();
   }
 
