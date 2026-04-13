@@ -29,6 +29,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.util.Strings;
 import org.jwcarman.odyssey.core.Odyssey;
 import org.jwcarman.odyssey.core.SseEventMapper;
 import org.springframework.http.HttpStatus;
@@ -90,11 +91,13 @@ public class StreamableHttpController {
     if (!validator.isValidOrigin(origin)) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
-    if (server.requiresSession(message) && (sessionId == null || sessionId.isBlank())) {
-      return ResponseEntity.badRequest().build();
-    }
-    if (sessionId != null && !server.sessionExists(sessionId)) {
-      return ResponseEntity.notFound().build();
+    if (server.requiresSession(message)) {
+      if (Strings.isEmpty(sessionId)) {
+        return ResponseEntity.badRequest().build();
+      }
+      if (!server.sessionExists(sessionId)) {
+        return ResponseEntity.notFound().build();
+      }
     }
 
     McpContext context = new SimpleContext(sessionId, protocolVersion);
