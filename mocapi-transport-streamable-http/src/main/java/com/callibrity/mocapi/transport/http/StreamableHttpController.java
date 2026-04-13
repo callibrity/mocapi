@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.transport.http;
 
 import static com.callibrity.mocapi.model.McpMethods.INITIALIZE;
+import static com.callibrity.mocapi.model.McpMethods.TOOLS_CALL;
 import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
 
 import com.callibrity.mocapi.server.McpContext;
@@ -205,7 +206,7 @@ public class StreamableHttpController {
   }
 
   private ResponseEntity<Object> handleCall(McpContext context, JsonRpcCall call) {
-    if (context.sessionId() == null) {
+    if (!TOOLS_CALL.equals(call.method())) {
       var transport = new SynchronousTransport();
       server.handleCall(context, call, transport);
       return transport.toResponseEntity();

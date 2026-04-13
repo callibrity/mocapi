@@ -133,12 +133,12 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void callWithSessionReturnsSse() {
+    void toolsCallReturnsSse() {
       SseEmitter emitter = new SseEmitter();
       when(odyssey.publisher(anyString(), eq(JsonRpcMessage.class))).thenReturn(publisher);
       when(odyssey.subscribe(anyString(), eq(JsonRpcMessage.class), any())).thenReturn(emitter);
 
-      ObjectNode request = callRequest("tools/list");
+      ObjectNode request = callRequest("tools/call");
       var response = post(request, null, "session-1", POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -146,7 +146,7 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void callWithSessionUsesOdysseyTransport() throws Exception {
+    void toolsCallUsesOdysseyTransport() throws Exception {
       CountDownLatch latch = new CountDownLatch(1);
       when(odyssey.publisher(anyString(), eq(JsonRpcMessage.class))).thenReturn(publisher);
       when(odyssey.subscribe(anyString(), eq(JsonRpcMessage.class), any()))
@@ -159,10 +159,30 @@ class StreamableHttpControllerTest {
           .when(protocol)
           .handleCall(any(), any(), any());
 
-      post(callRequest("ping"), null, "session-1", POST_ACCEPT, null);
+      post(callRequest("tools/call"), null, "session-1", POST_ACCEPT, null);
 
       assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
       verify(protocol).handleCall(any(), any(), any(OdysseyTransport.class));
+    }
+
+    @Test
+    void nonToolsCallUsesSynchronousTransport() {
+      doAnswer(
+              invocation -> {
+                McpTransport transport = invocation.getArgument(2);
+                transport.send(
+                    new JsonRpcResult(
+                        JsonNodeFactory.instance.objectNode(),
+                        JsonNodeFactory.instance.numberNode(1)));
+                return null;
+              })
+          .when(protocol)
+          .handleCall(any(), any(), any());
+
+      var response = post(callRequest("ping"), null, "session-1", POST_ACCEPT, null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      verify(protocol).handleCall(any(), any(), any(SynchronousTransport.class));
     }
 
     @Test

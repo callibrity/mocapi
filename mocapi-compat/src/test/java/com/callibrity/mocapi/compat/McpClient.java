@@ -280,6 +280,12 @@ public class McpClient {
   public JsonNode call(String sessionId, String method, Object params, JsonNode id)
       throws Exception {
     MvcResult mvcResult = post(sessionId, method, params, id).andReturn();
+
+    String contentType = mvcResult.getResponse().getContentType();
+    if (contentType != null && contentType.contains("application/json")) {
+      return objectMapper.readTree(mvcResult.getResponse().getContentAsString());
+    }
+
     AtomicReference<JsonNode> result = new AtomicReference<>();
     await()
         .atMost(Duration.ofSeconds(15))

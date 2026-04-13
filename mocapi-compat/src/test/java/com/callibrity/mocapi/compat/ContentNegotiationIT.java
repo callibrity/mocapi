@@ -60,7 +60,7 @@ class ContentNegotiationIT {
   }
 
   @Test
-  void pingResponseIsSse() throws Exception {
+  void pingResponseIsJson() throws Exception {
     String sessionId = client.initialize();
 
     JsonNode response =
