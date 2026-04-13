@@ -15,10 +15,8 @@
  */
 package com.callibrity.mocapi.compat;
 
-import static org.awaitility.Awaitility.await;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -286,39 +284,18 @@ public class McpClient {
       return objectMapper.readTree(mvcResult.getResponse().getContentAsString());
     }
 
-    AtomicReference<JsonNode> result = new AtomicReference<>();
-    await()
-        .atMost(Duration.ofSeconds(15))
-        .pollInterval(Duration.ofMillis(200))
-        .ignoreExceptions()
-        .untilAsserted(
-            () -> {
-              mvcResult.getAsyncResult(100);
-              String body = mvcResult.getResponse().getContentAsString();
-              JsonNode response = lastJsonRpcResponse(body);
-              org.assertj.core.api.Assertions.assertThat(response).isNotNull();
-              result.set(response);
-            });
-    return result.get();
+    mvcResult.getAsyncResult(30000);
+    MvcResult completed = mockMvc.perform(asyncDispatch(mvcResult)).andReturn();
+    String body = completed.getResponse().getContentAsString();
+    return lastJsonRpcResponse(body);
   }
 
   public String callRawSse(String sessionId, String method, Object params, JsonNode id)
       throws Exception {
     MvcResult mvcResult = post(sessionId, method, params, id).andReturn();
-    AtomicReference<String> result = new AtomicReference<>();
-    await()
-        .atMost(Duration.ofSeconds(15))
-        .pollInterval(Duration.ofMillis(200))
-        .ignoreExceptions()
-        .untilAsserted(
-            () -> {
-              mvcResult.getAsyncResult(100);
-              String body = mvcResult.getResponse().getContentAsString();
-              org.assertj.core.api.Assertions.assertThat(body).isNotEmpty();
-              org.assertj.core.api.Assertions.assertThat(lastJsonRpcResponse(body)).isNotNull();
-              result.set(body);
-            });
-    return result.get();
+    mvcResult.getAsyncResult(30000);
+    MvcResult completed = mockMvc.perform(asyncDispatch(mvcResult)).andReturn();
+    return completed.getResponse().getContentAsString();
   }
 
   private JsonNode lastJsonRpcResponse(String sseBody) {
