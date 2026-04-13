@@ -75,7 +75,7 @@ class ContentNegotiationIT {
     var arguments = client.objectMapper().createObjectNode();
     arguments.put("message", "hello streaming");
     var meta =
-        new RequestMeta(client.objectMapper().getNodeFactory().textNode("test-progress-token"));
+        new RequestMeta(client.objectMapper().getNodeFactory().stringNode("test-progress-token"));
     var params = new CallToolRequestParams("stream", arguments, null, meta);
 
     client

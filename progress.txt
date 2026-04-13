@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T19:02:00-04:00
-ITERATION: 79
-SPEC_COMPLETED: 150f-session-id-on-record.md
-WHAT_WAS_DONE: Made sessionId the first constructor field on McpSession record, removed withSessionId() method, moved UUID generation from McpSessionService.create() to initialize(), updated create() to simply save the session and return its ID, updated all callers and tests to use the new field order.
-VERIFICATION: mvn verify -pl mocapi-server -am — BUILD SUCCESS, 145 tests pass, 0 failures.
+LAST_RUN: 2026-04-12T22:10:00-04:00
+ITERATION: 80
+SPEC_COMPLETED: 151-initialization-lifecycle-and-notifications.md
+WHAT_WAS_DONE: Added `initialized` field to McpSession with withInitialized(); added McpSessionService.markInitialized(); new McpLifecycleService handling notifications/initialized, notifications/cancelled, and notifications/roots/list_changed; DefaultMcpServer now rejects calls (INVALID_REQUEST "Session not initialized") and silently drops notifications for sessions that have not completed the handshake (ping and notifications/initialized remain allowed); McpResponseCorrelationService sends notifications/cancelled to the client on timeout and throws new unchecked McpClientResponseTimeoutException; DefaultMcpToolContext elicit()/sample() no longer wrap TimeoutException; new InitializationLifecycleComplianceTest covers the new enforcement and handlers.
+VERIFICATION: mvn -pl mocapi-server -am verify — BUILD SUCCESS, 151 tests pass, 0 failures. Spotless + license checks clean.
 STATUS: DONE
-NEXT_SPEC: none
-NOTES: Pre-existing issue remains: mocapi-transport-streamable-http has StreamableHttpController constructor mismatch in tests (BufferingTransport class not found) — not caused by this iteration. The StreamableHttpControllerTest constructor calls were updated to use the new 4-arg McpSession constructor with sessionId first.
+NEXT_SPEC: 152-remove-capturing-transport.md
+NOTES: Pre-existing mocapi-compat circular-dependency failure remains (mcpProtocolSessionService <-> mcpProtocolLoggingService via the ServerCapabilitiesContributor list); this issue predates this iteration and is out of scope for spec 151. Pre-existing mocapi-transport-streamable-http test compilation error (BufferingTransport missing) also remains unchanged. ComplianceTestSupport.buildServer now automatically registers an McpLifecycleService so tests can complete the handshake via notifications/initialized; a new initializeWithoutCompletingHandshake helper is available for lifecycle enforcement tests.

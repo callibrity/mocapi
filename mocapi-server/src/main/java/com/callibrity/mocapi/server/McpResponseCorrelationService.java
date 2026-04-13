@@ -15,13 +15,14 @@
  */
 package com.callibrity.mocapi.server;
 
+import com.callibrity.mocapi.model.CancelledNotificationParams;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.ripcurl.core.JsonRpcCall;
+import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.time.Duration;
 import java.util.UUID;
-import java.util.concurrent.TimeoutException;
 import org.jwcarman.substrate.NextResult;
 import org.jwcarman.substrate.mailbox.Mailbox;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
@@ -59,11 +60,11 @@ public class McpResponseCorrelationService {
    * @param resultType the class to deserialize the response result into
    * @param transport the transport to send the request through
    * @return the deserialized response
-   * @throws TimeoutException if the client does not respond within the configured timeout
+   * @throws McpClientResponseTimeoutException if the client does not respond within the configured
+   *     timeout
    */
   public <T> T sendAndAwait(
-      String method, Object params, Class<T> resultType, McpTransport transport)
-      throws TimeoutException {
+      String method, Object params, Class<T> resultType, McpTransport transport) {
     String correlationId = UUID.randomUUID().toString();
     Mailbox<JsonNode> mailbox =
         mailboxFactory.create(
@@ -71,23 +72,20 @@ public class McpResponseCorrelationService {
 
     try (var subscription = mailbox.subscribe()) {
       JsonNode paramsNode = objectMapper.valueToTree(params);
-      JsonRpcCall call =
-          new JsonRpcCall(
-              "2.0", method, paramsNode, JsonNodeFactory.instance.textNode(correlationId));
+      JsonNode idNode = JsonNodeFactory.instance.textNode(correlationId);
+      JsonRpcCall call = new JsonRpcCall("2.0", method, paramsNode, idNode);
       transport.send(call);
 
       NextResult<JsonNode> next = subscription.next(timeout);
       return switch (next) {
         case NextResult.Value<JsonNode>(var value) -> objectMapper.treeToValue(value, resultType);
-        case NextResult.Timeout<JsonNode> _ ->
-            throw new TimeoutException(
-                "Timed out waiting for client response to "
-                    + method
-                    + " (id="
-                    + correlationId
-                    + ")");
+        case NextResult.Timeout<JsonNode> _ -> {
+          sendCancelled(transport, correlationId, "Server timeout waiting for client response");
+          throw new McpClientResponseTimeoutException(
+              "Timed out waiting for client response to " + method + " (id=" + correlationId + ")");
+        }
         default ->
-            throw new TimeoutException(
+            throw new McpClientResponseTimeoutException(
                 "Mailbox terminated before client response to "
                     + method
                     + " (id="
@@ -97,6 +95,13 @@ public class McpResponseCorrelationService {
     } finally {
       mailbox.delete();
     }
+  }
+
+  private void sendCancelled(McpTransport transport, String requestId, String reason) {
+    var params = new CancelledNotificationParams(requestId, reason, null);
+    transport.send(
+        new JsonRpcNotification(
+            "2.0", McpMethods.NOTIFICATIONS_CANCELLED, objectMapper.valueToTree(params)));
   }
 
   /**

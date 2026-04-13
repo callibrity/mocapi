@@ -16,6 +16,8 @@
 package com.callibrity.mocapi.server;
 
 import static com.callibrity.mocapi.model.McpMethods.INITIALIZE;
+import static com.callibrity.mocapi.model.McpMethods.NOTIFICATIONS_INITIALIZED;
+import static com.callibrity.mocapi.model.McpMethods.PING;
 
 import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.session.McpSessionService;
@@ -55,6 +57,10 @@ public class DefaultMcpServer implements McpServer {
         return;
       }
       session = sessionOpt.get();
+      if (!session.initialized() && !PING.equals(call.method())) {
+        transport.send(call.error(JsonRpcProtocol.INVALID_REQUEST, "Session not initialized"));
+        return;
+      }
     }
 
     JsonRpcResponse response;
@@ -85,6 +91,9 @@ public class DefaultMcpServer implements McpServer {
       return;
     }
     McpSession session = sessionOpt.get();
+    if (!session.initialized() && !NOTIFICATIONS_INITIALIZED.equals(notification.method())) {
+      return;
+    }
     ScopedValue.where(McpSession.CURRENT, session).run(() -> dispatcher.dispatch(notification));
   }
 

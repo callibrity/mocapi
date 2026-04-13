@@ -27,7 +27,6 @@ import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
-import java.util.concurrent.TimeoutException;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ValueNode;
 
@@ -80,21 +79,13 @@ public class DefaultMcpToolContext implements McpToolContext {
 
   @Override
   public ElicitResult elicit(ElicitRequestFormParams params) {
-    try {
-      return correlationService.sendAndAwait(
-          McpMethods.ELICITATION_CREATE, params, ElicitResult.class, transport);
-    } catch (TimeoutException e) {
-      throw new RuntimeException(e);
-    }
+    return correlationService.sendAndAwait(
+        McpMethods.ELICITATION_CREATE, params, ElicitResult.class, transport);
   }
 
   @Override
   public CreateMessageResult sample(CreateMessageRequestParams params) {
-    try {
-      return correlationService.sendAndAwait(
-          McpMethods.SAMPLING_CREATE_MESSAGE, params, CreateMessageResult.class, transport);
-    } catch (TimeoutException e) {
-      throw new RuntimeException(e);
-    }
+    return correlationService.sendAndAwait(
+        McpMethods.SAMPLING_CREATE_MESSAGE, params, CreateMessageResult.class, transport);
   }
 }

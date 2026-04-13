@@ -99,4 +99,11 @@ public class McpSessionService {
         .find(sessionId)
         .ifPresent(session -> store.update(sessionId, session.withLogLevel(level)));
   }
+
+  /** Marks the given session as initialized. No-op if the session is not found. */
+  public void markInitialized(String sessionId) {
+    store
+        .find(sessionId)
+        .ifPresent(session -> store.update(sessionId, session.withInitialized(true)));
+  }
 }

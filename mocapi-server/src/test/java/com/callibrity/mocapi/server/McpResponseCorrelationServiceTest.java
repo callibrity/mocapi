@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,16 +81,12 @@ class McpResponseCorrelationServiceTest {
         Thread.ofVirtual()
             .start(
                 () -> {
-                  try {
-                    resultRef.set(
-                        service.sendAndAwait(
-                            "elicitation/create",
-                            objectMapper.createObjectNode().put("message", "Name?"),
-                            ElicitResult.class,
-                            transport));
-                  } catch (TimeoutException e) {
-                    throw new RuntimeException(e);
-                  }
+                  resultRef.set(
+                      service.sendAndAwait(
+                          "elicitation/create",
+                          objectMapper.createObjectNode().put("message", "Name?"),
+                          ElicitResult.class,
+                          transport));
                 });
 
     // Wait for the request to be sent
@@ -129,7 +124,7 @@ class McpResponseCorrelationServiceTest {
                     objectMapper.createObjectNode().put("message", "Hello"),
                     ElicitResult.class,
                     transport))
-        .isInstanceOf(TimeoutException.class)
+        .isInstanceOf(McpClientResponseTimeoutException.class)
         .hasMessageContaining("Timed out");
   }
 
@@ -152,34 +147,24 @@ class McpResponseCorrelationServiceTest {
     var thread1 =
         Thread.ofVirtual()
             .start(
-                () -> {
-                  try {
+                () ->
                     result0.set(
                         service.sendAndAwait(
                             "elicitation/create",
                             objectMapper.createObjectNode().put("id", "1"),
                             ElicitResult.class,
-                            transport));
-                  } catch (TimeoutException e) {
-                    throw new RuntimeException(e);
-                  }
-                });
+                            transport)));
 
     var thread2 =
         Thread.ofVirtual()
             .start(
-                () -> {
-                  try {
+                () ->
                     result1.set(
                         service.sendAndAwait(
                             "elicitation/create",
                             objectMapper.createObjectNode().put("id", "2"),
                             ElicitResult.class,
-                            transport));
-                  } catch (TimeoutException e) {
-                    throw new RuntimeException(e);
-                  }
-                });
+                            transport)));
 
     assertThat(transport.awaitMessages(5, TimeUnit.SECONDS)).isTrue();
     assertThat(transport.messages()).hasSize(2);

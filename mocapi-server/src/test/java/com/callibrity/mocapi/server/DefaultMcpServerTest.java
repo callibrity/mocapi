@@ -132,7 +132,8 @@ class DefaultMcpServerTest {
             PROTOCOL_VERSION,
             null,
             null,
-            com.callibrity.mocapi.model.LoggingLevel.WARNING);
+            com.callibrity.mocapi.model.LoggingLevel.WARNING,
+            true);
     when(sessionService.find("valid")).thenReturn(Optional.of(session));
 
     JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(2));
@@ -157,7 +158,8 @@ class DefaultMcpServerTest {
             PROTOCOL_VERSION,
             null,
             null,
-            com.callibrity.mocapi.model.LoggingLevel.WARNING);
+            com.callibrity.mocapi.model.LoggingLevel.WARNING,
+            true);
     when(sessionService.find("valid")).thenReturn(Optional.of(session));
 
     JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(3));
@@ -183,7 +185,8 @@ class DefaultMcpServerTest {
             PROTOCOL_VERSION,
             null,
             null,
-            com.callibrity.mocapi.model.LoggingLevel.WARNING);
+            com.callibrity.mocapi.model.LoggingLevel.WARNING,
+            true);
     when(sessionService.find("valid")).thenReturn(Optional.of(session));
 
     JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(4));
@@ -203,7 +206,8 @@ class DefaultMcpServerTest {
             PROTOCOL_VERSION,
             null,
             null,
-            com.callibrity.mocapi.model.LoggingLevel.WARNING);
+            com.callibrity.mocapi.model.LoggingLevel.WARNING,
+            true);
     when(sessionService.find("valid")).thenReturn(Optional.of(session));
 
     JsonRpcNotification notification =
@@ -223,7 +227,8 @@ class DefaultMcpServerTest {
             PROTOCOL_VERSION,
             null,
             null,
-            com.callibrity.mocapi.model.LoggingLevel.WARNING);
+            com.callibrity.mocapi.model.LoggingLevel.WARNING,
+            true);
     when(sessionService.find("valid")).thenReturn(Optional.of(session));
 
     JsonRpcNotification notification =

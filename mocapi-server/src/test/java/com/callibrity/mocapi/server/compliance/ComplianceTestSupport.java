@@ -21,6 +21,7 @@ import static org.mockito.Mockito.verify;
 
 import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.InitializeResult;
+import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.DefaultMcpServer;
 import com.callibrity.mocapi.server.McpContext;
@@ -31,6 +32,7 @@ import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.McpTransportResolver;
 import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
 import com.callibrity.mocapi.server.autoconfigure.SessionStoreTestSupport;
+import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
 import com.callibrity.mocapi.server.session.McpSessionResolver;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.server.session.McpSessionStore;
@@ -95,9 +97,10 @@ final class ComplianceTestSupport {
       McpSessionService sessionService,
       McpResponseCorrelationService correlationService,
       Object... services) {
-    Object[] allServices = new Object[services.length + 1];
+    Object[] allServices = new Object[services.length + 2];
     allServices[0] = sessionService;
-    System.arraycopy(services, 0, allServices, 1, services.length);
+    allServices[1] = new McpLifecycleService(sessionService);
+    System.arraycopy(services, 0, allServices, 2, services.length);
     var dispatcher = buildDispatcher(MAPPER, allServices);
     return new DefaultMcpServer(sessionService, dispatcher, correlationService);
   }
@@ -193,7 +196,21 @@ final class ComplianceTestSupport {
 
   // --- Session helpers ---
 
+  /**
+   * Initializes a session and completes the handshake by sending {@code notifications/initialized},
+   * so the returned session id is ready for any call.
+   */
   static String initializeAndGetSessionId(McpServer server) {
+    var transport = mock(McpTransport.class);
+    server.handleCall(noSession(), initializeCall(), transport);
+    String sessionId = ((McpEvent.SessionInitialized) captureEvent(transport)).sessionId();
+    server.handleNotification(
+        withSession(sessionId), notification(McpMethods.NOTIFICATIONS_INITIALIZED));
+    return sessionId;
+  }
+
+  /** Initializes a session but stops before the {@code notifications/initialized} handshake. */
+  static String initializeWithoutCompletingHandshake(McpServer server) {
     var transport = mock(McpTransport.class);
     server.handleCall(noSession(), initializeCall(), transport);
     return ((McpEvent.SessionInitialized) captureEvent(transport)).sessionId();
