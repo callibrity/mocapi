@@ -27,6 +27,7 @@ import com.callibrity.mocapi.server.McpContext;
 import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.ValidationResult;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.security.SecureRandom;
@@ -78,6 +79,8 @@ class StreamableHttpControllerTest {
 
     @Test
     void initializeReturnsJsonWithSessionHeader() {
+      when(protocol.validate(any(McpContext.class), any(JsonRpcMessage.class)))
+          .thenReturn(new ValidationResult.Valid());
       doAnswer(
               invocation -> {
                 McpTransport transport = invocation.getArgument(2);
@@ -102,6 +105,8 @@ class StreamableHttpControllerTest {
 
     @Test
     void initializeDelegatesToProtocolWithSynchronousTransport() {
+      when(protocol.validate(any(McpContext.class), any(JsonRpcMessage.class)))
+          .thenReturn(new ValidationResult.Valid());
       doAnswer(
               invocation -> {
                 McpTransport transport = invocation.getArgument(2);
@@ -127,8 +132,8 @@ class StreamableHttpControllerTest {
 
     @BeforeEach
     void setUpSession() {
-      when(protocol.requiresSession(any())).thenReturn(true);
-      when(protocol.sessionExists("session-1")).thenReturn(true);
+      when(protocol.validate(any(McpContext.class), any(JsonRpcMessage.class)))
+          .thenReturn(new ValidationResult.Valid());
     }
 
     @Test
@@ -207,7 +212,8 @@ class StreamableHttpControllerTest {
 
     @Test
     void notificationWithoutSessionReturns400() {
-      when(protocol.requiresSession(any())).thenReturn(true);
+      when(protocol.validate(any(McpContext.class), any(JsonRpcMessage.class)))
+          .thenReturn(new ValidationResult.MissingSessionId());
       ObjectNode notification = objectMapper.createObjectNode();
       notification.put("jsonrpc", "2.0");
       notification.put("method", "notifications/initialized");
@@ -218,7 +224,8 @@ class StreamableHttpControllerTest {
 
     @Test
     void responseWithoutSessionReturns400() {
-      when(protocol.requiresSession(any())).thenReturn(true);
+      when(protocol.validate(any(McpContext.class), any(JsonRpcMessage.class)))
+          .thenReturn(new ValidationResult.MissingSessionId());
       ObjectNode jsonRpcResponse = objectMapper.createObjectNode();
       jsonRpcResponse.put("jsonrpc", "2.0");
       jsonRpcResponse.put("id", 1);
@@ -234,11 +241,11 @@ class StreamableHttpControllerTest {
 
     @Test
     void subscribesToNotificationChannel() {
-      when(protocol.sessionExists("session-1")).thenReturn(true);
+      when(protocol.validate(any(McpContext.class))).thenReturn(new ValidationResult.Valid());
       SseEmitter emitter = new SseEmitter();
       when(odyssey.subscribe(eq("session-1"), eq(JsonRpcMessage.class), any())).thenReturn(emitter);
 
-      var response = controller.handleGet("session-1", null, SSE_ACCEPT, null);
+      var response = controller.handleGet("session-1", null, null, SSE_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getBody()).isSameAs(emitter);
@@ -246,19 +253,19 @@ class StreamableHttpControllerTest {
 
     @Test
     void rejectsInvalidAcceptHeader() {
-      var response = controller.handleGet("s", null, "application/json", null);
+      var response = controller.handleGet("s", null, null, "application/json", null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
 
     @Test
     void rejectsInvalidOrigin() {
-      var response = controller.handleGet("s", null, SSE_ACCEPT, "http://evil.example.com");
+      var response = controller.handleGet("s", null, null, SSE_ACCEPT, "http://evil.example.com");
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
     void resumeWithLastEventIdDelegatesToOdyssey() {
-      when(protocol.sessionExists("session-1")).thenReturn(true);
+      when(protocol.validate(any(McpContext.class))).thenReturn(new ValidationResult.Valid());
       SseEmitter emitter = new SseEmitter();
       when(odyssey.resume(anyString(), eq(JsonRpcMessage.class), anyString(), any()))
           .thenReturn(emitter);
@@ -266,7 +273,7 @@ class StreamableHttpControllerTest {
       String plaintext = "stream-name:event-42";
       String encryptedId = encrypt("session-1", plaintext);
 
-      var response = controller.handleGet("session-1", encryptedId, SSE_ACCEPT, null);
+      var response = controller.handleGet("session-1", null, encryptedId, SSE_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getBody()).isSameAs(emitter);
@@ -285,8 +292,8 @@ class StreamableHttpControllerTest {
 
     @Test
     void delegatesToProtocolTerminate() {
-      when(protocol.sessionExists("session-1")).thenReturn(true);
-      var response = controller.handleDelete("session-1", null);
+      when(protocol.validate(any(McpContext.class))).thenReturn(new ValidationResult.Valid());
+      var response = controller.handleDelete("session-1", null, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
       verify(protocol).terminate("session-1");
@@ -294,7 +301,7 @@ class StreamableHttpControllerTest {
 
     @Test
     void rejectsInvalidOrigin() {
-      var response = controller.handleDelete("s", "http://evil.example.com");
+      var response = controller.handleDelete("s", null, "http://evil.example.com");
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
   }

@@ -15,30 +15,19 @@
  */
 package com.callibrity.mocapi.transport.http;
 
-import com.callibrity.mocapi.model.InitializeResult;
 import java.net.URI;
 import java.util.List;
-import java.util.Set;
 
 /**
- * Validates MCP protocol headers. Transport-agnostic — returns validation results rather than HTTP
- * responses.
+ * Validates MCP transport-level headers. Protocol validation (session, protocol version) is handled
+ * by {@link com.callibrity.mocapi.server.McpServer#validate}.
  */
 public class McpRequestValidator {
-
-  private static final Set<String> KNOWN_PROTOCOL_VERSIONS =
-      Set.of("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05");
 
   private final List<String> allowedOrigins;
 
   public McpRequestValidator(List<String> allowedOrigins) {
     this.allowedOrigins = allowedOrigins;
-  }
-
-  /** Validates the MCP-Protocol-Version header. Defaults to the current version if null. */
-  public boolean isValidProtocolVersion(String protocolVersion) {
-    String version = protocolVersion != null ? protocolVersion : InitializeResult.PROTOCOL_VERSION;
-    return KNOWN_PROTOCOL_VERSIONS.contains(version);
   }
 
   /** Validates the Origin header against the allowed origins list. Null origin is always valid. */

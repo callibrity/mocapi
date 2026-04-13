@@ -45,16 +45,15 @@ class ProtocolVersionNegotiationIT {
 
   @Test
   void acceptsValidProtocolVersion() throws Exception {
-    client
-        .initializeWithProtocolVersion("2025-11-25")
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.protocolVersion").isString());
+    String sessionId = client.initialize();
+    client.postWithProtocolVersion(sessionId, "2025-11-25", "ping").andExpect(status().isOk());
   }
 
   @Test
   void rejectsUnrecognizedProtocolVersion() throws Exception {
+    String sessionId = client.initialize();
     client
-        .initializeWithProtocolVersion("9999-01-01")
+        .postWithProtocolVersion(sessionId, "9999-01-01", "ping")
         .andExpect(status().isBadRequest())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.error.code").value(-32000))
@@ -66,8 +65,14 @@ class ProtocolVersionNegotiationIT {
 
   @Test
   void missingProtocolVersionDefaultsToCurrent() throws Exception {
+    String sessionId = client.initialize();
+    client.postWithProtocolVersion(sessionId, null, "ping").andExpect(status().isOk());
+  }
+
+  @Test
+  void initializeSkipsProtocolVersionValidation() throws Exception {
     client
-        .initializeWithoutProtocolVersion()
+        .initializeWithProtocolVersion("9999-01-01")
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result.protocolVersion").isString());
   }

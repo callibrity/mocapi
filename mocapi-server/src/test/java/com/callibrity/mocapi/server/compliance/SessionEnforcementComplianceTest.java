@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.ValidationResult;
 import com.callibrity.mocapi.server.session.McpSessionStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -32,8 +33,7 @@ import org.junit.jupiter.api.Test;
 /**
  * MCP 2025-11-25 § Lifecycle — Session Management.
  *
- * <p>Verifies session query methods (requiresSession, sessionExists), dispatch with valid sessions,
- * and terminate behavior.
+ * <p>Verifies session validation, dispatch with valid sessions, and terminate behavior.
  */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class SessionEnforcementComplianceTest {
@@ -48,43 +48,58 @@ class SessionEnforcementComplianceTest {
   }
 
   @Nested
-  class Requires_Session {
+  class Validate {
 
     @Test
-    void initialize_does_not_require_session() {
-      assertThat(server.requiresSession(initializeCall())).isFalse();
+    void initialize_returns_valid_without_session() {
+      assertThat(server.validate(noSession(), initializeCall()))
+          .isInstanceOf(ValidationResult.Valid.class);
     }
 
     @Test
-    void non_initialize_call_requires_session() {
-      assertThat(server.requiresSession(call("tools/list"))).isTrue();
+    void non_initialize_without_session_returns_missing_session_id() {
+      assertThat(server.validate(noSession(), call("tools/list")))
+          .isInstanceOf(ValidationResult.MissingSessionId.class);
     }
 
     @Test
-    void notification_requires_session() {
-      assertThat(server.requiresSession(notification("notifications/initialized"))).isTrue();
+    void notification_without_session_returns_missing_session_id() {
+      assertThat(server.validate(noSession(), notification("notifications/initialized")))
+          .isInstanceOf(ValidationResult.MissingSessionId.class);
     }
-  }
-
-  @Nested
-  class Session_Exists {
 
     @Test
-    void returns_true_for_active_session() {
+    void returns_valid_for_active_session() {
       var sessionId = initializeAndGetSessionId(server);
-      assertThat(server.sessionExists(sessionId)).isTrue();
+      assertThat(server.validate(withSession(sessionId), call("tools/list")))
+          .isInstanceOf(ValidationResult.Valid.class);
     }
 
     @Test
-    void returns_false_for_unknown_session() {
-      assertThat(server.sessionExists("nonexistent")).isFalse();
+    void returns_unknown_session_for_nonexistent_session() {
+      assertThat(server.validate(withSession("nonexistent"), call("tools/list")))
+          .isInstanceOf(ValidationResult.UnknownSession.class);
     }
 
     @Test
-    void returns_false_after_terminate() {
+    void returns_unknown_session_after_terminate() {
       var sessionId = initializeAndGetSessionId(server);
       server.terminate(sessionId);
-      assertThat(server.sessionExists(sessionId)).isFalse();
+      assertThat(server.validate(withSession(sessionId), call("tools/list")))
+          .isInstanceOf(ValidationResult.UnknownSession.class);
+    }
+
+    @Test
+    void context_validate_returns_valid_for_active_session() {
+      var sessionId = initializeAndGetSessionId(server);
+      assertThat(server.validate(withSession(sessionId)))
+          .isInstanceOf(ValidationResult.Valid.class);
+    }
+
+    @Test
+    void context_validate_returns_unknown_for_nonexistent_session() {
+      assertThat(server.validate(withSession("nonexistent")))
+          .isInstanceOf(ValidationResult.UnknownSession.class);
     }
   }
 

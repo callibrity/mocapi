@@ -301,6 +301,25 @@ public class McpClient {
     return last;
   }
 
+  public ResultActions postWithProtocolVersion(
+      String sessionId, String protocolVersion, String method) throws Exception {
+    ObjectNode request = objectMapper.createObjectNode();
+    request.put("jsonrpc", "2.0");
+    request.put("method", method);
+    request.put("id", 1);
+
+    var builder =
+        MockMvcRequestBuilders.post(MCP_ENDPOINT)
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON, TEXT_EVENT_STREAM)
+            .header("MCP-Session-Id", sessionId)
+            .content(objectMapper.writeValueAsString(request));
+    if (protocolVersion != null) {
+      builder = builder.header("MCP-Protocol-Version", protocolVersion);
+    }
+    return mockMvc.perform(builder);
+  }
+
   public ObjectMapper objectMapper() {
     return objectMapper;
   }

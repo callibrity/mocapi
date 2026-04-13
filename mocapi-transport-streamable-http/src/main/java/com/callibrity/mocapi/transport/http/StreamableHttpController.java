@@ -19,17 +19,22 @@ import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
 
 import com.callibrity.mocapi.server.McpContext;
 import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.ValidationResult.InvalidProtocolVersion;
+import com.callibrity.mocapi.server.ValidationResult.MissingSessionId;
+import com.callibrity.mocapi.server.ValidationResult.SessionNotInitialized;
+import com.callibrity.mocapi.server.ValidationResult.UnknownSession;
+import com.callibrity.mocapi.server.ValidationResult.Valid;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.logging.log4j.util.Strings;
 import org.jwcarman.odyssey.core.Odyssey;
 import org.jwcarman.odyssey.core.SseEventMapper;
 import org.springframework.http.HttpStatus;
@@ -94,28 +99,21 @@ public class StreamableHttpController {
     if (!validator.isValidOrigin(origin)) {
       return jsonRpcError(HttpStatus.FORBIDDEN, -32000, "Forbidden: Invalid Origin");
     }
-    if (!validator.isValidProtocolVersion(protocolVersion)) {
-      return jsonRpcError(
-          HttpStatus.BAD_REQUEST,
-          -32000,
-          "Bad Request: Unsupported protocol version: " + protocolVersion);
-    }
-    if (server.requiresSession(message)) {
-      if (Strings.isEmpty(sessionId)) {
-        return jsonRpcError(
-            HttpStatus.BAD_REQUEST, -32000, "Bad Request: MCP-Session-Id header is required");
-      }
-      if (!server.sessionExists(sessionId)) {
-        return jsonRpcError(HttpStatus.NOT_FOUND, -32001, "Session not found");
-      }
-    }
 
     McpContext context = new SimpleContext(sessionId, protocolVersion);
 
-    return switch (message) {
-      case JsonRpcCall call -> handleCall(context, call);
-      case JsonRpcNotification notification -> handleNotification(context, notification);
-      case JsonRpcResponse response -> handleResponse(context, response);
+    return switch (server.validate(context, message)) {
+      case Valid() -> dispatch(context, message);
+      case MissingSessionId() ->
+          jsonRpcError(
+              HttpStatus.BAD_REQUEST, -32000, "Bad Request: MCP-Session-Id header is required");
+      case UnknownSession(var id) ->
+          jsonRpcError(HttpStatus.NOT_FOUND, -32001, "Session not found");
+      case SessionNotInitialized() ->
+          jsonRpcError(HttpStatus.BAD_REQUEST, -32000, "Bad Request: Session not initialized");
+      case InvalidProtocolVersion(var v) ->
+          jsonRpcError(
+              HttpStatus.BAD_REQUEST, -32000, "Bad Request: Unsupported protocol version: " + v);
     };
   }
 
@@ -127,6 +125,7 @@ public class StreamableHttpController {
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public ResponseEntity<Object> handleGet(
       @RequestHeader("MCP-Session-Id") String sessionId,
+      @RequestHeader(value = "MCP-Protocol-Version", required = false) String protocolVersion,
       @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId,
       @RequestHeader(value = "Accept", required = false) String accept,
       @RequestHeader(value = "Origin", required = false) String origin) {
@@ -140,9 +139,63 @@ public class StreamableHttpController {
     if (!validator.isValidOrigin(origin)) {
       return jsonRpcError(HttpStatus.FORBIDDEN, -32000, "Forbidden: Invalid Origin");
     }
-    if (!server.sessionExists(sessionId)) {
-      return jsonRpcError(HttpStatus.NOT_FOUND, -32001, "Session not found");
+
+    McpContext context = new SimpleContext(sessionId, protocolVersion);
+
+    return switch (server.validate(context)) {
+      case Valid() -> handleGetStream(sessionId, lastEventId);
+      case UnknownSession(var id) ->
+          jsonRpcError(HttpStatus.NOT_FOUND, -32001, "Session not found");
+      case InvalidProtocolVersion(var v) ->
+          jsonRpcError(
+              HttpStatus.BAD_REQUEST, -32000, "Bad Request: Unsupported protocol version: " + v);
+      case MissingSessionId() ->
+          jsonRpcError(
+              HttpStatus.BAD_REQUEST, -32000, "Bad Request: MCP-Session-Id header is required");
+      case SessionNotInitialized() ->
+          jsonRpcError(HttpStatus.BAD_REQUEST, -32000, "Bad Request: Session not initialized");
+    };
+  }
+
+  @DeleteMapping
+  public ResponseEntity<Object> handleDelete(
+      @RequestHeader("MCP-Session-Id") String sessionId,
+      @RequestHeader(value = "MCP-Protocol-Version", required = false) String protocolVersion,
+      @RequestHeader(value = "Origin", required = false) String origin) {
+
+    if (!validator.isValidOrigin(origin)) {
+      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, "Forbidden: Invalid Origin");
     }
+
+    McpContext context = new SimpleContext(sessionId, protocolVersion);
+
+    return switch (server.validate(context)) {
+      case Valid() -> {
+        server.terminate(sessionId);
+        yield ResponseEntity.noContent().build();
+      }
+      case UnknownSession(var id) ->
+          jsonRpcError(HttpStatus.NOT_FOUND, -32001, "Session not found");
+      case InvalidProtocolVersion(var v) ->
+          jsonRpcError(
+              HttpStatus.BAD_REQUEST, -32000, "Bad Request: Unsupported protocol version: " + v);
+      case MissingSessionId() ->
+          jsonRpcError(
+              HttpStatus.BAD_REQUEST, -32000, "Bad Request: MCP-Session-Id header is required");
+      case SessionNotInitialized() ->
+          jsonRpcError(HttpStatus.BAD_REQUEST, -32000, "Bad Request: Session not initialized");
+    };
+  }
+
+  private ResponseEntity<Object> dispatch(McpContext context, JsonRpcMessage message) {
+    return switch (message) {
+      case JsonRpcCall call -> handleCall(context, call);
+      case JsonRpcNotification notification -> handleNotification(context, notification);
+      case JsonRpcResponse response -> handleResponse(context, response);
+    };
+  }
+
+  private ResponseEntity<Object> handleGetStream(String sessionId, String lastEventId) {
     try {
       if (lastEventId != null) {
         return ResponseEntity.ok().body(reconnect(sessionId, lastEventId));
@@ -150,25 +203,21 @@ public class StreamableHttpController {
       SseEmitter emitter =
           odyssey.subscribe(
               sessionId, JsonRpcMessage.class, cfg -> cfg.mapper(encryptingMapper(sessionId)));
+      sendPrimingEvent(emitter, sessionId, sessionId);
       return ResponseEntity.ok().body(emitter);
     } catch (IllegalArgumentException _) {
       return ResponseEntity.badRequest().build();
     }
   }
 
-  @DeleteMapping
-  public ResponseEntity<Object> handleDelete(
-      @RequestHeader("MCP-Session-Id") String sessionId,
-      @RequestHeader(value = "Origin", required = false) String origin) {
-
-    if (!validator.isValidOrigin(origin)) {
-      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, "Forbidden: Invalid Origin");
+  private void sendPrimingEvent(SseEmitter emitter, String sessionId, String streamName) {
+    String primingPlaintext = streamName + ":0";
+    String encryptedId = encrypt(sessionId, primingPlaintext);
+    try {
+      emitter.send(SseEmitter.event().id(encryptedId).data(""));
+    } catch (IOException e) {
+      log.warn("Failed to send SSE priming event", e);
     }
-    if (!server.sessionExists(sessionId)) {
-      return jsonRpcError(HttpStatus.NOT_FOUND, -32001, "Session not found");
-    }
-    server.terminate(sessionId);
-    return ResponseEntity.noContent().build();
   }
 
   private ResponseEntity<Object> handleCall(McpContext context, JsonRpcCall call) {

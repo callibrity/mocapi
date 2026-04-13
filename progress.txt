@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-13T00:38:00-04:00
-ITERATION: 88
-SPEC_COMPLETED: 159-compat-tests-assert-jsonrpc-error-bodies.md
-WHAT_WAS_DONE: Updated compat tests to assert JSON-RPC error bodies ($.error.code, $.error.message, $.id is null, Content-Type application/json) on all HTTP error responses. Updated SessionManagementIT (4 tests), ClientResponseIT (2 tests), PostEndpointIT (3 tests), and ProtocolVersionNegotiationIT (1 test — fixed pre-existing failure from controller error code change).
-VERIFICATION: mvn verify -Dmaven.test.failure.ignore=true — BUILD SUCCESS. mocapi-compat: 79/79 pass. All other modules pass. 3 pre-existing StreamableHttpControllerTest failures remain (delegatesToProtocolTerminate, resumeWithLastEventIdDelegatesToOdyssey, subscribesToNotificationChannel — unrelated to this spec).
-STATUS: DONE
+LAST_RUN: 2026-04-13T01:37:00-04:00
+ITERATION: 89
+SPEC_COMPLETED: 160-typescript-sdk-compliance-fixes.md
+WHAT_WAS_DONE: Replaced McpServer.requiresSession/sessionExists with a single validate(McpContext, JsonRpcMessage) method returning a sealed ValidationResult interface. Created ValidationResult with Valid, MissingSessionId, UnknownSession, SessionNotInitialized, and InvalidProtocolVersion variants. Moved protocol version validation from McpRequestValidator into DefaultMcpServer. Added 2024-10-07 to known protocol versions. Protocol version is no longer validated on initialize requests. Added MCP-Protocol-Version header to GET and DELETE endpoints. GET SSE streams now send a priming event with encrypted event ID as the first event. Updated all unit tests, compliance tests, and compat integration tests.
+VERIFICATION: mvn verify — BUILD SUCCESS. All modules pass including mocapi-server, mocapi-transport-streamable-http, and mocapi-compat (80 compat tests).
+STATUS: MORE_WORK
 NEXT_SPEC: none
-NOTES: ProtocolVersionNegotiationIT.rejectsUnrecognizedProtocolVersion was already failing (expected -32600 but controller returns -32000 since commit 9eb8426). Updated it to match the new consistent error format. deleteWithoutSessionIdReturns400 left as status-only assertion — Spring intercepts the missing required header before our controller runs.
+NOTES: Removed isValidProtocolVersion from McpRequestValidator since it was dead code after moving protocol validation to the server. McpRequestValidator now only handles origin validation. SSE retry field before connection close (spec item 8) was not implemented — it's a SHOULD requirement and likely needs Odyssey library changes. The priming event on GET streams is sent directly on the SseEmitter before returning it (Spring buffers early sends). POST call streams do not send a priming event (not in the acceptance criteria). The ProtocolVersionNegotiationIT tests were updated to test protocol version validation on post-initialize requests rather than initialize requests.

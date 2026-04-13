@@ -15,22 +15,14 @@
  */
 package com.callibrity.mocapi.server;
 
-import com.callibrity.ripcurl.core.JsonRpcCall;
-import com.callibrity.ripcurl.core.JsonRpcMessage;
-import com.callibrity.ripcurl.core.JsonRpcNotification;
-import com.callibrity.ripcurl.core.JsonRpcResponse;
+public sealed interface ValidationResult {
+  record Valid() implements ValidationResult {}
 
-public interface McpServer {
+  record MissingSessionId() implements ValidationResult {}
 
-  ValidationResult validate(McpContext context, JsonRpcMessage message);
+  record UnknownSession(String sessionId) implements ValidationResult {}
 
-  ValidationResult validate(McpContext context);
+  record SessionNotInitialized() implements ValidationResult {}
 
-  void handleCall(McpContext context, JsonRpcCall call, McpTransport transport);
-
-  void handleNotification(McpContext context, JsonRpcNotification notification);
-
-  void handleResponse(McpContext context, JsonRpcResponse response);
-
-  void terminate(String sessionId);
+  record InvalidProtocolVersion(String version) implements ValidationResult {}
 }

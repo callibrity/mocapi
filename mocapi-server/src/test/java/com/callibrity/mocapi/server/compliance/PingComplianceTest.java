@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.ValidationResult;
 import com.callibrity.mocapi.server.ping.McpPingService;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,6 +62,14 @@ class PingComplianceTest {
 
   @Test
   void ping_requires_session() {
-    assertThat(server.requiresSession(call("ping"))).isTrue();
+    assertThat(server.validate(noSession(), call("ping")))
+        .isInstanceOf(ValidationResult.MissingSessionId.class);
+  }
+
+  @Test
+  void ping_allowed_with_uninitialized_session() {
+    var sessionId = initializeWithoutCompletingHandshake(server);
+    assertThat(server.validate(withSession(sessionId), call("ping")))
+        .isInstanceOf(ValidationResult.Valid.class);
   }
 }

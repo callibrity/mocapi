@@ -25,11 +25,14 @@ import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
-import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
+import java.util.Set;
 
 /** Default {@link McpServer} that handles session lifecycle and JSON-RPC dispatch. */
 public class DefaultMcpServer implements McpServer {
+
+  private static final Set<String> KNOWN_PROTOCOL_VERSIONS =
+      Set.of("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05", "2024-10-07");
 
   private final McpSessionService sessionService;
   private final JsonRpcDispatcher dispatcher;
@@ -45,30 +48,66 @@ public class DefaultMcpServer implements McpServer {
   }
 
   @Override
-  public boolean requiresSession(JsonRpcMessage message) {
+  public ValidationResult validate(McpContext context, JsonRpcMessage message) {
     String method =
         switch (message) {
           case JsonRpcCall call -> call.method();
           case JsonRpcNotification notification -> notification.method();
           case JsonRpcResponse _ -> null;
         };
-    return !INITIALIZE.equals(method);
+
+    if (INITIALIZE.equals(method)) {
+      return new ValidationResult.Valid();
+    }
+
+    String sessionId = context.sessionId();
+    if (sessionId == null || sessionId.isEmpty()) {
+      return new ValidationResult.MissingSessionId();
+    }
+
+    var session = sessionService.find(sessionId);
+    if (session.isEmpty()) {
+      return new ValidationResult.UnknownSession(sessionId);
+    }
+
+    ValidationResult protocolCheck = validateProtocolVersion(context.protocolVersion());
+    if (protocolCheck != null) {
+      return protocolCheck;
+    }
+
+    if (method != null
+        && !session.get().initialized()
+        && !PING.equals(method)
+        && !NOTIFICATIONS_INITIALIZED.equals(method)) {
+      return new ValidationResult.SessionNotInitialized();
+    }
+
+    return new ValidationResult.Valid();
   }
 
   @Override
-  public boolean sessionExists(String sessionId) {
-    return sessionService.find(sessionId).isPresent();
+  public ValidationResult validate(McpContext context) {
+    var session = sessionService.find(context.sessionId());
+    if (session.isEmpty()) {
+      return new ValidationResult.UnknownSession(context.sessionId());
+    }
+
+    ValidationResult protocolCheck = validateProtocolVersion(context.protocolVersion());
+    if (protocolCheck != null) {
+      return protocolCheck;
+    }
+
+    return new ValidationResult.Valid();
   }
 
   @Override
   public void handleCall(McpContext context, JsonRpcCall call, McpTransport transport) {
     McpSession session = null;
     if (!INITIALIZE.equals(call.method())) {
-      session = requireSession(context.sessionId());
-      if (!session.initialized() && !PING.equals(call.method())) {
-        transport.send(call.error(JsonRpcProtocol.INVALID_REQUEST, "Session not initialized"));
-        return;
-      }
+      session =
+          sessionService
+              .find(context.sessionId())
+              .orElseThrow(() -> new IllegalStateException("Session not found"));
     }
 
     JsonRpcResponse response;
@@ -91,10 +130,10 @@ public class DefaultMcpServer implements McpServer {
     if (INITIALIZE.equals(notification.method())) {
       return;
     }
-    McpSession session = requireSession(context.sessionId());
-    if (!session.initialized() && !NOTIFICATIONS_INITIALIZED.equals(notification.method())) {
-      return;
-    }
+    McpSession session =
+        sessionService
+            .find(context.sessionId())
+            .orElseThrow(() -> new IllegalStateException("Session not found"));
     ScopedValue.where(McpSession.CURRENT, session).run(() -> dispatcher.dispatch(notification));
   }
 
@@ -108,9 +147,10 @@ public class DefaultMcpServer implements McpServer {
     sessionService.delete(sessionId);
   }
 
-  private McpSession requireSession(String sessionId) {
-    return sessionService
-        .find(sessionId)
-        .orElseThrow(() -> new IllegalStateException("Session not found: " + sessionId));
+  private ValidationResult validateProtocolVersion(String protocolVersion) {
+    if (protocolVersion != null && !KNOWN_PROTOCOL_VERSIONS.contains(protocolVersion)) {
+      return new ValidationResult.InvalidProtocolVersion(protocolVersion);
+    }
+    return null;
   }
 }
