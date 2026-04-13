@@ -78,17 +78,21 @@ public class McpResourcesService {
         templateProviders.stream()
             .flatMap(provider -> provider.getMcpResourceTemplates().stream())
             .toList();
-    this.templates =
+    var templatesByString =
         allTemplates.stream()
             .collect(
                 Collectors.toMap(
-                    t -> new UriTemplate(t.descriptor().uriTemplate()),
+                    t -> t.descriptor().uriTemplate(),
                     t -> t,
                     (a, b) -> {
                       throw new IllegalArgumentException(
                           "Duplicate URI template: " + a.descriptor().uriTemplate());
                     },
                     LinkedHashMap::new));
+    this.templates = new LinkedHashMap<>();
+    templatesByString.forEach(
+        (uriTemplate, mcpTemplate) ->
+            this.templates.put(new UriTemplate(uriTemplate), mcpTemplate));
     this.sortedTemplateDescriptors =
         allTemplates.stream()
             .map(McpResourceTemplate::descriptor)

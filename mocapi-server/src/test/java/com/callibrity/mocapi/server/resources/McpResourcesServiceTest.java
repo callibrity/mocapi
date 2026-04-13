@@ -223,6 +223,16 @@ class McpResourcesServiceTest {
   }
 
   @Test
+  void duplicateUriTemplateThrowsException() {
+    var t1 = template("test://items/{id}", "T1", "first", "text/plain");
+    var t2 = template("test://items/{id}", "T2", "duplicate", "text/plain");
+
+    assertThatThrownBy(() -> new McpResourcesService(List.of(), List.of(() -> List.of(t1, t2))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Duplicate URI template");
+  }
+
+  @Test
   void outOfRangeCursorReturnsEmptyPage() {
     var svc =
         new McpResourcesService(
