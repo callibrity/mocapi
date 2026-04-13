@@ -17,13 +17,14 @@ package com.callibrity.mocapi.server.compliance;
 
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.model.ToolsCapability;
-import com.callibrity.mocapi.server.CapturingTransport;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
@@ -31,6 +32,7 @@ import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.mocapi.server.tools.McpTool;
 import com.callibrity.mocapi.server.tools.McpToolContext;
 import com.callibrity.mocapi.server.tools.McpToolsService;
+import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -123,7 +126,7 @@ class ToolsCallInteractiveComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     bindSessionForCapture(sessionId);
 
-    var transport = new CapturingTransport();
+    var transport = mock(McpTransport.class);
     server.handleCall(
         withSession(sessionId),
         call(
@@ -134,8 +137,10 @@ class ToolsCallInteractiveComplianceTest {
                 "_meta", Map.of("progressToken", "tok-1"))),
         transport);
 
+    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+    verify(transport, atLeast(3)).send(captor.capture());
     var notifications =
-        transport.messages().stream()
+        captor.getAllValues().stream()
             .filter(m -> m instanceof JsonRpcNotification)
             .map(m -> (JsonRpcNotification) m)
             .filter(n -> "notifications/progress".equals(n.method()))
@@ -148,7 +153,7 @@ class ToolsCallInteractiveComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     bindSessionForCapture(sessionId);
 
-    var transport = new CapturingTransport();
+    var transport = mock(McpTransport.class);
     server.handleCall(
         withSession(sessionId),
         call(
@@ -159,8 +164,10 @@ class ToolsCallInteractiveComplianceTest {
                 "_meta", Map.of("progressToken", "tok-1"))),
         transport);
 
+    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+    verify(transport, atLeast(3)).send(captor.capture());
     var logNotifications =
-        transport.messages().stream()
+        captor.getAllValues().stream()
             .filter(m -> m instanceof JsonRpcNotification)
             .map(m -> (JsonRpcNotification) m)
             .filter(n -> "notifications/message".equals(n.method()))
@@ -173,7 +180,7 @@ class ToolsCallInteractiveComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     bindSessionForCapture(sessionId);
 
-    var transport = new CapturingTransport();
+    var transport = mock(McpTransport.class);
     server.handleCall(
         withSession(sessionId),
         call(
@@ -184,8 +191,10 @@ class ToolsCallInteractiveComplianceTest {
                 "_meta", Map.of("progressToken", "my-token"))),
         transport);
 
+    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+    verify(transport, atLeast(3)).send(captor.capture());
     var progressNotifications =
-        transport.messages().stream()
+        captor.getAllValues().stream()
             .filter(m -> m instanceof JsonRpcNotification)
             .map(m -> (JsonRpcNotification) m)
             .filter(n -> "notifications/progress".equals(n.method()))
@@ -201,7 +210,7 @@ class ToolsCallInteractiveComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     bindSessionForCapture(sessionId);
 
-    var transport = new CapturingTransport();
+    var transport = mock(McpTransport.class);
     server.handleCall(
         withSession(sessionId),
         call(
@@ -212,8 +221,9 @@ class ToolsCallInteractiveComplianceTest {
                 "_meta", Map.of("progressToken", "tok-1"))),
         transport);
 
-    var messages = transport.messages();
-    assertThat(messages).hasSizeGreaterThanOrEqualTo(4);
+    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+    verify(transport, atLeast(4)).send(captor.capture());
+    var messages = captor.getAllValues();
 
     var lastMessage = messages.getLast();
     assertThat(lastMessage).isInstanceOf(com.callibrity.ripcurl.core.JsonRpcResult.class);

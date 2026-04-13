@@ -18,7 +18,9 @@ package com.callibrity.mocapi.server.tools;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.model.CreateMessageRequestParams;
@@ -30,14 +32,15 @@ import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
-import com.callibrity.mocapi.server.CapturingTransport;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.session.McpSession;
+import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.ObjectMapper;
@@ -52,14 +55,15 @@ class DefaultMcpToolContextTest {
 
   @Test
   void sendProgressSendsNotificationThroughTransport() {
-    var transport = new CapturingTransport();
+    var transport = mock(McpTransport.class);
     var token = JsonNodeFactory.instance.textNode("progress-1");
     var ctx = new DefaultMcpToolContext(transport, mapper, token, correlationService);
 
     ctx.sendProgress(5, 10);
 
-    assertThat(transport.messages()).hasSize(1);
-    var msg = (JsonRpcNotification) transport.messages().getFirst();
+    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+    verify(transport).send(captor.capture());
+    var msg = (JsonRpcNotification) captor.getValue();
     assertThat(msg.method()).isEqualTo("notifications/progress");
     assertThat(msg.params().get("progressToken").asString()).isEqualTo("progress-1");
     assertThat(msg.params().get("progress").asDouble()).isEqualTo(5.0);
@@ -68,23 +72,24 @@ class DefaultMcpToolContextTest {
 
   @Test
   void sendProgressWithNullTokenIsNoOp() {
-    var transport = new CapturingTransport();
+    var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
 
     ctx.sendProgress(5, 10);
 
-    assertThat(transport.messages()).isEmpty();
+    verifyNoInteractions(transport);
   }
 
   @Test
   void logSendsNotificationThroughTransport() {
-    var transport = new CapturingTransport();
+    var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
 
     ctx.log(LoggingLevel.INFO, "test-logger", "hello");
 
-    assertThat(transport.messages()).hasSize(1);
-    var msg = (JsonRpcNotification) transport.messages().getFirst();
+    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+    verify(transport).send(captor.capture());
+    var msg = (JsonRpcNotification) captor.getValue();
     assertThat(msg.method()).isEqualTo("notifications/message");
     assertThat(msg.params().get("level").asString()).isEqualTo("info");
     assertThat(msg.params().get("logger").asString()).isEqualTo("test-logger");
@@ -93,31 +98,33 @@ class DefaultMcpToolContextTest {
 
   @Test
   void logBelowSessionLevelIsDropped() {
-    var transport = new CapturingTransport();
+    var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.WARNING);
 
     ScopedValue.where(McpSession.CURRENT, session)
         .run(() -> ctx.log(LoggingLevel.DEBUG, "test", "dropped"));
 
-    assertThat(transport.messages()).isEmpty();
+    verifyNoInteractions(transport);
   }
 
   @Test
   void logAtOrAboveSessionLevelIsSent() {
-    var transport = new CapturingTransport();
+    var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.WARNING);
 
     ScopedValue.where(McpSession.CURRENT, session)
         .run(() -> ctx.log(LoggingLevel.ERROR, "test", "sent"));
 
-    assertThat(transport.messages()).hasSize(1);
+    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+    verify(transport).send(captor.capture());
+    assertThat(captor.getValue()).isInstanceOf(JsonRpcNotification.class);
   }
 
   @Test
   void elicitDelegatesToCorrelationService() throws Exception {
-    var transport = new CapturingTransport();
+    var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var requestParams =
         new ElicitRequestFormParams("form", "Please provide info", null, null, null);
@@ -142,7 +149,7 @@ class DefaultMcpToolContextTest {
 
   @Test
   void sampleDelegatesToCorrelationService() throws Exception {
-    var transport = new CapturingTransport();
+    var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var requestParams =
         new CreateMessageRequestParams(

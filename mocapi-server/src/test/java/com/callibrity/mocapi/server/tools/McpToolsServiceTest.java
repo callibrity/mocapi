@@ -17,12 +17,14 @@ package com.callibrity.mocapi.server.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.RequestMeta;
 import com.callibrity.mocapi.model.TextContent;
-import com.callibrity.mocapi.server.CapturingTransport;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.session.McpSession;
@@ -33,6 +35,7 @@ import com.callibrity.mocapi.server.tools.util.InteractiveTool;
 import com.callibrity.mocapi.server.tools.util.ThrowingTool;
 import com.callibrity.mocapi.server.tools.util.TimeoutTool;
 import com.callibrity.mocapi.server.tools.util.VoidTool;
+import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaVersion;
@@ -43,6 +46,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.ObjectMapper;
@@ -133,7 +137,7 @@ class McpToolsServiceTest {
 
   @Test
   void callInteractiveToolWithProgressAndResult() {
-    var transport = new CapturingTransport();
+    var transport = mock(McpTransport.class);
     var session = new McpSession("test-session", "2025-11-25", null, null, LoggingLevel.DEBUG);
     var progressToken = JsonNodeFactory.instance.textNode("tok-1");
     var meta = new RequestMeta(progressToken);
@@ -150,9 +154,9 @@ class McpToolsServiceTest {
     assertThat(result.structuredContent()).isNotNull();
     assertThat(result.structuredContent().get("message").stringValue()).isEqualTo("Hello, Alice!");
 
-    // Verify progress and log notifications were sent through transport
-    var notifications = transport.messages();
-    assertThat(notifications).hasSizeGreaterThanOrEqualTo(3);
+    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+    verify(transport, atLeast(3)).send(captor.capture());
+    var notifications = captor.getAllValues();
 
     // First message: progress 1/2
     assertThat(notifications.get(0)).isInstanceOf(JsonRpcNotification.class);

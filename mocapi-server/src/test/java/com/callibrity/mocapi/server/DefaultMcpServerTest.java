@@ -17,6 +17,7 @@ package com.callibrity.mocapi.server;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -26,6 +27,7 @@ import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
+import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
@@ -34,6 +36,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.node.JsonNodeFactory;
@@ -48,12 +51,12 @@ class DefaultMcpServerTest {
   @Mock private McpResponseCorrelationService correlationService;
 
   private DefaultMcpServer protocol;
-  private CapturingTransport transport;
+  private McpTransport transport;
 
   @BeforeEach
   void setUp() {
     protocol = new DefaultMcpServer(sessionService, dispatcher, correlationService);
-    transport = new CapturingTransport();
+    transport = mock(McpTransport.class);
   }
 
   @Test
@@ -76,8 +79,9 @@ class DefaultMcpServerTest {
     protocol.handleCall(noSessionContext(), call, transport);
 
     verify(dispatcher).dispatch(call);
-    assertThat(transport.messages()).hasSize(1);
-    assertThat(transport.messages().getFirst()).isSameAs(dispatchResult);
+    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+    verify(transport).send(captor.capture());
+    assertThat(captor.getValue()).isSameAs(dispatchResult);
   }
 
   @Test
@@ -98,9 +102,10 @@ class DefaultMcpServerTest {
 
     protocol.handleCall(noSessionContext(), call, transport);
 
-    assertThat(transport.messages()).hasSize(1);
-    assertThat(transport.messages().getFirst()).isInstanceOf(JsonRpcError.class);
-    JsonRpcError error = (JsonRpcError) transport.messages().getFirst();
+    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+    verify(transport).send(captor.capture());
+    assertThat(captor.getValue()).isInstanceOf(JsonRpcError.class);
+    JsonRpcError error = (JsonRpcError) captor.getValue();
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
     assertThat(error.error().message()).isEqualTo("Missing session ID");
 
@@ -115,9 +120,10 @@ class DefaultMcpServerTest {
 
     protocol.handleCall(sessionContext("unknown"), call, transport);
 
-    assertThat(transport.messages()).hasSize(1);
-    assertThat(transport.messages().getFirst()).isInstanceOf(JsonRpcError.class);
-    JsonRpcError error = (JsonRpcError) transport.messages().getFirst();
+    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+    verify(transport).send(captor.capture());
+    assertThat(captor.getValue()).isInstanceOf(JsonRpcError.class);
+    JsonRpcError error = (JsonRpcError) captor.getValue();
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
     assertThat(error.error().message()).isEqualTo("Unknown session");
 
@@ -146,8 +152,9 @@ class DefaultMcpServerTest {
     protocol.handleCall(sessionContext("valid"), call, transport);
 
     verify(dispatcher).dispatch(call);
-    assertThat(transport.messages()).hasSize(1);
-    assertThat(transport.messages().getFirst()).isSameAs(dispatchResult);
+    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+    verify(transport).send(captor.capture());
+    assertThat(captor.getValue()).isSameAs(dispatchResult);
   }
 
   @Test
@@ -195,7 +202,7 @@ class DefaultMcpServerTest {
     protocol.handleCall(sessionContext("valid"), call, transport);
 
     verify(dispatcher).dispatch(call);
-    assertThat(transport.messages()).isEmpty();
+    verifyNoInteractions(transport);
   }
 
   @Test

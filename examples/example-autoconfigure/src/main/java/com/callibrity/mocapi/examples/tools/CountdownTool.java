@@ -25,12 +25,12 @@ public class CountdownTool {
   @ToolMethod(
       name = "countdown",
       description = "Counts down from the given number, sending progress updates via SSE")
-  public CountdownResponse countdown(int from, McpToolContext ctx) {
-    for (int i = from; i > 0; i--) {
+  public CountdownResponse countdown(long from, McpToolContext ctx) {
+    for (long i = from; i > 0; i--) {
       ctx.sendProgress(from - i, from);
       try {
         Thread.sleep(500);
-      } catch (InterruptedException e) {
+      } catch (InterruptedException _) {
         Thread.currentThread().interrupt();
         return new CountdownResponse("Countdown interrupted!");
       }

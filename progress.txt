@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T22:10:16-04:00
-ITERATION: 80
-SPEC_COMPLETED: 151-initialization-lifecycle-and-notifications.md
-WHAT_WAS_DONE: Completed initialization lifecycle enforcement and missing notification handlers. Fixed test compilation errors (McpResponseCorrelationServiceTest still referenced TimeoutException, DefaultMcpServerTest sessions not marked initialized). Added tool timeout test covering McpClientResponseTimeoutException → CallToolResult(isError=true) path.
-VERIFICATION: mvn verify -pl mocapi-server -am — BUILD SUCCESS, 152 tests pass, 0 failures. Spotless + license checks clean.
+LAST_RUN: 2026-04-12T22:15:00-04:00
+ITERATION: 81
+SPEC_COMPLETED: 152-remove-capturing-transport.md
+WHAT_WAS_DONE: Deleted CapturingTransport and replaced all 13 usages across 4 test files with mock(McpTransport.class) + ArgumentCaptor, using standard Mockito patterns.
+VERIFICATION: mvn verify -pl mocapi-server -am — BUILD SUCCESS, 152 tests pass, 0 failures. Spotless + license checks clean. No references to CapturingTransport remain in mocapi-server.
 STATUS: MORE_WORK
-NEXT_SPEC: 152-remove-capturing-transport.md
-NOTES: Pre-existing mocapi-transport-streamable-http test compilation error (BufferingTransport missing, StreamableHttpController constructor mismatch) remains unchanged — not caused by this iteration. ComplianceTestSupport.buildServer automatically registers McpLifecycleService; initializeWithoutCompletingHandshake helper available for lifecycle enforcement tests. New TimeoutTool test utility added for tool timeout testing.
+NEXT_SPEC: 153-inline-mapper-in-build-dispatcher.md
+NOTES: Pre-existing mocapi-transport-streamable-http test compilation error remains unchanged — not caused by this iteration.

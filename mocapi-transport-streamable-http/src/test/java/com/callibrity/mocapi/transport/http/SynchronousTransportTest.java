@@ -83,10 +83,8 @@ class SynchronousTransportTest {
     var transport = new SynchronousTransport();
     transport.send(new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1)));
 
-    assertThatThrownBy(
-            () ->
-                transport.send(
-                    new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(2))))
+    var result = new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(2));
+    assertThatThrownBy(() -> transport.send(result))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("already holds a response");
   }

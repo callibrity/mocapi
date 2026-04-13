@@ -49,7 +49,7 @@ class ToolsCallWithProgressIT {
 
     var arguments = client.objectMapper().createObjectNode();
     var meta =
-        new RequestMeta(client.objectMapper().getNodeFactory().textNode("test-progress-token"));
+        new RequestMeta(client.objectMapper().getNodeFactory().stringNode("test-progress-token"));
     var params = new CallToolRequestParams("test_tool_with_progress", arguments, null, meta);
 
     MvcResult mvcResult =
