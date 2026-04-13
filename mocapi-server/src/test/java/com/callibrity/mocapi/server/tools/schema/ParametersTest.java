@@ -25,13 +25,21 @@ class ParametersTest {
 
   // --- Reflective targets ---
 
-  void plainParam(String value) {}
+  void plainParam(String value) {
+    // Reflective target — parameter metadata used by tests
+  }
 
-  void schemaWithBlankDescription(@Schema(description = "  ") String value) {}
+  void schemaWithBlankDescription(@Schema(description = "  ") String value) {
+    // Reflective target — blank @Schema description
+  }
 
-  void schemaWithBlankTitle(@Schema(title = "  ") String value) {}
+  void schemaWithBlankTitle(@Schema(title = "  ") String value) {
+    // Reflective target — blank @Schema title
+  }
 
-  void schemaWithTitle(@Schema(title = "Custom Title") String value) {}
+  void schemaWithTitle(@Schema(title = "Custom Title") String value) {
+    // Reflective target — non-blank @Schema title
+  }
 
   // --- Tests ---
 

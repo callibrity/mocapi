@@ -96,7 +96,8 @@ class AnnotationMcpToolTest {
 
   @Test
   void mcpToolParamsWithOtherNonContextParamShouldThrow() {
-    assertThatThrownBy(() -> createTools(new InvalidMixedParamsTool()))
+    var target = new InvalidMixedParamsTool();
+    assertThatThrownBy(() -> createTools(target))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("@McpToolParams");
   }

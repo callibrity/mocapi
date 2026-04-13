@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import java.time.Duration;
@@ -49,6 +50,6 @@ class AtomMcpSessionStoreTest {
     McpSession session = createSession(sessionId);
     // Update a session that was never saved — the atom connect will throw AtomExpiredException.
     // This should be silently swallowed.
-    store.update(sessionId, session);
+    assertThatNoException().isThrownBy(() -> store.update(sessionId, session));
   }
 }
