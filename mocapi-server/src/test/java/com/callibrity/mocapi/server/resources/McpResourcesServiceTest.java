@@ -148,27 +148,6 @@ class McpResourcesServiceTest {
   }
 
   @Test
-  void subscribeTracksUri() {
-    var params = new ResourceRequestParams("test://a", null);
-
-    assertThat(service.isSubscribed("test://a")).isFalse();
-
-    service.subscribe(params);
-
-    assertThat(service.isSubscribed("test://a")).isTrue();
-  }
-
-  @Test
-  void unsubscribeRemovesTracking() {
-    var params = new ResourceRequestParams("test://a", null);
-    service.subscribe(params);
-
-    service.unsubscribe(params);
-
-    assertThat(service.isSubscribed("test://a")).isFalse();
-  }
-
-  @Test
   void isEmptyReturnsTrueWhenNoResourcesOrTemplates() {
     var emptyService = new McpResourcesService(List.of(), List.of());
     assertThat(emptyService.isEmpty()).isTrue();

@@ -15,7 +15,6 @@
  */
 package com.callibrity.mocapi.server.resources;
 
-import com.callibrity.mocapi.model.EmptyResult;
 import com.callibrity.mocapi.model.ListResourceTemplatesResult;
 import com.callibrity.mocapi.model.ListResourcesResult;
 import com.callibrity.mocapi.model.McpMethods;
@@ -37,12 +36,10 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.springframework.web.util.UriTemplate;
 
-/** Manages resource registration, lookup, pagination, subscriptions, and JSON-RPC dispatch. */
+/** Manages resource registration, lookup, pagination, and JSON-RPC dispatch. */
 @JsonRpcService
 public class McpResourcesService implements ServerCapabilitiesContributor {
 
@@ -52,7 +49,6 @@ public class McpResourcesService implements ServerCapabilitiesContributor {
   private final Map<UriTemplate, McpResourceTemplate> templates;
   private final List<Resource> sortedResourceDescriptors;
   private final List<ResourceTemplate> sortedTemplateDescriptors;
-  private final Set<String> subscriptions = ConcurrentHashMap.newKeySet();
   private final int pageSize;
 
   public McpResourcesService(
@@ -131,18 +127,6 @@ public class McpResourcesService implements ServerCapabilitiesContributor {
         JsonRpcProtocol.INVALID_PARAMS, String.format("Resource not found: %s", uri));
   }
 
-  @JsonRpcMethod(McpMethods.RESOURCES_SUBSCRIBE)
-  public EmptyResult subscribe(@JsonRpcParams ResourceRequestParams params) {
-    subscriptions.add(params.uri());
-    return EmptyResult.INSTANCE;
-  }
-
-  @JsonRpcMethod(McpMethods.RESOURCES_UNSUBSCRIBE)
-  public EmptyResult unsubscribe(@JsonRpcParams ResourceRequestParams params) {
-    subscriptions.remove(params.uri());
-    return EmptyResult.INSTANCE;
-  }
-
   public boolean isEmpty() {
     return resources.isEmpty() && templates.isEmpty();
   }
@@ -152,9 +136,5 @@ public class McpResourcesService implements ServerCapabilitiesContributor {
     if (!isEmpty()) {
       builder.resources(new ResourcesCapability(false, false));
     }
-  }
-
-  public boolean isSubscribed(String uri) {
-    return subscriptions.contains(uri);
   }
 }

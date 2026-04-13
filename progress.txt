@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T22:41:00-04:00
-ITERATION: 83
-SPEC_COMPLETED: 154-fix-streamable-http-controller-test.md
-WHAT_WAS_DONE: Fixed StreamableHttpControllerTest to match the current controller API — removed McpSessionService mock and all stubs, removed BufferingTransport reference (verify OdysseyTransport instead), removed tests for behaviors that moved to the server layer (404 for unknown session, null session ID checks on GET/DELETE, protocol version validation), fixed constructor call to 5-arg form, and updated PostWithSession tests to reflect that session calls always return SSE.
-VERIFICATION: mvn verify -pl '!mocapi-compat' — BUILD SUCCESS, all 28 transport tests pass (16 in StreamableHttpControllerTest, 6 OdysseyTransportTest, 6 SynchronousTransportTest), 0 failures. Spotless and license checks clean. Also fixed pre-existing spotless violation in EphemeralMasterKeyEnvironmentPostProcessor.java (import ordering). mocapi-compat integration tests have a pre-existing Spring context loading failure unrelated to this change.
+LAST_RUN: 2026-04-12T22:44:47-04:00
+ITERATION: 84
+SPEC_COMPLETED: 155-remove-resource-subscription-dead-code.md
+WHAT_WAS_DONE: Removed dead resource subscription code from McpResourcesService — deleted subscribe/unsubscribe handlers, subscriptions field, isSubscribed method, and unused imports (EmptyResult, Set, ConcurrentHashMap). Deleted ResourcesSubscribeComplianceTest, ResourcesSubscribeIT, ResourcesUnsubscribeIT, and removed subscription unit tests from McpResourcesServiceTest.
+VERIFICATION: mvn verify -pl '!mocapi-compat' — BUILD SUCCESS. All tests pass, spotless and license checks clean. Capabilities still declare ResourcesCapability(false, false).
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: The spec claimed the controller returns 400 for notifications/responses without a session ID, but the actual controller code accepts them (returns 202). Tests were updated to match actual behavior. The mocapi-compat integration test failures are pre-existing (ApplicationContext failure threshold exceeded). The spotless fix in example-autoconfigure was a pre-existing import ordering issue.
+NOTES: McpMethods.RESOURCES_SUBSCRIBE and RESOURCES_UNSUBSCRIBE constants remain in the model module — they are part of the MCP protocol definition and may be needed if subscription support is added later. The compat module was excluded from verify due to pre-existing Spring context loading failures unrelated to this change.
