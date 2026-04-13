@@ -59,6 +59,20 @@ import org.springframework.stereotype.Component;
 @ToolService
 public class CompatibilityTools {
 
+  private static final String VALUE_1 = "value1";
+  private static final String VALUE_2 = "value2";
+  private static final String VALUE_3 = "value3";
+  private static final String OPTION_1 = "option1";
+  private static final String OPTION_2 = "option2";
+  private static final String OPTION_3 = "option3";
+
+  private static CallToolResult elicitationResult(com.callibrity.mocapi.model.ElicitResult result) {
+    return new CallToolResult(
+        List.of(new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
+        null,
+        null);
+  }
+
   private static final String TEST_TOOL_WITH_LOGGING = "test_tool_with_logging";
 
   // 1x1 red pixel PNG
@@ -424,56 +438,7 @@ public class CompatibilityTools {
     var params =
         new ElicitRequestFormParams("form", "Enter defaults test data", schema, null, null);
     var result = ctx.elicit(params);
-    return new CallToolResult(
-        List.of(new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
-        null,
-        null);
-  }
-
-  enum TitledOption {
-    VALUE_1("value1", "First Option"),
-    VALUE_2("value2", "Second Option"),
-    VALUE_3("value3", "Third Option");
-
-    private final String value;
-    private final String title;
-
-    TitledOption(String value, String title) {
-      this.value = value;
-      this.title = title;
-    }
-
-    String value() {
-      return value;
-    }
-
-    @Override
-    public String toString() {
-      return title;
-    }
-  }
-
-  enum TitledMultiOption {
-    VALUE_1("value1", "First Choice"),
-    VALUE_2("value2", "Second Choice"),
-    VALUE_3("value3", "Third Choice");
-
-    private final String value;
-    private final String title;
-
-    TitledMultiOption(String value, String title) {
-      this.value = value;
-      this.title = title;
-    }
-
-    String value() {
-      return value;
-    }
-
-    @Override
-    public String toString() {
-      return title;
-    }
+    return elicitationResult(result);
   }
 
   /**
@@ -494,16 +459,16 @@ public class CompatibilityTools {
     properties.put(
         "untitledSingle",
         new UntitledSingleSelectEnumSchema(
-            null, null, List.of("option1", "option2", "option3"), null));
+            null, null, List.of(OPTION_1, OPTION_2, OPTION_3), null));
     properties.put(
         "titledSingle",
         new TitledSingleSelectEnumSchema(
             null,
             null,
             List.of(
-                new EnumOption("value1", "First Option"),
-                new EnumOption("value2", "Second Option"),
-                new EnumOption("value3", "Third Option")),
+                new EnumOption(VALUE_1, "First Option"),
+                new EnumOption(VALUE_2, "Second Option"),
+                new EnumOption(VALUE_3, "Third Option")),
             null));
     properties.put(
         "legacyEnum",
@@ -520,7 +485,7 @@ public class CompatibilityTools {
             null,
             null,
             null,
-            new EnumItemsSchema(List.of("option1", "option2", "option3")),
+            new EnumItemsSchema(List.of(OPTION_1, OPTION_2, OPTION_3)),
             null));
     properties.put(
         "titledMulti",
@@ -531,16 +496,13 @@ public class CompatibilityTools {
             null,
             new TitledEnumItemsSchema(
                 List.of(
-                    new EnumOption("value1", "First Choice"),
-                    new EnumOption("value2", "Second Choice"),
-                    new EnumOption("value3", "Third Choice"))),
+                    new EnumOption(VALUE_1, "First Choice"),
+                    new EnumOption(VALUE_2, "Second Choice"),
+                    new EnumOption(VALUE_3, "Third Choice"))),
             null));
     var schema = new RequestedSchema(properties, List.of());
     var params = new ElicitRequestFormParams("form", "Enum variants test", schema, null, null);
     var result = ctx.elicit(params);
-    return new CallToolResult(
-        List.of(new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
-        null,
-        null);
+    return elicitationResult(result);
   }
 }
