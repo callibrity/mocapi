@@ -29,6 +29,7 @@ import java.util.List;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Deprecated(since = "0.0.1", forRemoval = false)
+@SuppressWarnings("java:S1874")
 public record LegacyTitledEnumSchema(
     String title,
     String description,

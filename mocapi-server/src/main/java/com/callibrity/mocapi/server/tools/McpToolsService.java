@@ -24,11 +24,8 @@ import com.callibrity.mocapi.model.ListToolsResult;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
-import com.callibrity.mocapi.model.ToolsCapability;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.ServerCapabilitiesBuilder;
-import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -52,8 +49,7 @@ import tools.jackson.databind.node.ValueNode;
 /** Manages tool registration, input validation, and JSON-RPC dispatch. */
 @Slf4j
 @JsonRpcService
-public class McpToolsService extends PaginatedService<McpTool, Tool>
-    implements ServerCapabilitiesContributor {
+public class McpToolsService extends PaginatedService<McpTool, Tool> {
 
   private final ConcurrentHashMap<String, Schema> inputSchemas = new ConcurrentHashMap<>();
   private final ObjectMapper objectMapper;
@@ -95,13 +91,6 @@ public class McpToolsService extends PaginatedService<McpTool, Tool>
     McpTool tool = lookup(name);
     validateInput(name, args, tool);
     return invokeTool(name, tool, args, params);
-  }
-
-  @Override
-  public void contribute(ServerCapabilitiesBuilder builder) {
-    if (!isEmpty()) {
-      builder.tools(new ToolsCapability(false));
-    }
   }
 
   private CallToolResult invokeTool(

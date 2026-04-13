@@ -32,8 +32,8 @@ import org.junit.jupiter.api.Test;
 /**
  * MCP 2025-11-25 § Lifecycle — Session Management.
  *
- * <p>Verifies session enforcement: calls/notifications/responses without valid sessions are
- * rejected or silently dropped. Also verifies terminate behavior.
+ * <p>Verifies session query methods (requiresSession, sessionExists), dispatch with valid sessions,
+ * and terminate behavior.
  */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class SessionEnforcementComplianceTest {
@@ -48,27 +48,48 @@ class SessionEnforcementComplianceTest {
   }
 
   @Nested
+  class Requires_Session {
+
+    @Test
+    void initialize_does_not_require_session() {
+      assertThat(server.requiresSession(initializeCall())).isFalse();
+    }
+
+    @Test
+    void non_initialize_call_requires_session() {
+      assertThat(server.requiresSession(call("tools/list"))).isTrue();
+    }
+
+    @Test
+    void notification_requires_session() {
+      assertThat(server.requiresSession(notification("notifications/initialized"))).isTrue();
+    }
+  }
+
+  @Nested
+  class Session_Exists {
+
+    @Test
+    void returns_true_for_active_session() {
+      var sessionId = initializeAndGetSessionId(server);
+      assertThat(server.sessionExists(sessionId)).isTrue();
+    }
+
+    @Test
+    void returns_false_for_unknown_session() {
+      assertThat(server.sessionExists("nonexistent")).isFalse();
+    }
+
+    @Test
+    void returns_false_after_terminate() {
+      var sessionId = initializeAndGetSessionId(server);
+      server.terminate(sessionId);
+      assertThat(server.sessionExists(sessionId)).isFalse();
+    }
+  }
+
+  @Nested
   class Calls {
-
-    @Test
-    void without_session_id_returns_error() {
-      var transport = mock(McpTransport.class);
-
-      server.handleCall(noSession(), call("tools/list"), transport);
-
-      var error = captureError(transport);
-      assertThat(error.error().message()).containsIgnoringCase("session");
-    }
-
-    @Test
-    void with_unknown_session_id_returns_error() {
-      var transport = mock(McpTransport.class);
-
-      server.handleCall(withSession("nonexistent"), call("tools/list"), transport);
-
-      var error = captureError(transport);
-      assertThat(error.error().message()).containsIgnoringCase("session");
-    }
 
     @Test
     void with_valid_session_dispatches_normally() {
@@ -83,31 +104,6 @@ class SessionEnforcementComplianceTest {
   }
 
   @Nested
-  class Notifications {
-
-    @Test
-    void without_session_id_silently_rejected() {
-      server.handleNotification(noSession(), notification("notifications/initialized"));
-    }
-
-    @Test
-    void with_unknown_session_id_silently_rejected() {
-      server.handleNotification(
-          withSession("nonexistent"), notification("notifications/initialized"));
-    }
-  }
-
-  @Nested
-  class Responses {
-
-    @Test
-    void without_session_id_still_delivered() {
-      var response = new com.callibrity.ripcurl.core.JsonRpcResult(null, null);
-      server.handleResponse(noSession(), response);
-    }
-  }
-
-  @Nested
   class Terminate {
 
     @Test
@@ -117,23 +113,6 @@ class SessionEnforcementComplianceTest {
       server.terminate(sessionId);
 
       assertThat(sessionStore.find(sessionId)).isEmpty();
-    }
-
-    @Test
-    void unknown_session_is_noop() {
-      server.terminate("does-not-exist");
-    }
-
-    @Test
-    void subsequent_calls_with_terminated_session_return_error() {
-      var sessionId = initializeAndGetSessionId(server);
-      server.terminate(sessionId);
-
-      var transport = mock(McpTransport.class);
-      server.handleCall(withSession(sessionId), call("tools/list"), transport);
-
-      var error = captureError(transport);
-      assertThat(error.error().message()).containsIgnoringCase("session");
     }
   }
 }

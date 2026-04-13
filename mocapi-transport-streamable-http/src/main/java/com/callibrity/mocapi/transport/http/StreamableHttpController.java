@@ -56,20 +56,20 @@ import tools.jackson.databind.node.ObjectNode;
 @RequestMapping("${mocapi.endpoint:/mcp}")
 public class StreamableHttpController {
 
-  private final McpServer protocol;
+  private final McpServer server;
   private final McpRequestValidator validator;
   private final Odyssey odyssey;
   private final ObjectMapper objectMapper;
   private final byte[] masterKey;
 
   public StreamableHttpController(
-      McpServer protocol,
+      McpServer server,
       McpRequestValidator validator,
       Odyssey odyssey,
       ObjectMapper objectMapper,
       byte[] masterKey) {
     Ciphers.validateAesGcmKey(masterKey);
-    this.protocol = protocol;
+    this.server = server;
     this.validator = validator;
     this.odyssey = odyssey;
     this.objectMapper = objectMapper;
@@ -90,11 +90,17 @@ public class StreamableHttpController {
     if (!validator.isValidOrigin(origin)) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
+    if (server.requiresSession(message) && (sessionId == null || sessionId.isBlank())) {
+      return ResponseEntity.badRequest().build();
+    }
+    if (sessionId != null && !server.sessionExists(sessionId)) {
+      return ResponseEntity.notFound().build();
+    }
 
     McpContext context = new SimpleContext(sessionId, protocolVersion);
 
     return switch (message) {
-      case JsonRpcCall call -> handleCall(context, call, sessionId);
+      case JsonRpcCall call -> handleCall(context, call);
       case JsonRpcNotification notification -> handleNotification(context, notification);
       case JsonRpcResponse response -> handleResponse(context, response);
     };
@@ -124,6 +130,9 @@ public class StreamableHttpController {
     if (!validator.isValidOrigin(origin)) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
+    if (!server.sessionExists(sessionId)) {
+      return ResponseEntity.notFound().build();
+    }
     try {
       if (lastEventId != null) {
         return ResponseEntity.ok().body(reconnect(sessionId, lastEventId));
@@ -145,36 +154,40 @@ public class StreamableHttpController {
     if (!validator.isValidOrigin(origin)) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
-    protocol.terminate(sessionId);
+    if (!server.sessionExists(sessionId)) {
+      return ResponseEntity.notFound().build();
+    }
+    server.terminate(sessionId);
     return ResponseEntity.noContent().build();
   }
 
-  private ResponseEntity<Object> handleCall(
-      McpContext context, JsonRpcCall call, String sessionId) {
-    if (sessionId == null) {
+  private ResponseEntity<Object> handleCall(McpContext context, JsonRpcCall call) {
+    if (context.sessionId() == null) {
       SynchronousTransport transport = new SynchronousTransport();
-      protocol.handleCall(context, call, transport);
+      server.handleCall(context, call, transport);
       return transport.toResponseEntity();
     }
 
     var streamName = UUID.randomUUID().toString();
     var transport = new OdysseyTransport(odyssey.publisher(streamName, JsonRpcMessage.class));
 
-    Thread.ofVirtual().start(() -> protocol.handleCall(context, call, transport));
+    Thread.ofVirtual().start(() -> server.handleCall(context, call, transport));
     var emitter =
         odyssey.subscribe(
-            streamName, JsonRpcMessage.class, cfg -> cfg.mapper(encryptingMapper(sessionId)));
+            streamName,
+            JsonRpcMessage.class,
+            cfg -> cfg.mapper(encryptingMapper(context.sessionId())));
     return ResponseEntity.ok().contentType(MediaType.TEXT_EVENT_STREAM).body(emitter);
   }
 
   private ResponseEntity<Object> handleNotification(
       McpContext context, JsonRpcNotification notification) {
-    protocol.handleNotification(context, notification);
+    server.handleNotification(context, notification);
     return ResponseEntity.accepted().build();
   }
 
   private ResponseEntity<Object> handleResponse(McpContext context, JsonRpcResponse response) {
-    protocol.handleResponse(context, response);
+    server.handleResponse(context, response);
     return ResponseEntity.accepted().build();
   }
 

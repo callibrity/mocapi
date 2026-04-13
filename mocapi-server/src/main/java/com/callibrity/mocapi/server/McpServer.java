@@ -16,10 +16,15 @@
 package com.callibrity.mocapi.server;
 
 import com.callibrity.ripcurl.core.JsonRpcCall;
+import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 
 public interface McpServer {
+
+  boolean requiresSession(JsonRpcMessage message);
+
+  boolean sessionExists(String sessionId);
 
   void handleCall(McpContext context, JsonRpcCall call, McpTransport transport);
 

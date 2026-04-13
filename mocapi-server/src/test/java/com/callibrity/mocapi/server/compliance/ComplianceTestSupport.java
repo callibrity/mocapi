@@ -30,7 +30,6 @@ import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.McpTransportResolver;
-import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
 import com.callibrity.mocapi.server.autoconfigure.SessionStoreTestSupport;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
 import com.callibrity.mocapi.server.session.McpSessionResolver;
@@ -88,7 +87,7 @@ final class ComplianceTestSupport {
         Duration.ofHours(1),
         new Implementation("test-server", "Test Server", "1.0.0"),
         null,
-        capabilitiesContributors(capabilities));
+        capabilities);
   }
 
   // --- Server ---
@@ -220,20 +219,6 @@ final class ComplianceTestSupport {
 
   static McpSessionStore inMemorySessionStore() {
     return SessionStoreTestSupport.create();
-  }
-
-  // --- Capabilities contributors ---
-
-  private static List<ServerCapabilitiesContributor> capabilitiesContributors(
-      ServerCapabilities capabilities) {
-    return List.of(
-        builder -> {
-          if (capabilities.tools() != null) builder.tools(capabilities.tools());
-          if (capabilities.resources() != null) builder.resources(capabilities.resources());
-          if (capabilities.prompts() != null) builder.prompts(capabilities.prompts());
-          if (capabilities.logging() != null) builder.logging(capabilities.logging());
-          if (capabilities.completions() != null) builder.completions(capabilities.completions());
-        });
   }
 
   // --- ID generation ---

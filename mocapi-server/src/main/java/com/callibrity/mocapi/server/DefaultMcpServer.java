@@ -23,6 +23,7 @@ import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
@@ -44,19 +45,26 @@ public class DefaultMcpServer implements McpServer {
   }
 
   @Override
+  public boolean requiresSession(JsonRpcMessage message) {
+    String method =
+        switch (message) {
+          case JsonRpcCall call -> call.method();
+          case JsonRpcNotification notification -> notification.method();
+          case JsonRpcResponse _ -> null;
+        };
+    return !INITIALIZE.equals(method);
+  }
+
+  @Override
+  public boolean sessionExists(String sessionId) {
+    return sessionService.find(sessionId).isPresent();
+  }
+
+  @Override
   public void handleCall(McpContext context, JsonRpcCall call, McpTransport transport) {
     McpSession session = null;
     if (!INITIALIZE.equals(call.method())) {
-      if (context.sessionId() == null || context.sessionId().isBlank()) {
-        transport.send(call.error(JsonRpcProtocol.INVALID_REQUEST, "Missing session ID"));
-        return;
-      }
-      var sessionOpt = sessionService.find(context.sessionId());
-      if (sessionOpt.isEmpty()) {
-        transport.send(call.error(JsonRpcProtocol.INVALID_REQUEST, "Unknown session"));
-        return;
-      }
-      session = sessionOpt.get();
+      session = requireSession(context.sessionId());
       if (!session.initialized() && !PING.equals(call.method())) {
         transport.send(call.error(JsonRpcProtocol.INVALID_REQUEST, "Session not initialized"));
         return;
@@ -83,14 +91,7 @@ public class DefaultMcpServer implements McpServer {
     if (INITIALIZE.equals(notification.method())) {
       return;
     }
-    if (context.sessionId() == null || context.sessionId().isBlank()) {
-      return;
-    }
-    var sessionOpt = sessionService.find(context.sessionId());
-    if (sessionOpt.isEmpty()) {
-      return;
-    }
-    McpSession session = sessionOpt.get();
+    McpSession session = requireSession(context.sessionId());
     if (!session.initialized() && !NOTIFICATIONS_INITIALIZED.equals(notification.method())) {
       return;
     }
@@ -105,5 +106,11 @@ public class DefaultMcpServer implements McpServer {
   @Override
   public void terminate(String sessionId) {
     sessionService.delete(sessionId);
+  }
+
+  private McpSession requireSession(String sessionId) {
+    return sessionService
+        .find(sessionId)
+        .orElseThrow(() -> new IllegalStateException("Session not found: " + sessionId));
   }
 }

@@ -16,11 +16,15 @@
 package com.callibrity.mocapi.server.autoconfigure;
 
 import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.model.LoggingCapability;
+import com.callibrity.mocapi.model.PromptsCapability;
+import com.callibrity.mocapi.model.ResourcesCapability;
+import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.model.ToolsCapability;
 import com.callibrity.mocapi.server.DefaultMcpServer;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransportResolver;
-import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
 import com.callibrity.mocapi.server.logging.McpLoggingService;
 import com.callibrity.mocapi.server.ping.McpPingService;
@@ -36,6 +40,7 @@ import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.jwcarman.substrate.atom.AtomFactory;
 import org.jwcarman.substrate.core.autoconfigure.SubstrateAutoConfiguration;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
@@ -46,7 +51,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.lang.Nullable;
 import tools.jackson.databind.ObjectMapper;
 
 /** Auto-configuration for MCP protocol beans. */
@@ -84,13 +88,22 @@ public class MocapiServerAutoConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean(ServerCapabilities.class)
+  public ServerCapabilities mcpServerCapabilities() {
+    return new ServerCapabilities(
+        new ToolsCapability(false),
+        new LoggingCapability(),
+        null,
+        new ResourcesCapability(false, false),
+        new PromptsCapability(false));
+  }
+
+  @Bean
   @ConditionalOnMissingBean(McpSessionService.class)
   public McpSessionService mcpProtocolSessionService(
-      McpSessionStore store,
-      Implementation serverInfo,
-      List<ServerCapabilitiesContributor> contributors) {
+      McpSessionStore store, Implementation serverInfo, ServerCapabilities capabilities) {
     return new McpSessionService(
-        store, props.sessionTimeout(), serverInfo, props.instructions(), contributors);
+        store, props.sessionTimeout(), serverInfo, props.instructions(), capabilities);
   }
 
   @Bean

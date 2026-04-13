@@ -23,8 +23,8 @@ import static org.mockito.Mockito.when;
 import com.callibrity.mocapi.model.ClientCapabilities;
 import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.LoggingLevel;
+import com.callibrity.mocapi.model.ServerCapabilities;
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +46,11 @@ class McpSessionServiceTest {
   void setUp() {
     service =
         new McpSessionService(
-            store, TTL, new Implementation("test-server", null, "1.0"), null, List.of());
+            store,
+            TTL,
+            new Implementation("test-server", null, "1.0"),
+            null,
+            new ServerCapabilities(null, null, null, null, null));
   }
 
   @Test

@@ -23,13 +23,10 @@ import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.ServerCapabilitiesBuilder;
-import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -41,19 +38,19 @@ public class McpSessionService {
   private final Duration ttl;
   private final Implementation serverInfo;
   private final String instructions;
-  private final List<ServerCapabilitiesContributor> contributors;
+  private final ServerCapabilities capabilities;
 
   public McpSessionService(
       McpSessionStore store,
       Duration ttl,
       Implementation serverInfo,
       String instructions,
-      List<ServerCapabilitiesContributor> contributors) {
+      ServerCapabilities capabilities) {
     this.store = store;
     this.ttl = ttl;
     this.serverInfo = serverInfo;
     this.instructions = instructions;
-    this.contributors = contributors;
+    this.capabilities = capabilities;
   }
 
   @JsonRpcMethod(McpMethods.INITIALIZE)
@@ -66,13 +63,7 @@ public class McpSessionService {
     McpTransport transport = McpTransport.CURRENT.get();
     transport.emit(new McpEvent.SessionInitialized(sessionId, params.protocolVersion()));
     return new InitializeResult(
-        InitializeResult.PROTOCOL_VERSION, buildCapabilities(), serverInfo, instructions);
-  }
-
-  private ServerCapabilities buildCapabilities() {
-    var builder = new ServerCapabilitiesBuilder();
-    contributors.forEach(c -> c.contribute(builder));
-    return builder.build();
+        InitializeResult.PROTOCOL_VERSION, capabilities, serverInfo, instructions);
   }
 
   /** Saves the session to the store and returns the session ID. */

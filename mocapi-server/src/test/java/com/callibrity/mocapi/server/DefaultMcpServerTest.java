@@ -26,10 +26,8 @@ import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
-import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
-import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.Optional;
@@ -97,37 +95,36 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void nonInitializeCallWithoutSessionIdReturnsError() {
+  void requiresSessionReturnsTrueForNonInitializeCall() {
     JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(1));
-
-    protocol.handleCall(noSessionContext(), call, transport);
-
-    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
-    verify(transport).send(captor.capture());
-    assertThat(captor.getValue()).isInstanceOf(JsonRpcError.class);
-    JsonRpcError error = (JsonRpcError) captor.getValue();
-    assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
-    assertThat(error.error().message()).isEqualTo("Missing session ID");
-
-    verifyNoInteractions(dispatcher);
+    assertThat(protocol.requiresSession(call)).isTrue();
   }
 
   @Test
-  void nonInitializeCallWithUnknownSessionReturnsError() {
+  void requiresSessionReturnsFalseForInitializeCall() {
+    JsonRpcCall call = JsonRpcCall.of("initialize", null, JsonNodeFactory.instance.numberNode(1));
+    assertThat(protocol.requiresSession(call)).isFalse();
+  }
+
+  @Test
+  void sessionExistsReturnsFalseForUnknownSession() {
     when(sessionService.find("unknown")).thenReturn(Optional.empty());
+    assertThat(protocol.sessionExists("unknown")).isFalse();
+  }
 
-    JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(1));
-
-    protocol.handleCall(sessionContext("unknown"), call, transport);
-
-    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
-    verify(transport).send(captor.capture());
-    assertThat(captor.getValue()).isInstanceOf(JsonRpcError.class);
-    JsonRpcError error = (JsonRpcError) captor.getValue();
-    assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
-    assertThat(error.error().message()).isEqualTo("Unknown session");
-
-    verifyNoInteractions(dispatcher);
+  @Test
+  void sessionExistsReturnsTrueForKnownSession() {
+    when(sessionService.find("known"))
+        .thenReturn(
+            Optional.of(
+                new McpSession(
+                    "known",
+                    PROTOCOL_VERSION,
+                    null,
+                    null,
+                    com.callibrity.mocapi.model.LoggingLevel.WARNING,
+                    true)));
+    assertThat(protocol.sessionExists("known")).isTrue();
   }
 
   @Test
@@ -254,13 +251,11 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void notificationWithoutSessionIdIsDropped() {
+  void requiresSessionReturnsTrueForNotification() {
     JsonRpcNotification notification =
         new JsonRpcNotification("2.0", "notifications/initialized", null);
 
-    protocol.handleNotification(noSessionContext(), notification);
-
-    verifyNoInteractions(dispatcher);
+    assertThat(protocol.requiresSession(notification)).isTrue();
   }
 
   @Test

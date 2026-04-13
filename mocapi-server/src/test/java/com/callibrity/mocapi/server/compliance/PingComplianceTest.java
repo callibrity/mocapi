@@ -60,11 +60,7 @@ class PingComplianceTest {
   }
 
   @Test
-  void ping_requires_valid_session() {
-    var transport = mock(McpTransport.class);
-
-    server.handleCall(noSession(), call("ping"), transport);
-
-    captureError(transport);
+  void ping_requires_session() {
+    assertThat(server.requiresSession(call("ping"))).isTrue();
   }
 }

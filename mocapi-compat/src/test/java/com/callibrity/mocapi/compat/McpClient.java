@@ -37,7 +37,9 @@ public class McpClient {
   }
 
   public String initialize() throws Exception {
-    return initializeResult().andReturn().getResponse().getHeader("MCP-Session-Id");
+    String sessionId = initializeResult().andReturn().getResponse().getHeader("MCP-Session-Id");
+    notify(sessionId, "notifications/initialized", null);
+    return sessionId;
   }
 
   public ResultActions initializeResult() throws Exception {
@@ -218,10 +220,13 @@ public class McpClient {
   }
 
   public String initializeWithCapabilities(ObjectNode capabilities) throws Exception {
-    return initializeWithCapabilitiesResult(capabilities)
-        .andReturn()
-        .getResponse()
-        .getHeader("MCP-Session-Id");
+    String sessionId =
+        initializeWithCapabilitiesResult(capabilities)
+            .andReturn()
+            .getResponse()
+            .getHeader("MCP-Session-Id");
+    notify(sessionId, "notifications/initialized", null);
+    return sessionId;
   }
 
   public ResultActions initializeWithCapabilitiesResult(ObjectNode capabilities) throws Exception {
