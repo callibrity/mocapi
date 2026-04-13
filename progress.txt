@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-13T09:00:00-04:00
-ITERATION: 91
-SPEC_COMPLETED: 162-extract-mocapi-api-module.md
-WHAT_WAS_DONE: Extracted user-facing API types into new mocapi-api module with com.callibrity.mocapi.api.* packages. Moved annotations (ToolService, ToolMethod, McpToolParams), tool interfaces (McpToolContext, McpTool, McpToolProvider), prompt interfaces (McpPrompt, McpPromptProvider), and resource interfaces (McpResource, McpResourceTemplate, McpResourceProvider, McpResourceTemplateProvider). Removed @Component from @ToolService making it a plain marker annotation; added @Component to existing @ToolService classes. mocapi-api depends only on mocapi-model and jackson-databind.
-VERIFICATION: mvn verify — BUILD SUCCESS. All 18 modules pass including mocapi-server, mocapi-transport-streamable-http, all examples (in-memory, redis, hazelcast, postgresql, nats), mocapi-compat, and mocapi-aws.
+LAST_RUN: 2026-04-13T09:08:00-04:00
+ITERATION: 92
+SPEC_COMPLETED: 163-fix-sse-priming-event-in-mockmvc.md
+WHAT_WAS_DONE: Fixed SSE priming event causing ResponseBodyEmitter already completed warnings in MockMvc tests by splitting the catch block in sendPrimingEvent — IOException still logs a warning, IllegalStateException (expected in MockMvc where the emitter completes before send) is downgraded to debug level.
+VERIFICATION: mvn verify — BUILD SUCCESS. All 18 modules pass. No ResponseBodyEmitter warnings in test output. SseStreamIT (7 tests), DnsRebindingProtectionIT (6 tests), and all other compat tests pass clean.
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: The @ToolService annotation no longer implies @Component. Tool service classes must now also be annotated with @Component (or @Service, or registered via @Bean) to be discovered by Spring. All existing tool services in examples and compat tests were updated. The ToolServiceMcpToolProvider still uses context.getBeansWithAnnotation(ToolService.class) to discover tools.
+NOTES: The priming event still works in production (real HTTP) where the emitter is active. In MockMvc, the emitter completes before sendPrimingEvent runs due to MockMvc's synchronous async handling — this is expected and the debug log documents it without polluting test output.

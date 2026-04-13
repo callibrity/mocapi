@@ -193,8 +193,10 @@ public class StreamableHttpController {
     String encryptedId = encrypt(sessionId, primingPlaintext);
     try {
       emitter.send(SseEmitter.event().id(encryptedId).data(""));
-    } catch (IOException | IllegalStateException e) {
+    } catch (IOException e) {
       log.warn("Failed to send SSE priming event", e);
+    } catch (IllegalStateException _) {
+      log.debug("SSE priming event skipped — emitter not active");
     }
   }
 
