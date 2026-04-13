@@ -64,7 +64,7 @@
 
     <properties>
         <java.version>25</java.version>
-        <substrate.version>0.4.0-SNAPSHOT</substrate.version>
+        <substrate.version>0.4.0</substrate.version>
         <odyssey.version>0.8.1</odyssey.version>
         <codec.version>0.1.0</codec.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
