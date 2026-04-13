@@ -13,8 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.model;
+package com.callibrity.mocapi.server.tools.util;
 
-// Empty by design — MCP spec defines this as a marker object whose presence signals capability.
-@SuppressWarnings("java:S2094")
-public record LoggingCapability() {}
+import com.callibrity.mocapi.server.McpClientResponseTimeoutException;
+import com.callibrity.mocapi.server.tools.annotation.ToolMethod;
+
+public class TimeoutTool {
+  @ToolMethod
+  public String simulateTimeout(String input) {
+    throw new McpClientResponseTimeoutException(
+        "Timed out waiting for client response to elicitation/create (id=test-123)");
+  }
+}

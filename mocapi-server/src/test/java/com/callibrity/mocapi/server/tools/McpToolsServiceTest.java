@@ -31,6 +31,7 @@ import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.util.HelloTool;
 import com.callibrity.mocapi.server.tools.util.InteractiveTool;
 import com.callibrity.mocapi.server.tools.util.ThrowingTool;
+import com.callibrity.mocapi.server.tools.util.TimeoutTool;
 import com.callibrity.mocapi.server.tools.util.VoidTool;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -216,6 +217,29 @@ class McpToolsServiceTest {
   void isEmptyReturnsTrueWhenNoTools() {
     var emptyService = new McpToolsService(List.of(), mapper, correlationService);
     assertThat(emptyService.isEmpty()).isTrue();
+  }
+
+  @Test
+  void callToolTimeoutReturnsErrorResultWithDescriptiveMessage() {
+    var timeoutTool =
+        AnnotationMcpTool.createTools(generator, invokerFactory, new TimeoutTool()).stream()
+            .findFirst()
+            .orElseThrow();
+    var timeoutService =
+        new McpToolsService(List.of(() -> List.of(timeoutTool)), mapper, correlationService);
+    var params =
+        new CallToolRequestParams(
+            "timeout-tool.simulate-timeout",
+            mapper.createObjectNode().put("input", "x"),
+            null,
+            null);
+
+    var result = timeoutService.callTool(params);
+
+    assertThat(result.isError()).isTrue();
+    assertThat(result.content()).hasSize(1);
+    assertThat(((TextContent) result.content().getFirst()).text())
+        .contains("Timed out waiting for client response");
   }
 
   @Test

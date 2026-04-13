@@ -15,4 +15,6 @@
  */
 package com.callibrity.mocapi.model;
 
+// Empty by design — MCP spec defines this as a marker object whose presence signals capability.
+@SuppressWarnings("java:S2094")
 public record CompletionsCapability() {}
