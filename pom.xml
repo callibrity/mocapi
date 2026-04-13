@@ -64,20 +64,19 @@
 
     <properties>
         <java.version>25</java.version>
-        <substrate.version>0.4.0</substrate.version>
-        <odyssey.version>0.8.1</odyssey.version>
-        <codec.version>0.1.0</codec.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <required.maven.version>3.6</required.maven.version>
 
         <!-- Dependency Versions -->
+        <codec.version>0.1.0</codec.version>
         <json-skema.version>0.29.0</json-skema.version>
-        <victools.version>5.0.0</victools.version>
-        <spring-boot.version>4.0.5</spring-boot.version>
-        <ripcurl.version>2.2.0</ripcurl.version>
         <methodical.version>0.3.0</methodical.version>
+        <odyssey.version>0.8.1</odyssey.version>
+        <ripcurl.version>2.3.0</ripcurl.version>
+        <spring-boot.version>4.0.5</spring-boot.version>
+        <substrate.version>0.4.0</substrate.version>
         <swagger-annotations.version>2.2.43</swagger-annotations.version>
-        <aws-sdk.version>2.31.3</aws-sdk.version>
+        <victools.version>5.0.0</victools.version>
 
         <!-- Plugin Versions -->
         <central-publishing-maven-plugin.version>0.10.0</central-publishing-maven-plugin.version>
@@ -167,13 +166,6 @@
                 <groupId>org.jwcarman.substrate</groupId>
                 <artifactId>substrate-bom</artifactId>
                 <version>${substrate.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>software.amazon.awssdk</groupId>
-                <artifactId>bom</artifactId>
-                <version>${aws-sdk.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
