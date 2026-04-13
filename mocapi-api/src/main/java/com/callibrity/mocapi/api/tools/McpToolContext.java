@@ -50,6 +50,86 @@ public interface McpToolContext {
   void log(LoggingLevel level, String logger, String message);
 
   /**
+   * Sends a DEBUG log notification to the client.
+   *
+   * @param logger the logger name
+   * @param message the log message
+   */
+  default void debug(String logger, String message) {
+    log(LoggingLevel.DEBUG, logger, message);
+  }
+
+  /**
+   * Sends an INFO log notification to the client.
+   *
+   * @param logger the logger name
+   * @param message the log message
+   */
+  default void info(String logger, String message) {
+    log(LoggingLevel.INFO, logger, message);
+  }
+
+  /**
+   * Sends a NOTICE log notification to the client.
+   *
+   * @param logger the logger name
+   * @param message the log message
+   */
+  default void notice(String logger, String message) {
+    log(LoggingLevel.NOTICE, logger, message);
+  }
+
+  /**
+   * Sends a WARNING log notification to the client.
+   *
+   * @param logger the logger name
+   * @param message the log message
+   */
+  default void warning(String logger, String message) {
+    log(LoggingLevel.WARNING, logger, message);
+  }
+
+  /**
+   * Sends an ERROR log notification to the client.
+   *
+   * @param logger the logger name
+   * @param message the log message
+   */
+  default void error(String logger, String message) {
+    log(LoggingLevel.ERROR, logger, message);
+  }
+
+  /**
+   * Sends a CRITICAL log notification to the client.
+   *
+   * @param logger the logger name
+   * @param message the log message
+   */
+  default void critical(String logger, String message) {
+    log(LoggingLevel.CRITICAL, logger, message);
+  }
+
+  /**
+   * Sends an ALERT log notification to the client.
+   *
+   * @param logger the logger name
+   * @param message the log message
+   */
+  default void alert(String logger, String message) {
+    log(LoggingLevel.ALERT, logger, message);
+  }
+
+  /**
+   * Sends an EMERGENCY log notification to the client.
+   *
+   * @param logger the logger name
+   * @param message the log message
+   */
+  default void emergency(String logger, String message) {
+    log(LoggingLevel.EMERGENCY, logger, message);
+  }
+
+  /**
    * Sends an elicitation request to the client and blocks until the client responds.
    *
    * @param params the elicitation request parameters

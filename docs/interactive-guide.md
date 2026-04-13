@@ -30,14 +30,21 @@ Both arguments are `long`. Progress notifications are sent as `notifications/pro
 
 ## Logging
 
-Send structured log messages to the client:
+Send structured log messages to the client using convenience methods:
+
+```java
+ctx.info("my-tool", "Processing started");
+ctx.debug("my-tool", "Found 42 items");
+ctx.error("my-tool", "Failed to connect to API");
+ctx.warning("my-tool", "Rate limit approaching");
+```
+
+Or use the general `log` method with an explicit level:
 
 ```java
 import com.callibrity.mocapi.model.LoggingLevel;
 
-ctx.log(LoggingLevel.INFO, "my-tool", "Processing started");
-ctx.log(LoggingLevel.DEBUG, "my-tool", "Found 42 items");
-ctx.log(LoggingLevel.ERROR, "my-tool", "Failed to connect to API");
+ctx.log(LoggingLevel.NOTICE, "my-tool", "Something noteworthy");
 ```
 
 Log messages are filtered by the session's log level. The client sets this via `logging/setLevel`. Messages below the session's level are silently dropped.
