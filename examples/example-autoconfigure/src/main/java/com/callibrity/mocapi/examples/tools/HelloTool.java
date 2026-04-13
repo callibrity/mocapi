@@ -15,15 +15,17 @@
  */
 package com.callibrity.mocapi.examples.tools;
 
+import com.callibrity.mocapi.api.tools.McpToolContext;
+import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.RequestedSchema;
 import com.callibrity.mocapi.model.StringSchema;
-import com.callibrity.mocapi.server.tools.McpToolContext;
-import com.callibrity.mocapi.server.tools.annotation.ToolMethod;
-import com.callibrity.mocapi.server.tools.annotation.ToolService;
 import java.util.LinkedHashMap;
 import java.util.List;
+import org.springframework.stereotype.Component;
 
+@Component
 @ToolService
 public class HelloTool {
 

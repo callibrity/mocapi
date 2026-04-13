@@ -19,6 +19,8 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import com.callibrity.mocapi.api.resources.McpResource;
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceTemplate;
@@ -27,8 +29,6 @@ import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.resources.McpResource;
-import com.callibrity.mocapi.server.resources.McpResourceTemplate;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import java.util.List;
 import java.util.Map;

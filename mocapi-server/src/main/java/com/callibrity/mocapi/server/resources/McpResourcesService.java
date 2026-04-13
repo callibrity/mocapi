@@ -15,6 +15,10 @@
  */
 package com.callibrity.mocapi.server.resources;
 
+import com.callibrity.mocapi.api.resources.McpResource;
+import com.callibrity.mocapi.api.resources.McpResourceProvider;
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
+import com.callibrity.mocapi.api.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.model.ListResourceTemplatesResult;
 import com.callibrity.mocapi.model.ListResourcesResult;
 import com.callibrity.mocapi.model.McpMethods;

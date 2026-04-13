@@ -21,6 +21,8 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.callibrity.mocapi.api.tools.McpTool;
+import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.Tool;
@@ -29,8 +31,6 @@ import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.session.McpSessionStore;
-import com.callibrity.mocapi.server.tools.McpTool;
-import com.callibrity.mocapi.server.tools.McpToolContext;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;

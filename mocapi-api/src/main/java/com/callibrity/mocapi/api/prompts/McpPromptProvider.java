@@ -13,14 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.tools;
+package com.callibrity.mocapi.api.prompts;
 
-import com.callibrity.mocapi.model.Tool;
-import tools.jackson.databind.JsonNode;
+import java.util.List;
 
-public interface McpTool {
-
-  Tool descriptor();
-
-  Object call(JsonNode arguments);
+@FunctionalInterface
+public interface McpPromptProvider {
+  List<McpPrompt> getMcpPrompts();
 }

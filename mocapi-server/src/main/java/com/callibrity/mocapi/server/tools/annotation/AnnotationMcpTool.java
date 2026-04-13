@@ -19,9 +19,11 @@ import static com.callibrity.mocapi.server.tools.annotation.Names.humanReadableN
 import static com.callibrity.mocapi.server.tools.annotation.Names.identifier;
 import static java.util.Optional.ofNullable;
 
+import com.callibrity.mocapi.api.tools.McpTool;
+import com.callibrity.mocapi.api.tools.McpToolContext;
+import com.callibrity.mocapi.api.tools.McpToolParams;
+import com.callibrity.mocapi.api.tools.ToolMethod;
 import com.callibrity.mocapi.model.Tool;
-import com.callibrity.mocapi.server.tools.McpTool;
-import com.callibrity.mocapi.server.tools.McpToolContext;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;

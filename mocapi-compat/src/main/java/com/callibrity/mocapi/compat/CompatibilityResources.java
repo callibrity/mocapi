@@ -15,15 +15,15 @@
  */
 package com.callibrity.mocapi.compat;
 
+import com.callibrity.mocapi.api.resources.McpResource;
+import com.callibrity.mocapi.api.resources.McpResourceProvider;
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
+import com.callibrity.mocapi.api.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.model.BlobResourceContents;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.TextResourceContents;
-import com.callibrity.mocapi.server.resources.McpResource;
-import com.callibrity.mocapi.server.resources.McpResourceProvider;
-import com.callibrity.mocapi.server.resources.McpResourceTemplate;
-import com.callibrity.mocapi.server.resources.McpResourceTemplateProvider;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;

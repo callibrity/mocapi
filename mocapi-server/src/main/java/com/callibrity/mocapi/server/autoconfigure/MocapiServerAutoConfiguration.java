@@ -15,6 +15,9 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
+import com.callibrity.mocapi.api.prompts.McpPromptProvider;
+import com.callibrity.mocapi.api.resources.McpResourceProvider;
+import com.callibrity.mocapi.api.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.LoggingCapability;
 import com.callibrity.mocapi.model.PromptsCapability;
@@ -28,10 +31,7 @@ import com.callibrity.mocapi.server.McpTransportResolver;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
 import com.callibrity.mocapi.server.logging.McpLoggingService;
 import com.callibrity.mocapi.server.ping.McpPingService;
-import com.callibrity.mocapi.server.prompts.McpPromptProvider;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
-import com.callibrity.mocapi.server.resources.McpResourceProvider;
-import com.callibrity.mocapi.server.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.session.AtomMcpSessionStore;
 import com.callibrity.mocapi.server.session.McpSessionResolver;

@@ -15,6 +15,9 @@
  */
 package com.callibrity.mocapi.compat;
 
+import com.callibrity.mocapi.api.tools.McpToolContext;
+import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.model.AudioContent;
 import com.callibrity.mocapi.model.BooleanSchema;
 import com.callibrity.mocapi.model.CallToolResult;
@@ -39,12 +42,10 @@ import com.callibrity.mocapi.model.TitledMultiSelectEnumSchema;
 import com.callibrity.mocapi.model.TitledSingleSelectEnumSchema;
 import com.callibrity.mocapi.model.UntitledMultiSelectEnumSchema;
 import com.callibrity.mocapi.model.UntitledSingleSelectEnumSchema;
-import com.callibrity.mocapi.server.tools.McpToolContext;
-import com.callibrity.mocapi.server.tools.annotation.ToolMethod;
-import com.callibrity.mocapi.server.tools.annotation.ToolService;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
+import org.springframework.stereotype.Component;
 
 /**
  * Tools required by the {@code @modelcontextprotocol/conformance} npx suite. Each tool method
@@ -54,6 +55,7 @@ import java.util.List;
  * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
  *     Specification</a>
  */
+@Component
 @ToolService
 public class CompatibilityTools {
 

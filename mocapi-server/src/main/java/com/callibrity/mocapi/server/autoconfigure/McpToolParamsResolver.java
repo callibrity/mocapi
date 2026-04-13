@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
-import com.callibrity.mocapi.server.tools.annotation.McpToolParams;
+import com.callibrity.mocapi.api.tools.McpToolParams;
 import org.jwcarman.methodical.ParameterResolutionException;
 import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;

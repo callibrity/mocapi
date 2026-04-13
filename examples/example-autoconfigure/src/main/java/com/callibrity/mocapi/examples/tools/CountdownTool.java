@@ -15,10 +15,12 @@
  */
 package com.callibrity.mocapi.examples.tools;
 
-import com.callibrity.mocapi.server.tools.McpToolContext;
-import com.callibrity.mocapi.server.tools.annotation.ToolMethod;
-import com.callibrity.mocapi.server.tools.annotation.ToolService;
+import com.callibrity.mocapi.api.tools.McpToolContext;
+import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.ToolService;
+import org.springframework.stereotype.Component;
 
+@Component
 @ToolService
 public class CountdownTool {
 

@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.server.tools;
 
+import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.model.CreateMessageRequestParams;
 import com.callibrity.mocapi.model.CreateMessageResult;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;

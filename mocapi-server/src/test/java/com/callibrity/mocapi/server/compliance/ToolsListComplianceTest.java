@@ -19,12 +19,12 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.model.ToolsCapability;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.tools.McpTool;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import java.util.List;
 import java.util.Map;

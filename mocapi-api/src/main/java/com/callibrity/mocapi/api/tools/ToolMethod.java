@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.tools.annotation;
+package com.callibrity.mocapi.api.tools;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

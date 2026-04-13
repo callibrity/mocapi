@@ -15,8 +15,10 @@
  */
 package com.callibrity.mocapi.server.tools.util;
 
-import com.callibrity.mocapi.server.tools.annotation.ToolMethod;
+import com.callibrity.mocapi.api.tools.ToolMethod;
+import org.springframework.stereotype.Component;
 
+@Component
 public class VoidTool {
 
   private String lastMessage;

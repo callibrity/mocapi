@@ -15,14 +15,16 @@
  */
 package com.callibrity.mocapi.compat;
 
-import com.callibrity.mocapi.server.tools.McpToolContext;
-import com.callibrity.mocapi.server.tools.annotation.McpToolParams;
-import com.callibrity.mocapi.server.tools.annotation.ToolMethod;
-import com.callibrity.mocapi.server.tools.annotation.ToolService;
+import com.callibrity.mocapi.api.tools.McpToolContext;
+import com.callibrity.mocapi.api.tools.McpToolParams;
+import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.Map;
+import org.springframework.stereotype.Component;
 
+@Component
 @ToolService
 public class CompatTools {
 

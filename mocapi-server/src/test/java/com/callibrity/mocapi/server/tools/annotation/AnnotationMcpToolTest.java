@@ -17,6 +17,7 @@ package com.callibrity.mocapi.server.tools.annotation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.mocapi.api.tools.ToolMethod;
 import com.callibrity.mocapi.server.tools.McpToolContextResolver;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.util.HelloTool;

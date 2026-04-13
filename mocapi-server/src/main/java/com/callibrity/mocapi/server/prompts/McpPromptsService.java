@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.server.prompts;
 
+import com.callibrity.mocapi.api.prompts.McpPrompt;
+import com.callibrity.mocapi.api.prompts.McpPromptProvider;
 import com.callibrity.mocapi.model.GetPromptRequestParams;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.ListPromptsResult;

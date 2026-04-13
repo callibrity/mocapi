@@ -21,6 +21,7 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.callibrity.mocapi.api.tools.McpToolProvider;
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.RequestMeta;

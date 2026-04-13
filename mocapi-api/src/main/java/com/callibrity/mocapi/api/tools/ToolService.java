@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.tools.annotation;
+package com.callibrity.mocapi.api.tools;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -21,11 +21,9 @@ import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import org.springframework.stereotype.Component;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Documented
 @Inherited
-@Component
 public @interface ToolService {}

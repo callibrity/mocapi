@@ -19,6 +19,7 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.model.BlobResourceContents;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
@@ -27,7 +28,6 @@ import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.resources.McpResource;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import java.util.Base64;

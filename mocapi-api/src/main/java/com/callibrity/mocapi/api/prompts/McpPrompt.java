@@ -13,11 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.resources;
+package com.callibrity.mocapi.api.prompts;
 
-import java.util.List;
+import com.callibrity.mocapi.model.GetPromptResult;
+import com.callibrity.mocapi.model.Prompt;
+import java.util.Map;
 
-@FunctionalInterface
-public interface McpResourceProvider {
-  List<McpResource> getMcpResources();
+public interface McpPrompt {
+
+  Prompt descriptor();
+
+  GetPromptResult get(Map<String, String> arguments);
 }

@@ -15,8 +15,8 @@
  */
 package com.callibrity.mocapi.server.tools.schema;
 
-import com.callibrity.mocapi.server.tools.McpToolContext;
-import com.callibrity.mocapi.server.tools.annotation.McpToolParams;
+import com.callibrity.mocapi.api.tools.McpToolContext;
+import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.github.victools.jsonschema.generator.OptionPreset;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;

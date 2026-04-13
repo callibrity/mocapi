@@ -15,10 +15,10 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
-import com.callibrity.mocapi.server.tools.McpTool;
-import com.callibrity.mocapi.server.tools.McpToolProvider;
+import com.callibrity.mocapi.api.tools.McpTool;
+import com.callibrity.mocapi.api.tools.McpToolProvider;
+import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.server.tools.annotation.AnnotationMcpTool;
-import com.callibrity.mocapi.server.tools.annotation.ToolService;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import jakarta.annotation.PostConstruct;
 import java.util.List;

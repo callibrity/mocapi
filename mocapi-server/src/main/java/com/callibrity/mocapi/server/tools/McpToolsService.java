@@ -18,6 +18,9 @@ package com.callibrity.mocapi.server.tools;
 import static com.callibrity.mocapi.model.McpMethods.TOOLS_CALL;
 import static com.callibrity.mocapi.model.McpMethods.TOOLS_LIST;
 
+import com.callibrity.mocapi.api.tools.McpTool;
+import com.callibrity.mocapi.api.tools.McpToolContext;
+import com.callibrity.mocapi.api.tools.McpToolProvider;
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ListToolsResult;

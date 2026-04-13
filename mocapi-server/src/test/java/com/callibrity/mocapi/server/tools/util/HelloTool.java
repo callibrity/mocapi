@@ -15,9 +15,11 @@
  */
 package com.callibrity.mocapi.server.tools.util;
 
-import com.callibrity.mocapi.server.tools.annotation.ToolMethod;
+import com.callibrity.mocapi.api.tools.ToolMethod;
 import io.swagger.v3.oas.annotations.media.Schema;
+import org.springframework.stereotype.Component;
 
+@Component
 public class HelloTool {
   @ToolMethod
   public HelloResponse sayHello(

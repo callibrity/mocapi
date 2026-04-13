@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.compat;
 
+import com.callibrity.mocapi.api.prompts.McpPrompt;
+import com.callibrity.mocapi.api.prompts.McpPromptProvider;
 import com.callibrity.mocapi.model.EmbeddedResource;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.ImageContent;
@@ -24,8 +26,6 @@ import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.TextResourceContents;
-import com.callibrity.mocapi.server.prompts.McpPrompt;
-import com.callibrity.mocapi.server.prompts.McpPromptProvider;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;

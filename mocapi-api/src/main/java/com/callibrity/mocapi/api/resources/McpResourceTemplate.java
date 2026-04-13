@@ -13,11 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.resources;
+package com.callibrity.mocapi.api.resources;
 
-import java.util.List;
+import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.ResourceTemplate;
+import java.util.Map;
 
-@FunctionalInterface
-public interface McpResourceTemplateProvider {
-  List<McpResourceTemplate> getMcpResourceTemplates();
+public interface McpResourceTemplate {
+
+  ResourceTemplate descriptor();
+
+  ReadResourceResult read(Map<String, String> pathVariables);
 }

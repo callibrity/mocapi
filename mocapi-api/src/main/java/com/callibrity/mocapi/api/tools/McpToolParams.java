@@ -13,15 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.prompts;
+package com.callibrity.mocapi.api.tools;
 
-import com.callibrity.mocapi.model.GetPromptResult;
-import com.callibrity.mocapi.model.Prompt;
-import java.util.Map;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public interface McpPrompt {
-
-  Prompt descriptor();
-
-  GetPromptResult get(Map<String, String> arguments);
-}
+/**
+ * Marks a tool method parameter to receive the entire {@code tools/call} arguments object
+ * deserialized into a typed record.
+ */
+@Target(ElementType.PARAMETER)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface McpToolParams {}
