@@ -21,7 +21,6 @@ import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransportResolver;
 import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
-import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
 import com.callibrity.mocapi.server.logging.McpLoggingService;
 import com.callibrity.mocapi.server.ping.McpPingService;
@@ -130,12 +129,6 @@ public class MocapiServerAutoConfiguration {
   @ConditionalOnMissingBean(McpPingService.class)
   public McpPingService mcpProtocolPingService() {
     return new McpPingService();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(McpCompletionsService.class)
-  public McpCompletionsService mcpProtocolCompletionsService() {
-    return new McpCompletionsService();
   }
 
   @Bean

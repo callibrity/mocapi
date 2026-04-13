@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-12T22:44:47-04:00
-ITERATION: 84
-SPEC_COMPLETED: 155-remove-resource-subscription-dead-code.md
-WHAT_WAS_DONE: Removed dead resource subscription code from McpResourcesService — deleted subscribe/unsubscribe handlers, subscriptions field, isSubscribed method, and unused imports (EmptyResult, Set, ConcurrentHashMap). Deleted ResourcesSubscribeComplianceTest, ResourcesSubscribeIT, ResourcesUnsubscribeIT, and removed subscription unit tests from McpResourcesServiceTest.
-VERIFICATION: mvn verify -pl '!mocapi-compat' — BUILD SUCCESS. All tests pass, spotless and license checks clean. Capabilities still declare ResourcesCapability(false, false).
+LAST_RUN: 2026-04-12T22:48:28-04:00
+ITERATION: 85
+SPEC_COMPLETED: 156-remove-completions-service.md
+WHAT_WAS_DONE: Removed McpCompletionsService and its bean registration from MocapiServerAutoConfiguration. Deleted McpCompletionsServiceTest and CompletionComplianceTest. Server no longer advertises completions capability.
+VERIFICATION: mvn verify -pl '!mocapi-compat' — BUILD SUCCESS. All tests pass, spotless and license checks clean.
 STATUS: DONE
 NEXT_SPEC: none
-NOTES: McpMethods.RESOURCES_SUBSCRIBE and RESOURCES_UNSUBSCRIBE constants remain in the model module — they are part of the MCP protocol definition and may be needed if subscription support is added later. The compat module was excluded from verify due to pre-existing Spring context loading failures unrelated to this change.
+NOTES: Model types (CompleteRequestParams, CompleteResult, Completion, CompletionsCapability) and McpMethods.COMPLETION_COMPLETE constant were kept per spec instructions. The compat module was excluded from verify due to pre-existing Spring context loading failures unrelated to this change.
