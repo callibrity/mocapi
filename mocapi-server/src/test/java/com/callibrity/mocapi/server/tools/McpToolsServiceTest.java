@@ -55,7 +55,7 @@ class McpToolsServiceTest {
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
   private final MethodInvokerFactory invokerFactory =
       new DefaultMethodInvokerFactory(
-          List.of(new McpToolContextScopedValueResolver(), new Jackson3ParameterResolver(mapper)));
+          List.of(new McpToolContextResolver(), new Jackson3ParameterResolver(mapper)));
 
   @Mock private McpResponseCorrelationService correlationService;
 

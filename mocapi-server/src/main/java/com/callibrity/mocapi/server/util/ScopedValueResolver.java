@@ -19,26 +19,27 @@ import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
 
 /**
- * Generic {@link ParameterResolver} that resolves a method parameter from a {@link ScopedValue}.
- * Eliminates the need for a custom resolver class per injectable type.
- *
- * <p>Usage:
+ * Abstract base for {@link ParameterResolver} implementations that resolve a method parameter from
+ * a {@link ScopedValue}. The argument type is {@code Object} because the resolver never inspects
+ * the invocation argument — it reads exclusively from the bound {@link ScopedValue}. Subclass with
+ * a concrete type to ensure runtime type discovery works:
  *
  * <pre>{@code
- * new ScopedValueResolver<>(McpToolContext.class, McpToolContext.CURRENT)
- * new ScopedValueResolver<>(McpTransport.class, McpTransport.CURRENT)
- * new ScopedValueResolver<>(McpSession.class, McpSession.CURRENT)
+ * public class McpToolContextResolver extends ScopedValueResolver<McpToolContext> {
+ *   public McpToolContextResolver() {
+ *     super(McpToolContext.class, McpToolContext.CURRENT);
+ *   }
+ * }
  * }</pre>
  *
  * @param <T> the type of value held by the ScopedValue
- * @param <A> the argument type passed to the resolver by the invoker
  */
-public class ScopedValueResolver<T, A> implements ParameterResolver<A> {
+public abstract class ScopedValueResolver<T> implements ParameterResolver<Object> {
 
   private final Class<T> type;
   private final ScopedValue<T> scopedValue;
 
-  public ScopedValueResolver(Class<T> type, ScopedValue<T> scopedValue) {
+  protected ScopedValueResolver(Class<T> type, ScopedValue<T> scopedValue) {
     this.type = type;
     this.scopedValue = scopedValue;
   }
@@ -49,7 +50,7 @@ public class ScopedValueResolver<T, A> implements ParameterResolver<A> {
   }
 
   @Override
-  public Object resolve(ParameterInfo info, A params) {
+  public Object resolve(ParameterInfo info, Object params) {
     return scopedValue.isBound() ? scopedValue.get() : null;
   }
 }

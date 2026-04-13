@@ -33,9 +33,7 @@ class McpLoggingServiceTest {
     McpLoggingService service = new McpLoggingService(sessionService);
     McpSession session = new McpSession("sess-1", "2025-11-25", null, null, LoggingLevel.WARNING);
 
-    var result =
-        ScopedValue.where(McpSession.CURRENT, session)
-            .call(() -> service.setLevel(new SetLevelRequestParams(LoggingLevel.DEBUG, null)));
+    var result = service.setLevel(session, new SetLevelRequestParams(LoggingLevel.DEBUG, null));
 
     assertThat(result).isNotNull();
     verify(sessionService).setLogLevel("sess-1", LoggingLevel.DEBUG);

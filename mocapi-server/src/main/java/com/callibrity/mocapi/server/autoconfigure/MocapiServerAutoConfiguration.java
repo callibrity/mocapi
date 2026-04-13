@@ -19,6 +19,7 @@ import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.server.DefaultMcpServer;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.McpTransportResolver;
 import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.logging.McpLoggingService;
@@ -29,6 +30,7 @@ import com.callibrity.mocapi.server.resources.McpResourceProvider;
 import com.callibrity.mocapi.server.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.session.AtomMcpSessionStore;
+import com.callibrity.mocapi.server.session.McpSessionResolver;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
@@ -67,6 +69,18 @@ public class MocapiServerAutoConfiguration {
   @ConditionalOnMissingBean(McpSessionStore.class)
   public McpSessionStore mcpProtocolSessionStore(AtomFactory atomFactory) {
     return new AtomMcpSessionStore(atomFactory, props.sessionTimeout());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(McpSessionResolver.class)
+  public McpSessionResolver mcpProtocolSessionResolver() {
+    return new McpSessionResolver();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(McpTransportResolver.class)
+  public McpTransportResolver mcpProtocolTransportResolver() {
+    return new McpTransportResolver();
   }
 
   @Bean

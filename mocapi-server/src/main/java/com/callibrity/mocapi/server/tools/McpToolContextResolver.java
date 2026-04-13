@@ -15,23 +15,15 @@
  */
 package com.callibrity.mocapi.server.tools;
 
-import org.jwcarman.methodical.param.ParameterInfo;
-import org.jwcarman.methodical.param.ParameterResolver;
-import tools.jackson.databind.JsonNode;
+import com.callibrity.mocapi.server.util.ScopedValueResolver;
 
 /**
  * Resolves {@link McpToolContext} parameters in tool methods by reading from the {@link
  * McpToolContext#CURRENT} {@link ScopedValue}.
  */
-public class McpToolContextScopedValueResolver implements ParameterResolver<JsonNode> {
+public class McpToolContextResolver extends ScopedValueResolver<McpToolContext> {
 
-  @Override
-  public boolean supports(ParameterInfo info) {
-    return McpToolContext.class.isAssignableFrom(info.resolvedType());
-  }
-
-  @Override
-  public Object resolve(ParameterInfo info, JsonNode params) {
-    return McpToolContext.CURRENT.isBound() ? McpToolContext.CURRENT.get() : null;
+  public McpToolContextResolver() {
+    super(McpToolContext.class, McpToolContext.CURRENT);
   }
 }

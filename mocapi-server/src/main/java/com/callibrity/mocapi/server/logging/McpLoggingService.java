@@ -38,8 +38,7 @@ public class McpLoggingService implements ServerCapabilitiesContributor {
   }
 
   @JsonRpcMethod(McpMethods.LOGGING_SET_LEVEL)
-  public EmptyResult setLevel(@JsonRpcParams SetLevelRequestParams params) {
-    McpSession session = McpSession.CURRENT.get();
+  public EmptyResult setLevel(McpSession session, @JsonRpcParams SetLevelRequestParams params) {
     sessionService.setLogLevel(session.sessionId(), params.level());
     return EmptyResult.INSTANCE;
   }

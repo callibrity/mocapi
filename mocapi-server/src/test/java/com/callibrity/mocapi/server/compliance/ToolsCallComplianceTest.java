@@ -159,7 +159,7 @@ class ToolsCallComplianceTest {
   }
 
   @Test
-  void tool_throwing_json_rpc_exception_returns_json_rpc_error() {
+  void tool_throwing_json_rpc_exception_returns_is_error_result_not_protocol_error() {
     var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
@@ -168,8 +168,10 @@ class ToolsCallComplianceTest {
         call("tools/call", Map.of("name", "throws-jsonrpc", "arguments", Map.of("input", "test"))),
         transport);
 
-    var error = captureError(transport);
-    assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INTERNAL_ERROR);
+    var result = captureResult(transport);
+    assertThat(result.result().path("isError").booleanValue()).isTrue();
+    var text = result.result().path("content").get(0).path("text").asString();
+    assertThat(text).isEqualTo("protocol failure");
   }
 
   @Test

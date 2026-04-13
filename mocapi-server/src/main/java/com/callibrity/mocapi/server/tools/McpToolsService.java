@@ -17,7 +17,6 @@ package com.callibrity.mocapi.server.tools;
 
 import static com.callibrity.mocapi.model.McpMethods.TOOLS_CALL;
 import static com.callibrity.mocapi.model.McpMethods.TOOLS_LIST;
-import static java.util.Optional.ofNullable;
 
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.CallToolResult;
@@ -30,7 +29,7 @@ import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.ServerCapabilitiesBuilder;
 import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
-import com.callibrity.mocapi.server.util.Cursors;
+import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
@@ -43,28 +42,22 @@ import com.github.erosb.jsonsKema.ValidationFailure;
 import com.github.erosb.jsonsKema.Validator;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 import tools.jackson.databind.node.ValueNode;
 
-/** Manages tool registration, lookup, input validation, pagination, and JSON-RPC dispatch. */
+/** Manages tool registration, input validation, and JSON-RPC dispatch. */
 @Slf4j
 @JsonRpcService
-public class McpToolsService implements ServerCapabilitiesContributor {
+public class McpToolsService extends PaginatedService<McpTool, Tool>
+    implements ServerCapabilitiesContributor {
 
-  public static final int DEFAULT_PAGE_SIZE = 50;
-
-  private final Map<String, McpTool> tools;
-  private final List<Tool> sortedDescriptors;
   private final ConcurrentHashMap<String, Schema> inputSchemas = new ConcurrentHashMap<>();
   private final ObjectMapper objectMapper;
   private final McpResponseCorrelationService correlationService;
-  private final int pageSize;
 
   public McpToolsService(
       List<McpToolProvider> toolProviders,
@@ -78,22 +71,20 @@ public class McpToolsService implements ServerCapabilitiesContributor {
       ObjectMapper objectMapper,
       McpResponseCorrelationService correlationService,
       int pageSize) {
-    var allTools =
-        toolProviders.stream().flatMap(provider -> provider.getMcpTools().stream()).toList();
-    this.tools = allTools.stream().collect(Collectors.toMap(t -> t.descriptor().name(), t -> t));
-    this.sortedDescriptors =
-        allTools.stream()
-            .map(McpTool::descriptor)
-            .sorted(Comparator.comparing(Tool::name))
-            .toList();
+    super(
+        toolProviders.stream().flatMap(p -> p.getMcpTools().stream()).toList(),
+        t -> t.descriptor().name(),
+        McpTool::descriptor,
+        Comparator.comparing(Tool::name),
+        "Tool",
+        pageSize);
     this.objectMapper = objectMapper;
     this.correlationService = correlationService;
-    this.pageSize = pageSize;
   }
 
   @JsonRpcMethod(TOOLS_LIST)
   public ListToolsResult listTools(@JsonRpcParams PaginatedRequestParams params) {
-    return Cursors.paginate(sortedDescriptors, params, pageSize, ListToolsResult::new);
+    return paginate(params, ListToolsResult::new);
   }
 
   @JsonRpcMethod(TOOLS_CALL)
@@ -104,18 +95,6 @@ public class McpToolsService implements ServerCapabilitiesContributor {
     McpTool tool = lookup(name);
     validateInput(name, args, tool);
     return invokeTool(name, tool, args, params);
-  }
-
-  public McpTool lookup(String name) {
-    return ofNullable(tools.get(name))
-        .orElseThrow(
-            () ->
-                new JsonRpcException(
-                    JsonRpcProtocol.INVALID_PARAMS, String.format("Tool %s not found.", name)));
-  }
-
-  public boolean isEmpty() {
-    return tools.isEmpty();
   }
 
   @Override
@@ -135,8 +114,6 @@ public class McpToolsService implements ServerCapabilitiesContributor {
     try {
       Object result = ScopedValue.where(McpToolContext.CURRENT, ctx).call(() -> tool.call(args));
       return toCallToolResult(result);
-    } catch (JsonRpcException e) {
-      throw e;
     } catch (Exception e) {
       log.warn("Tool {} threw an unhandled exception", name, e);
       return toErrorCallToolResult(e);

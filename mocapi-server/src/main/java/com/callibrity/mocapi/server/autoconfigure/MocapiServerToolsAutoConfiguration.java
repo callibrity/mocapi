@@ -16,7 +16,7 @@
 package com.callibrity.mocapi.server.autoconfigure;
 
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
-import com.callibrity.mocapi.server.tools.McpToolContextScopedValueResolver;
+import com.callibrity.mocapi.server.tools.McpToolContextResolver;
 import com.callibrity.mocapi.server.tools.McpToolProvider;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
@@ -44,9 +44,9 @@ public class MocapiServerToolsAutoConfiguration {
   private final MocapiServerProperties mocapiProperties;
 
   @Bean
-  @ConditionalOnMissingBean(McpToolContextScopedValueResolver.class)
-  public McpToolContextScopedValueResolver mcpProtocolToolContextScopedValueResolver() {
-    return new McpToolContextScopedValueResolver();
+  @ConditionalOnMissingBean(McpToolContextResolver.class)
+  public McpToolContextResolver mcpProtocolToolContextScopedValueResolver() {
+    return new McpToolContextResolver();
   }
 
   @Bean

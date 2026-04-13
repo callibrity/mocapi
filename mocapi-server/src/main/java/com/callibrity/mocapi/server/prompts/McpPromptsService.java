@@ -15,8 +15,6 @@
  */
 package com.callibrity.mocapi.server.prompts;
 
-import static java.util.Optional.ofNullable;
-
 import com.callibrity.mocapi.model.GetPromptRequestParams;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.ListPromptsResult;
@@ -26,47 +24,36 @@ import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptsCapability;
 import com.callibrity.mocapi.server.ServerCapabilitiesBuilder;
 import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
-import com.callibrity.mocapi.server.util.Cursors;
-import com.callibrity.ripcurl.core.JsonRpcProtocol;
+import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
-import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-/** Manages prompt registration, lookup, pagination, and JSON-RPC dispatch. */
+/** Manages prompt registration and JSON-RPC dispatch. */
 @JsonRpcService
-public class McpPromptsService implements ServerCapabilitiesContributor {
-
-  public static final int DEFAULT_PAGE_SIZE = 50;
-
-  private final Map<String, McpPrompt> prompts;
-  private final List<Prompt> sortedDescriptors;
-  private final int pageSize;
+public class McpPromptsService extends PaginatedService<McpPrompt, Prompt>
+    implements ServerCapabilitiesContributor {
 
   public McpPromptsService(List<McpPromptProvider> promptProviders) {
     this(promptProviders, DEFAULT_PAGE_SIZE);
   }
 
   public McpPromptsService(List<McpPromptProvider> promptProviders, int pageSize) {
-    var allPrompts =
-        promptProviders.stream().flatMap(provider -> provider.getMcpPrompts().stream()).toList();
-    this.prompts =
-        allPrompts.stream().collect(Collectors.toMap(p -> p.descriptor().name(), p -> p));
-    this.sortedDescriptors =
-        allPrompts.stream()
-            .map(McpPrompt::descriptor)
-            .sorted(Comparator.comparing(Prompt::name))
-            .toList();
-    this.pageSize = pageSize;
+    super(
+        promptProviders.stream().flatMap(p -> p.getMcpPrompts().stream()).toList(),
+        p -> p.descriptor().name(),
+        McpPrompt::descriptor,
+        Comparator.comparing(Prompt::name),
+        "Prompt",
+        pageSize);
   }
 
   @JsonRpcMethod(McpMethods.PROMPTS_LIST)
   public ListPromptsResult listPrompts(@JsonRpcParams PaginatedRequestParams params) {
-    return Cursors.paginate(sortedDescriptors, params, pageSize, ListPromptsResult::new);
+    return paginate(params, ListPromptsResult::new);
   }
 
   @JsonRpcMethod(McpMethods.PROMPTS_GET)
@@ -75,18 +62,6 @@ public class McpPromptsService implements ServerCapabilitiesContributor {
     McpPrompt prompt = lookup(name);
     Map<String, String> arguments = params.arguments() != null ? params.arguments() : Map.of();
     return prompt.get(arguments);
-  }
-
-  public McpPrompt lookup(String name) {
-    return ofNullable(prompts.get(name))
-        .orElseThrow(
-            () ->
-                new JsonRpcException(
-                    JsonRpcProtocol.INVALID_PARAMS, String.format("Prompt %s not found.", name)));
-  }
-
-  public boolean isEmpty() {
-    return prompts.isEmpty();
   }
 
   @Override

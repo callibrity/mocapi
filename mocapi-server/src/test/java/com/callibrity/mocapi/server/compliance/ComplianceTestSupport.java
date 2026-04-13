@@ -28,8 +28,10 @@ import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.McpTransportResolver;
 import com.callibrity.mocapi.server.ServerCapabilitiesContributor;
 import com.callibrity.mocapi.server.autoconfigure.SessionStoreTestSupport;
+import com.callibrity.mocapi.server.session.McpSessionResolver;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.ripcurl.core.JsonRpcCall;
@@ -65,7 +67,11 @@ final class ComplianceTestSupport {
 
   static JsonRpcDispatcher buildDispatcher(ObjectMapper mapper, Object... services) {
     var invokerFactory =
-        new DefaultMethodInvokerFactory(List.of(new JsonRpcParamsResolver(mapper)));
+        new DefaultMethodInvokerFactory(
+            List.of(
+                new McpSessionResolver(),
+                new McpTransportResolver(),
+                new JsonRpcParamsResolver(mapper)));
     var factory = new DefaultAnnotationJsonRpcMethodProviderFactory(mapper, invokerFactory);
     var providers = Arrays.stream(services).map(factory::create).toList();
     return new DefaultJsonRpcDispatcher(providers);

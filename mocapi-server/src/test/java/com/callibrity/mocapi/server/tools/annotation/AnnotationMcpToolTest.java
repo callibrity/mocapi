@@ -17,7 +17,7 @@ package com.callibrity.mocapi.server.tools.annotation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.callibrity.mocapi.server.tools.McpToolContextScopedValueResolver;
+import com.callibrity.mocapi.server.tools.McpToolContextResolver;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.util.HelloTool;
 import com.callibrity.mocapi.server.tools.util.InteractiveTool;
@@ -34,7 +34,7 @@ class AnnotationMcpToolTest {
   private final ObjectMapper mapper = new ObjectMapper();
   private final MethodInvokerFactory invokerFactory =
       new DefaultMethodInvokerFactory(
-          List.of(new McpToolContextScopedValueResolver(), new Jackson3ParameterResolver(mapper)));
+          List.of(new McpToolContextResolver(), new Jackson3ParameterResolver(mapper)));
   private final DefaultMethodSchemaGenerator generator =
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
 
