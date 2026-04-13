@@ -15,21 +15,17 @@
  */
 package com.callibrity.mocapi.server;
 
-import static com.callibrity.mocapi.model.McpMethods.INITIALIZE;
-import static com.callibrity.mocapi.model.McpMethods.NOTIFICATIONS_INITIALIZED;
-import static com.callibrity.mocapi.model.McpMethods.PING;
-
 import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
-import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
-import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
 /** Default {@link McpServer} that handles session lifecycle and JSON-RPC dispatch. */
+@Slf4j
 public class DefaultMcpServer implements McpServer {
 
   private static final Set<String> KNOWN_PROTOCOL_VERSIONS =
@@ -57,8 +53,12 @@ public class DefaultMcpServer implements McpServer {
 
     var session = sessionService.find(sessionId);
     if (session.isEmpty()) {
+      log.debug("createContext: session not found for {}", sessionId);
       return new McpContextResult.SessionNotFound(-32001, "Session not found");
     }
+
+    log.debug(
+        "createContext: session {} found, initialized={}", sessionId, session.get().initialized());
 
     if (protocolVersion != null && !KNOWN_PROTOCOL_VERSIONS.contains(protocolVersion)) {
       return new McpContextResult.ProtocolVersionMismatch(
@@ -72,14 +72,9 @@ public class DefaultMcpServer implements McpServer {
   public void handleCall(McpContext context, JsonRpcCall call, McpTransport transport) {
     McpSession session = context.session().orElse(null);
 
-    if (session != null
-        && !session.initialized()
-        && !PING.equals(call.method())
-        && !INITIALIZE.equals(call.method())) {
-      transport.send(
-          new JsonRpcError(JsonRpcProtocol.INVALID_REQUEST, "Session not initialized", call.id()));
-      return;
-    }
+    // Note: initialized check intentionally removed. The MCP spec says clients MUST send
+    // notifications/initialized, but enforcing it causes race conditions with backends that
+    // have read-after-write latency (e.g., NATS). The TypeScript SDK does not enforce it either.
 
     JsonRpcResponse response;
     if (session != null) {
@@ -102,12 +97,6 @@ public class DefaultMcpServer implements McpServer {
         context
             .session()
             .orElseThrow(() -> new IllegalStateException("Session not found in context"));
-
-    if (!session.initialized()
-        && !NOTIFICATIONS_INITIALIZED.equals(notification.method())
-        && !PING.equals(notification.method())) {
-      return;
-    }
 
     ScopedValue.where(McpSession.CURRENT, session).run(() -> dispatcher.dispatch(notification));
   }

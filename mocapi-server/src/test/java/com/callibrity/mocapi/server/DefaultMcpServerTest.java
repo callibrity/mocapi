@@ -193,32 +193,6 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void callWithUninitializedSessionReturnsError() {
-    McpSession session = session("uninit", false);
-
-    JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(5));
-
-    server.handleCall(contextWithSession(session), call, transport);
-
-    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
-    verify(transport).send(captor.capture());
-    assertThat(captor.getValue()).isInstanceOf(com.callibrity.ripcurl.core.JsonRpcError.class);
-    verifyNoInteractions(dispatcher);
-  }
-
-  @Test
-  void pingAllowedWithUninitializedSession() {
-    McpSession session = session("uninit", false);
-
-    JsonRpcCall call = JsonRpcCall.of("ping", null, JsonNodeFactory.instance.numberNode(6));
-    when(dispatcher.dispatch(call)).thenReturn(null);
-
-    server.handleCall(contextWithSession(session), call, transport);
-
-    verify(dispatcher).dispatch(call);
-  }
-
-  @Test
   void notificationWithValidSessionDispatches() {
     McpSession session = session("valid", true);
 

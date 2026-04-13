@@ -25,8 +25,6 @@ import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.ping.McpPingService;
-import com.callibrity.ripcurl.core.JsonRpcError;
-import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -50,28 +48,6 @@ class InitializationLifecycleComplianceTest {
             inMemorySessionStore(),
             new ServerCapabilities(null, null, null, null, null),
             new McpPingService());
-  }
-
-  @Test
-  void request_before_notifications_initialized_is_rejected() {
-    var sessionId = initializeWithoutCompletingHandshake(server);
-    var transport = mock(McpTransport.class);
-
-    server.handleCall(withSession(sessionId, server), call("tools/list"), transport);
-
-    JsonRpcError error = captureError(transport);
-    assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
-    assertThat(error.error().message()).containsIgnoringCase("not initialized");
-  }
-
-  @Test
-  void ping_succeeds_before_notifications_initialized() {
-    var sessionId = initializeWithoutCompletingHandshake(server);
-    var transport = mock(McpTransport.class);
-
-    server.handleCall(withSession(sessionId, server), call("ping"), transport);
-
-    assertThat(captureMessage(transport)).isInstanceOf(JsonRpcResult.class);
   }
 
   @Test

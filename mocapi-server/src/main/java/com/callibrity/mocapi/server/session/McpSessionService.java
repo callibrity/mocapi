@@ -29,8 +29,10 @@ import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 
 /** Orchestrates session lifecycle: create, find, delete, log-level updates, and initialize. */
+@Slf4j
 @JsonRpcService
 public class McpSessionService {
 
@@ -91,8 +93,15 @@ public class McpSessionService {
 
   /** Marks the given session as initialized. No-op if the session is not found. */
   public void markInitialized(String sessionId) {
+    log.debug("markInitialized: looking up session {}", sessionId);
     store
         .find(sessionId)
-        .ifPresent(session -> store.update(sessionId, session.withInitialized(true)));
+        .ifPresentOrElse(
+            session -> {
+              log.debug("markInitialized: updating session {} to initialized=true", sessionId);
+              store.update(sessionId, session.withInitialized(true));
+              log.debug("markInitialized: update complete for session {}", sessionId);
+            },
+            () -> log.warn("markInitialized: session {} not found", sessionId));
   }
 }

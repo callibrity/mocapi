@@ -67,7 +67,7 @@ class PingComplianceTest {
   }
 
   @Test
-  void ping_allowed_with_uninitialized_session() {
+  void ping_works_before_notifications_initialized() {
     var sessionId = initializeWithoutCompletingHandshake(server);
     var transport = mock(McpTransport.class);
 
