@@ -72,9 +72,8 @@ Working examples are in the [`examples/`](examples/) directory:
 | Example | Backend | Description |
 |---------|---------|-------------|
 | [In-Memory](examples/example-in-memory) | In-memory | Simplest setup, no external dependencies |
-| [Redis](examples/example-redis) | Redis | Clustered sessions via Redis |
-| [Hazelcast](examples/example-hazelcast) | Hazelcast | Clustered sessions via Hazelcast |
-| [PostgreSQL](examples/example-postgresql) | PostgreSQL | Durable sessions via PostgreSQL |
+| [Redis](examples/redis) | Redis | Clustered sessions via Redis |
+| [PostgreSQL](examples/postgresql) | PostgreSQL | Durable sessions via PostgreSQL |
 
 To run the in-memory example:
 
