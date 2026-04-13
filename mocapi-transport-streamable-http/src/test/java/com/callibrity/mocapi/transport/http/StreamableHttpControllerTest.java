@@ -27,13 +27,10 @@ import com.callibrity.mocapi.server.McpContext;
 import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.session.McpSession;
-import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.security.SecureRandom;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,7 +57,6 @@ class StreamableHttpControllerTest {
   private static final String SSE_ACCEPT = "text/event-stream";
 
   @Mock private McpServer protocol;
-  @Mock private McpSessionService sessionService;
   @Mock private Odyssey odyssey;
   @Mock private OdysseyPublisher<JsonRpcMessage> publisher;
 
@@ -74,8 +70,7 @@ class StreamableHttpControllerTest {
     new SecureRandom().nextBytes(masterKey);
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
     controller =
-        new StreamableHttpController(
-            protocol, validator, sessionService, odyssey, objectMapper, masterKey);
+        new StreamableHttpController(protocol, validator, odyssey, objectMapper, masterKey);
   }
 
   @Nested
@@ -130,36 +125,8 @@ class StreamableHttpControllerTest {
   @Nested
   class PostWithSession {
 
-    @BeforeEach
-    void setUpSession() {
-      when(sessionService.find("session-1"))
-          .thenReturn(Optional.of(new McpSession("session-1", "2025-11-25", null, null)));
-    }
-
     @Test
-    void callReturnsJsonWhenResponseIsImmediate() {
-      doAnswer(
-              invocation -> {
-                McpTransport transport = invocation.getArgument(2);
-                transport.send(
-                    new JsonRpcResult(
-                        JsonNodeFactory.instance.objectNode(),
-                        JsonNodeFactory.instance.numberNode(1)));
-                return null;
-              })
-          .when(protocol)
-          .handleCall(any(), any(), any());
-
-      ObjectNode request = callRequest("tools/list");
-      var response = post(request, null, "session-1", POST_ACCEPT, null);
-
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
-      assertThat(response.getBody()).isInstanceOf(JsonRpcResult.class);
-    }
-
-    @Test
-    void callReturnsSseWhenResponseIsDelayed() {
+    void callWithSessionReturnsSse() {
       SseEmitter emitter = new SseEmitter();
       when(odyssey.publisher(anyString(), eq(JsonRpcMessage.class))).thenReturn(publisher);
       when(odyssey.subscribe(anyString(), eq(JsonRpcMessage.class), any())).thenReturn(emitter);
@@ -172,7 +139,7 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void callWithSessionUsesBufferingTransport() throws Exception {
+    void callWithSessionUsesOdysseyTransport() throws Exception {
       CountDownLatch latch = new CountDownLatch(1);
       when(odyssey.publisher(anyString(), eq(JsonRpcMessage.class))).thenReturn(publisher);
       when(odyssey.subscribe(anyString(), eq(JsonRpcMessage.class), any()))
@@ -188,7 +155,7 @@ class StreamableHttpControllerTest {
       post(callRequest("ping"), null, "session-1", POST_ACCEPT, null);
 
       assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
-      verify(protocol).handleCall(any(), any(), any(BufferingTransport.class));
+      verify(protocol).handleCall(any(), any(), any(OdysseyTransport.class));
     }
 
     @Test
@@ -233,30 +200,24 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void rejectsInvalidProtocolVersion() {
-      var response = post(callRequest("ping"), "invalid-version", "s", POST_ACCEPT, null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-    }
-
-    @Test
-    void notificationWithoutSessionReturns400() {
+    void notificationWithoutSessionReturns202() {
       ObjectNode notification = objectMapper.createObjectNode();
       notification.put("jsonrpc", "2.0");
       notification.put("method", "notifications/initialized");
 
       var response = post(notification, null, null, POST_ACCEPT, null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
     }
 
     @Test
-    void responseWithoutSessionReturns400() {
+    void responseWithoutSessionReturns202() {
       ObjectNode jsonRpcResponse = objectMapper.createObjectNode();
       jsonRpcResponse.put("jsonrpc", "2.0");
       jsonRpcResponse.put("id", 1);
       jsonRpcResponse.putObject("result");
 
       var response = post(jsonRpcResponse, null, null, POST_ACCEPT, null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
     }
   }
 
@@ -266,28 +227,12 @@ class StreamableHttpControllerTest {
     @Test
     void subscribesToNotificationChannel() {
       SseEmitter emitter = new SseEmitter();
-      when(sessionService.find("session-1"))
-          .thenReturn(Optional.of(new McpSession("session-1", "2025-11-25", null, null)));
       when(odyssey.subscribe(eq("session-1"), eq(JsonRpcMessage.class), any())).thenReturn(emitter);
 
       var response = controller.handleGet("session-1", null, SSE_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getBody()).isSameAs(emitter);
-    }
-
-    @Test
-    void requiresSessionId() {
-      var response = controller.handleGet(null, null, SSE_ACCEPT, null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-    }
-
-    @Test
-    void returns404ForUnknownSession() {
-      when(sessionService.find("unknown")).thenReturn(Optional.empty());
-
-      var response = controller.handleGet("unknown", null, SSE_ACCEPT, null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -304,13 +249,10 @@ class StreamableHttpControllerTest {
 
     @Test
     void resumeWithLastEventIdDelegatesToOdyssey() {
-      when(sessionService.find("session-1"))
-          .thenReturn(Optional.of(new McpSession("session-1", "2025-11-25", null, null)));
       SseEmitter emitter = new SseEmitter();
       when(odyssey.resume(anyString(), eq(JsonRpcMessage.class), anyString(), any()))
           .thenReturn(emitter);
 
-      // Encrypt a fake event ID
       String plaintext = "stream-name:event-42";
       String encryptedId = encrypt("session-1", plaintext);
 
@@ -333,25 +275,10 @@ class StreamableHttpControllerTest {
 
     @Test
     void delegatesToProtocolTerminate() {
-      when(sessionService.find("session-1"))
-          .thenReturn(Optional.of(new McpSession("session-1", "2025-11-25", null, null)));
       var response = controller.handleDelete("session-1", null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
       verify(protocol).terminate("session-1");
-    }
-
-    @Test
-    void returns404ForUnknownSession() {
-      when(sessionService.find("unknown")).thenReturn(Optional.empty());
-      var response = controller.handleDelete("unknown", null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-    }
-
-    @Test
-    void requiresSessionId() {
-      var response = controller.handleDelete(null, null);
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
