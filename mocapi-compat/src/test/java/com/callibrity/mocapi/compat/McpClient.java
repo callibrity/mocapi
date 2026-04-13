@@ -302,7 +302,11 @@ public class McpClient {
     JsonNode last = null;
     for (String line : sseBody.split("\n")) {
       if (line.startsWith("data:")) {
-        JsonNode node = objectMapper.readTree(line.substring(5));
+        String data = line.substring(5);
+        if (data.isBlank()) {
+          continue;
+        }
+        JsonNode node = objectMapper.readTree(data);
         if (node.has("id")) {
           last = node;
         }
