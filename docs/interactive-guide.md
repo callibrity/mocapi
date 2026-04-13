@@ -56,23 +56,20 @@ Available levels (in ascending order): `DEBUG`, `INFO`, `NOTICE`, `WARNING`, `ER
 Tools can prompt the user for input during execution. The server sends an `elicitation/create` request to the client, which presents a form to the user and returns their response.
 
 ```java
-import com.callibrity.mocapi.model.ElicitResult;
-import com.callibrity.mocapi.model.ElicitRequestFormParams;
+import com.callibrity.mocapi.model.*;
 
 @ToolMethod(name = "onboard", description = "Onboards a new user")
 public OnboardResult onboard(McpToolContext ctx) {
-    var schema = objectMapper.createObjectNode();
-    schema.put("type", "object");
-    var props = schema.putObject("properties");
-    props.putObject("name").put("type", "string");
-    props.putObject("email").put("type", "string").put("format", "email");
-    schema.putArray("required").add("name").add("email");
+    var properties = new LinkedHashMap<String, PrimitiveSchemaDefinition>();
+    properties.put("name", new StringSchema("Your name", null, null, null, null, null));
+    properties.put("email", new StringSchema("Email address", null, null, null, "email", null));
+    var schema = new RequestedSchema(properties, List.of("name", "email"));
 
-    var params = new ElicitRequestFormParams("Please enter your details", schema);
+    var params = new ElicitRequestFormParams("form", "Please enter your details", schema, null, null);
     ElicitResult result = ctx.elicit(params);
 
     if (result.isAccepted()) {
-        String name = result.content().get("name").asString();
+        String name = result.getString("name");
         return new OnboardResult("Welcome, " + name + "!");
     }
     return new OnboardResult("Onboarding cancelled.");
