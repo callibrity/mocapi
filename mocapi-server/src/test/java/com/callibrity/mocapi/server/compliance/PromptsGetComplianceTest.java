@@ -86,7 +86,7 @@ class PromptsGetComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("prompts/get", Map.of("name", "greet", "arguments", Map.of("name", "Alice"))),
         transport);
 
@@ -102,7 +102,7 @@ class PromptsGetComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("prompts/get", Map.of("name", "greet", "arguments", Map.of("name", "Bob"))),
         transport);
 
@@ -117,7 +117,9 @@ class PromptsGetComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId), call("prompts/get", Map.of("name", "nonexistent")), transport);
+        withSession(sessionId, server),
+        call("prompts/get", Map.of("name", "nonexistent")),
+        transport);
 
     var error = captureError(transport);
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);

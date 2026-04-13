@@ -56,7 +56,7 @@ class InitializationLifecycleComplianceTest {
     var sessionId = initializeWithoutCompletingHandshake(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId), call("tools/list"), transport);
+    server.handleCall(withSession(sessionId, server), call("tools/list"), transport);
 
     JsonRpcError error = captureError(transport);
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
@@ -68,7 +68,7 @@ class InitializationLifecycleComplianceTest {
     var sessionId = initializeWithoutCompletingHandshake(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId), call("ping"), transport);
+    server.handleCall(withSession(sessionId, server), call("ping"), transport);
 
     assertThat(captureMessage(transport)).isInstanceOf(JsonRpcResult.class);
   }
@@ -77,10 +77,10 @@ class InitializationLifecycleComplianceTest {
   void request_succeeds_after_notifications_initialized() {
     var sessionId = initializeWithoutCompletingHandshake(server);
     server.handleNotification(
-        withSession(sessionId), notification(McpMethods.NOTIFICATIONS_INITIALIZED));
+        withSession(sessionId, server), notification(McpMethods.NOTIFICATIONS_INITIALIZED));
 
     var transport = mock(McpTransport.class);
-    server.handleCall(withSession(sessionId), call("ping"), transport);
+    server.handleCall(withSession(sessionId, server), call("ping"), transport);
 
     assertThat(captureMessage(transport)).isInstanceOf(JsonRpcResult.class);
   }
@@ -90,7 +90,7 @@ class InitializationLifecycleComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
 
     server.handleNotification(
-        withSession(sessionId),
+        withSession(sessionId, server),
         notification(
             McpMethods.NOTIFICATIONS_CANCELLED,
             java.util.Map.of("requestId", 42, "reason", "user cancelled")));
@@ -101,7 +101,7 @@ class InitializationLifecycleComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
 
     server.handleNotification(
-        withSession(sessionId), notification(McpMethods.NOTIFICATIONS_ROOTS_LIST_CHANGED));
+        withSession(sessionId, server), notification(McpMethods.NOTIFICATIONS_ROOTS_LIST_CHANGED));
   }
 
   @Test
@@ -109,6 +109,6 @@ class InitializationLifecycleComplianceTest {
     var sessionId = initializeWithoutCompletingHandshake(server);
 
     server.handleNotification(
-        withSession(sessionId), notification(McpMethods.NOTIFICATIONS_ROOTS_LIST_CHANGED));
+        withSession(sessionId, server), notification(McpMethods.NOTIFICATIONS_ROOTS_LIST_CHANGED));
   }
 }

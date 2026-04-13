@@ -23,8 +23,9 @@ import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
-import com.callibrity.ripcurl.core.JsonRpcMessage;
+import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
+import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import java.util.Set;
 
@@ -48,66 +49,36 @@ public class DefaultMcpServer implements McpServer {
   }
 
   @Override
-  public ValidationResult validate(McpContext context, JsonRpcMessage message) {
-    String method =
-        switch (message) {
-          case JsonRpcCall call -> call.method();
-          case JsonRpcNotification notification -> notification.method();
-          case JsonRpcResponse _ -> null;
-        };
-
-    if (INITIALIZE.equals(method)) {
-      return new ValidationResult.Valid();
-    }
-
-    String sessionId = context.sessionId();
+  public McpContextResult createContext(String sessionId, String protocolVersion) {
     if (sessionId == null || sessionId.isEmpty()) {
-      return new ValidationResult.MissingSessionId();
+      return new McpContextResult.SessionIdRequired(
+          -32000, "Bad Request: MCP-Session-Id header is required");
     }
 
     var session = sessionService.find(sessionId);
     if (session.isEmpty()) {
-      return new ValidationResult.UnknownSession(sessionId);
+      return new McpContextResult.SessionNotFound(-32001, "Session not found");
     }
 
-    ValidationResult protocolCheck = validateProtocolVersion(context.protocolVersion());
-    if (protocolCheck != null) {
-      return protocolCheck;
+    if (protocolVersion != null && !KNOWN_PROTOCOL_VERSIONS.contains(protocolVersion)) {
+      return new McpContextResult.ProtocolVersionMismatch(
+          -32000, "Bad Request: Unsupported protocol version: " + protocolVersion);
     }
 
-    if (method != null
-        && !session.get().initialized()
-        && !PING.equals(method)
-        && !NOTIFICATIONS_INITIALIZED.equals(method)) {
-      return new ValidationResult.SessionNotInitialized();
-    }
-
-    return new ValidationResult.Valid();
-  }
-
-  @Override
-  public ValidationResult validate(McpContext context) {
-    var session = sessionService.find(context.sessionId());
-    if (session.isEmpty()) {
-      return new ValidationResult.UnknownSession(context.sessionId());
-    }
-
-    ValidationResult protocolCheck = validateProtocolVersion(context.protocolVersion());
-    if (protocolCheck != null) {
-      return protocolCheck;
-    }
-
-    return new ValidationResult.Valid();
+    return new McpContextResult.ValidContext(new SessionMcpContext(session.get(), protocolVersion));
   }
 
   @Override
   public void handleCall(McpContext context, JsonRpcCall call, McpTransport transport) {
-    McpSession session = null;
-    if (!INITIALIZE.equals(call.method())) {
-      session =
-          sessionService
-              .find(context.sessionId())
-              .orElseThrow(() -> new IllegalStateException("Session not found"));
+    McpSession session = context.session().orElse(null);
+
+    if (session != null
+        && !session.initialized()
+        && !PING.equals(call.method())
+        && !INITIALIZE.equals(call.method())) {
+      transport.send(
+          new JsonRpcError(JsonRpcProtocol.INVALID_REQUEST, "Session not initialized", call.id()));
+      return;
     }
 
     JsonRpcResponse response;
@@ -127,13 +98,17 @@ public class DefaultMcpServer implements McpServer {
 
   @Override
   public void handleNotification(McpContext context, JsonRpcNotification notification) {
-    if (INITIALIZE.equals(notification.method())) {
+    McpSession session =
+        context
+            .session()
+            .orElseThrow(() -> new IllegalStateException("Session not found in context"));
+
+    if (!session.initialized()
+        && !NOTIFICATIONS_INITIALIZED.equals(notification.method())
+        && !PING.equals(notification.method())) {
       return;
     }
-    McpSession session =
-        sessionService
-            .find(context.sessionId())
-            .orElseThrow(() -> new IllegalStateException("Session not found"));
+
     ScopedValue.where(McpSession.CURRENT, session).run(() -> dispatcher.dispatch(notification));
   }
 
@@ -143,14 +118,7 @@ public class DefaultMcpServer implements McpServer {
   }
 
   @Override
-  public void terminate(String sessionId) {
-    sessionService.delete(sessionId);
-  }
-
-  private ValidationResult validateProtocolVersion(String protocolVersion) {
-    if (protocolVersion != null && !KNOWN_PROTOCOL_VERSIONS.contains(protocolVersion)) {
-      return new ValidationResult.InvalidProtocolVersion(protocolVersion);
-    }
-    return null;
+  public void terminate(McpContext context) {
+    context.session().ifPresent(session -> sessionService.delete(session.sessionId()));
   }
 }

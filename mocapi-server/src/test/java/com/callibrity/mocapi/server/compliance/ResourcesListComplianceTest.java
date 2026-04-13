@@ -114,7 +114,7 @@ class ResourcesListComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId), call("resources/list"), transport);
+    server.handleCall(withSession(sessionId, server), call("resources/list"), transport);
 
     var result = captureResult(transport);
     var resources = result.result().path("resources");
@@ -127,7 +127,7 @@ class ResourcesListComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId), call("resources/list"), transport);
+    server.handleCall(withSession(sessionId, server), call("resources/list"), transport);
 
     var result = captureResult(transport);
     var first = result.result().path("resources").get(0);
@@ -152,7 +152,7 @@ class ResourcesListComplianceTest {
 
     var sessionId = initializeAndGetSessionId(pagedServer);
     var transport1 = mock(McpTransport.class);
-    pagedServer.handleCall(withSession(sessionId), call("resources/list"), transport1);
+    pagedServer.handleCall(withSession(sessionId, pagedServer), call("resources/list"), transport1);
     var page1 = captureResult(transport1);
     assertThat(page1.result().path("resources").size()).isEqualTo(2);
     assertThat(page1.result().has("nextCursor")).isTrue();
@@ -160,7 +160,9 @@ class ResourcesListComplianceTest {
     var cursor = page1.result().path("nextCursor").asString();
     var transport2 = mock(McpTransport.class);
     pagedServer.handleCall(
-        withSession(sessionId), call("resources/list", Map.of("cursor", cursor)), transport2);
+        withSession(sessionId, pagedServer),
+        call("resources/list", Map.of("cursor", cursor)),
+        transport2);
     var page2 = captureResult(transport2);
     assertThat(page2.result().path("resources").size()).isEqualTo(1);
   }
@@ -170,7 +172,7 @@ class ResourcesListComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId), call("resources/templates/list"), transport);
+    server.handleCall(withSession(sessionId, server), call("resources/templates/list"), transport);
 
     var result = captureResult(transport);
     var templates = result.result().path("resourceTemplates");

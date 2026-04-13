@@ -24,14 +24,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.server.McpContext;
+import com.callibrity.mocapi.server.McpContextResult;
 import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.ValidationResult;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.security.SecureRandom;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
@@ -79,8 +80,6 @@ class StreamableHttpControllerTest {
 
     @Test
     void initializeReturnsJsonWithSessionHeader() {
-      when(protocol.validate(any(McpContext.class), any(JsonRpcMessage.class)))
-          .thenReturn(new ValidationResult.Valid());
       doAnswer(
               invocation -> {
                 McpTransport transport = invocation.getArgument(2);
@@ -105,8 +104,6 @@ class StreamableHttpControllerTest {
 
     @Test
     void initializeDelegatesToProtocolWithSynchronousTransport() {
-      when(protocol.validate(any(McpContext.class), any(JsonRpcMessage.class)))
-          .thenReturn(new ValidationResult.Valid());
       doAnswer(
               invocation -> {
                 McpTransport transport = invocation.getArgument(2);
@@ -132,8 +129,7 @@ class StreamableHttpControllerTest {
 
     @BeforeEach
     void setUpSession() {
-      when(protocol.validate(any(McpContext.class), any(JsonRpcMessage.class)))
-          .thenReturn(new ValidationResult.Valid());
+      when(protocol.createContext(anyString(), any())).thenReturn(validContext("session-1"));
     }
 
     @Test
@@ -212,8 +208,10 @@ class StreamableHttpControllerTest {
 
     @Test
     void notificationWithoutSessionReturns400() {
-      when(protocol.validate(any(McpContext.class), any(JsonRpcMessage.class)))
-          .thenReturn(new ValidationResult.MissingSessionId());
+      when(protocol.createContext(any(), any()))
+          .thenReturn(
+              new McpContextResult.SessionIdRequired(
+                  -32000, "Bad Request: MCP-Session-Id header is required"));
       ObjectNode notification = objectMapper.createObjectNode();
       notification.put("jsonrpc", "2.0");
       notification.put("method", "notifications/initialized");
@@ -224,8 +222,10 @@ class StreamableHttpControllerTest {
 
     @Test
     void responseWithoutSessionReturns400() {
-      when(protocol.validate(any(McpContext.class), any(JsonRpcMessage.class)))
-          .thenReturn(new ValidationResult.MissingSessionId());
+      when(protocol.createContext(any(), any()))
+          .thenReturn(
+              new McpContextResult.SessionIdRequired(
+                  -32000, "Bad Request: MCP-Session-Id header is required"));
       ObjectNode jsonRpcResponse = objectMapper.createObjectNode();
       jsonRpcResponse.put("jsonrpc", "2.0");
       jsonRpcResponse.put("id", 1);
@@ -241,7 +241,7 @@ class StreamableHttpControllerTest {
 
     @Test
     void subscribesToNotificationChannel() {
-      when(protocol.validate(any(McpContext.class))).thenReturn(new ValidationResult.Valid());
+      when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
       SseEmitter emitter = new SseEmitter();
       when(odyssey.subscribe(eq("session-1"), eq(JsonRpcMessage.class), any())).thenReturn(emitter);
 
@@ -265,7 +265,7 @@ class StreamableHttpControllerTest {
 
     @Test
     void resumeWithLastEventIdDelegatesToOdyssey() {
-      when(protocol.validate(any(McpContext.class))).thenReturn(new ValidationResult.Valid());
+      when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
       SseEmitter emitter = new SseEmitter();
       when(odyssey.resume(anyString(), eq(JsonRpcMessage.class), anyString(), any()))
           .thenReturn(emitter);
@@ -292,11 +292,11 @@ class StreamableHttpControllerTest {
 
     @Test
     void delegatesToProtocolTerminate() {
-      when(protocol.validate(any(McpContext.class))).thenReturn(new ValidationResult.Valid());
+      when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
       var response = controller.handleDelete("session-1", null, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-      verify(protocol).terminate("session-1");
+      verify(protocol).terminate(any(McpContext.class));
     }
 
     @Test
@@ -307,6 +307,22 @@ class StreamableHttpControllerTest {
   }
 
   // --- helpers ---
+
+  private static McpContextResult validContext(String sessionId) {
+    return new McpContextResult.ValidContext(new StubMcpContext(sessionId));
+  }
+
+  private record StubMcpContext(String sessionId) implements McpContext {
+    @Override
+    public String protocolVersion() {
+      return "2025-11-25";
+    }
+
+    @Override
+    public Optional<com.callibrity.mocapi.server.session.McpSession> session() {
+      return Optional.empty();
+    }
+  }
 
   private ResponseEntity<Object> post(
       ObjectNode body, String protocolVersion, String sessionId, String accept, String origin) {

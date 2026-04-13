@@ -49,13 +49,15 @@ class NotificationComplianceTest {
   void notifications_initialized_processed_without_error() {
     var sessionId = initializeAndGetSessionId(server);
 
-    server.handleNotification(withSession(sessionId), notification("notifications/initialized"));
+    server.handleNotification(
+        withSession(sessionId, server), notification("notifications/initialized"));
   }
 
   @Test
   void unknown_notification_method_silently_ignored() {
     var sessionId = initializeAndGetSessionId(server);
 
-    server.handleNotification(withSession(sessionId), notification("notifications/unknown_method"));
+    server.handleNotification(
+        withSession(sessionId, server), notification("notifications/unknown_method"));
   }
 }

@@ -15,14 +15,18 @@
  */
 package com.callibrity.mocapi.server;
 
-public sealed interface ValidationResult {
-  record Valid() implements ValidationResult {}
+import com.callibrity.mocapi.server.session.McpSession;
+import java.util.Optional;
 
-  record MissingSessionId() implements ValidationResult {}
+record SessionMcpContext(McpSession mcpSession, String protocolVersion) implements McpContext {
 
-  record UnknownSession(String sessionId) implements ValidationResult {}
+  @Override
+  public String sessionId() {
+    return mcpSession.sessionId();
+  }
 
-  record SessionNotInitialized() implements ValidationResult {}
-
-  record InvalidProtocolVersion(String version) implements ValidationResult {}
+  @Override
+  public Optional<McpSession> session() {
+    return Optional.of(mcpSession);
+  }
 }

@@ -96,7 +96,7 @@ class ResourcesReadComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("resources/read", Map.of("uri", "file:///readme.md")),
         transport);
 
@@ -112,7 +112,7 @@ class ResourcesReadComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("resources/read", Map.of("uri", "file:///readme.md")),
         transport);
 
@@ -128,7 +128,7 @@ class ResourcesReadComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("resources/read", Map.of("uri", "file:///image.png")),
         transport);
 
@@ -145,7 +145,7 @@ class ResourcesReadComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("resources/read", Map.of("uri", "file:///nonexistent")),
         transport);
 

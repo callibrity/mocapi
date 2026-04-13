@@ -15,8 +15,18 @@
  */
 package com.callibrity.mocapi.server;
 
+import com.callibrity.mocapi.server.session.McpSession;
+import java.util.Optional;
+
 public interface McpContext {
+
   String sessionId();
 
   String protocolVersion();
+
+  Optional<McpSession> session();
+
+  static McpContext empty() {
+    return EmptyMcpContext.INSTANCE;
+  }
 }

@@ -15,19 +15,12 @@
  */
 package com.callibrity.mocapi.server;
 
-import com.callibrity.ripcurl.core.JsonRpcCall;
-import com.callibrity.ripcurl.core.JsonRpcNotification;
-import com.callibrity.ripcurl.core.JsonRpcResponse;
+public sealed interface McpContextResult {
+  record ValidContext(McpContext context) implements McpContextResult {}
 
-public interface McpServer {
+  record SessionIdRequired(int code, String message) implements McpContextResult {}
 
-  McpContextResult createContext(String sessionId, String protocolVersion);
+  record SessionNotFound(int code, String message) implements McpContextResult {}
 
-  void handleCall(McpContext context, JsonRpcCall call, McpTransport transport);
-
-  void handleNotification(McpContext context, JsonRpcNotification notification);
-
-  void handleResponse(McpContext context, JsonRpcResponse response);
-
-  void terminate(McpContext context);
+  record ProtocolVersionMismatch(int code, String message) implements McpContextResult {}
 }

@@ -20,9 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.server.McpContextResult;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.ValidationResult;
 import com.callibrity.mocapi.server.ping.McpPingService;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +54,7 @@ class PingComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId), call("ping"), transport);
+    server.handleCall(withSession(sessionId, server), call("ping"), transport);
 
     var result = captureResult(transport);
     assertThat(result).isInstanceOf(JsonRpcResult.class);
@@ -62,14 +62,18 @@ class PingComplianceTest {
 
   @Test
   void ping_requires_session() {
-    assertThat(server.validate(noSession(), call("ping")))
-        .isInstanceOf(ValidationResult.MissingSessionId.class);
+    assertThat(server.createContext(null, null))
+        .isInstanceOf(McpContextResult.SessionIdRequired.class);
   }
 
   @Test
   void ping_allowed_with_uninitialized_session() {
     var sessionId = initializeWithoutCompletingHandshake(server);
-    assertThat(server.validate(withSession(sessionId), call("ping")))
-        .isInstanceOf(ValidationResult.Valid.class);
+    var transport = mock(McpTransport.class);
+
+    server.handleCall(withSession(sessionId, server), call("ping"), transport);
+
+    var result = captureResult(transport);
+    assertThat(result).isInstanceOf(JsonRpcResult.class);
   }
 }

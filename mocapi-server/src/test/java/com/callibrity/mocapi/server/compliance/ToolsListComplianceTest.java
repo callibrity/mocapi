@@ -85,7 +85,7 @@ class ToolsListComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId), call("tools/list"), transport);
+    server.handleCall(withSession(sessionId, server), call("tools/list"), transport);
 
     var result = captureResult(transport);
     var tools = result.result().path("tools");
@@ -98,7 +98,7 @@ class ToolsListComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId), call("tools/list"), transport);
+    server.handleCall(withSession(sessionId, server), call("tools/list"), transport);
 
     var result = captureResult(transport);
     var firstTool = result.result().path("tools").get(0);
@@ -112,7 +112,7 @@ class ToolsListComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId), call("tools/list"), transport);
+    server.handleCall(withSession(sessionId, server), call("tools/list"), transport);
 
     var result = captureResult(transport);
     var tools = result.result().path("tools");
@@ -145,7 +145,7 @@ class ToolsListComplianceTest {
     var sessionId = initializeAndGetSessionId(pagedServer);
 
     var transport1 = mock(McpTransport.class);
-    pagedServer.handleCall(withSession(sessionId), call("tools/list"), transport1);
+    pagedServer.handleCall(withSession(sessionId, pagedServer), call("tools/list"), transport1);
     var page1 = captureResult(transport1);
     assertThat(page1.result().path("tools").size()).isEqualTo(2);
     assertThat(page1.result().has("nextCursor")).isTrue();
@@ -153,7 +153,9 @@ class ToolsListComplianceTest {
     var cursor = page1.result().path("nextCursor").asString();
     var transport2 = mock(McpTransport.class);
     pagedServer.handleCall(
-        withSession(sessionId), call("tools/list", Map.of("cursor", cursor)), transport2);
+        withSession(sessionId, pagedServer),
+        call("tools/list", Map.of("cursor", cursor)),
+        transport2);
     var page2 = captureResult(transport2);
     assertThat(page2.result().path("tools").size()).isEqualTo(1);
     assertThat(page2.result().has("nextCursor")).isFalse();
@@ -164,7 +166,7 @@ class ToolsListComplianceTest {
     var sessionId = initializeAndGetSessionId(emptyServer);
     var transport = mock(McpTransport.class);
 
-    emptyServer.handleCall(withSession(sessionId), call("tools/list"), transport);
+    emptyServer.handleCall(withSession(sessionId, emptyServer), call("tools/list"), transport);
 
     var result = captureResult(transport);
     assertThat(result.result().path("tools").size()).isEqualTo(0);

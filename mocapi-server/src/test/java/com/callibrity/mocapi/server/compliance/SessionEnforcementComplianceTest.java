@@ -20,9 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.server.McpContextResult;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.ValidationResult;
 import com.callibrity.mocapi.server.session.McpSessionStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -48,58 +48,47 @@ class SessionEnforcementComplianceTest {
   }
 
   @Nested
-  class Validate {
+  class CreateContext {
 
     @Test
-    void initialize_returns_valid_without_session() {
-      assertThat(server.validate(noSession(), initializeCall()))
-          .isInstanceOf(ValidationResult.Valid.class);
+    void returns_session_id_required_without_session() {
+      assertThat(server.createContext(null, null))
+          .isInstanceOf(McpContextResult.SessionIdRequired.class);
     }
 
     @Test
-    void non_initialize_without_session_returns_missing_session_id() {
-      assertThat(server.validate(noSession(), call("tools/list")))
-          .isInstanceOf(ValidationResult.MissingSessionId.class);
-    }
-
-    @Test
-    void notification_without_session_returns_missing_session_id() {
-      assertThat(server.validate(noSession(), notification("notifications/initialized")))
-          .isInstanceOf(ValidationResult.MissingSessionId.class);
-    }
-
-    @Test
-    void returns_valid_for_active_session() {
+    void returns_valid_context_for_active_session() {
       var sessionId = initializeAndGetSessionId(server);
-      assertThat(server.validate(withSession(sessionId), call("tools/list")))
-          .isInstanceOf(ValidationResult.Valid.class);
+      assertThat(server.createContext(sessionId, PROTOCOL_VERSION))
+          .isInstanceOf(McpContextResult.ValidContext.class);
     }
 
     @Test
-    void returns_unknown_session_for_nonexistent_session() {
-      assertThat(server.validate(withSession("nonexistent"), call("tools/list")))
-          .isInstanceOf(ValidationResult.UnknownSession.class);
+    void returns_session_not_found_for_nonexistent_session() {
+      assertThat(server.createContext("nonexistent", PROTOCOL_VERSION))
+          .isInstanceOf(McpContextResult.SessionNotFound.class);
     }
 
     @Test
-    void returns_unknown_session_after_terminate() {
+    void returns_session_not_found_after_terminate() {
       var sessionId = initializeAndGetSessionId(server);
-      server.terminate(sessionId);
-      assertThat(server.validate(withSession(sessionId), call("tools/list")))
-          .isInstanceOf(ValidationResult.UnknownSession.class);
+      server.terminate(withSession(sessionId, server));
+      assertThat(server.createContext(sessionId, PROTOCOL_VERSION))
+          .isInstanceOf(McpContextResult.SessionNotFound.class);
     }
 
     @Test
-    void context_validate_returns_valid_for_active_session() {
+    void returns_protocol_version_mismatch_for_bad_version() {
       var sessionId = initializeAndGetSessionId(server);
-      assertThat(server.validate(withSession(sessionId)))
-          .isInstanceOf(ValidationResult.Valid.class);
+      assertThat(server.createContext(sessionId, "9999-01-01"))
+          .isInstanceOf(McpContextResult.ProtocolVersionMismatch.class);
     }
 
     @Test
-    void context_validate_returns_unknown_for_nonexistent_session() {
-      assertThat(server.validate(withSession("nonexistent")))
-          .isInstanceOf(ValidationResult.UnknownSession.class);
+    void returns_valid_context_for_null_protocol_version() {
+      var sessionId = initializeAndGetSessionId(server);
+      assertThat(server.createContext(sessionId, null))
+          .isInstanceOf(McpContextResult.ValidContext.class);
     }
   }
 
@@ -111,7 +100,7 @@ class SessionEnforcementComplianceTest {
       var sessionId = initializeAndGetSessionId(server);
       var transport = mock(McpTransport.class);
 
-      server.handleCall(withSession(sessionId), call("tools/list"), transport);
+      server.handleCall(withSession(sessionId, server), call("tools/list"), transport);
 
       var msg = captureMessage(transport);
       assertThat(msg).isNotNull();
@@ -125,7 +114,7 @@ class SessionEnforcementComplianceTest {
     void deletes_session_from_store() {
       var sessionId = initializeAndGetSessionId(server);
 
-      server.terminate(sessionId);
+      server.terminate(withSession(sessionId, server));
 
       assertThat(sessionStore.find(sessionId)).isEmpty();
     }

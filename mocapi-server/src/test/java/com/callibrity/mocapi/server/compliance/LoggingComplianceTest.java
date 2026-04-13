@@ -60,7 +60,9 @@ class LoggingComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId), call("logging/setLevel", Map.of("level", "debug")), transport);
+        withSession(sessionId, server),
+        call("logging/setLevel", Map.of("level", "debug")),
+        transport);
 
     var result = captureResult(transport);
     assertThat(result).isInstanceOf(JsonRpcResult.class);
@@ -76,7 +78,9 @@ class LoggingComplianceTest {
 
     var transport1 = mock(McpTransport.class);
     server.handleCall(
-        withSession(sessionId), call("logging/setLevel", Map.of("level", "error")), transport1);
+        withSession(sessionId, server),
+        call("logging/setLevel", Map.of("level", "error")),
+        transport1);
 
     var session = sessionStore.find(sessionId);
     assertThat(session).isPresent();
@@ -84,7 +88,9 @@ class LoggingComplianceTest {
 
     var transport2 = mock(McpTransport.class);
     server.handleCall(
-        withSession(sessionId), call("logging/setLevel", Map.of("level", "info")), transport2);
+        withSession(sessionId, server),
+        call("logging/setLevel", Map.of("level", "info")),
+        transport2);
 
     session = sessionStore.find(sessionId);
     assertThat(session).isPresent();

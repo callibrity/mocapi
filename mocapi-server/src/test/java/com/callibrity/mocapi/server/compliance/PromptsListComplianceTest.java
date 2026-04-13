@@ -99,7 +99,7 @@ class PromptsListComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId), call("prompts/list"), transport);
+    server.handleCall(withSession(sessionId, server), call("prompts/list"), transport);
 
     var result = captureResult(transport);
     var prompts = result.result().path("prompts");
@@ -112,7 +112,7 @@ class PromptsListComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId), call("prompts/list"), transport);
+    server.handleCall(withSession(sessionId, server), call("prompts/list"), transport);
 
     var result = captureResult(transport);
     var first = result.result().path("prompts").get(0);
@@ -125,7 +125,7 @@ class PromptsListComplianceTest {
     var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId), call("prompts/list"), transport);
+    server.handleCall(withSession(sessionId, server), call("prompts/list"), transport);
 
     var result = captureResult(transport);
     var prompts = result.result().path("prompts");
@@ -170,7 +170,7 @@ class PromptsListComplianceTest {
 
     var sessionId = initializeAndGetSessionId(pagedServer);
     var transport1 = mock(McpTransport.class);
-    pagedServer.handleCall(withSession(sessionId), call("prompts/list"), transport1);
+    pagedServer.handleCall(withSession(sessionId, pagedServer), call("prompts/list"), transport1);
     var page1 = captureResult(transport1);
     assertThat(page1.result().path("prompts").size()).isEqualTo(2);
     assertThat(page1.result().has("nextCursor")).isTrue();

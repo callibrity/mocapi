@@ -112,7 +112,7 @@ class ToolsCallInteractiveComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("tools/call", Map.of("name", "context-check", "arguments", Map.of("name", "x"))),
         transport);
 
@@ -128,7 +128,7 @@ class ToolsCallInteractiveComplianceTest {
 
     var transport = mock(McpTransport.class);
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call(
             "tools/call",
             Map.of(
@@ -155,7 +155,7 @@ class ToolsCallInteractiveComplianceTest {
 
     var transport = mock(McpTransport.class);
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call(
             "tools/call",
             Map.of(
@@ -182,7 +182,7 @@ class ToolsCallInteractiveComplianceTest {
 
     var transport = mock(McpTransport.class);
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call(
             "tools/call",
             Map.of(
@@ -212,7 +212,7 @@ class ToolsCallInteractiveComplianceTest {
 
     var transport = mock(McpTransport.class);
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call(
             "tools/call",
             Map.of(

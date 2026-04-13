@@ -25,6 +25,7 @@ import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.DefaultMcpServer;
 import com.callibrity.mocapi.server.McpContext;
+import com.callibrity.mocapi.server.McpContextResult;
 import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
@@ -120,14 +121,16 @@ final class ComplianceTestSupport {
   // --- Context ---
 
   static McpContext noSession() {
-    return new SimpleContext(null, null);
+    return McpContext.empty();
   }
 
-  static McpContext withSession(String sessionId) {
-    return new SimpleContext(sessionId, PROTOCOL_VERSION);
+  static McpContext withSession(String sessionId, McpServer server) {
+    return switch (server.createContext(sessionId, PROTOCOL_VERSION)) {
+      case McpContextResult.ValidContext(var ctx) -> ctx;
+      default ->
+          throw new IllegalStateException("Failed to create context for session: " + sessionId);
+    };
   }
-
-  record SimpleContext(String sessionId, String protocolVersion) implements McpContext {}
 
   // --- Call builders ---
 
@@ -204,7 +207,7 @@ final class ComplianceTestSupport {
     server.handleCall(noSession(), initializeCall(), transport);
     String sessionId = ((McpEvent.SessionInitialized) captureEvent(transport)).sessionId();
     server.handleNotification(
-        withSession(sessionId), notification(McpMethods.NOTIFICATIONS_INITIALIZED));
+        withSession(sessionId, server), notification(McpMethods.NOTIFICATIONS_INITIALIZED));
     return sessionId;
   }
 

@@ -118,7 +118,7 @@ class ToolsCallComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("tools/call", Map.of("name", "simple", "arguments", Map.of("input", "test"))),
         transport);
 
@@ -134,7 +134,7 @@ class ToolsCallComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("tools/call", Map.of("name", "void-tool", "arguments", Map.of("input", "test"))),
         transport);
 
@@ -149,7 +149,7 @@ class ToolsCallComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("tools/call", Map.of("name", "direct-result", "arguments", Map.of("input", "test"))),
         transport);
 
@@ -164,7 +164,7 @@ class ToolsCallComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("tools/call", Map.of("name", "throws-jsonrpc", "arguments", Map.of("input", "test"))),
         transport);
 
@@ -180,7 +180,7 @@ class ToolsCallComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("tools/call", Map.of("name", "throws-other", "arguments", Map.of("input", "test"))),
         transport);
 
@@ -196,7 +196,7 @@ class ToolsCallComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("tools/call", Map.of("name", "nonexistent", "arguments", Map.of())),
         transport);
 
@@ -210,7 +210,7 @@ class ToolsCallComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("tools/call", Map.of("name", "structured", "arguments", Map.of("input", "test"))),
         transport);
 
@@ -226,7 +226,7 @@ class ToolsCallComplianceTest {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId),
+        withSession(sessionId, server),
         call("tools/call", Map.of("name", "structured", "arguments", Map.of("input", "test"))),
         transport);
 
