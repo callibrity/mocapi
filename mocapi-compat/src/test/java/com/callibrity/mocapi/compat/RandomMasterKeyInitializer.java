@@ -24,10 +24,12 @@ import org.springframework.test.context.support.TestPropertySourceUtils;
 public class RandomMasterKeyInitializer
     implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 
+  private static final SecureRandom RANDOM = new SecureRandom();
+
   @Override
   public void initialize(ConfigurableApplicationContext applicationContext) {
     byte[] key = new byte[32];
-    new SecureRandom().nextBytes(key);
+    RANDOM.nextBytes(key);
     String encoded = Base64.getEncoder().encodeToString(key);
     TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
         applicationContext, "mocapi.session-encryption-master-key=" + encoded);

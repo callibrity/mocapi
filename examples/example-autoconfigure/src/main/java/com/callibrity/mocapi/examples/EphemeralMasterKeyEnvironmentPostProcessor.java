@@ -46,6 +46,7 @@ public class EphemeralMasterKeyEnvironmentPostProcessor implements EnvironmentPo
   private static final String PROPERTY = "mocapi.session-encryption-master-key";
   private static final String SOURCE_NAME = "mocapiExampleEphemeralMasterKey";
   private static final int KEY_BYTES = 32;
+  private static final SecureRandom RANDOM = new SecureRandom();
 
   @Override
   public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication app) {
@@ -53,7 +54,7 @@ public class EphemeralMasterKeyEnvironmentPostProcessor implements EnvironmentPo
       return;
     }
     byte[] key = new byte[KEY_BYTES];
-    new SecureRandom().nextBytes(key);
+    RANDOM.nextBytes(key);
     String encoded = Base64.getEncoder().encodeToString(key);
     environment
         .getPropertySources()
