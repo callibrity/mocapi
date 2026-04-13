@@ -42,6 +42,7 @@ import org.jwcarman.substrate.core.memory.mailbox.InMemoryMailboxSpi;
 import org.jwcarman.substrate.core.memory.notifier.InMemoryNotifier;
 import org.jwcarman.substrate.core.notifier.DefaultNotifier;
 import org.jwcarman.substrate.core.notifier.Notifier;
+import org.jwcarman.substrate.core.transform.PayloadTransformer;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
 import tools.jackson.databind.ObjectMapper;
 
@@ -62,6 +63,7 @@ class McpResponseCorrelationServiceTest {
         new DefaultMailboxFactory(
             new InMemoryMailboxSpi(),
             codecFactory,
+            PayloadTransformer.IDENTITY,
             notifier,
             Duration.ofMinutes(10),
             shutdownCoordinator);

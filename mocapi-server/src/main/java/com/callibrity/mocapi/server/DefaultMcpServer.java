@@ -72,9 +72,9 @@ public class DefaultMcpServer implements McpServer {
   public void handleCall(McpContext context, JsonRpcCall call, McpTransport transport) {
     McpSession session = context.session().orElse(null);
 
-    // Note: initialized check intentionally removed. The MCP spec says clients MUST send
-    // notifications/initialized, but enforcing it causes race conditions with backends that
-    // have read-after-write latency (e.g., NATS). The TypeScript SDK does not enforce it either.
+    // Initialized enforcement intentionally omitted. HTTP/2 multiplexing allows clients
+    // to send requests before the notifications/initialized 202 response arrives, causing
+    // legitimate requests to be rejected due to read-after-write races on the session store.
 
     JsonRpcResponse response;
     if (session != null) {

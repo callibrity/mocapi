@@ -29,6 +29,7 @@ import org.jwcarman.substrate.core.memory.mailbox.InMemoryMailboxSpi;
 import org.jwcarman.substrate.core.memory.notifier.InMemoryNotifier;
 import org.jwcarman.substrate.core.notifier.DefaultNotifier;
 import org.jwcarman.substrate.core.notifier.Notifier;
+import org.jwcarman.substrate.core.transform.PayloadTransformer;
 import org.jwcarman.substrate.journal.JournalFactory;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
 import tools.jackson.databind.ObjectMapper;
@@ -48,6 +49,7 @@ public final class SubstrateTestSupport {
     return new DefaultAtomFactory(
         new InMemoryAtomSpi(),
         CODEC_FACTORY,
+        PayloadTransformer.IDENTITY,
         notifier(),
         Duration.ofHours(1),
         new ShutdownCoordinator());
@@ -57,6 +59,7 @@ public final class SubstrateTestSupport {
     return new DefaultJournalFactory(
         new InMemoryJournalSpi(),
         CODEC_FACTORY,
+        PayloadTransformer.IDENTITY,
         notifier(),
         new JournalLimits(1024, Duration.ofHours(1), Duration.ofHours(1), Duration.ofHours(1)),
         new ShutdownCoordinator());
@@ -66,6 +69,7 @@ public final class SubstrateTestSupport {
     return new DefaultMailboxFactory(
         new InMemoryMailboxSpi(),
         CODEC_FACTORY,
+        PayloadTransformer.IDENTITY,
         notifier(),
         Duration.ofHours(1),
         new ShutdownCoordinator());
