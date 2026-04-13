@@ -48,7 +48,7 @@ class IntegerSchemaBuilderTest {
   void minimumShouldBeIncluded() {
     NumberSchema schema = new IntegerSchemaBuilder().description("Age").minimum(0).build();
 
-    assertThat(schema.minimum()).isEqualTo(0);
+    assertThat(schema.minimum()).isZero();
   }
 
   @Test
@@ -70,7 +70,7 @@ class IntegerSchemaBuilderTest {
             .build();
 
     assertThat(schema.title()).isEqualTo("Your Age");
-    assertThat(schema.minimum()).isEqualTo(0);
+    assertThat(schema.minimum()).isZero();
     assertThat(schema.maximum()).isEqualTo(150);
     assertThat(schema.defaultValue()).isEqualTo(30);
   }
