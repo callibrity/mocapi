@@ -37,6 +37,7 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.odyssey.core.Odyssey;
 import org.jwcarman.odyssey.core.SseEventMapper;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -62,6 +63,10 @@ import tools.jackson.databind.node.ObjectNode;
 @RequestMapping("${mocapi.endpoint:/mcp}")
 public class StreamableHttpController {
 
+  public static final String SESSION_ID_HEADER = "MCP-Session-Id";
+  public static final String MCP_PROTOCOL_VERSION_HEADER = "MCP-Protocol-Version";
+  public static final String LAST_EVENT_ID_HEADER = "Last-Event-ID";
+  public static final String INVALID_ORIGIN_MESSAGE = "Forbidden: Invalid Origin";
   private final McpServer server;
   private final McpRequestValidator validator;
   private final Odyssey odyssey;
@@ -85,8 +90,8 @@ public class StreamableHttpController {
   @PostMapping(produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE})
   public ResponseEntity<Object> handlePost(
       @RequestBody JsonRpcMessage message,
-      @RequestHeader(value = "MCP-Protocol-Version", required = false) String protocolVersion,
-      @RequestHeader(value = "MCP-Session-Id", required = false) String sessionId,
+      @RequestHeader(value = MCP_PROTOCOL_VERSION_HEADER, required = false) String protocolVersion,
+      @RequestHeader(value = SESSION_ID_HEADER, required = false) String sessionId,
       @RequestHeader(value = "Accept", required = false) String accept,
       @RequestHeader(value = "Origin", required = false) String origin) {
 
@@ -97,7 +102,7 @@ public class StreamableHttpController {
           "Not Acceptable: Client must accept both application/json and text/event-stream");
     }
     if (!validator.isValidOrigin(origin)) {
-      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, "Forbidden: Invalid Origin");
+      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, INVALID_ORIGIN_MESSAGE);
     }
 
     return switch (message) {
@@ -121,11 +126,11 @@ public class StreamableHttpController {
 
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public ResponseEntity<Object> handleGet(
-      @RequestHeader("MCP-Session-Id") String sessionId,
-      @RequestHeader(value = "MCP-Protocol-Version", required = false) String protocolVersion,
-      @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId,
-      @RequestHeader(value = "Accept", required = false) String accept,
-      @RequestHeader(value = "Origin", required = false) String origin) {
+      @RequestHeader(SESSION_ID_HEADER) String sessionId,
+      @RequestHeader(value = MCP_PROTOCOL_VERSION_HEADER, required = false) String protocolVersion,
+      @RequestHeader(value = LAST_EVENT_ID_HEADER, required = false) String lastEventId,
+      @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept,
+      @RequestHeader(value = HttpHeaders.ORIGIN, required = false) String origin) {
 
     if (!acceptsSse(accept)) {
       return jsonRpcError(
@@ -134,7 +139,7 @@ public class StreamableHttpController {
           "Not Acceptable: Client must accept text/event-stream");
     }
     if (!validator.isValidOrigin(origin)) {
-      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, "Forbidden: Invalid Origin");
+      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, INVALID_ORIGIN_MESSAGE);
     }
 
     return withContext(sessionId, protocolVersion, ctx -> handleGetStream(ctx, lastEventId));
@@ -142,12 +147,12 @@ public class StreamableHttpController {
 
   @DeleteMapping
   public ResponseEntity<Object> handleDelete(
-      @RequestHeader("MCP-Session-Id") String sessionId,
-      @RequestHeader(value = "MCP-Protocol-Version", required = false) String protocolVersion,
+      @RequestHeader(SESSION_ID_HEADER) String sessionId,
+      @RequestHeader(value = MCP_PROTOCOL_VERSION_HEADER, required = false) String protocolVersion,
       @RequestHeader(value = "Origin", required = false) String origin) {
 
     if (!validator.isValidOrigin(origin)) {
-      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, "Forbidden: Invalid Origin");
+      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, INVALID_ORIGIN_MESSAGE);
     }
 
     return withContext(

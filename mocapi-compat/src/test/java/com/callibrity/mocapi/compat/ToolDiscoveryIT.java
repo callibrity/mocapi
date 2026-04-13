@@ -62,7 +62,7 @@ class ToolDiscoveryIT {
             sessionId, "tools/list", null, client.objectMapper().getNodeFactory().numberNode(1));
 
     JsonNode firstTool = response.get("result").get("tools").get(0);
-    assertThat(firstTool.get("name").isTextual()).isTrue();
+    assertThat(firstTool.get("name").isString()).isTrue();
     assertThat(firstTool.get("name").asString()).isNotEmpty();
   }
 

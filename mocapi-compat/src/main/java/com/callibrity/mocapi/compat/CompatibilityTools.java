@@ -65,6 +65,8 @@ public class CompatibilityTools {
   private static final String OPTION_1 = "option1";
   private static final String OPTION_2 = "option2";
   private static final String OPTION_3 = "option3";
+  public static final String USERNAME_PROP = "username";
+  public static final String EMAIL_PROP = "email";
 
   private static CallToolResult elicitationResult(com.callibrity.mocapi.model.ElicitResult result) {
     return new CallToolResult(
@@ -399,12 +401,14 @@ public class CompatibilityTools {
   @ToolMethod(name = "test_elicitation", description = "Tests elicitation/create for conformance")
   public CallToolResult testElicitation(String message, McpToolContext ctx) {
     var properties = new LinkedHashMap<String, PrimitiveSchemaDefinition>();
-    properties.put("username", new StringSchema("User's response", null, null, null, null, null));
-    properties.put("email", new StringSchema("User's email address", null, null, null, null, null));
-    var schema = new RequestedSchema(properties, List.of("username", "email"));
+    properties.put(
+        USERNAME_PROP, new StringSchema("User's response", null, null, null, null, null));
+    properties.put(
+        EMAIL_PROP, new StringSchema("User's email address", null, null, null, null, null));
+    var schema = new RequestedSchema(properties, List.of(USERNAME_PROP, EMAIL_PROP));
     var params = new ElicitRequestFormParams("form", message, schema, null, null);
     var result = ctx.elicit(params);
-    String content = result.isAccepted() ? result.getString("username") : "n/a";
+    String content = result.isAccepted() ? result.getString(USERNAME_PROP) : "n/a";
     return new CallToolResult(
         List.of(
             new TextContent(

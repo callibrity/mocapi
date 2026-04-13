@@ -36,6 +36,10 @@ import tools.jackson.databind.node.StringNode;
 public class DefaultMethodSchemaGenerator implements MethodSchemaGenerator {
 
   public static final String SCHEMA_PROPERTY_NAME = "$schema";
+  public static final String REQUIRED_PROPERTY = "required";
+  public static final String TYPE_PROPERTY = "type";
+  public static final String OBJECT_TYPE = "object";
+  public static final String PROPERTIES_PROPERTY = "properties";
   private final SchemaGenerator generator;
 
   public DefaultMethodSchemaGenerator(ObjectMapper mapper, SchemaVersion schemaVersion) {
@@ -77,12 +81,12 @@ public class DefaultMethodSchemaGenerator implements MethodSchemaGenerator {
     schemaNode.set(
         SCHEMA_PROPERTY_NAME,
         StringNode.valueOf(generator.getConfig().getSchemaVersion().getIdentifier()));
-    schemaNode.put("type", "object");
-    if (schema.has("properties")) {
-      schemaNode.set("properties", schema.get("properties"));
+    schemaNode.put(TYPE_PROPERTY, OBJECT_TYPE);
+    if (schema.has(PROPERTIES_PROPERTY)) {
+      schemaNode.set(PROPERTIES_PROPERTY, schema.get(PROPERTIES_PROPERTY));
     }
-    if (schema.has("required")) {
-      schemaNode.set("required", schema.get("required"));
+    if (schema.has(REQUIRED_PROPERTY)) {
+      schemaNode.set(REQUIRED_PROPERTY, schema.get(REQUIRED_PROPERTY));
     }
     return schemaNode;
   }
@@ -119,10 +123,10 @@ public class DefaultMethodSchemaGenerator implements MethodSchemaGenerator {
         requiredNode.add(param.getName());
       }
     }
-    schemaNode.put("type", "object");
-    schemaNode.set("properties", propsNode);
+    schemaNode.put(TYPE_PROPERTY, OBJECT_TYPE);
+    schemaNode.set(PROPERTIES_PROPERTY, propsNode);
     if (!requiredNode.isEmpty()) {
-      schemaNode.set("required", requiredNode);
+      schemaNode.set(REQUIRED_PROPERTY, requiredNode);
     }
     return schemaNode;
   }

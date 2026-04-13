@@ -29,6 +29,9 @@ import org.springframework.stereotype.Component;
 @ToolService
 public class HelloTool {
 
+  public static final String FIRST_NAME_PROP = "firstName";
+  public static final String LAST_NAME_PROP = "lastName";
+
   @ToolMethod(name = "hello", description = "Returns a greeting message")
   public HelloResponse sayHello(String name) {
     return new HelloResponse(String.format("Hello, %s!", name));
@@ -40,14 +43,14 @@ public class HelloTool {
   public HelloResponse sayHelloElicitation(McpToolContext ctx) {
     var properties =
         new LinkedHashMap<String, com.callibrity.mocapi.model.PrimitiveSchemaDefinition>();
-    properties.put("firstName", new StringSchema("First Name", null, null, null, null, null));
-    properties.put("lastName", new StringSchema("Last Name", null, null, null, null, null));
-    var schema = new RequestedSchema(properties, List.of("firstName", "lastName"));
+    properties.put(FIRST_NAME_PROP, new StringSchema("First Name", null, null, null, null, null));
+    properties.put(LAST_NAME_PROP, new StringSchema("Last Name", null, null, null, null, null));
+    var schema = new RequestedSchema(properties, List.of(FIRST_NAME_PROP, LAST_NAME_PROP));
     var params =
         new ElicitRequestFormParams("form", "Please tell me about yourself!", schema, null, null);
     var result = ctx.elicit(params);
-    var firstName = result.getString("firstName");
-    var lastName = result.getString("lastName");
+    var firstName = result.getString(FIRST_NAME_PROP);
+    var lastName = result.getString(LAST_NAME_PROP);
     return new HelloResponse(String.format("Hello, %s %s!", firstName, lastName));
   }
 
