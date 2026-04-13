@@ -38,8 +38,13 @@ import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -168,5 +173,51 @@ class DefaultMcpToolContextTest {
             requestParams,
             CreateMessageResult.class,
             transport);
+  }
+
+  @ParameterizedTest
+  @MethodSource("loggingConvenienceMethods")
+  void convenienceLogMethodDelegatesToLogWithCorrectLevel(
+      LoggingLevel expectedLevel, BiConsumer<DefaultMcpToolContext, String[]> method) {
+    var transport = mock(McpTransport.class);
+    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
+
+    method.accept(ctx, new String[] {"test-logger", "test message"});
+
+    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+    verify(transport).send(captor.capture());
+    var msg = (JsonRpcNotification) captor.getValue();
+    assertThat(msg.method()).isEqualTo("notifications/message");
+    assertThat(msg.params().get("level").asString()).isEqualTo(expectedLevel.toJson());
+    assertThat(msg.params().get("logger").asString()).isEqualTo("test-logger");
+    assertThat(msg.params().get("data").asString()).isEqualTo("test message");
+  }
+
+  static Stream<Arguments> loggingConvenienceMethods() {
+    return Stream.of(
+        Arguments.of(
+            LoggingLevel.DEBUG,
+            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.debug(a[0], a[1])),
+        Arguments.of(
+            LoggingLevel.INFO,
+            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.info(a[0], a[1])),
+        Arguments.of(
+            LoggingLevel.NOTICE,
+            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.notice(a[0], a[1])),
+        Arguments.of(
+            LoggingLevel.WARNING,
+            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.warning(a[0], a[1])),
+        Arguments.of(
+            LoggingLevel.ERROR,
+            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.error(a[0], a[1])),
+        Arguments.of(
+            LoggingLevel.CRITICAL,
+            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.critical(a[0], a[1])),
+        Arguments.of(
+            LoggingLevel.ALERT,
+            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.alert(a[0], a[1])),
+        Arguments.of(
+            LoggingLevel.EMERGENCY,
+            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.emergency(a[0], a[1])));
   }
 }
