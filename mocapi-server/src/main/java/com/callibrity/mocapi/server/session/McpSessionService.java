@@ -72,11 +72,9 @@ public class McpSessionService {
     return session.sessionId();
   }
 
-  /** Looks up a session by ID, extending TTL on hit. */
+  /** Looks up a session by ID. */
   public Optional<McpSession> find(String sessionId) {
-    Optional<McpSession> result = store.find(sessionId);
-    result.ifPresent(_ -> store.touch(sessionId, ttl));
-    return result;
+    return store.find(sessionId);
   }
 
   /** Removes a session from the store. */

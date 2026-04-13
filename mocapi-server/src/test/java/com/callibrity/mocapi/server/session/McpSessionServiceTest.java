@@ -76,7 +76,7 @@ class McpSessionServiceTest {
   }
 
   @Test
-  void findReturnSessionAndTouchesTtl() {
+  void findReturnsSession() {
     McpSession session =
         new McpSession("session-1", "2025-11-25", null, null, LoggingLevel.WARNING);
     when(store.find("session-1")).thenReturn(Optional.of(session));
@@ -84,7 +84,6 @@ class McpSessionServiceTest {
     Optional<McpSession> result = service.find("session-1");
 
     assertThat(result).contains(session);
-    verify(store).touch("session-1", TTL);
   }
 
   @Test
