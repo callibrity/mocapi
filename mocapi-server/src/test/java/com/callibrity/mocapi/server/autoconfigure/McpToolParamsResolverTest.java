@@ -36,9 +36,13 @@ class McpToolParamsResolverTest {
 
   record TestParams(String name, int age) {}
 
-  void methodWithAnnotated(@McpToolParams TestParams params) {}
+  void methodWithAnnotated(@McpToolParams TestParams params) {
+    // Reflective target — parameter metadata used by supports() and resolve() tests
+  }
 
-  void methodWithoutAnnotation(String plain) {}
+  void methodWithoutAnnotation(String plain) {
+    // Reflective target — parameter without @McpToolParams for negative test
+  }
 
   @Test
   void supportsParameterWithMcpToolParamsAnnotation() throws Exception {
