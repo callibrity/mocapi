@@ -144,9 +144,9 @@ public interface McpToolContext {
    *
    * <pre>{@code
    * ElicitResult result = ctx.elicit("Please enter your details", schema -> schema
-   *     .string("name", "Your name").required()
-   *     .string("email", "Email address").format("email").required()
-   *     .integer("age", "Your age").min(0).max(150)
+   *     .string("name", "Your name")
+   *     .string("email", "Email address", s -> s.email())
+   *     .integer("age", "Your age", s -> s.optional().min(0).max(150))
    * );
    * }</pre>
    *

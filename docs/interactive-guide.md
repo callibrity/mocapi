@@ -59,8 +59,8 @@ Tools can prompt the user for input during execution. The server sends an `elici
 @ToolMethod(name = "onboard", description = "Onboards a new user")
 public OnboardResult onboard(McpToolContext ctx) {
     ElicitResult result = ctx.elicit("Please enter your details", schema -> schema
-        .string("name", "Your name").required()
-        .string("email", "Email address").format("email").required()
+        .string("name", "Your name")
+        .string("email", "Email address", s -> s.email())
     );
 
     if (result.isAccepted()) {
