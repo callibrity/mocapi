@@ -18,7 +18,7 @@ spring:
   sql:
     init:
       mode: always
-      schema-locations: classpath:schema/mocapi-session-store-postgresql.sql
+      schema-locations: classpath:db/substrate/postgresql/V1__create_atom.sql,classpath:db/substrate/postgresql/V1__create_journal.sql,classpath:db/substrate/postgresql/V1__create_mailbox.sql
 
 server:
   port: 8080

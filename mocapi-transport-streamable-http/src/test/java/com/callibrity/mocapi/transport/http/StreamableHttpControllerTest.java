@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -47,6 +48,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
@@ -305,6 +307,46 @@ class StreamableHttpControllerTest {
       assertThat(streamCaptor.getValue()).isEqualTo("stream-name");
       assertThat(eventIdCaptor.getValue()).isEqualTo("event-42");
     }
+
+    @Test
+    void primingEventIdTriggersSubscribeNotResume() {
+      when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
+      SseEmitter emitter = new SseEmitter();
+      when(odyssey.subscribe(eq("stream-name"), eq(JsonRpcMessage.class), any()))
+          .thenReturn(emitter);
+
+      String plaintext = "stream-name:PRIMING";
+      String encryptedId = encrypt("session-1", plaintext);
+
+      var response = controller.handleGet("session-1", null, encryptedId, SSE_ACCEPT, null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertThat(response.getBody()).isSameAs(emitter);
+      verify(odyssey).subscribe(eq("stream-name"), eq(JsonRpcMessage.class), any());
+      verify(odyssey, never()).resume(anyString(), any(), anyString(), any());
+    }
+
+    @Test
+    void lastEventIdWithNoColonReturns400() {
+      when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
+
+      String plaintext = "no-colon-in-this-value";
+      String encryptedId = encrypt("session-1", plaintext);
+
+      var response = controller.handleGet("session-1", null, encryptedId, SSE_ACCEPT, null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void malformedBase64InLastEventIdReturns400() {
+      when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
+
+      var response =
+          controller.handleGet("session-1", null, "not!!!valid~base64", SSE_ACCEPT, null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
   }
 
   @Nested
@@ -323,6 +365,34 @@ class StreamableHttpControllerTest {
     void rejectsInvalidOrigin() {
       var response = controller.handleDelete("s", null, "http://evil.example.com");
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+  }
+
+  @Nested
+  class ExceptionHandling {
+
+    @Test
+    void handleUnreadableBodyReturns400WithParseError() {
+      var cause = new RuntimeException("Unexpected token");
+      var ex = new HttpMessageNotReadableException("Could not read JSON", cause, null);
+
+      var response = controller.handleUnreadableBody(ex);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+      assertThat(response.getBody()).isNotNull();
+      assertThat(response.getBody().toString()).contains("Parse error");
+      assertThat(response.getBody().toString()).contains("Unexpected token");
+    }
+
+    @Test
+    void handleUnreadableBodyUsesRootCauseMessage() {
+      var root = new RuntimeException("root cause");
+      var mid = new RuntimeException("mid", root);
+      var ex = new HttpMessageNotReadableException("wrapper", mid, null);
+
+      var response = controller.handleUnreadableBody(ex);
+
+      assertThat(response.getBody().toString()).contains("root cause");
     }
   }
 
