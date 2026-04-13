@@ -56,17 +56,12 @@ Available levels (in ascending order): `DEBUG`, `INFO`, `NOTICE`, `WARNING`, `ER
 Tools can prompt the user for input during execution. The server sends an `elicitation/create` request to the client, which presents a form to the user and returns their response.
 
 ```java
-import com.callibrity.mocapi.model.*;
-
 @ToolMethod(name = "onboard", description = "Onboards a new user")
 public OnboardResult onboard(McpToolContext ctx) {
-    var properties = new LinkedHashMap<String, PrimitiveSchemaDefinition>();
-    properties.put("name", new StringSchema("Your name", null, null, null, null, null));
-    properties.put("email", new StringSchema("Email address", null, null, null, "email", null));
-    var schema = new RequestedSchema(properties, List.of("name", "email"));
-
-    var params = new ElicitRequestFormParams("form", "Please enter your details", schema, null, null);
-    ElicitResult result = ctx.elicit(params);
+    ElicitResult result = ctx.elicit("Please enter your details", schema -> schema
+        .string("name", "Your name").required()
+        .string("email", "Email address").format("email").required()
+    );
 
     if (result.isAccepted()) {
         String name = result.getString("name");

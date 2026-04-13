@@ -15,11 +15,13 @@
  */
 package com.callibrity.mocapi.api.tools;
 
+import com.callibrity.mocapi.api.elicitation.RequestedSchemaBuilder;
 import com.callibrity.mocapi.model.CreateMessageRequestParams;
 import com.callibrity.mocapi.model.CreateMessageResult;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.LoggingLevel;
+import java.util.function.Consumer;
 
 /**
  * Context available to tool methods that need mid-execution communication with the client. Provides
@@ -136,6 +138,28 @@ public interface McpToolContext {
    * @return the client's elicitation result
    */
   ElicitResult elicit(ElicitRequestFormParams params);
+
+  /**
+   * Sends an elicitation request using a fluent schema builder. Example:
+   *
+   * <pre>{@code
+   * ElicitResult result = ctx.elicit("Please enter your details", schema -> schema
+   *     .string("name", "Your name").required()
+   *     .string("email", "Email address").format("email").required()
+   *     .integer("age", "Your age").min(0).max(150)
+   * );
+   * }</pre>
+   *
+   * @param message the message to display to the user
+   * @param schemaCustomizer configures the schema via {@link RequestedSchemaBuilder}
+   * @return the client's elicitation result
+   */
+  default ElicitResult elicit(String message, Consumer<RequestedSchemaBuilder> schemaCustomizer) {
+    var builder = new RequestedSchemaBuilder();
+    schemaCustomizer.accept(builder);
+    var params = new ElicitRequestFormParams("form", message, builder.build(), null, null);
+    return elicit(params);
+  }
 
   /**
    * Sends a sampling (createMessage) request to the client and blocks until the client responds.
