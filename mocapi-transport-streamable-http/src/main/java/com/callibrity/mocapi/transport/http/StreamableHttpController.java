@@ -206,7 +206,7 @@ public class StreamableHttpController {
 
   private ResponseEntity<Object> handleCall(McpContext context, JsonRpcCall call) {
     if (context.sessionId() == null) {
-      SynchronousTransport transport = new SynchronousTransport();
+      var transport = new SynchronousTransport();
       server.handleCall(context, call, transport);
       return transport.toResponseEntity();
     }

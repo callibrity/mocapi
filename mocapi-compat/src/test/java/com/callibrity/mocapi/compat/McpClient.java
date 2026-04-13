@@ -15,6 +15,10 @@
  */
 package com.callibrity.mocapi.compat;
 
+import static org.awaitility.Awaitility.await;
+
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -276,16 +280,39 @@ public class McpClient {
   public JsonNode call(String sessionId, String method, Object params, JsonNode id)
       throws Exception {
     MvcResult mvcResult = post(sessionId, method, params, id).andReturn();
-    mvcResult.getAsyncResult(15000);
-    String body = mvcResult.getResponse().getContentAsString();
-    return lastJsonRpcResponse(body);
+    AtomicReference<JsonNode> result = new AtomicReference<>();
+    await()
+        .atMost(Duration.ofSeconds(15))
+        .pollInterval(Duration.ofMillis(200))
+        .ignoreExceptions()
+        .untilAsserted(
+            () -> {
+              mvcResult.getAsyncResult(100);
+              String body = mvcResult.getResponse().getContentAsString();
+              JsonNode response = lastJsonRpcResponse(body);
+              org.assertj.core.api.Assertions.assertThat(response).isNotNull();
+              result.set(response);
+            });
+    return result.get();
   }
 
   public String callRawSse(String sessionId, String method, Object params, JsonNode id)
       throws Exception {
     MvcResult mvcResult = post(sessionId, method, params, id).andReturn();
-    mvcResult.getAsyncResult(15000);
-    return mvcResult.getResponse().getContentAsString();
+    AtomicReference<String> result = new AtomicReference<>();
+    await()
+        .atMost(Duration.ofSeconds(15))
+        .pollInterval(Duration.ofMillis(200))
+        .ignoreExceptions()
+        .untilAsserted(
+            () -> {
+              mvcResult.getAsyncResult(100);
+              String body = mvcResult.getResponse().getContentAsString();
+              org.assertj.core.api.Assertions.assertThat(body).isNotEmpty();
+              org.assertj.core.api.Assertions.assertThat(lastJsonRpcResponse(body)).isNotNull();
+              result.set(body);
+            });
+    return result.get();
   }
 
   private JsonNode lastJsonRpcResponse(String sseBody) {
