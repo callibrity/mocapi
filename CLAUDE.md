@@ -42,7 +42,7 @@ currently says `X.Y.Z-SNAPSHOT`.
      date in ISO format).
    - Add a fresh empty `## [Unreleased]` section at the top.
    - Add a new link reference at the bottom of the file:
-     `[X.Y.Z]: https://github.com/callibrity/mocapi/releases/tag/vX.Y.Z`
+     `[X.Y.Z]: https://github.com/callibrity/mocapi/releases/tag/X.Y.Z`
    - Follow Keep-a-Changelog categories: `### Breaking changes`,
      `### Added`, `### Changed`, `### Fixed`, `### Documentation`,
      `### Requirements`. Drop any sections that have no entries.
@@ -60,9 +60,10 @@ currently says `X.Y.Z-SNAPSHOT`.
 5. **Create the GitHub Release** (this is what actually triggers the
    Maven Central publish):
    ```
-   gh release create vX.Y.Z --title "X.Y.Z" --notes-file <notes-file>
+   gh release create X.Y.Z --title "X.Y.Z" --notes-file <notes-file>
    ```
-   Mocapi uses the `v` prefix for tags (e.g., `v0.1.0`).
+   Tag, title, Maven version, and CHANGELOG header are all the exact
+   same bare semver string (e.g., `0.1.0`). No `v` prefix anywhere.
    The release notes should mirror the CHANGELOG section for this
    version. Write them in a temp file first (e.g., `/tmp/release-notes.md`)
    and pass via `--notes-file`.
@@ -86,8 +87,29 @@ currently says `X.Y.Z-SNAPSHOT`.
    git push
    ```
 
+### CRITICAL: NO `v` prefix, ANYWHERE
+
+The version is a bare three-part semver string — e.g. `0.1.0` — and
+that same exact string is used in every single place:
+
+- Git tag: `0.1.0`
+- GitHub release title: `0.1.0`
+- `mvn versions:set -DnewVersion=0.1.0`
+- pom `<version>` (the non-SNAPSHOT equivalent)
+- CHANGELOG header: `## [0.1.0] - YYYY-MM-DD`
+- CHANGELOG link target URL path segment: `.../releases/tag/0.1.0`
+- Commit messages, release notes body, everywhere else
+
+**Never type `v` before a version number. Not on the tag, not on the
+title, not on the Maven version, not anywhere.** Maven Central
+artifacts are immutable — a version string with a `v` in it cannot be
+deleted or overwritten and pollutes the artifact's version history
+forever.
+
 ### What NOT to do
 
+- **Don't prefix the version with `v` anywhere.** Tag, title, Maven
+  version, CHANGELOG — all the same bare `X.Y.Z` string.
 - **Don't change the `<version>` in pom.xml to the release version.**
   The pom always says `-SNAPSHOT` in git. The CI workflow strips it in
   its ephemeral build environment. Manually setting the release version
