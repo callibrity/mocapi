@@ -33,6 +33,12 @@ All notable changes to this project are documented in this file. The format is b
   now throw `IllegalArgumentException` (previously `IllegalStateException`), since
   the violation is in the declared method signature.
 
+### Documentation
+
+- Configuration guide now includes commands (OpenSSL, Python, JShell) for
+  generating a base64-encoded 32-byte AES-256 value suitable for
+  `mocapi.session-encryption-master-key`.
+
 ### Requirements
 
 - Methodical bumped from 0.3.0 to 0.4.0 for the per-invoker resolver API.

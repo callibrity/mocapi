@@ -55,6 +55,9 @@ mocapi.instructions=This server provides weather and calendar tools.
 mocapi.session-timeout=PT30M
 mocapi.session-encryption-master-key=BASE64_ENCODED_32_BYTE_KEY
 
+# See "Generating the session encryption key" below for commands that produce a
+# suitable value for mocapi.session-encryption-master-key.
+
 # Transport
 mocapi.endpoint=/api/mcp
 mocapi.allowed-origins=myapp.example.com,localhost
@@ -66,6 +69,30 @@ mocapi.sampling.timeout=PT1M
 # Pagination
 mocapi.pagination.page-size=25
 ```
+
+## Generating the Session Encryption Key
+
+`mocapi.session-encryption-master-key` must be a base64-encoded 32-byte (AES-256) key. Any of the following produces a suitable value:
+
+**OpenSSL (macOS/Linux):**
+```bash
+openssl rand -base64 32
+```
+
+**Python (any platform with Python 3):**
+```bash
+python3 -c "import secrets,base64; print(base64.b64encode(secrets.token_bytes(32)).decode())"
+```
+
+**Java (one-liner from a JShell session):**
+```java
+jshell -s -
+var k = new byte[32]; new java.security.SecureRandom().nextBytes(k);
+System.out.println(java.util.Base64.getEncoder().encodeToString(k));
+/exit
+```
+
+Generate the key once per environment and store it in your secret manager (Vault, AWS Secrets Manager, Kubernetes Secret, etc.) -- not in source control. Rotating the key invalidates all outstanding SSE event IDs, so plan rotations during a maintenance window.
 
 ## Backend Configuration
 
