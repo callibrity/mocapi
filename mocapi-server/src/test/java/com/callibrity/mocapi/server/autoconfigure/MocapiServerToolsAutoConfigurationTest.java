@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
-import com.callibrity.mocapi.server.tools.McpToolContextResolver;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
@@ -77,8 +76,6 @@ class MocapiServerToolsAutoConfigurationTest {
   void defaultBeansAreAutoConfigured() {
     contextRunner.run(
         context -> {
-          assertThat(context).hasSingleBean(McpToolContextResolver.class);
-          assertThat(context).hasSingleBean(McpToolParamsResolver.class);
           assertThat(context).hasSingleBean(MethodSchemaGenerator.class);
           assertThat(context).hasSingleBean(ToolServiceMcpToolProvider.class);
         });
@@ -117,18 +114,6 @@ class MocapiServerToolsAutoConfigurationTest {
                   context.getBean(MocapiServerToolsProperties.class);
               assertThat(props.getSchemaVersion())
                   .isEqualTo(com.github.victools.jsonschema.generator.SchemaVersion.DRAFT_7);
-            });
-  }
-
-  @Test
-  void customToolContextResolverOverridesDefault() {
-    McpToolContextResolver custom = new McpToolContextResolver();
-    contextRunner
-        .withBean(McpToolContextResolver.class, () -> custom)
-        .run(
-            context -> {
-              assertThat(context).hasSingleBean(McpToolContextResolver.class);
-              assertThat(context.getBean(McpToolContextResolver.class)).isSameAs(custom);
             });
   }
 

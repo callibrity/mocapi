@@ -1,3 +1,5 @@
 com.callibrity.mocapi.server.autoconfigure.SubstrateOrderingAutoConfiguration
 com.callibrity.mocapi.server.autoconfigure.MocapiServerToolsAutoConfiguration
+com.callibrity.mocapi.server.autoconfigure.MocapiServerPromptsAutoConfiguration
+com.callibrity.mocapi.server.autoconfigure.MocapiServerResourcesAutoConfiguration
 com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration

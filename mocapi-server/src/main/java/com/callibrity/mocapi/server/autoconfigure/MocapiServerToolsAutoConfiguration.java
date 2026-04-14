@@ -17,7 +17,6 @@ package com.callibrity.mocapi.server.autoconfigure;
 
 import com.callibrity.mocapi.api.tools.McpToolProvider;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
-import com.callibrity.mocapi.server.tools.McpToolContextResolver;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
@@ -30,8 +29,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration(before = MocapiServerAutoConfiguration.class)
@@ -42,19 +39,6 @@ public class MocapiServerToolsAutoConfiguration {
 
   private final MocapiServerToolsProperties props;
   private final MocapiServerProperties mocapiProperties;
-
-  @Bean
-  @ConditionalOnMissingBean(McpToolContextResolver.class)
-  public McpToolContextResolver mcpProtocolToolContextScopedValueResolver() {
-    return new McpToolContextResolver();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(McpToolParamsResolver.class)
-  @Order(Ordered.HIGHEST_PRECEDENCE)
-  public McpToolParamsResolver mcpProtocolToolParamsResolver(ObjectMapper objectMapper) {
-    return new McpToolParamsResolver(objectMapper);
-  }
 
   @Bean
   @ConditionalOnMissingBean(McpToolsService.class)
@@ -77,7 +61,8 @@ public class MocapiServerToolsAutoConfiguration {
   public ToolServiceMcpToolProvider mcpProtocolToolServiceMcpToolProvider(
       ApplicationContext context,
       MethodSchemaGenerator generator,
-      MethodInvokerFactory invokerFactory) {
-    return new ToolServiceMcpToolProvider(context, generator, invokerFactory);
+      MethodInvokerFactory invokerFactory,
+      ObjectMapper objectMapper) {
+    return new ToolServiceMcpToolProvider(context, generator, invokerFactory, objectMapper);
   }
 }

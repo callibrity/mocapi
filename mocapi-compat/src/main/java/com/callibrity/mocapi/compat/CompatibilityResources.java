@@ -15,22 +15,18 @@
  */
 package com.callibrity.mocapi.compat;
 
-import com.callibrity.mocapi.api.resources.McpResource;
-import com.callibrity.mocapi.api.resources.McpResourceProvider;
-import com.callibrity.mocapi.api.resources.McpResourceTemplate;
-import com.callibrity.mocapi.api.resources.McpResourceTemplateProvider;
+import com.callibrity.mocapi.api.resources.ResourceMethod;
+import com.callibrity.mocapi.api.resources.ResourceService;
+import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
 import com.callibrity.mocapi.model.BlobResourceContents;
 import com.callibrity.mocapi.model.ReadResourceResult;
-import com.callibrity.mocapi.model.Resource;
-import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.TextResourceContents;
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
-@Configuration
+@Component
+@ResourceService
 public class CompatibilityResources {
 
   // 1x1 red pixel PNG
@@ -109,98 +105,53 @@ public class CompatibilityResources {
                 (byte) 0x82
               });
 
-  @Bean
-  public McpResourceProvider conformanceResources() {
-    McpResource staticText =
-        new McpResource() {
-          @Override
-          public Resource descriptor() {
-            return new Resource(
+  @ResourceMethod(
+      uri = "test://static-text",
+      name = "Static Text Resource",
+      description = "A static text resource for conformance testing",
+      mimeType = "text/plain")
+  public ReadResourceResult staticText() {
+    return new ReadResourceResult(
+        List.of(
+            new TextResourceContents(
                 "test://static-text",
-                "Static Text Resource",
-                "A static text resource for conformance testing",
-                "text/plain");
-          }
-
-          @Override
-          public ReadResourceResult read() {
-            var d = descriptor();
-            return new ReadResourceResult(
-                List.of(
-                    new TextResourceContents(
-                        d.uri(),
-                        d.mimeType(),
-                        "This is the content of the static text resource.")));
-          }
-        };
-
-    McpResource staticBinary =
-        new McpResource() {
-          @Override
-          public Resource descriptor() {
-            return new Resource(
-                "test://static-binary",
-                "Static Binary Resource",
-                "A static binary resource for conformance testing",
-                "image/png");
-          }
-
-          @Override
-          public ReadResourceResult read() {
-            var d = descriptor();
-            return new ReadResourceResult(
-                List.of(new BlobResourceContents(d.uri(), d.mimeType(), TINY_PNG)));
-          }
-        };
-
-    McpResource watched =
-        new McpResource() {
-          @Override
-          public Resource descriptor() {
-            return new Resource(
-                "test://watched-resource",
-                "Watched Resource",
-                "A resource that supports subscriptions for conformance testing",
-                "text/plain");
-          }
-
-          @Override
-          public ReadResourceResult read() {
-            var d = descriptor();
-            return new ReadResourceResult(
-                List.of(
-                    new TextResourceContents(
-                        d.uri(), d.mimeType(), "This is the content of the watched resource.")));
-          }
-        };
-
-    return () -> List.of(staticText, staticBinary, watched);
+                "text/plain",
+                "This is the content of the static text resource.")));
   }
 
-  @Bean
-  public McpResourceTemplateProvider conformanceResourceTemplates() {
-    McpResourceTemplate template =
-        new McpResourceTemplate() {
-          @Override
-          public ResourceTemplate descriptor() {
-            return new ResourceTemplate(
-                "test://template/{id}/data",
-                "Template Resource",
-                "A resource template for conformance testing",
-                "application/json");
-          }
+  @ResourceMethod(
+      uri = "test://static-binary",
+      name = "Static Binary Resource",
+      description = "A static binary resource for conformance testing",
+      mimeType = "image/png")
+  public ReadResourceResult staticBinary() {
+    return new ReadResourceResult(
+        List.of(new BlobResourceContents("test://static-binary", "image/png", TINY_PNG)));
+  }
 
-          @Override
-          public ReadResourceResult read(Map<String, String> pathVariables) {
-            String id = pathVariables.get("id");
-            String json =
-                String.format(
-                    "{\"id\":\"%s\",\"templateTest\":true,\"data\":\"Data for ID: %s\"}", id, id);
-            String uri = String.format("test://template/%s/data", id);
-            return new ReadResourceResult(
-                List.of(new TextResourceContents(uri, descriptor().mimeType(), json)));
-          }
-        };
-    return () -> List.of(template);
+  @ResourceMethod(
+      uri = "test://watched-resource",
+      name = "Watched Resource",
+      description = "A resource that supports subscriptions for conformance testing",
+      mimeType = "text/plain")
+  public ReadResourceResult watched() {
+    return new ReadResourceResult(
+        List.of(
+            new TextResourceContents(
+                "test://watched-resource",
+                "text/plain",
+                "This is the content of the watched resource.")));
+  }
+
+  @ResourceTemplateMethod(
+      uriTemplate = "test://template/{id}/data",
+      name = "Template Resource",
+      description = "A resource template for conformance testing",
+      mimeType = "application/json")
+  public ReadResourceResult templateData(String id) {
+    String json =
+        String.format("{\"id\":\"%s\",\"templateTest\":true,\"data\":\"Data for ID: %s\"}", id, id);
+    String uri = String.format("test://template/%s/data", id);
+    return new ReadResourceResult(List.of(new TextResourceContents(uri, "application/json", json)));
   }
 }

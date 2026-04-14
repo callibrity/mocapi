@@ -31,19 +31,22 @@ import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
+import org.jwcarman.methodical.param.ParameterResolver;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 class AnnotationMcpToolTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
   private final MethodInvokerFactory invokerFactory =
-      new DefaultMethodInvokerFactory(
-          List.of(new McpToolContextResolver(), new Jackson3ParameterResolver(mapper)));
+      new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(mapper)));
+  private final List<ParameterResolver<? super JsonNode>> resolvers =
+      List.of(new McpToolContextResolver());
   private final DefaultMethodSchemaGenerator generator =
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
 
   private List<AnnotationMcpTool> createTools(Object target) {
-    return AnnotationMcpTool.createTools(generator, invokerFactory, target);
+    return AnnotationMcpTool.createTools(generator, invokerFactory, resolvers, target);
   }
 
   @Test
@@ -98,7 +101,7 @@ class AnnotationMcpToolTest {
   void mcpToolParamsWithOtherNonContextParamShouldThrow() {
     var target = new InvalidMixedParamsTool();
     assertThatThrownBy(() -> createTools(target))
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("@McpToolParams");
   }
 

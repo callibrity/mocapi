@@ -15,63 +15,58 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
-import com.callibrity.mocapi.api.tools.McpTool;
-import com.callibrity.mocapi.api.tools.McpToolProvider;
-import com.callibrity.mocapi.api.tools.ToolService;
-import com.callibrity.mocapi.server.tools.McpToolContextResolver;
-import com.callibrity.mocapi.server.tools.annotation.AnnotationMcpTool;
-import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
+import com.callibrity.mocapi.api.prompts.McpPrompt;
+import com.callibrity.mocapi.api.prompts.McpPromptProvider;
+import com.callibrity.mocapi.api.prompts.PromptService;
+import com.callibrity.mocapi.server.prompts.annotation.AnnotationMcpPrompt;
+import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.context.ApplicationContext;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
+import org.springframework.core.convert.ConversionService;
 
 @Slf4j
-class ToolServiceMcpToolProvider implements McpToolProvider {
+class PromptServiceMcpPromptProvider implements McpPromptProvider {
 
   private final ApplicationContext context;
-  private final MethodSchemaGenerator generator;
   private final MethodInvokerFactory invokerFactory;
-  private final List<ParameterResolver<? super JsonNode>> resolvers;
-  private List<AnnotationMcpTool> tools;
+  private final List<ParameterResolver<? super Map<String, String>>> resolvers;
+  private List<AnnotationMcpPrompt> prompts;
 
-  ToolServiceMcpToolProvider(
+  PromptServiceMcpPromptProvider(
       ApplicationContext context,
-      MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
-      ObjectMapper objectMapper) {
+      ConversionService conversionService) {
     this.context = context;
-    this.generator = generator;
     this.invokerFactory = invokerFactory;
-    this.resolvers = List.of(new McpToolContextResolver(), new McpToolParamsResolver(objectMapper));
+    this.resolvers = List.of(new StringMapArgResolver(conversionService));
   }
 
   @Override
-  public List<McpTool> getMcpTools() {
-    return List.copyOf(tools);
+  public List<McpPrompt> getMcpPrompts() {
+    return List.copyOf(prompts);
   }
 
   @PostConstruct
   void initialize() {
-    var beans = context.getBeansWithAnnotation(ToolService.class);
-    tools =
+    var beans = context.getBeansWithAnnotation(PromptService.class);
+    prompts =
         beans.entrySet().stream()
             .flatMap(
                 entry -> {
                   var beanName = entry.getKey();
                   var bean = entry.getValue();
                   log.info(
-                      "Registering MCP tools for @{} bean \"{}\"...",
-                      ToolService.class.getSimpleName(),
+                      "Registering MCP prompts for @{} bean \"{}\"...",
+                      PromptService.class.getSimpleName(),
                       beanName);
-                  var list =
-                      AnnotationMcpTool.createTools(generator, invokerFactory, resolvers, bean);
+                  var list = AnnotationMcpPrompt.createPrompts(invokerFactory, resolvers, bean);
                   list.forEach(
-                      tool -> log.info("\tRegistered MCP tool: \"{}\"", tool.descriptor().name()));
+                      p -> log.info("\tRegistered MCP prompt: \"{}\"", p.descriptor().name()));
                   return list.stream();
                 })
             .toList();

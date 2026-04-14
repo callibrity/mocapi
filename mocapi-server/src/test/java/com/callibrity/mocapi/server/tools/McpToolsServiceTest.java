@@ -61,15 +61,17 @@ class McpToolsServiceTest {
   private final DefaultMethodSchemaGenerator generator =
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
   private final MethodInvokerFactory invokerFactory =
-      new DefaultMethodInvokerFactory(
-          List.of(new McpToolContextResolver(), new Jackson3ParameterResolver(mapper)));
+      new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(mapper)));
+  private final List<
+          org.jwcarman.methodical.param.ParameterResolver<? super tools.jackson.databind.JsonNode>>
+      resolvers = List.of(new McpToolContextResolver());
 
   @Mock private McpResponseCorrelationService correlationService;
 
   private McpToolsService service;
 
   private McpToolProvider createProvider(Object target) {
-    var tools = AnnotationMcpTool.createTools(generator, invokerFactory, target);
+    var tools = AnnotationMcpTool.createTools(generator, invokerFactory, resolvers, target);
     return () -> List.copyOf(tools);
   }
 
@@ -228,7 +230,8 @@ class McpToolsServiceTest {
   @Test
   void callToolTimeoutReturnsErrorResultWithDescriptiveMessage() {
     var timeoutTool =
-        AnnotationMcpTool.createTools(generator, invokerFactory, new TimeoutTool()).stream()
+        AnnotationMcpTool.createTools(generator, invokerFactory, resolvers, new TimeoutTool())
+            .stream()
             .findFirst()
             .orElseThrow();
     var timeoutService =

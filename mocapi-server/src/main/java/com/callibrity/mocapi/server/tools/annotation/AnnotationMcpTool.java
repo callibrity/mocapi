@@ -32,6 +32,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.param.ParameterResolver;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -41,16 +42,20 @@ public class AnnotationMcpTool implements McpTool {
   private final MethodInvoker<JsonNode> invoker;
 
   public static List<AnnotationMcpTool> createTools(
-      MethodSchemaGenerator generator, MethodInvokerFactory invokerFactory, Object targetObject) {
+      MethodSchemaGenerator generator,
+      MethodInvokerFactory invokerFactory,
+      List<ParameterResolver<? super JsonNode>> resolvers,
+      Object targetObject) {
     return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), ToolMethod.class)
         .stream()
-        .map(m -> new AnnotationMcpTool(generator, invokerFactory, targetObject, m))
+        .map(m -> new AnnotationMcpTool(generator, invokerFactory, resolvers, targetObject, m))
         .toList();
   }
 
   AnnotationMcpTool(
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
+      List<ParameterResolver<? super JsonNode>> resolvers,
       Object targetObject,
       Method method) {
     validateMcpToolParams(targetObject, method);
@@ -58,7 +63,7 @@ public class AnnotationMcpTool implements McpTool {
     String name = nameOf(targetObject, method, annotation);
     String title = titleOf(targetObject, method, annotation);
     String description = descriptionOf(targetObject, method, annotation);
-    this.invoker = invokerFactory.create(method, targetObject, JsonNode.class);
+    this.invoker = invokerFactory.create(method, targetObject, JsonNode.class, resolvers);
     ObjectNode inputSchema = generator.generateInputSchema(targetObject, method);
     ObjectNode outputSchema =
         isVoid(method) ? null : generator.generateOutputSchema(targetObject, method);
@@ -91,7 +96,7 @@ public class AnnotationMcpTool implements McpTool {
       }
     }
     if (hasMcpToolParams && nonContextParamCount > 0) {
-      throw new IllegalStateException(
+      throw new IllegalArgumentException(
           "@McpToolParams must be the only non-context parameter on the tool method "
               + targetObject.getClass().getName()
               + "."
