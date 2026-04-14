@@ -18,25 +18,35 @@ package com.callibrity.mocapi.prompts.mustache;
 import com.callibrity.mocapi.api.prompts.template.PromptTemplate;
 import com.callibrity.mocapi.api.prompts.template.PromptTemplateFactory;
 import com.callibrity.mocapi.model.Role;
+import com.samskivert.mustache.Escapers;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.MustacheException;
 
 /**
  * {@link PromptTemplateFactory} backed by <a href="https://github.com/samskivert/jmustache">
- * JMustache</a>. The default compiler is configured for prompt text: HTML escaping is disabled
- * (output is consumed by an LLM, not a browser) and missing variables render as empty strings
- * rather than throwing.
+ * JMustache</a>. The default compiler is configured for prompt text: rendered output is consumed by
+ * an LLM (never by a browser), so the identity escaper is used rather than JMustache's HTML escaper
+ * — HTML escaping would corrupt characters like {@code &lt;}, {@code &gt;}, and {@code &amp;} that
+ * legitimately appear in prompts. Missing variables render as empty strings instead of throwing.
  */
 public class MustachePromptTemplateFactory implements PromptTemplateFactory {
 
   private final Mustache.Compiler compiler;
 
   public MustachePromptTemplateFactory() {
-    this(Mustache.compiler().escapeHTML(false).defaultValue(""));
+    this(promptTextCompiler());
   }
 
   public MustachePromptTemplateFactory(Mustache.Compiler compiler) {
     this.compiler = compiler;
+  }
+
+  /**
+   * Returns a compiler configured for rendering prompt text: identity escaper (no HTML escaping,
+   * since the output never reaches a browser) and empty string as the default for missing values.
+   */
+  public static Mustache.Compiler promptTextCompiler() {
+    return Mustache.compiler().withEscaper(Escapers.NONE).defaultValue("");
   }
 
   @Override

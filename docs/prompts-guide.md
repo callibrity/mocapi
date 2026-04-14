@@ -183,3 +183,124 @@ public GetPromptResult analyzeDoc(String uri) {
                 new TextContent("Analyze the document above.", null))));
 }
 ```
+
+## Prompt Templates
+
+For anything beyond trivial string concatenation, use a `PromptTemplate`. Mocapi ships two engine implementations; each provides a `PromptTemplateFactory` Spring bean that you inject into your `@PromptService`.
+
+### The core interfaces
+
+Both live in `com.callibrity.mocapi.api.prompts.template`:
+
+```java
+public interface PromptTemplate {
+    GetPromptResult render(Map<String, String> args);
+}
+
+public interface PromptTemplateFactory {
+    PromptTemplate create(Role role, String description, String template);
+    default PromptTemplate create(Role role, String template) { ... }
+}
+```
+
+The factory takes raw template source as a `String` — you load it from wherever you like (classpath, filesystem, database, inline literal). Compiled templates are reusable: `create(...)` once at construction, `render(...)` many times.
+
+### Available engines
+
+| Module | Engine | Syntax | Features |
+|--------|--------|--------|----------|
+| `mocapi-prompts-spring` | Spring's `PropertyPlaceholderHelper` | `${name}`, `${name:default}`, `\${name}` escape | Zero extra dependencies; pure substitution |
+| `mocapi-prompts-mustache` | [JMustache](https://github.com/samskivert/jmustache) | `{{name}}`, `{{#section}}...{{/section}}`, partials | Conditionals and iteration via sections |
+
+Add one to your build:
+
+```xml
+<dependency>
+    <groupId>com.callibrity.mocapi</groupId>
+    <artifactId>mocapi-prompts-spring</artifactId>
+    <version>${mocapi.version}</version>
+</dependency>
+```
+
+Its auto-configuration registers a default `PromptTemplateFactory` bean. If both modules are on the classpath, only the first one seen wins — most apps should pick one. Users with their own bean override both by declaring `@Bean PromptTemplateFactory` (our auto-configs use `@ConditionalOnMissingBean`).
+
+### Using a template from a `@PromptMethod`
+
+Compile templates once at construction. Render them inside the method:
+
+```java
+import com.callibrity.mocapi.api.prompts.template.PromptTemplate;
+import com.callibrity.mocapi.api.prompts.template.PromptTemplateFactory;
+import com.callibrity.mocapi.model.GetPromptResult;
+import com.callibrity.mocapi.model.Role;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+
+@Component
+@PromptService
+public class SummarizationPrompts {
+
+    private final PromptTemplate summarize;
+
+    public SummarizationPrompts(PromptTemplateFactory factory) throws IOException {
+        var source =
+            new ClassPathResource("prompts/summarize.mustache")
+                .getContentAsString(StandardCharsets.UTF_8);
+        this.summarize = factory.create(Role.USER, "Summarize the provided text", source);
+    }
+
+    @PromptMethod(name = "summarize", description = "Summarize text")
+    public GetPromptResult summarize(String text, @Nullable Detail detail) {
+        return summarize.render(Map.of(
+            "text", text,
+            "detail", detail == null ? "standard" : detail.name().toLowerCase()));
+    }
+}
+```
+
+The template source in `src/main/resources/prompts/summarize.mustache`:
+
+```
+Summarize the following text at {{detail}} detail:
+
+{{text}}
+```
+
+### Multi-message templates
+
+A single template renders into exactly one `PromptMessage` with the role supplied at `create(...)` time. For multi-message prompts, compile several templates and compose them:
+
+```java
+public FewShotPrompts(PromptTemplateFactory factory) {
+    this.intro = factory.create(Role.USER, load("intro.mustache"));
+    this.userTurn = factory.create(Role.USER, load("user-turn.mustache"));
+    this.assistantTurn = factory.create(Role.ASSISTANT, load("assistant-turn.mustache"));
+}
+
+@PromptMethod(name = "few-shot")
+public GetPromptResult fewShot(String input) {
+    var messages = new ArrayList<PromptMessage>();
+    messages.addAll(intro.render(Map.of()).messages());
+    messages.addAll(userTurn.render(Map.of("text", "I love this!")).messages());
+    messages.addAll(assistantTurn.render(Map.of("label", "positive")).messages());
+    messages.addAll(userTurn.render(Map.of("text", input)).messages());
+    return new GetPromptResult("Few-shot classification", messages);
+}
+```
+
+### Customizing a factory
+
+Both factories expose a constructor that accepts a pre-configured engine object, so you can register a custom `PromptTemplateFactory` bean when the defaults aren't right. For example, to use `{{name}}` delimiters with the Spring-based engine:
+
+```java
+@Bean
+PromptTemplateFactory promptTemplateFactory() {
+    return new SpringPromptTemplateFactory(
+        new PropertyPlaceholderHelper("{{", "}}", ":", '\\', true));
+}
+```
+
+Your bean wins thanks to `@ConditionalOnMissingBean(PromptTemplateFactory.class)`.

@@ -13,10 +13,14 @@ All notable changes to this project are documented in this file. The format is b
   templating. Factory takes raw `String` template source; implementations
   compile and cache.
 - `mocapi-prompts-mustache` module providing a JMustache-backed
-  `PromptTemplateFactory`. Disables HTML escaping and treats missing keys as
-  empty strings by default (prompt text is LLM input, not browser output).
-  Ships an auto-config gated on `com.samskivert.mustache.Mustache` presence;
-  user-supplied `PromptTemplateFactory` beans take precedence.
+  `PromptTemplateFactory`. Uses the identity escaper (prompt text is LLM
+  input, not browser output) and treats missing keys as empty strings by
+  default. Ships an auto-config gated on `com.samskivert.mustache.Mustache`
+  presence; user-supplied `PromptTemplateFactory` beans take precedence.
+- `mocapi-prompts-spring` module providing a `PromptTemplateFactory` backed
+  by Spring's own `PropertyPlaceholderHelper`. Syntax is `${name}` with
+  `${name:default}` fallbacks and `\${name}` escaping. Zero new dependencies
+  for Spring Boot apps — `spring-core` is already on the classpath.
 - Annotation-driven prompt registration via `@PromptService` + `@PromptMethod`. Method
   parameters bind from the incoming argument map via Spring's `ConversionService`,
   supporting strings, primitives, enums, `java.time` types, and any custom

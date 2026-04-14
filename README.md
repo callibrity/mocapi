@@ -120,11 +120,13 @@ Run your Spring Boot application. Mocapi exposes a Streamable HTTP endpoint at `
 
 | Module | Description |
 |--------|-------------|
-| `mocapi-api` | User-facing API: `@ToolService`/`@ToolMethod`, `@PromptService`/`@PromptMethod`, `@ResourceService`/`@ResourceMethod`/`@ResourceTemplateMethod`, `McpToolContext`, provider interfaces |
+| `mocapi-api` | User-facing API: `@ToolService`/`@ToolMethod`, `@PromptService`/`@PromptMethod`, `@ResourceService`/`@ResourceMethod`/`@ResourceTemplateMethod`, `PromptTemplate`/`PromptTemplateFactory`, `McpToolContext`, provider interfaces |
 | `mocapi-model` | MCP protocol types (Tool, CallToolResult, ElicitResult, etc.) |
 | `mocapi-server` | Stateful MCP server: session management, JSON-RPC dispatch, tool invocation |
 | `mocapi-transport-streamable-http` | Streamable HTTP transport with SSE, encrypted event IDs |
 | `mocapi-spring-boot-starter` | All-in-one starter for Spring Boot applications |
+| `mocapi-prompts-spring` | `PromptTemplateFactory` using Spring's `${name}` placeholder syntax — no extra dependencies |
+| `mocapi-prompts-mustache` | `PromptTemplateFactory` backed by [JMustache](https://github.com/samskivert/jmustache) for richer `{{name}}` templates with sections |
 
 ## Examples
 
