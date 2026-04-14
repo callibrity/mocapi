@@ -45,6 +45,10 @@ public class MustachePromptTemplateFactory implements PromptTemplateFactory {
    * Returns a compiler configured for rendering prompt text: identity escaper (no HTML escaping,
    * since the output never reaches a browser) and empty string as the default for missing values.
    */
+  // Sonar rule java:S5247 flags the identity escaper as a potential XSS risk. Suppressed here
+  // because rendered output is prompt text bound for an LLM, not HTML returned to a browser —
+  // HTML-encoding characters like '<', '>', and '&' would corrupt the prompt.
+  @SuppressWarnings("java:S5247")
   public static Mustache.Compiler promptTextCompiler() {
     return Mustache.compiler().withEscaper(Escapers.NONE).defaultValue("");
   }

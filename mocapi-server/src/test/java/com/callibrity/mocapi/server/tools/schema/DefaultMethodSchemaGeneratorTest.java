@@ -57,7 +57,7 @@ class DefaultMethodSchemaGeneratorTest {
     public String doWork(
         @Schema(description = "required name") String name,
         @Schema(description = "optional nickname") @Nullable String nickname) {
-      return name;
+      return nickname == null ? name : name + " (" + nickname + ")";
     }
   }
 
