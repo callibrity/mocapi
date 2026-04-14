@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-14
+
 ### Added
 
 - `ReadResourceResult.ofText(uri, mimeType, text)` and
@@ -68,5 +70,6 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/callibrity/mocapi/releases/tag/0.2.0
 [0.1.0]: https://github.com/callibrity/mocapi/releases/tag/0.1.0
