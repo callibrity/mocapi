@@ -16,7 +16,21 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.Base64;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record BlobResourceContents(String uri, String mimeType, String blob)
-    implements ResourceContents {}
+    implements ResourceContents {
+
+  /**
+   * Constructs a {@code BlobResourceContents} from raw bytes, base64-encoding the payload. Prefer
+   * this factory over manual encoding when your source is a {@code byte[]}.
+   *
+   * @param uri the resource URI
+   * @param mimeType the content MIME type, or {@code null}
+   * @param bytes the raw binary payload to encode
+   */
+  public static BlobResourceContents of(String uri, String mimeType, byte[] bytes) {
+    return new BlobResourceContents(uri, mimeType, Base64.getEncoder().encodeToString(bytes));
+  }
+}

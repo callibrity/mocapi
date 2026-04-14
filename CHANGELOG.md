@@ -8,6 +8,14 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- `ReadResourceResult.ofText(uri, mimeType, text)` and
+  `ReadResourceResult.ofBlob(uri, mimeType, ...)` static factories for the
+  common single-entry case. The `byte[]` overload base64-encodes
+  automatically.
+- `BlobResourceContents.of(uri, mimeType, byte[] bytes)` static factory
+  handling base64 encoding in one place, reusable when assembling
+  multi-entry `ReadResourceResult`s directly.
+- Compat server and resources guide updated to use the new factories.
 - `PromptTemplate` and `PromptTemplateFactory` interfaces in `mocapi-api`
   (`com.callibrity.mocapi.api.prompts.template`) for engine-agnostic prompt
   templating. Factory takes raw `String` template source; implementations

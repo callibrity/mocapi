@@ -155,15 +155,36 @@ public record ReadResourceResult(List<ResourceContents> contents) { }
 
 A single resource can return multiple `ResourceContents` entries (for example, a markdown page plus its embedded images).
 
+### Convenience factories
+
+For the common single-entry case, `ReadResourceResult` provides static factory methods that collapse the wrapping boilerplate:
+
+```java
+ReadResourceResult.ofText(uri, mimeType, text);
+ReadResourceResult.ofBlob(uri, mimeType, byte[] bytes);   // auto-base64
+ReadResourceResult.ofBlob(uri, mimeType, String base64);  // if already encoded
+```
+
+So the typical text resource becomes a one-liner:
+
+```java
+@ResourceMethod(uri = "docs://readme", mimeType = "text/markdown")
+public ReadResourceResult readme() {
+    return ReadResourceResult.ofText("docs://readme", "text/markdown", loadReadme());
+}
+```
+
+And binary resources no longer need manual `Base64` encoding:
+
 ```java
 @ResourceMethod(uri = "report://latest", mimeType = "application/pdf")
 public ReadResourceResult latestReport() {
-    byte[] pdf = reportService.generate();
-    var encoded = Base64.getEncoder().encodeToString(pdf);
-    return new ReadResourceResult(
-        List.of(new BlobResourceContents("report://latest", "application/pdf", encoded)));
+    return ReadResourceResult.ofBlob(
+        "report://latest", "application/pdf", reportService.generate());
 }
 ```
+
+For multi-entry results (e.g., a markdown page plus its embedded images), use the plain record constructor and assemble the list yourself.
 
 ## URI Template Matching
 
