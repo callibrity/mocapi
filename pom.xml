@@ -60,6 +60,7 @@
         <module>examples</module>
         <module>mocapi-compat</module>
         <module>mocapi-transport-streamable-http</module>
+        <module>mocapi-prompts-mustache</module>
     </modules>
 
     <properties>
@@ -69,6 +70,7 @@
 
         <!-- Dependency Versions -->
         <codec.version>0.1.0</codec.version>
+        <jmustache.version>1.15</jmustache.version>
         <json-skema.version>0.29.0</json-skema.version>
         <methodical.version>0.4.0</methodical.version>
         <odyssey.version>0.8.1</odyssey.version>
@@ -168,6 +170,11 @@
                 <version>${substrate.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.samskivert</groupId>
+                <artifactId>jmustache</artifactId>
+                <version>${jmustache.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -8,6 +8,15 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- `PromptTemplate` and `PromptTemplateFactory` interfaces in `mocapi-api`
+  (`com.callibrity.mocapi.api.prompts.template`) for engine-agnostic prompt
+  templating. Factory takes raw `String` template source; implementations
+  compile and cache.
+- `mocapi-prompts-mustache` module providing a JMustache-backed
+  `PromptTemplateFactory`. Disables HTML escaping and treats missing keys as
+  empty strings by default (prompt text is LLM input, not browser output).
+  Ships an auto-config gated on `com.samskivert.mustache.Mustache` presence;
+  user-supplied `PromptTemplateFactory` beans take precedence.
 - Annotation-driven prompt registration via `@PromptService` + `@PromptMethod`. Method
   parameters bind from the incoming argument map via Spring's `ConversionService`,
   supporting strings, primitives, enums, `java.time` types, and any custom
