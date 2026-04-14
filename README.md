@@ -2,7 +2,7 @@
 
 Mocapi is a Spring Boot framework for building [Model Context Protocol (MCP)](https://modelcontextprotocol.io/specification/2025-11-25) servers in Java. Define tools, prompts, and resources as annotated Spring beans and let Mocapi handle the protocol, transport, and session management.
 
-![Maven Central Version](https://img.shields.io/maven-central/v/com.callibrity.mocapi/mocapi-parent)
+![Maven Central Version](https://img.shields.io/maven-central/v/com.callibrity.mocapi/mocapi-spring-boot-starter)
 ![GitHub License](https://img.shields.io/github/license/callibrity/mocapi)
 
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=callibrity_mocapi&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=callibrity_mocapi)
