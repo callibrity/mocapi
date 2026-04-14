@@ -42,6 +42,7 @@ import org.springframework.web.util.UriTemplate;
 
 /** Manages resource registration, lookup, pagination, and JSON-RPC dispatch. */
 @JsonRpcService
+@lombok.extern.slf4j.Slf4j
 public class McpResourcesService {
 
   public static final int DEFAULT_PAGE_SIZE = 50;
@@ -116,6 +117,7 @@ public class McpResourcesService {
   @JsonRpcMethod(McpMethods.RESOURCES_READ)
   public ReadResourceResult readResource(@JsonRpcParams ResourceRequestParams params) {
     String uri = params.uri();
+    log.debug("Received request to read resource \"{}\"", uri);
 
     McpResource exact = resources.get(uri);
     if (exact != null) {

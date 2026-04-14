@@ -58,6 +58,14 @@ class AnnotationResourceTest {
     }
   }
 
+  public static class StringPathFixture {
+    @ResourceTemplateMethod(uriTemplate = "test://greet/{name}", name = "Greet")
+    public ReadResourceResult greet(String name) {
+      return new ReadResourceResult(
+          List.of(new TextResourceContents("test://greet/" + name, "text/plain", "hi " + name)));
+    }
+  }
+
   public static class BadResource {
     @ResourceMethod(uri = "test://bad")
     public String oops() {
@@ -99,6 +107,19 @@ class AnnotationResourceTest {
     var content = (TextResourceContents) result.contents().getFirst();
     assertThat(content.text()).isEqualTo("item 42");
     assertThat(content.uri()).isEqualTo("test://items/42");
+  }
+
+  @Test
+  void templateReadWithNullPathVariablesInvokesWithEmptyMap() {
+    var template =
+        ResourceServiceScanner.createResourceTemplates(
+                invokerFactory, templateResolvers, new StringPathFixture())
+            .getFirst();
+
+    var result = template.read(null);
+
+    var content = (TextResourceContents) result.contents().getFirst();
+    assertThat(content.text()).isEqualTo("hi null");
   }
 
   @Test

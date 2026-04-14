@@ -96,7 +96,6 @@ public class StreamableHttpController {
       @RequestHeader(value = SESSION_ID_HEADER, required = false) String sessionId,
       @RequestHeader(value = "Accept", required = false) String accept,
       @RequestHeader(value = "Origin", required = false) String origin) {
-    log.info("Received POST request: {}", message);
     if (!acceptsJsonAndSse(accept)) {
       return jsonRpcError(
           HttpStatus.NOT_ACCEPTABLE,
@@ -133,7 +132,6 @@ public class StreamableHttpController {
       @RequestHeader(value = LAST_EVENT_ID_HEADER, required = false) String lastEventId,
       @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept,
       @RequestHeader(value = HttpHeaders.ORIGIN, required = false) String origin) {
-    log.info("Received GET request: {}", sessionId);
     if (!acceptsSse(accept)) {
       return jsonRpcError(
           HttpStatus.NOT_ACCEPTABLE,

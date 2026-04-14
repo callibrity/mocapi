@@ -60,6 +60,16 @@ class MultiSelectEnumSchemaBuilderTest {
   }
 
   @Test
+  void fromEnumWithEmptyDefaultsShouldOmitDefaultValues() {
+    MultiSelectEnumSchema schema =
+        MultiSelectEnumSchemaBuilder.fromEnum(Tag.class).defaults(List.of()).build();
+
+    assertThat(schema).isInstanceOf(UntitledMultiSelectEnumSchema.class);
+    var untitled = (UntitledMultiSelectEnumSchema) schema;
+    assertThat(untitled.defaultValues()).isNull();
+  }
+
+  @Test
   void fromEnumWithDefaultsShouldIncludeDefaults() {
     MultiSelectEnumSchema schema =
         MultiSelectEnumSchemaBuilder.fromEnum(Tag.class)

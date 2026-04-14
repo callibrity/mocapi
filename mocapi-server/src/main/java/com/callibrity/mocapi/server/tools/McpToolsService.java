@@ -89,6 +89,7 @@ public class McpToolsService extends PaginatedService<McpTool, Tool> {
   @JsonRpcMethod(TOOLS_CALL)
   public CallToolResult callTool(@JsonRpcParams CallToolRequestParams params) {
     String name = params.name();
+    log.debug("Received request to call tool \"{}\"", name);
     JsonNode args =
         params.arguments() != null ? params.arguments() : objectMapper.createObjectNode();
     McpTool tool = lookup(name);

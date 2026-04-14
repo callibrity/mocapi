@@ -52,20 +52,39 @@ class SynchronousTransportTest {
   @Test
   void emitCapturesSessionInitializedHeader() {
     var transport = new SynchronousTransport();
+    var result = new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1));
     transport.emit(new McpEvent.SessionInitialized("session-42", "2025-11-25"));
-    transport.send(new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1)));
+    transport.send(result);
 
     var response = transport.toResponseEntity();
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
     assertThat(response.getHeaders().getFirst("MCP-Session-Id")).isEqualTo("session-42");
+    assertThat(response.getBody()).isSameAs(result);
   }
 
   @Test
   void toResponseEntityWithoutSessionInitializedOmitsHeader() {
     var transport = new SynchronousTransport();
-    transport.send(new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1)));
+    var result = new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1));
+    transport.send(result);
 
     var response = transport.toResponseEntity();
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
     assertThat(response.getHeaders().getFirst("MCP-Session-Id")).isNull();
+    assertThat(response.getBody()).isSameAs(result);
+  }
+
+  @Test
+  void toResponseEntityWithoutAnyEmitOrSendProducesNullBody() {
+    var transport = new SynchronousTransport();
+
+    var response = transport.toResponseEntity();
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+    assertThat(response.getHeaders().getFirst("MCP-Session-Id")).isNull();
+    assertThat(response.getBody()).isNull();
   }
 
   @Test

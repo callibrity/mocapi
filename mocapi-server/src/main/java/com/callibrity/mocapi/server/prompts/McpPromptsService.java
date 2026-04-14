@@ -33,6 +33,7 @@ import java.util.Map;
 
 /** Manages prompt registration and JSON-RPC dispatch. */
 @JsonRpcService
+@lombok.extern.slf4j.Slf4j
 public class McpPromptsService extends PaginatedService<McpPrompt, Prompt> {
 
   public McpPromptsService(List<McpPromptProvider> promptProviders) {
@@ -57,6 +58,7 @@ public class McpPromptsService extends PaginatedService<McpPrompt, Prompt> {
   @JsonRpcMethod(McpMethods.PROMPTS_GET)
   public GetPromptResult getPrompt(@JsonRpcParams GetPromptRequestParams params) {
     String name = params.name();
+    log.debug("Received request to get prompt \"{}\"", name);
     McpPrompt prompt = lookup(name);
     Map<String, String> arguments = params.arguments() != null ? params.arguments() : Map.of();
     return prompt.get(arguments);

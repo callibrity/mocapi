@@ -82,9 +82,7 @@ public class DefaultMethodSchemaGenerator implements MethodSchemaGenerator {
         SCHEMA_PROPERTY_NAME,
         StringNode.valueOf(generator.getConfig().getSchemaVersion().getIdentifier()));
     schemaNode.put(TYPE_PROPERTY, OBJECT_TYPE);
-    if (schema.has(PROPERTIES_PROPERTY)) {
-      schemaNode.set(PROPERTIES_PROPERTY, schema.get(PROPERTIES_PROPERTY));
-    }
+    schemaNode.set(PROPERTIES_PROPERTY, schema.get(PROPERTIES_PROPERTY));
     if (schema.has(REQUIRED_PROPERTY)) {
       schemaNode.set(REQUIRED_PROPERTY, schema.get(REQUIRED_PROPERTY));
     }

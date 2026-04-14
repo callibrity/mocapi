@@ -127,6 +127,16 @@ class AnnotationMcpPromptTest {
   }
 
   @Test
+  void getWithNullArgumentsInvokesWithEmptyMap() {
+    var prompt = createPrompts(new WholeMapPrompt()).getFirst();
+
+    var result = prompt.get(null);
+
+    var content = (TextContent) result.messages().getFirst().content();
+    assertThat(content.text()).isEqualTo("{}");
+  }
+
+  @Test
   void rejectsMethodWithNonGetPromptResultReturnType() {
     var target = new BadReturnPrompt();
     assertThatThrownBy(() -> createPrompts(target))

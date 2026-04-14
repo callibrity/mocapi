@@ -123,4 +123,26 @@ class McpSessionServiceTest {
 
     verify(store, never()).update(anyString(), any());
   }
+
+  @Test
+  void markInitializedUpdatesSessionInStore() {
+    McpSession session =
+        new McpSession("session-1", "2025-11-25", null, null, LoggingLevel.WARNING);
+    when(store.find("session-1")).thenReturn(Optional.of(session));
+
+    service.markInitialized("session-1");
+
+    ArgumentCaptor<McpSession> captor = ArgumentCaptor.forClass(McpSession.class);
+    verify(store).update(eq("session-1"), captor.capture());
+    assertThat(captor.getValue().initialized()).isTrue();
+  }
+
+  @Test
+  void markInitializedDoesNothingWhenSessionNotFound() {
+    when(store.find("unknown")).thenReturn(Optional.empty());
+
+    service.markInitialized("unknown");
+
+    verify(store, never()).update(anyString(), any());
+  }
 }

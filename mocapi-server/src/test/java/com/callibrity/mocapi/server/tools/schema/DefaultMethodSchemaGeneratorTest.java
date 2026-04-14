@@ -20,7 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
@@ -48,6 +50,14 @@ class DefaultMethodSchemaGeneratorTest {
   static class ToolWithRequiredRecordParam {
     public String doWork(@McpToolParams RequiredParams params) {
       return params.name();
+    }
+  }
+
+  static class ToolWithOptionalParameters {
+    public String doWork(
+        @Schema(description = "required name") String name,
+        @Schema(description = "optional nickname") @Nullable String nickname) {
+      return name;
     }
   }
 
@@ -99,6 +109,26 @@ class DefaultMethodSchemaGeneratorTest {
 
       assertThat(schema.get("$schema").asString()).contains("draft-07");
       assertThat(schema.get("type").asString()).isEqualTo("object");
+    }
+  }
+
+  @Nested
+  class GenerateInputSchemaFromParameters {
+
+    @Test
+    void excludesNullableParameterFromRequiredArray() throws Exception {
+      var target = new ToolWithOptionalParameters();
+      Method method =
+          ToolWithOptionalParameters.class.getMethod("doWork", String.class, String.class);
+
+      ObjectNode schema = generator.generateInputSchema(target, method);
+
+      var required = new ArrayList<String>();
+      schema.get("required").forEach(n -> required.add(n.asString()));
+      assertThat(required).containsExactly("name");
+      var properties = (ObjectNode) schema.get("properties");
+      assertThat(properties.has("name")).isTrue();
+      assertThat(properties.has("nickname")).isTrue();
     }
   }
 
