@@ -45,11 +45,72 @@ public class GreetingTool {
 }
 ```
 
+Define a prompt:
+
+```java
+import com.callibrity.mocapi.api.prompts.PromptMethod;
+import com.callibrity.mocapi.api.prompts.PromptService;
+import com.callibrity.mocapi.model.GetPromptResult;
+import com.callibrity.mocapi.model.PromptMessage;
+import com.callibrity.mocapi.model.Role;
+import com.callibrity.mocapi.model.TextContent;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Component
+@PromptService
+public class SummarizationPrompts {
+
+    @PromptMethod(name = "summarize", description = "Summarize the provided text")
+    public GetPromptResult summarize(String text) {
+        return new GetPromptResult(
+            "Summarization prompt",
+            List.of(new PromptMessage(
+                Role.USER,
+                new TextContent("Summarize the following:\n\n" + text, null))));
+    }
+}
+```
+
+Define a resource (fixed URI) and a resource template (pattern-matched URI):
+
+```java
+import com.callibrity.mocapi.api.resources.ResourceMethod;
+import com.callibrity.mocapi.api.resources.ResourceService;
+import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
+import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.TextResourceContents;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Component
+@ResourceService
+public class DocResources {
+
+    @ResourceMethod(uri = "docs://readme", mimeType = "text/markdown")
+    public ReadResourceResult readme() {
+        return new ReadResourceResult(
+            List.of(new TextResourceContents("docs://readme", "text/markdown", "# Hello")));
+    }
+
+    @ResourceTemplateMethod(uriTemplate = "docs://pages/{slug}", mimeType = "text/markdown")
+    public ReadResourceResult page(String slug) {
+        return new ReadResourceResult(
+            List.of(new TextResourceContents(
+                "docs://pages/" + slug, "text/markdown", "Content for " + slug)));
+    }
+}
+```
+
 Run your Spring Boot application. Mocapi exposes a Streamable HTTP endpoint at `/mcp` by default.
 
 ## Documentation
 
 - [Writing Tools](docs/tools-guide.md) -- defining tools, parameters, return values, and error handling
+- [Writing Prompts](docs/prompts-guide.md) -- defining prompts, argument binding, and return messages
+- [Writing Resources](docs/resources-guide.md) -- fixed resources, templated resources, and path-variable binding
 - [Interactive Features](docs/interactive-guide.md) -- progress notifications, logging, elicitation, and sampling
 - [Configuration Reference](docs/configuration.md) -- all `mocapi.*` properties
 - [Architecture](docs/architecture.md) -- server/transport separation, session lifecycle, module structure
@@ -59,7 +120,7 @@ Run your Spring Boot application. Mocapi exposes a Streamable HTTP endpoint at `
 
 | Module | Description |
 |--------|-------------|
-| `mocapi-api` | User-facing API: `@ToolService`, `@ToolMethod`, `McpToolContext`, provider interfaces |
+| `mocapi-api` | User-facing API: `@ToolService`/`@ToolMethod`, `@PromptService`/`@PromptMethod`, `@ResourceService`/`@ResourceMethod`/`@ResourceTemplateMethod`, `McpToolContext`, provider interfaces |
 | `mocapi-model` | MCP protocol types (Tool, CallToolResult, ElicitResult, etc.) |
 | `mocapi-server` | Stateful MCP server: session management, JSON-RPC dispatch, tool invocation |
 | `mocapi-transport-streamable-http` | Streamable HTTP transport with SSE, encrypted event IDs |

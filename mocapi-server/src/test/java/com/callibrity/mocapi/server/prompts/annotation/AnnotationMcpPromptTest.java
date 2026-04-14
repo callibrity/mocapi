@@ -128,7 +128,8 @@ class AnnotationMcpPromptTest {
 
   @Test
   void rejectsMethodWithNonGetPromptResultReturnType() {
-    assertThatThrownBy(() -> createPrompts(new BadReturnPrompt()))
+    var target = new BadReturnPrompt();
+    assertThatThrownBy(() -> createPrompts(target))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("GetPromptResult");
   }

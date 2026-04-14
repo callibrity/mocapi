@@ -103,18 +103,19 @@ class AnnotationResourceTest {
 
   @Test
   void resourceMethodWithNonResultReturnTypeIsRejected() {
-    assertThatThrownBy(
-            () -> ResourceServiceScanner.createResources(invokerFactory, new BadResource()))
+    var target = new BadResource();
+    assertThatThrownBy(() -> ResourceServiceScanner.createResources(invokerFactory, target))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ReadResourceResult");
   }
 
   @Test
   void templateMethodWithNonResultReturnTypeIsRejected() {
+    var target = new BadTemplate();
     assertThatThrownBy(
             () ->
                 ResourceServiceScanner.createResourceTemplates(
-                    invokerFactory, templateResolvers, new BadTemplate()))
+                    invokerFactory, templateResolvers, target))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ReadResourceResult");
   }
