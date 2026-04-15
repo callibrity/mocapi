@@ -42,7 +42,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.jwcarman.odyssey.core.Odyssey;
 import org.jwcarman.odyssey.core.OdysseyStream;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -283,7 +282,7 @@ class StreamableHttpControllerTest {
 
     @Test
     void subscribesToNotificationChannel() {
-      when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
+      when(protocol.createContext("session-1", null)).thenReturn(validContext("session-1"));
       SseEmitter emitter = new SseEmitter();
       when(odyssey.stream("session-1", JsonRpcMessage.class)).thenReturn(stream);
       when(stream.subscribe(any())).thenReturn(emitter);
@@ -308,10 +307,10 @@ class StreamableHttpControllerTest {
 
     @Test
     void resumeWithLastEventIdDelegatesToOdyssey() {
-      when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
+      when(protocol.createContext("session-1", null)).thenReturn(validContext("session-1"));
       SseEmitter emitter = new SseEmitter();
-      when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
-      when(stream.resume(anyString(), any())).thenReturn(emitter);
+      when(odyssey.stream("stream-name", JsonRpcMessage.class)).thenReturn(stream);
+      when(stream.resume(eq("event-42"), any())).thenReturn(emitter);
 
       String plaintext = "stream-name:event-42";
       String encryptedId = encrypt("session-1", plaintext);
@@ -320,18 +319,13 @@ class StreamableHttpControllerTest {
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getBody()).isSameAs(emitter);
-
-      ArgumentCaptor<String> streamCaptor = ArgumentCaptor.forClass(String.class);
-      ArgumentCaptor<String> eventIdCaptor = ArgumentCaptor.forClass(String.class);
-      verify(odyssey).stream(streamCaptor.capture(), eq(JsonRpcMessage.class));
-      verify(stream).resume(eventIdCaptor.capture(), any());
-      assertThat(streamCaptor.getValue()).isEqualTo("stream-name");
-      assertThat(eventIdCaptor.getValue()).isEqualTo("event-42");
+      verify(odyssey).stream("stream-name", JsonRpcMessage.class);
+      verify(stream).resume(eq("event-42"), any());
     }
 
     @Test
     void primingEventIdTriggersSubscribeNotResume() {
-      when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
+      when(protocol.createContext("session-1", null)).thenReturn(validContext("session-1"));
       SseEmitter emitter = new SseEmitter();
       when(odyssey.stream("stream-name", JsonRpcMessage.class)).thenReturn(stream);
       when(stream.subscribe(any())).thenReturn(emitter);
@@ -349,7 +343,7 @@ class StreamableHttpControllerTest {
 
     @Test
     void lastEventIdWithNoColonReturns400() {
-      when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
+      when(protocol.createContext("session-1", null)).thenReturn(validContext("session-1"));
 
       String plaintext = "no-colon-in-this-value";
       String encryptedId = encrypt("session-1", plaintext);
@@ -361,7 +355,7 @@ class StreamableHttpControllerTest {
 
     @Test
     void malformedBase64InLastEventIdReturns400() {
-      when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
+      when(protocol.createContext("session-1", null)).thenReturn(validContext("session-1"));
 
       var response =
           controller.handleGet("session-1", null, "not!!!valid~base64", SSE_ACCEPT, null);
@@ -371,7 +365,7 @@ class StreamableHttpControllerTest {
 
     @Test
     void getWithSessionNotFoundReturns404() {
-      when(protocol.createContext(eq("unknown"), any()))
+      when(protocol.createContext("unknown", null))
           .thenReturn(new McpContextResult.SessionNotFound(-32001, "Session not found"));
 
       var response = controller.handleGet("unknown", null, null, SSE_ACCEPT, null);
@@ -381,7 +375,7 @@ class StreamableHttpControllerTest {
 
     @Test
     void getWithProtocolVersionMismatchReturns400() {
-      when(protocol.createContext(eq("session-1"), any()))
+      when(protocol.createContext("session-1", "wrong-version"))
           .thenReturn(
               new McpContextResult.ProtocolVersionMismatch(-32002, "Protocol version mismatch"));
 
@@ -396,7 +390,7 @@ class StreamableHttpControllerTest {
 
     @Test
     void delegatesToProtocolTerminate() {
-      when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
+      when(protocol.createContext("session-1", null)).thenReturn(validContext("session-1"));
       var response = controller.handleDelete("session-1", null, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
