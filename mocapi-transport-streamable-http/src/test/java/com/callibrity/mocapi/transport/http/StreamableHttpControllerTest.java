@@ -41,7 +41,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.jwcarman.odyssey.core.Odyssey;
-import org.jwcarman.odyssey.core.OdysseyPublisher;
+import org.jwcarman.odyssey.core.OdysseyStream;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -62,7 +62,7 @@ class StreamableHttpControllerTest {
 
   @Mock private McpServer protocol;
   @Mock private Odyssey odyssey;
-  @Mock private OdysseyPublisher<JsonRpcMessage> publisher;
+  @Mock private OdysseyStream<JsonRpcMessage> stream;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private StreamableHttpController controller;
@@ -137,8 +137,8 @@ class StreamableHttpControllerTest {
     @Test
     void toolsCallReturnsSse() {
       SseEmitter emitter = new SseEmitter();
-      when(odyssey.publisher(anyString(), eq(JsonRpcMessage.class))).thenReturn(publisher);
-      when(odyssey.subscribe(anyString(), eq(JsonRpcMessage.class), any())).thenReturn(emitter);
+      when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
+      when(stream.subscribe(any())).thenReturn(emitter);
 
       ObjectNode request = callRequest("tools/call");
       var response = post(request, null, "session-1", POST_ACCEPT, null);
@@ -150,9 +150,8 @@ class StreamableHttpControllerTest {
     @Test
     void toolsCallUsesOdysseyTransport() throws Exception {
       CountDownLatch latch = new CountDownLatch(1);
-      when(odyssey.publisher(anyString(), eq(JsonRpcMessage.class))).thenReturn(publisher);
-      when(odyssey.subscribe(anyString(), eq(JsonRpcMessage.class), any()))
-          .thenReturn(new SseEmitter());
+      when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
+      when(stream.subscribe(any())).thenReturn(new SseEmitter());
       doAnswer(
               invocation -> {
                 latch.countDown();
@@ -286,7 +285,8 @@ class StreamableHttpControllerTest {
     void subscribesToNotificationChannel() {
       when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
       SseEmitter emitter = new SseEmitter();
-      when(odyssey.subscribe(eq("session-1"), eq(JsonRpcMessage.class), any())).thenReturn(emitter);
+      when(odyssey.stream(eq("session-1"), eq(JsonRpcMessage.class))).thenReturn(stream);
+      when(stream.subscribe(any())).thenReturn(emitter);
 
       var response = controller.handleGet("session-1", null, null, SSE_ACCEPT, null);
 
@@ -310,8 +310,8 @@ class StreamableHttpControllerTest {
     void resumeWithLastEventIdDelegatesToOdyssey() {
       when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
       SseEmitter emitter = new SseEmitter();
-      when(odyssey.resume(anyString(), eq(JsonRpcMessage.class), anyString(), any()))
-          .thenReturn(emitter);
+      when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
+      when(stream.resume(anyString(), any())).thenReturn(emitter);
 
       String plaintext = "stream-name:event-42";
       String encryptedId = encrypt("session-1", plaintext);
@@ -323,8 +323,8 @@ class StreamableHttpControllerTest {
 
       ArgumentCaptor<String> streamCaptor = ArgumentCaptor.forClass(String.class);
       ArgumentCaptor<String> eventIdCaptor = ArgumentCaptor.forClass(String.class);
-      verify(odyssey)
-          .resume(streamCaptor.capture(), eq(JsonRpcMessage.class), eventIdCaptor.capture(), any());
+      verify(odyssey).stream(streamCaptor.capture(), eq(JsonRpcMessage.class));
+      verify(stream).resume(eventIdCaptor.capture(), any());
       assertThat(streamCaptor.getValue()).isEqualTo("stream-name");
       assertThat(eventIdCaptor.getValue()).isEqualTo("event-42");
     }
@@ -333,8 +333,8 @@ class StreamableHttpControllerTest {
     void primingEventIdTriggersSubscribeNotResume() {
       when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
       SseEmitter emitter = new SseEmitter();
-      when(odyssey.subscribe(eq("stream-name"), eq(JsonRpcMessage.class), any()))
-          .thenReturn(emitter);
+      when(odyssey.stream(eq("stream-name"), eq(JsonRpcMessage.class))).thenReturn(stream);
+      when(stream.subscribe(any())).thenReturn(emitter);
 
       String plaintext = "stream-name:PRIMING";
       String encryptedId = encrypt("session-1", plaintext);
@@ -343,8 +343,8 @@ class StreamableHttpControllerTest {
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getBody()).isSameAs(emitter);
-      verify(odyssey).subscribe(eq("stream-name"), eq(JsonRpcMessage.class), any());
-      verify(odyssey, never()).resume(anyString(), any(), anyString(), any());
+      verify(stream).subscribe(any());
+      verify(stream, never()).resume(anyString(), any());
     }
 
     @Test

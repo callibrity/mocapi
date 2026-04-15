@@ -95,7 +95,14 @@ public class AnnotationMcpPrompt implements McpPrompt {
   }
 
   private static List<PromptArgument> argumentsOf(Method method) {
-    return Arrays.stream(method.getParameters()).map(AnnotationMcpPrompt::toArgument).toList();
+    return Arrays.stream(method.getParameters())
+        .filter(p -> !isWholeArgsMap(p))
+        .map(AnnotationMcpPrompt::toArgument)
+        .toList();
+  }
+
+  private static boolean isWholeArgsMap(Parameter parameter) {
+    return TypeRef.parameterType(parameter).isAssignableFrom(ARGS_TYPE);
   }
 
   private static PromptArgument toArgument(Parameter parameter) {

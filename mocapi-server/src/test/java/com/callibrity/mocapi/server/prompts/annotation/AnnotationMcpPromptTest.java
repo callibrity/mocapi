@@ -117,6 +117,13 @@ class AnnotationMcpPromptTest {
   }
 
   @Test
+  void wholeMapParameterIsNotDeclaredAsAnArgument() {
+    var prompt = createPrompts(new WholeMapPrompt()).getFirst();
+
+    assertThat(prompt.descriptor().arguments()).isEmpty();
+  }
+
+  @Test
   void mapTypedParamReceivesWholeArgumentsMap() {
     var prompt = createPrompts(new WholeMapPrompt()).getFirst();
 

@@ -6,6 +6,23 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Changed
+
+- Migrated to Odyssey 0.9.0. Per-stream operations are now expressed via
+  an `OdysseyStream<T>` handle obtained from `Odyssey.stream(name, type)`;
+  the old `Odyssey.publisher/subscribe/resume` facade methods are gone.
+  `OdysseyTransport` now wraps an `OdysseyStream` and the controller uses
+  one handle per request (publish and subscribe on the same handle).
+- SSE priming event for tool-call streams is now emitted through the new
+  `SubscriberConfig.onSubscribe` hook, which fires after the writer loop
+  opens the connection and before any journal events. Closes a
+  previously-latent race where the priming event could land after an
+  early journal event.
+
+### Requirements
+
+- Odyssey bumped from 0.8.1 to 0.9.0.
+
 ## [0.2.0] - 2026-04-14
 
 ### Added

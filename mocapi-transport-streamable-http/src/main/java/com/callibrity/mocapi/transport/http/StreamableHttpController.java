@@ -29,13 +29,11 @@ import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.odyssey.core.Odyssey;
 import org.jwcarman.odyssey.core.SseEventMapper;
 import org.springframework.http.HttpHeaders;
@@ -59,7 +57,6 @@ import tools.jackson.databind.node.ObjectNode;
  * Thin HTTP adapter for the MCP Streamable HTTP transport. Delegates all protocol logic to {@link
  * McpServer} and handles only HTTP/SSE transport concerns.
  */
-@Slf4j
 @RestController
 @RequestMapping("${mocapi.endpoint:/mcp}")
 public class StreamableHttpController {
@@ -184,23 +181,11 @@ public class StreamableHttpController {
         return ResponseEntity.ok().body(reconnect(sessionId, lastEventId));
       }
       SseEmitter emitter =
-          odyssey.subscribe(
-              sessionId, JsonRpcMessage.class, cfg -> cfg.mapper(encryptingMapper(sessionId)));
+          odyssey.stream(sessionId, JsonRpcMessage.class)
+              .subscribe(cfg -> cfg.mapper(encryptingMapper(sessionId)));
       return ResponseEntity.ok().body(emitter);
     } catch (IllegalArgumentException _) {
       return ResponseEntity.badRequest().build();
-    }
-  }
-
-  private void sendPrimingEvent(SseEmitter emitter, String sessionId, String streamName) {
-    String primingPlaintext = streamName + ":" + PRIMING_EVENT_ID;
-    String encryptedId = encrypt(sessionId, primingPlaintext);
-    try {
-      emitter.send(SseEmitter.event().id(encryptedId).data(""));
-    } catch (IOException e) {
-      log.warn("Failed to send SSE priming event", e);
-    } catch (IllegalStateException _) {
-      log.debug("SSE priming event skipped — emitter not active");
     }
   }
 
@@ -212,15 +197,21 @@ public class StreamableHttpController {
     }
 
     var streamName = UUID.randomUUID().toString();
-    var transport = new OdysseyTransport(odyssey.publisher(streamName, JsonRpcMessage.class));
+    var stream = odyssey.stream(streamName, JsonRpcMessage.class);
+    var transport = new OdysseyTransport(stream);
+    String sessionId = context.sessionId();
 
     Thread.ofVirtual().start(() -> server.handleCall(context, call, transport));
     var emitter =
-        odyssey.subscribe(
-            streamName,
-            JsonRpcMessage.class,
-            cfg -> cfg.mapper(encryptingMapper(context.sessionId())));
-    sendPrimingEvent(emitter, context.sessionId(), streamName);
+        stream.subscribe(
+            cfg ->
+                cfg.mapper(encryptingMapper(sessionId))
+                    .onSubscribe(
+                        e ->
+                            e.send(
+                                SseEmitter.event()
+                                    .id(encrypt(sessionId, streamName + ":" + PRIMING_EVENT_ID))
+                                    .data(""))));
     return ResponseEntity.ok().contentType(MediaType.TEXT_EVENT_STREAM).body(emitter);
   }
 
@@ -244,10 +235,11 @@ public class StreamableHttpController {
     String streamName = plaintext.substring(0, colonIndex);
     String rawEventId = plaintext.substring(colonIndex + 1);
     var mapper = encryptingMapper(sessionId);
+    var stream = odyssey.stream(streamName, JsonRpcMessage.class);
     if (PRIMING_EVENT_ID.equals(rawEventId)) {
-      return odyssey.subscribe(streamName, JsonRpcMessage.class, cfg -> cfg.mapper(mapper));
+      return stream.subscribe(cfg -> cfg.mapper(mapper));
     }
-    return odyssey.resume(streamName, JsonRpcMessage.class, rawEventId, cfg -> cfg.mapper(mapper));
+    return stream.resume(rawEventId, cfg -> cfg.mapper(mapper));
   }
 
   private SseEventMapper<JsonRpcMessage> encryptingMapper(String sessionId) {

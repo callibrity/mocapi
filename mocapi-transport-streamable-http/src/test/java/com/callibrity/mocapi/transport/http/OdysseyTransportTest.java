@@ -29,7 +29,7 @@ import com.callibrity.ripcurl.core.JsonRpcResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.jwcarman.odyssey.core.OdysseyPublisher;
+import org.jwcarman.odyssey.core.OdysseyStream;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.node.JsonNodeFactory;
@@ -37,13 +37,13 @@ import tools.jackson.databind.node.JsonNodeFactory;
 @ExtendWith(MockitoExtension.class)
 class OdysseyTransportTest {
 
-  @Mock private OdysseyPublisher<JsonRpcMessage> publisher;
+  @Mock private OdysseyStream<JsonRpcMessage> stream;
 
   private OdysseyTransport transport;
 
   @BeforeEach
   void setUp() {
-    transport = new OdysseyTransport(publisher);
+    transport = new OdysseyTransport(stream);
   }
 
   @Test
@@ -52,8 +52,8 @@ class OdysseyTransportTest {
 
     transport.send(call);
 
-    verify(publisher).publish(call);
-    verifyNoMoreInteractions(publisher);
+    verify(stream).publish(call);
+    verifyNoMoreInteractions(stream);
   }
 
   @Test
@@ -62,8 +62,8 @@ class OdysseyTransportTest {
 
     transport.send(result);
 
-    verify(publisher).publish(result);
-    verify(publisher).complete();
+    verify(stream).publish(result);
+    verify(stream).complete();
   }
 
   @Test
@@ -72,13 +72,13 @@ class OdysseyTransportTest {
 
     transport.send(notification);
 
-    verify(publisher).publish(notification);
-    verifyNoMoreInteractions(publisher);
+    verify(stream).publish(notification);
+    verifyNoMoreInteractions(stream);
   }
 
   @Test
   void streamNameDelegatesToPublisher() {
-    when(publisher.name()).thenReturn("stream-abc");
+    when(stream.name()).thenReturn("stream-abc");
 
     assertThat(transport.streamName()).isEqualTo("stream-abc");
   }
@@ -98,7 +98,7 @@ class OdysseyTransportTest {
   void emitIsNoOp() {
     transport.emit(new McpEvent.SessionInitialized("session-1", "2025-11-25"));
 
-    verifyNoMoreInteractions(publisher);
+    verifyNoMoreInteractions(stream);
   }
 
   private static tools.jackson.databind.JsonNode intNode(int value) {

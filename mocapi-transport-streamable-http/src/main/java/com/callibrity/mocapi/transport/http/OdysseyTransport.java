@@ -19,20 +19,20 @@ import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
-import org.jwcarman.odyssey.core.OdysseyPublisher;
+import org.jwcarman.odyssey.core.OdysseyStream;
 
 /**
- * Transport for post-initialize requests. Wraps an {@link OdysseyPublisher} and publishes every
+ * Transport for post-initialize requests. Wraps an {@link OdysseyStream} and publishes every
  * message to the stream. Automatically completes the stream when a {@link JsonRpcResponse} is sent,
  * signaling that the request/response cycle is finished.
  */
 class OdysseyTransport implements McpTransport {
 
-  private final OdysseyPublisher<JsonRpcMessage> publisher;
+  private final OdysseyStream<JsonRpcMessage> stream;
   private boolean completed;
 
-  OdysseyTransport(OdysseyPublisher<JsonRpcMessage> publisher) {
-    this.publisher = publisher;
+  OdysseyTransport(OdysseyStream<JsonRpcMessage> stream) {
+    this.stream = stream;
   }
 
   @Override
@@ -40,9 +40,9 @@ class OdysseyTransport implements McpTransport {
     if (completed) {
       throw new IllegalStateException("Transport completed");
     }
-    publisher.publish(message);
+    stream.publish(message);
     if (message instanceof JsonRpcResponse) {
-      publisher.complete();
+      stream.complete();
       completed = true;
     }
   }
@@ -54,6 +54,6 @@ class OdysseyTransport implements McpTransport {
 
   /** Returns the underlying stream name, used by the controller to subscribe. */
   String streamName() {
-    return publisher.name();
+    return stream.name();
   }
 }
