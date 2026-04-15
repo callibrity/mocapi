@@ -285,7 +285,7 @@ class StreamableHttpControllerTest {
     void subscribesToNotificationChannel() {
       when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
       SseEmitter emitter = new SseEmitter();
-      when(odyssey.stream(eq("session-1"), eq(JsonRpcMessage.class))).thenReturn(stream);
+      when(odyssey.stream("session-1", JsonRpcMessage.class)).thenReturn(stream);
       when(stream.subscribe(any())).thenReturn(emitter);
 
       var response = controller.handleGet("session-1", null, null, SSE_ACCEPT, null);
@@ -333,7 +333,7 @@ class StreamableHttpControllerTest {
     void primingEventIdTriggersSubscribeNotResume() {
       when(protocol.createContext(eq("session-1"), any())).thenReturn(validContext("session-1"));
       SseEmitter emitter = new SseEmitter();
-      when(odyssey.stream(eq("stream-name"), eq(JsonRpcMessage.class))).thenReturn(stream);
+      when(odyssey.stream("stream-name", JsonRpcMessage.class)).thenReturn(stream);
       when(stream.subscribe(any())).thenReturn(emitter);
 
       String plaintext = "stream-name:PRIMING";
