@@ -77,7 +77,7 @@
         <odyssey.version>0.9.0</odyssey.version>
         <ripcurl.version>2.3.0</ripcurl.version>
         <spring-boot.version>4.0.5</spring-boot.version>
-        <substrate.version>0.4.0</substrate.version>
+        <substrate.version>0.6.0</substrate.version>
         <swagger-annotations.version>2.2.43</swagger-annotations.version>
         <victools.version>5.0.0</victools.version>
 

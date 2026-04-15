@@ -22,6 +22,12 @@ All notable changes to this project are documented in this file. The format is b
 ### Requirements
 
 - Odyssey bumped from 0.8.1 to 0.9.0.
+- Substrate bumped from 0.4.0 to 0.6.0 (transitive with Odyssey 0.9.0).
+  Substrate now throws a distinct `AtomNotFoundException` for operations
+  targeting a never-existed or fully-evicted atom, separate from
+  `AtomExpiredException`. `AtomMcpSessionStore` now catches both on
+  `update`, `find`, `touch`, and `delete`, preserving the previous
+  "session is gone, no-op" behavior.
 
 ## [0.2.0] - 2026-04-14
 

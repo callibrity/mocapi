@@ -20,6 +20,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.jwcarman.substrate.atom.AtomExpiredException;
 import org.jwcarman.substrate.atom.AtomFactory;
+import org.jwcarman.substrate.atom.AtomNotFoundException;
 
 @RequiredArgsConstructor
 public class AtomMcpSessionStore implements McpSessionStore {
@@ -36,8 +37,8 @@ public class AtomMcpSessionStore implements McpSessionStore {
   public void update(String sessionId, McpSession session) {
     try {
       atomFactory.connect(sessionId, McpSession.class).set(session, sessionTimeout);
-    } catch (AtomExpiredException _) {
-      // Session expired between find and update — silently swallow.
+    } catch (AtomExpiredException | AtomNotFoundException _) {
+      // Session expired or evicted between find and update — silently swallow.
     }
   }
 
@@ -48,18 +49,26 @@ public class AtomMcpSessionStore implements McpSessionStore {
     }
     try {
       return Optional.of(atomFactory.connect(sessionId, McpSession.class).get().value());
-    } catch (AtomExpiredException _) {
+    } catch (AtomExpiredException | AtomNotFoundException _) {
       return Optional.empty();
     }
   }
 
   @Override
   public void touch(String sessionId, Duration ttl) {
-    atomFactory.connect(sessionId, McpSession.class).touch(ttl);
+    try {
+      atomFactory.connect(sessionId, McpSession.class).touch(ttl);
+    } catch (AtomExpiredException | AtomNotFoundException _) {
+      // Session gone — touch is a best-effort no-op.
+    }
   }
 
   @Override
   public void delete(String sessionId) {
-    atomFactory.connect(sessionId, McpSession.class).delete();
+    try {
+      atomFactory.connect(sessionId, McpSession.class).delete();
+    } catch (AtomExpiredException | AtomNotFoundException _) {
+      // Session gone — delete is a best-effort no-op.
+    }
   }
 }
