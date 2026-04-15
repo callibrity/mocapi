@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-15
+
 ### Changed
 
 - Migrated to Odyssey 0.9.0. Per-stream operations are now expressed via
@@ -93,6 +95,7 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.2.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/callibrity/mocapi/releases/tag/0.3.0
 [0.2.0]: https://github.com/callibrity/mocapi/releases/tag/0.2.0
 [0.1.0]: https://github.com/callibrity/mocapi/releases/tag/0.1.0
