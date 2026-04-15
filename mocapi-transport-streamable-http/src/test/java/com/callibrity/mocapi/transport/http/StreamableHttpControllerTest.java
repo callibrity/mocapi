@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -32,6 +33,7 @@ import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -40,8 +42,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.jwcarman.odyssey.core.DeliveredEvent;
 import org.jwcarman.odyssey.core.Odyssey;
 import org.jwcarman.odyssey.core.OdysseyStream;
+import org.jwcarman.odyssey.core.SseEventMapper;
+import org.jwcarman.odyssey.core.SubscriberConfig;
+import org.jwcarman.odyssey.core.SubscriberCustomizer;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -401,6 +408,83 @@ class StreamableHttpControllerTest {
     void rejectsInvalidOrigin() {
       var response = controller.handleDelete("s", null, "http://evil.example.com");
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+  }
+
+  @Nested
+  class SubscriptionWiring {
+
+    @BeforeEach
+    void setUpSession() {
+      when(protocol.createContext(anyString(), any())).thenReturn(validContext("session-1"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void primingHookSendsEncryptedPrimingEventBeforeJournalEvents() throws Exception {
+      SubscriberConfig<JsonRpcMessage> config = mock(SubscriberConfig.class);
+      when(config.mapper(any())).thenReturn(config);
+      when(config.onSubscribe(any())).thenReturn(config);
+
+      when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
+      when(stream.subscribe(any()))
+          .thenAnswer(
+              inv -> {
+                SubscriberCustomizer<JsonRpcMessage> customizer = inv.getArgument(0);
+                customizer.accept(config);
+                return new SseEmitter();
+              });
+
+      post(callRequest("tools/call"), null, "session-1", POST_ACCEPT, null);
+
+      ArgumentCaptor<SubscriberConfig.SubscribeHook> hookCaptor =
+          ArgumentCaptor.forClass(SubscriberConfig.SubscribeHook.class);
+      verify(config).onSubscribe(hookCaptor.capture());
+
+      SseEmitter emitter = mock(SseEmitter.class);
+      hookCaptor.getValue().accept(emitter);
+
+      // Hook body ran — verify it produced exactly one SSE event on the emitter.
+      verify(emitter).send(any(SseEmitter.SseEventBuilder.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void encryptingMapperBuildsSseEventFromDeliveredEvent() {
+      SubscriberConfig<JsonRpcMessage> config = mock(SubscriberConfig.class);
+      when(config.mapper(any())).thenReturn(config);
+      when(config.onSubscribe(any())).thenReturn(config);
+
+      when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
+      when(stream.subscribe(any()))
+          .thenAnswer(
+              inv -> {
+                SubscriberCustomizer<JsonRpcMessage> customizer = inv.getArgument(0);
+                customizer.accept(config);
+                return new SseEmitter();
+              });
+
+      post(callRequest("tools/call"), null, "session-1", POST_ACCEPT, null);
+
+      ArgumentCaptor<SseEventMapper<JsonRpcMessage>> mapperCaptor =
+          ArgumentCaptor.forClass(SseEventMapper.class);
+      verify(config).mapper(mapperCaptor.capture());
+      SseEventMapper<JsonRpcMessage> mapper = mapperCaptor.getValue();
+
+      JsonRpcMessage payload =
+          new JsonRpcResult(
+              JsonNodeFactory.instance.objectNode().put("k", "v"),
+              JsonNodeFactory.instance.numberNode(1));
+      DeliveredEvent<JsonRpcMessage> withType =
+          new DeliveredEvent<>(
+              "evt-1", "stream-xyz", Instant.now(), "progress", payload, java.util.Map.of());
+      SseEmitter.SseEventBuilder builder = mapper.map(withType);
+      assertThat(builder).isNotNull();
+
+      DeliveredEvent<JsonRpcMessage> withoutType =
+          new DeliveredEvent<>(
+              "evt-2", "stream-xyz", Instant.now(), null, payload, java.util.Map.of());
+      assertThat(mapper.map(withoutType)).isNotNull();
     }
   }
 

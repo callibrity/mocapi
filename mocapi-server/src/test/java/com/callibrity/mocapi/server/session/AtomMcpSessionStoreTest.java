@@ -52,4 +52,16 @@ class AtomMcpSessionStoreTest {
     // This should be silently swallowed.
     assertThatNoException().isThrownBy(() -> store.update(sessionId, session));
   }
+
+  @Test
+  void touchShouldNotThrowForMissingSession() {
+    String sessionId = UUID.randomUUID().toString();
+    assertThatNoException().isThrownBy(() -> store.touch(sessionId, sessionTimeout));
+  }
+
+  @Test
+  void deleteShouldNotThrowForMissingSession() {
+    String sessionId = UUID.randomUUID().toString();
+    assertThatNoException().isThrownBy(() -> store.delete(sessionId));
+  }
 }

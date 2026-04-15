@@ -32,7 +32,7 @@ import com.callibrity.ripcurl.core.JsonRpcResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Base64;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.jwcarman.odyssey.core.Odyssey;
 import org.jwcarman.odyssey.core.SseEventMapper;
@@ -300,19 +300,13 @@ public class StreamableHttpController {
 
   private static boolean acceptsJsonAndSse(String accept) {
     if (accept == null) return false;
-    List<MediaType> types = MediaType.parseMediaTypes(accept);
-    boolean json = false;
-    boolean sse = false;
-    for (MediaType mt : types) {
-      if (mt.includes(MediaType.APPLICATION_JSON)) json = true;
-      if (mt.includes(MediaType.TEXT_EVENT_STREAM)) sse = true;
-    }
-    return json && sse;
+    var types = Set.copyOf(MediaType.parseMediaTypes(accept));
+    return types.contains(MediaType.APPLICATION_JSON)
+        && types.contains(MediaType.TEXT_EVENT_STREAM);
   }
 
   private static boolean acceptsSse(String accept) {
     if (accept == null) return false;
-    return MediaType.parseMediaTypes(accept).stream()
-        .anyMatch(mt -> mt.includes(MediaType.TEXT_EVENT_STREAM));
+    return Set.copyOf(MediaType.parseMediaTypes(accept)).contains(MediaType.TEXT_EVENT_STREAM);
   }
 }
