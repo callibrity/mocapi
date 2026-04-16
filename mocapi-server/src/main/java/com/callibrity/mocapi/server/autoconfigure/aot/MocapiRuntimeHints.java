@@ -15,27 +15,65 @@
  */
 package com.callibrity.mocapi.server.autoconfigure.aot;
 
+import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.session.McpSession;
+import java.io.IOException;
 import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.type.classreading.CachingMetadataReaderFactory;
+import org.springframework.core.type.classreading.MetadataReaderFactory;
 
 /**
- * Registers binding hints for Mocapi-owned types that round-trip through a Codec boundary without
- * appearing in a {@code @JsonRpcMethod} signature. Ripcurl ships its own registrar for the {@code
- * JsonRpcMessage} hierarchy; this registrar covers the one type Mocapi is responsible for:
+ * Registers Jackson binding hints for every type in the {@code mocapi-model} package plus {@link
+ * McpSession}, so Mocapi's wire envelopes (tool/prompt/resource results, content blocks, sealed
+ * hierarchies, etc.) and the session record survive a GraalVM native-image build.
  *
- * <ul>
- *   <li>{@link McpSession} — written to the Substrate atom store by {@code AtomMcpSessionStore}.
- * </ul>
+ * <p>Per-user return types are covered separately by {@link MocapiServicesAotProcessor}; Ripcurl's
+ * {@code RipCurlRuntimeHints} covers the {@code JsonRpcMessage} hierarchy.
+ *
+ * <p>The model package is scanned at AOT build time rather than enumerated, so new model types get
+ * hints automatically without touching this class.
  */
 public class MocapiRuntimeHints implements RuntimeHintsRegistrar {
 
+  private static final String MODEL_PACKAGE = "com.callibrity.mocapi.model";
   private static final BindingReflectionHintsRegistrar BINDING =
       new BindingReflectionHintsRegistrar();
 
   @Override
   public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
     BINDING.registerReflectionHints(hints.reflection(), McpSession.class);
+    registerPackage(hints, classLoader, MODEL_PACKAGE, Tool.class);
+  }
+
+  /**
+   * Walks every class (records, concrete classes, sealed-interface permits) in {@code packageName}
+   * and registers Jackson binding hints for it. The {@code marker} type anchors the search to the
+   * jar that actually contains the package so other jars declaring the same package are ignored.
+   */
+  private static void registerPackage(
+      RuntimeHints hints, ClassLoader classLoader, String packageName, Class<?> marker) {
+    String pattern = "classpath*:" + packageName.replace('.', '/') + "/**/*.class";
+    var resolver = new PathMatchingResourcePatternResolver(classLoader);
+    MetadataReaderFactory factory = new CachingMetadataReaderFactory(classLoader);
+    try {
+      for (Resource resource : resolver.getResources(pattern)) {
+        var metadata = factory.getMetadataReader(resource).getClassMetadata();
+        if (!metadata.getClassName().startsWith(packageName + ".")) {
+          continue;
+        }
+        Class<?> type = Class.forName(metadata.getClassName(), false, classLoader);
+        if (type.getPackage() != marker.getPackage()) {
+          continue;
+        }
+        BINDING.registerReflectionHints(hints.reflection(), type);
+      }
+    } catch (IOException | ClassNotFoundException e) {
+      throw new IllegalStateException(
+          "Failed to register Mocapi model hints for " + packageName, e);
+    }
   }
 }

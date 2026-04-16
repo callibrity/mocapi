@@ -57,10 +57,14 @@ class MocapiServicesAotProcessorTest {
     }
 
     @ToolMethod(name = "noop")
-    public void noop() {}
+    public void noop() {
+      // Fixture for the void-return-type branch of the AOT processor; tests assert no void.class
+      // hint is emitted. The body never runs — only the declared signature matters.
+    }
 
     @ToolMethod(name = "noop-boxed")
     public Void noopBoxed() {
+      // Fixture for the boxed-Void-return-type branch; tests assert no Void.class hint is emitted.
       return null;
     }
 
