@@ -83,6 +83,18 @@ class MocapiRuntimeHintsTest {
     assertTypeHintRegistered(PromptMessage.class);
   }
 
+  @Test
+  void registersResourcePatternsForJsonSkemaMetaSchemas() {
+    var patterns =
+        hints
+            .resources()
+            .resourcePatternHints()
+            .flatMap(hint -> hint.getIncludes().stream())
+            .map(p -> p.getPattern())
+            .toList();
+    assertThat(patterns).contains("json-meta-schemas/*", "json-meta-schemas/draft2020-12/*");
+  }
+
   private void assertTypeHintRegistered(Class<?> type) {
     assertThat(hints.reflection().typeHints())
         .as("expected binding hints for %s", type.getName())

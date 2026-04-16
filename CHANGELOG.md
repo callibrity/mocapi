@@ -6,6 +6,17 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-04-16
+
+### Fixed
+
+- Native-image builds failed at runtime when json-sKema tried to load its
+  JSON Schema draft meta-schemas from the classpath, because the library
+  does not yet ship `META-INF/native-image/reachability-metadata.json`.
+  `MocapiRuntimeHints` now registers the `json-meta-schemas/**` resource
+  patterns so those files survive a `native-image` build. Belt-and-
+  suspenders once json-sKema publishes its own metadata.
+
 ## [0.4.0] - 2026-04-16
 
 ### Added
@@ -127,7 +138,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.4.1...HEAD
+[0.4.1]: https://github.com/callibrity/mocapi/releases/tag/0.4.1
 [0.4.0]: https://github.com/callibrity/mocapi/releases/tag/0.4.0
 [0.3.0]: https://github.com/callibrity/mocapi/releases/tag/0.3.0
 [0.2.0]: https://github.com/callibrity/mocapi/releases/tag/0.2.0

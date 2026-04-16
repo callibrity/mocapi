@@ -50,6 +50,19 @@ public class MocapiRuntimeHints implements RuntimeHintsRegistrar {
                 BINDING.registerReflectionHints(
                     hints.reflection(),
                     ClassUtils.resolveClassName(bd.getBeanClassName(), classLoader)));
+    registerJsonSkemaMetaSchemaResources(hints);
+  }
+
+  /**
+   * json-sKema (used for tool/input schema validation) ships its JSON Schema draft meta-schemas as
+   * classpath resources under {@code json-meta-schemas/**} but does not yet ship native-image
+   * reachability metadata. Register the resource patterns here so those files survive a {@code
+   * native-image} build and the library can load them at runtime. Belt-and-suspenders once
+   * json-sKema ships its own {@code META-INF/native-image/reachability-metadata.json}.
+   */
+  private static void registerJsonSkemaMetaSchemaResources(RuntimeHints hints) {
+    hints.resources().registerPattern("json-meta-schemas/*");
+    hints.resources().registerPattern("json-meta-schemas/draft2020-12/*");
   }
 
   /**
