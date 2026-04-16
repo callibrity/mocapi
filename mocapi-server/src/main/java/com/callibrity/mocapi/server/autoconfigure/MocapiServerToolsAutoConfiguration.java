@@ -58,7 +58,7 @@ public class MocapiServerToolsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(ToolServiceMcpToolProvider.class)
-  public McpToolProvider mcpProtocolToolServiceMcpToolProvider(
+  public ToolServiceMcpToolProvider mcpProtocolToolServiceMcpToolProvider(
       ApplicationContext context,
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,

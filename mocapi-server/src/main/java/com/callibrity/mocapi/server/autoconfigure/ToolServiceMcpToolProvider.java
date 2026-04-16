@@ -56,7 +56,7 @@ class ToolServiceMcpToolProvider implements McpToolProvider {
   }
 
   @PostConstruct
-  void initialize() {
+  public void initialize() {
     var beans = context.getBeansWithAnnotation(ToolService.class);
     tools =
         beans.entrySet().stream()

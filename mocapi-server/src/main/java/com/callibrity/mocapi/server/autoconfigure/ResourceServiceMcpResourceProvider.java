@@ -64,7 +64,7 @@ class ResourceServiceMcpResourceProvider
   }
 
   @PostConstruct
-  void initialize() {
+  public void initialize() {
     var beans = context.getBeansWithAnnotation(ResourceService.class);
     var resourceList = new ArrayList<AnnotationMcpResource>();
     var templateList = new ArrayList<AnnotationMcpResourceTemplate>();

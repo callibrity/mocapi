@@ -132,6 +132,54 @@ class StreamableHttpAutoConfigurationTest {
   }
 
   @Test
+  void missingMasterKeyFailsWithHelpfulMessage() {
+    contextRunner
+        .withPropertyValues("mocapi.session-encryption-master-key=")
+        .run(
+            context -> {
+              assertThat(context).hasFailed();
+              assertThat(context)
+                  .getFailure()
+                  .hasRootCauseInstanceOf(IllegalStateException.class)
+                  .hasStackTraceContaining("mocapi.session-encryption-master-key is required")
+                  .hasStackTraceContaining("openssl rand -base64 32");
+            });
+  }
+
+  @Test
+  void invalidBase64MasterKeyFailsWithHelpfulMessage() {
+    contextRunner
+        .withPropertyValues("mocapi.session-encryption-master-key=not!!!valid~base64")
+        .run(
+            context -> {
+              assertThat(context).hasFailed();
+              assertThat(context)
+                  .getFailure()
+                  .hasRootCauseInstanceOf(IllegalArgumentException.class)
+                  .hasStackTraceContaining("not valid base64")
+                  .hasStackTraceContaining("openssl rand -base64 32");
+            });
+  }
+
+  @Test
+  void wrongLengthMasterKeyFailsWithHelpfulMessage() {
+    // 16 bytes encoded — base64-valid but AES-256 needs 32.
+    String shortKey = java.util.Base64.getEncoder().encodeToString(new byte[16]);
+    contextRunner
+        .withPropertyValues("mocapi.session-encryption-master-key=" + shortKey)
+        .run(
+            context -> {
+              assertThat(context).hasFailed();
+              assertThat(context)
+                  .getFailure()
+                  .rootCause()
+                  .isInstanceOf(IllegalStateException.class)
+                  .hasMessageContaining("16 bytes")
+                  .hasMessageContaining("AES-256 requires exactly 32");
+            });
+  }
+
+  @Test
   void allowedOriginsPropertyIsUsedByValidator() {
     contextRunner
         .withPropertyValues("mocapi.allowed-origins=example.com,other.com")

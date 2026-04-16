@@ -51,7 +51,35 @@ public class StreamableHttpAutoConfiguration {
       McpRequestValidator validator,
       Odyssey odyssey,
       ObjectMapper objectMapper) {
-    byte[] masterKey = Base64.getDecoder().decode(props.sessionEncryptionMasterKey());
+    byte[] masterKey = decodeMasterKey(props.sessionEncryptionMasterKey());
     return new StreamableHttpController(protocol, validator, odyssey, objectMapper, masterKey);
+  }
+
+  private static byte[] decodeMasterKey(String encoded) {
+    if (encoded == null || encoded.isBlank()) {
+      throw new IllegalStateException(
+          """
+          mocapi.session-encryption-master-key is required but not set. Provide a \
+          base64-encoded 32-byte (AES-256) key via application.properties, \
+          application.yml, or the MOCAPI_SESSION_ENCRYPTION_MASTER_KEY environment \
+          variable. Generate one with: openssl rand -base64 32""");
+    }
+    byte[] decoded;
+    try {
+      decoded = Base64.getDecoder().decode(encoded);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalStateException(
+          "mocapi.session-encryption-master-key is not valid base64. Generate a new one "
+              + "with: openssl rand -base64 32",
+          e);
+    }
+    if (decoded.length != 32) {
+      throw new IllegalStateException(
+          "mocapi.session-encryption-master-key decodes to "
+              + decoded.length
+              + " bytes; AES-256 requires exactly 32. Generate a new one with: "
+              + "openssl rand -base64 32");
+    }
+    return decoded;
   }
 }

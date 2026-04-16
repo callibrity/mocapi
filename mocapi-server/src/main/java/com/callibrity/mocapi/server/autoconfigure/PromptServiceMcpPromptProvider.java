@@ -52,7 +52,7 @@ class PromptServiceMcpPromptProvider implements McpPromptProvider {
   }
 
   @PostConstruct
-  void initialize() {
+  public void initialize() {
     var beans = context.getBeansWithAnnotation(PromptService.class);
     prompts =
         beans.entrySet().stream()
