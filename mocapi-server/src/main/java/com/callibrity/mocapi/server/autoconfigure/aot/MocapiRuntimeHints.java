@@ -15,16 +15,13 @@
  */
 package com.callibrity.mocapi.server.autoconfigure.aot;
 
-import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.session.McpSession;
-import java.io.IOException;
 import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.core.type.classreading.CachingMetadataReaderFactory;
-import org.springframework.core.type.classreading.MetadataReaderFactory;
+import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
+import org.springframework.util.ClassUtils;
 
 /**
  * Registers Jackson binding hints for every type in the {@code mocapi-model} package plus {@link
@@ -46,34 +43,29 @@ public class MocapiRuntimeHints implements RuntimeHintsRegistrar {
   @Override
   public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
     BINDING.registerReflectionHints(hints.reflection(), McpSession.class);
-    registerPackage(hints, classLoader, MODEL_PACKAGE, Tool.class);
+    scanner()
+        .findCandidateComponents(MODEL_PACKAGE)
+        .forEach(
+            bd ->
+                BINDING.registerReflectionHints(
+                    hints.reflection(),
+                    ClassUtils.resolveClassName(bd.getBeanClassName(), classLoader)));
   }
 
   /**
-   * Walks every class (records, concrete classes, sealed-interface permits) in {@code packageName}
-   * and registers Jackson binding hints for it. The {@code marker} type anchors the search to the
-   * jar that actually contains the package so other jars declaring the same package are ignored.
+   * {@link ClassPathScanningCandidateComponentProvider} defaults to excluding interfaces, abstract
+   * classes, and types without a {@code @Component}-family annotation. Override both so it surfaces
+   * every class in the package — sealed interfaces, records, enums, the lot.
    */
-  private static void registerPackage(
-      RuntimeHints hints, ClassLoader classLoader, String packageName, Class<?> marker) {
-    String pattern = "classpath*:" + packageName.replace('.', '/') + "/**/*.class";
-    var resolver = new PathMatchingResourcePatternResolver(classLoader);
-    MetadataReaderFactory factory = new CachingMetadataReaderFactory(classLoader);
-    try {
-      for (Resource resource : resolver.getResources(pattern)) {
-        var metadata = factory.getMetadataReader(resource).getClassMetadata();
-        if (!metadata.getClassName().startsWith(packageName + ".")) {
-          continue;
-        }
-        Class<?> type = Class.forName(metadata.getClassName(), false, classLoader);
-        if (type.getPackage() != marker.getPackage()) {
-          continue;
-        }
-        BINDING.registerReflectionHints(hints.reflection(), type);
-      }
-    } catch (IOException | ClassNotFoundException e) {
-      throw new IllegalStateException(
-          "Failed to register Mocapi model hints for " + packageName, e);
-    }
+  private static ClassPathScanningCandidateComponentProvider scanner() {
+    var scanner =
+        new ClassPathScanningCandidateComponentProvider(false) {
+          @Override
+          protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
+            return true;
+          }
+        };
+    scanner.addIncludeFilter((reader, factory) -> true);
+    return scanner;
   }
 }
