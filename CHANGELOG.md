@@ -33,6 +33,10 @@ All notable changes to this project are documented in this file. The format is b
   AOT processor for `@JsonRpcService` beans and a `RuntimeHintsRegistrar`
   for the `JsonRpcMessage` sealed hierarchy. Mocapi's own hints rely on
   Ripcurl carrying its half of the AOT story.
+- Odyssey bumped from 0.9.0 to 0.10.0, which ships AOT hints for its
+  own journaling internals. No API changes required in Mocapi.
+- Substrate bumped from 0.6.0 to 0.7.0 (transitive with Odyssey 0.10.0).
+  No API changes required in Mocapi.
 
 ## [0.3.0] - 2026-04-15
 
