@@ -6,6 +6,34 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-16
+
+### Added
+
+- Spring AOT hints so Mocapi apps can be compiled with GraalVM
+  `native-image` without hand-maintaining a reflection config.
+  `MocapiServicesAotProcessor` (a `BeanRegistrationAotProcessor`)
+  walks every `@ToolService`, `@PromptService`, and `@ResourceService`
+  bean, registering `ExecutableMode.INVOKE` hints on each
+  `@ToolMethod`, `@PromptMethod`, `@ResourceMethod`, and
+  `@ResourceTemplateMethod` plus Jackson binding hints on every
+  parameter type and non-void return type. `MocapiRuntimeHints` (a
+  `RuntimeHintsRegistrar`) registers binding hints for `McpSession`
+  and scans `com.callibrity.mocapi.model` at AOT build time so every
+  wire-envelope type, sealed-hierarchy permit, and future model
+  addition is covered automatically. Hooks wired via
+  `META-INF/spring/aot.factories`; no-op for JIT builds.
+- `docs/native-image-hints.md` documents what Mocapi ships, which
+  surfaces Spring AOT handles on its own, and the cowork-connector
+  verification recipe under the GraalVM tracing agent.
+
+### Requirements
+
+- Ripcurl bumped from 2.3.0 to 2.5.0, which introduces Ripcurl's own
+  AOT processor for `@JsonRpcService` beans and a `RuntimeHintsRegistrar`
+  for the `JsonRpcMessage` sealed hierarchy. Mocapi's own hints rely on
+  Ripcurl carrying its half of the AOT story.
+
 ## [0.3.0] - 2026-04-15
 
 ### Changed
@@ -95,7 +123,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/callibrity/mocapi/releases/tag/0.4.0
 [0.3.0]: https://github.com/callibrity/mocapi/releases/tag/0.3.0
 [0.2.0]: https://github.com/callibrity/mocapi/releases/tag/0.2.0
 [0.1.0]: https://github.com/callibrity/mocapi/releases/tag/0.1.0
