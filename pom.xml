@@ -75,7 +75,7 @@
         <json-skema.version>0.29.0</json-skema.version>
         <methodical.version>0.4.0</methodical.version>
         <odyssey.version>0.9.0</odyssey.version>
-        <ripcurl.version>2.3.0</ripcurl.version>
+        <ripcurl.version>2.5.0</ripcurl.version>
         <spring-boot.version>4.0.5</spring-boot.version>
         <substrate.version>0.6.0</substrate.version>
         <swagger-annotations.version>2.2.43</swagger-annotations.version>

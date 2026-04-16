@@ -1,0 +1,5 @@
+org.springframework.beans.factory.aot.BeanRegistrationAotProcessor=\
+com.callibrity.mocapi.server.autoconfigure.aot.MocapiServicesAotProcessor
+
+org.springframework.aot.hint.RuntimeHintsRegistrar=\
+com.callibrity.mocapi.server.autoconfigure.aot.MocapiRuntimeHints
