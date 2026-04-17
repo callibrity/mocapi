@@ -38,3 +38,6 @@ build/
 ### Ralph Loop ###
 logs/
 .DS_Store
+
+### Git worktrees ###
+.worktrees/
