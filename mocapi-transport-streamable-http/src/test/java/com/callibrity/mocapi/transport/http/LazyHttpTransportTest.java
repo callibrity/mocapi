@@ -17,19 +17,23 @@ package com.callibrity.mocapi.transport.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.server.McpEvent;
-import com.callibrity.mocapi.transport.http.LazyHttpTransport.SseConnection;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
+import java.util.function.BiConsumer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.jwcarman.odyssey.core.Odyssey;
 import org.jwcarman.odyssey.core.OdysseyStream;
+import org.jwcarman.odyssey.core.SubscriberConfig;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -41,12 +45,16 @@ import tools.jackson.databind.node.JsonNodeFactory;
 @ExtendWith(MockitoExtension.class)
 class LazyHttpTransportTest {
 
+  @Mock Odyssey odyssey;
   @Mock OdysseyStream<JsonRpcMessage> stream;
+
+  private final BiConsumer<SubscriberConfig<JsonRpcMessage>, OdysseyStream<JsonRpcMessage>>
+      noopConfigurer = (cfg, s) -> {};
 
   @Test
   void sendingResponseFromPendingCompletesFutureAsJson() {
     var future = new CompletableFuture<ResponseEntity<Object>>();
-    var transport = new LazyHttpTransport(future, unusedSseOpener());
+    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
 
     var result = new JsonRpcResult(JsonNodeFactory.instance.objectNode().put("k", "v"), intNode(1));
     transport.send(result);
@@ -61,7 +69,7 @@ class LazyHttpTransportTest {
   @Test
   void jsonResponseIncludesSessionInitializedHeader() {
     var future = new CompletableFuture<ResponseEntity<Object>>();
-    var transport = new LazyHttpTransport(future, unusedSseOpener());
+    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
     transport.emit(new McpEvent.SessionInitialized("session-42", "2025-11-25"));
     transport.send(new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1)));
 
@@ -72,7 +80,7 @@ class LazyHttpTransportTest {
   @Test
   void sendAfterJsonCommitThrows() {
     var future = new CompletableFuture<ResponseEntity<Object>>();
-    var transport = new LazyHttpTransport(future, unusedSseOpener());
+    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
     transport.send(new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1)));
 
     assertThatThrownBy(
@@ -85,7 +93,8 @@ class LazyHttpTransportTest {
   void sendingNotificationFromPendingUpgradesToSse() {
     var future = new CompletableFuture<ResponseEntity<Object>>();
     var emitter = new SseEmitter();
-    var transport = new LazyHttpTransport(future, () -> new SseConnection(stream, emitter));
+    wireStreamSubscribe(emitter);
+    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
 
     var notification = new JsonRpcNotification("2.0", "notifications/progress", null);
     transport.send(notification);
@@ -101,7 +110,8 @@ class LazyHttpTransportTest {
   void sendingServerInitiatedCallFromPendingUpgradesToSse() {
     var future = new CompletableFuture<ResponseEntity<Object>>();
     var emitter = new SseEmitter();
-    var transport = new LazyHttpTransport(future, () -> new SseConnection(stream, emitter));
+    wireStreamSubscribe(emitter);
+    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
 
     var call = JsonRpcCall.of("elicitation/create", null, intNode(7));
     transport.send(call);
@@ -114,8 +124,8 @@ class LazyHttpTransportTest {
   @Test
   void sseSubsequentResponseCompletesStream() {
     var future = new CompletableFuture<ResponseEntity<Object>>();
-    var transport =
-        new LazyHttpTransport(future, () -> new SseConnection(stream, new SseEmitter()));
+    wireStreamSubscribe(new SseEmitter());
+    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
 
     transport.send(new JsonRpcNotification("2.0", "notifications/progress", null));
     var response = new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1));
@@ -128,8 +138,8 @@ class LazyHttpTransportTest {
   @Test
   void sseAfterStreamCompleteThrows() {
     var future = new CompletableFuture<ResponseEntity<Object>>();
-    var transport =
-        new LazyHttpTransport(future, () -> new SseConnection(stream, new SseEmitter()));
+    wireStreamSubscribe(new SseEmitter());
+    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
 
     transport.send(new JsonRpcNotification("2.0", "notifications/progress", null));
     transport.send(new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1)));
@@ -143,8 +153,8 @@ class LazyHttpTransportTest {
   @Test
   void sseUpgradeIncludesSessionInitializedHeader() {
     var future = new CompletableFuture<ResponseEntity<Object>>();
-    var transport =
-        new LazyHttpTransport(future, () -> new SseConnection(stream, new SseEmitter()));
+    wireStreamSubscribe(new SseEmitter());
+    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
     transport.emit(new McpEvent.SessionInitialized("session-99", "2025-11-25"));
 
     transport.send(new JsonRpcNotification("2.0", "notifications/progress", null));
@@ -152,10 +162,9 @@ class LazyHttpTransportTest {
     assertThat(future.getNow(null).getHeaders().getFirst("MCP-Session-Id")).isEqualTo("session-99");
   }
 
-  private static Supplier<SseConnection> unusedSseOpener() {
-    return () -> {
-      throw new AssertionError("should not be called");
-    };
+  private void wireStreamSubscribe(SseEmitter emitter) {
+    when(odyssey.stream(any(), eq(JsonRpcMessage.class))).thenReturn(stream);
+    when(stream.subscribe(any())).thenReturn(emitter);
   }
 
   private static tools.jackson.databind.JsonNode intNode(int value) {
