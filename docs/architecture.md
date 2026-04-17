@@ -89,25 +89,27 @@ For `initialize` requests (which have no session), the transport uses `McpContex
 
 Sessions are stored in a pluggable `McpSessionStore` backed by Substrate's Atom SPI. Each session has a configurable TTL that is refreshed on access.
 
-## SSE Transport
+## Transport
 
-Post-initialization calls are dispatched on virtual threads and streamed via SSE:
+Every `JsonRpcCall` POST runs on a virtual thread through `StreamableHttpTransport`, which chooses JSON vs SSE based on the first outbound message:
 
-1. Controller creates an `OdysseyTransport` backed by an Odyssey publisher
-2. Spawns a virtual thread to run `server.handleCall()`
-3. Returns an `SseEmitter` subscribed to the Odyssey stream
-4. The tool runs, sends progress/log notifications via the transport
-5. The final `JsonRpcResponse` completes the stream
+1. Controller creates a `StreamableHttpTransport` with an `SseStream` supplier and spawns a virtual thread to run `server.handleCall()`
+2. The transport holds a `MessageWriter` state machine starting in `DirectMessageWriter`
+3. First `send()` decides the response shape:
+   - `JsonRpcResponse` → commit as `application/json` body, transition to `ClosedMessageWriter`
+   - `JsonRpcRequest` (notification or server-initiated call) → pull an `SseStream` from the supplier, commit `text/event-stream` body, transition to `SseMessageWriter`
+4. Subsequent `send()` calls on `SseMessageWriter` publish to the stream; a terminal `JsonRpcResponse` closes the stream and transitions to `ClosedMessageWriter`
+5. `ClosedMessageWriter` rejects any further writes
 
-Initialize requests use a `SynchronousTransport` -- direct JSON response, no SSE.
+Simple tools that only return a response get JSON — no unnecessary SSE upgrade. Tools that emit progress/log notifications or issue sampling/elicitation requests upgrade lazily when the first notification or server-initiated call is sent.
 
 ### Encrypted Event IDs
 
-SSE event IDs are encrypted using AES-256-GCM with the session ID as context. This prevents cross-session event enumeration and forged resumption requests.
+SSE event IDs are encrypted using AES-256-GCM with the session ID as context. This prevents cross-session event enumeration and forged resumption requests. Encryption lives in `DefaultSseStreamFactory`; the controller and transport have no direct knowledge of cipher details.
 
 ### GET SSE Streams
 
-Clients can open a GET connection to receive server-initiated messages (notifications, requests for elicitation/sampling). A priming event with an encrypted event ID is sent when the stream opens, establishing a `Last-Event-ID` anchor for reconnection.
+Clients can open a GET connection to receive server-initiated messages on a session-scoped stream (`SseStreamFactory.sessionStream(context)`, named by session ID). A `Last-Event-ID` header on reconnect routes through `SseStreamFactory.resumeStream(context, lastEventId)`, which decodes the stream name and event ID from the encrypted token.
 
 ## Server Capabilities
 

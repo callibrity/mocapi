@@ -20,6 +20,9 @@ import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerProperties;
 import com.callibrity.mocapi.transport.http.McpRequestValidator;
 import com.callibrity.mocapi.transport.http.StreamableHttpController;
+import com.callibrity.mocapi.transport.http.sse.Ciphers;
+import com.callibrity.mocapi.transport.http.sse.DefaultSseStreamFactory;
+import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import org.jwcarman.odyssey.core.Odyssey;
@@ -45,14 +48,22 @@ public class StreamableHttpAutoConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean(SseStreamFactory.class)
+  public DefaultSseStreamFactory mcpProtocolSseStreamFactory(
+      Odyssey odyssey, ObjectMapper objectMapper) {
+    byte[] masterKey = decodeMasterKey(props.sessionEncryptionMasterKey());
+    Ciphers.validateAesGcmKey(masterKey);
+    return new DefaultSseStreamFactory(odyssey, objectMapper, masterKey);
+  }
+
+  @Bean
   @ConditionalOnMissingBean(StreamableHttpController.class)
   public StreamableHttpController mcpProtocolStreamableHttpController(
       McpServer protocol,
       McpRequestValidator validator,
-      Odyssey odyssey,
+      SseStreamFactory sseStreamFactory,
       ObjectMapper objectMapper) {
-    byte[] masterKey = decodeMasterKey(props.sessionEncryptionMasterKey());
-    return new StreamableHttpController(protocol, validator, odyssey, objectMapper, masterKey);
+    return new StreamableHttpController(protocol, validator, sseStreamFactory, objectMapper);
   }
 
   private static byte[] decodeMasterKey(String encoded) {

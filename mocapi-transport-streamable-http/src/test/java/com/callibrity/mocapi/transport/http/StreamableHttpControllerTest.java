@@ -20,8 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,11 +29,11 @@ import com.callibrity.mocapi.server.McpContextResult;
 import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.transport.http.sse.SseStream;
+import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
-import java.security.SecureRandom;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -45,14 +44,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.jwcarman.odyssey.core.DeliveredEvent;
-import org.jwcarman.odyssey.core.Odyssey;
-import org.jwcarman.odyssey.core.OdysseyStream;
-import org.jwcarman.odyssey.core.SseEventMapper;
-import org.jwcarman.odyssey.core.SubscriberConfig;
-import org.jwcarman.odyssey.core.SubscriberCustomizer;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -71,22 +62,16 @@ class StreamableHttpControllerTest {
   private static final String SSE_ACCEPT = "text/event-stream";
 
   @Mock private McpServer protocol;
-  @Mock private Odyssey odyssey;
-  @Mock private OdysseyStream<JsonRpcMessage> stream;
-  @Mock private SubscriberConfig<JsonRpcMessage> subscriberConfig;
-  @Captor private ArgumentCaptor<SseEventMapper<JsonRpcMessage>> sseEventMapperCaptor;
+  @Mock private SseStreamFactory sseStreamFactory;
+  @Mock private SseStream sseStream;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private StreamableHttpController controller;
-  private byte[] masterKey;
 
   @BeforeEach
   void setUp() {
-    masterKey = new byte[32];
-    new SecureRandom().nextBytes(masterKey);
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
-    controller =
-        new StreamableHttpController(protocol, validator, odyssey, objectMapper, masterKey);
+    controller = new StreamableHttpController(protocol, validator, sseStreamFactory, objectMapper);
   }
 
   @Nested
@@ -133,7 +118,7 @@ class StreamableHttpControllerTest {
 
       post(initializeRequest(), null, null, POST_ACCEPT, null);
 
-      verify(protocol).handleCall(any(), any(), any(LazyHttpTransport.class));
+      verify(protocol).handleCall(any(), any(), any(StreamableHttpTransport.class));
     }
   }
 
@@ -148,8 +133,8 @@ class StreamableHttpControllerTest {
     @Test
     void toolsCallReturnsSseWhenHandlerSendsNotificationFirst() throws Exception {
       SseEmitter emitter = new SseEmitter();
-      when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
-      when(stream.subscribe(any())).thenReturn(emitter);
+      when(sseStreamFactory.responseStream(any(McpContext.class))).thenReturn(sseStream);
+      when(sseStream.createEmitter()).thenReturn(emitter);
       doAnswer(
               invocation -> {
                 McpTransport transport = invocation.getArgument(2);
@@ -169,6 +154,8 @@ class StreamableHttpControllerTest {
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM);
       assertThat(response.getBody()).isSameAs(emitter);
+      verify(sseStream).write(any(JsonRpcNotification.class));
+      verify(sseStream).write(any(JsonRpcResult.class));
     }
 
     @Test
@@ -209,7 +196,7 @@ class StreamableHttpControllerTest {
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
-      verify(protocol).handleCall(any(), any(), any(LazyHttpTransport.class));
+      verify(protocol).handleCall(any(), any(), any(StreamableHttpTransport.class));
     }
 
     @Test
@@ -308,11 +295,11 @@ class StreamableHttpControllerTest {
   class GetEndpoint {
 
     @Test
-    void subscribesToNotificationChannel() {
+    void subscribesToSessionChannel() {
       when(protocol.createContext("session-1", null)).thenReturn(validContext("session-1"));
       SseEmitter emitter = new SseEmitter();
-      when(odyssey.stream("session-1", JsonRpcMessage.class)).thenReturn(stream);
-      when(stream.subscribe(any())).thenReturn(emitter);
+      when(sseStreamFactory.sessionStream(any(McpContext.class))).thenReturn(sseStream);
+      when(sseStream.createEmitter()).thenReturn(emitter);
 
       var response = controller.handleGet("session-1", null, null, SSE_ACCEPT, null);
 
@@ -333,59 +320,27 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void resumeWithLastEventIdDelegatesToOdyssey() {
+    void resumeWithLastEventIdDelegatesToFactory() {
       when(protocol.createContext("session-1", null)).thenReturn(validContext("session-1"));
       SseEmitter emitter = new SseEmitter();
-      when(odyssey.stream("stream-name", JsonRpcMessage.class)).thenReturn(stream);
-      when(stream.resume(eq("event-42"), any())).thenReturn(emitter);
+      when(sseStreamFactory.resumeStream(any(McpContext.class), eq("encrypted-id")))
+          .thenReturn(sseStream);
+      when(sseStream.createEmitter()).thenReturn(emitter);
 
-      String plaintext = "stream-name:event-42";
-      String encryptedId = encrypt("session-1", plaintext);
-
-      var response = controller.handleGet("session-1", null, encryptedId, SSE_ACCEPT, null);
+      var response = controller.handleGet("session-1", null, "encrypted-id", SSE_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getBody()).isSameAs(emitter);
-      verify(odyssey).stream("stream-name", JsonRpcMessage.class);
-      verify(stream).resume(eq("event-42"), any());
     }
 
     @Test
-    void primingEventIdTriggersSubscribeNotResume() {
+    void resumeWithMalformedLastEventIdReturns400() {
       when(protocol.createContext("session-1", null)).thenReturn(validContext("session-1"));
-      SseEmitter emitter = new SseEmitter();
-      when(odyssey.stream("stream-name", JsonRpcMessage.class)).thenReturn(stream);
-      when(stream.subscribe(any())).thenReturn(emitter);
+      doThrow(new IllegalArgumentException("bad event id"))
+          .when(sseStreamFactory)
+          .resumeStream(any(McpContext.class), eq("malformed"));
 
-      String plaintext = "stream-name:PRIMING";
-      String encryptedId = encrypt("session-1", plaintext);
-
-      var response = controller.handleGet("session-1", null, encryptedId, SSE_ACCEPT, null);
-
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-      assertThat(response.getBody()).isSameAs(emitter);
-      verify(stream).subscribe(any());
-      verify(stream, never()).resume(anyString(), any());
-    }
-
-    @Test
-    void lastEventIdWithNoColonReturns400() {
-      when(protocol.createContext("session-1", null)).thenReturn(validContext("session-1"));
-
-      String plaintext = "no-colon-in-this-value";
-      String encryptedId = encrypt("session-1", plaintext);
-
-      var response = controller.handleGet("session-1", null, encryptedId, SSE_ACCEPT, null);
-
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-    }
-
-    @Test
-    void malformedBase64InLastEventIdReturns400() {
-      when(protocol.createContext("session-1", null)).thenReturn(validContext("session-1"));
-
-      var response =
-          controller.handleGet("session-1", null, "not!!!valid~base64", SSE_ACCEPT, null);
+      var response = controller.handleGet("session-1", null, "malformed", SSE_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -428,85 +383,6 @@ class StreamableHttpControllerTest {
     void rejectsInvalidOrigin() {
       var response = controller.handleDelete("s", null, "http://evil.example.com");
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-    }
-  }
-
-  @Nested
-  class SubscriptionWiring {
-
-    @BeforeEach
-    void setUpSession() {
-      when(protocol.createContext(anyString(), any())).thenReturn(validContext("session-1"));
-    }
-
-    @Test
-    void primingHookSendsEncryptedPrimingEventBeforeJournalEvents() throws Exception {
-      stubSubscribeApplyingCustomizerTo(subscriberConfig);
-      stubToolCallSendingNotificationThenResponse();
-
-      post(callRequest("tools/call"), null, "session-1", POST_ACCEPT, null);
-
-      ArgumentCaptor<SubscriberConfig.SubscribeHook> hookCaptor =
-          ArgumentCaptor.forClass(SubscriberConfig.SubscribeHook.class);
-      verify(subscriberConfig).onSubscribe(hookCaptor.capture());
-
-      SseEmitter emitter = mock(SseEmitter.class);
-      hookCaptor.getValue().accept(emitter);
-      verify(emitter).send(any(SseEmitter.SseEventBuilder.class));
-    }
-
-    @Test
-    void encryptingMapperBuildsSseEventFromDeliveredEvent() throws Exception {
-      stubSubscribeApplyingCustomizerTo(subscriberConfig);
-      stubToolCallSendingNotificationThenResponse();
-
-      post(callRequest("tools/call"), null, "session-1", POST_ACCEPT, null);
-
-      verify(subscriberConfig).mapper(sseEventMapperCaptor.capture());
-      SseEventMapper<JsonRpcMessage> mapper = sseEventMapperCaptor.getValue();
-
-      JsonRpcMessage payload =
-          new JsonRpcResult(
-              JsonNodeFactory.instance.objectNode().put("k", "v"),
-              JsonNodeFactory.instance.numberNode(1));
-      DeliveredEvent<JsonRpcMessage> withType =
-          new DeliveredEvent<>(
-              "evt-1", "stream-xyz", Instant.now(), "progress", payload, java.util.Map.of());
-      SseEmitter.SseEventBuilder builder = mapper.map(withType);
-      assertThat(builder).isNotNull();
-
-      DeliveredEvent<JsonRpcMessage> withoutType =
-          new DeliveredEvent<>(
-              "evt-2", "stream-xyz", Instant.now(), null, payload, java.util.Map.of());
-      assertThat(mapper.map(withoutType)).isNotNull();
-    }
-
-    private void stubSubscribeApplyingCustomizerTo(SubscriberConfig<JsonRpcMessage> config) {
-      when(config.mapper(any())).thenReturn(config);
-      when(config.onSubscribe(any())).thenReturn(config);
-      when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
-      when(stream.subscribe(any()))
-          .thenAnswer(
-              inv -> {
-                SubscriberCustomizer<JsonRpcMessage> customizer = inv.getArgument(0);
-                customizer.accept(config);
-                return new SseEmitter();
-              });
-    }
-
-    private void stubToolCallSendingNotificationThenResponse() {
-      doAnswer(
-              invocation -> {
-                McpTransport transport = invocation.getArgument(2);
-                transport.send(new JsonRpcNotification("2.0", "notifications/progress", null));
-                transport.send(
-                    new JsonRpcResult(
-                        JsonNodeFactory.instance.objectNode(),
-                        JsonNodeFactory.instance.numberNode(1)));
-                return null;
-              })
-          .when(protocol)
-          .handleCall(any(), any(), any());
     }
   }
 
@@ -589,16 +465,5 @@ class StreamableHttpControllerTest {
     request.put("method", method);
     request.put("id", 1);
     return request;
-  }
-
-  private String encrypt(String sessionId, String plaintext) {
-    try {
-      byte[] encrypted =
-          Ciphers.encryptAesGcm(
-              masterKey, sessionId, plaintext.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-      return java.util.Base64.getEncoder().encodeToString(encrypted);
-    } catch (java.security.GeneralSecurityException e) {
-      throw new RuntimeException(e);
-    }
   }
 }

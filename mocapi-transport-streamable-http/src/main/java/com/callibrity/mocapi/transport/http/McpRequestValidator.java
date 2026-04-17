@@ -20,7 +20,7 @@ import java.util.List;
 
 /**
  * Validates MCP transport-level headers. Protocol validation (session, protocol version) is handled
- * by {@link com.callibrity.mocapi.server.McpServer#validate}.
+ * by {@link com.callibrity.mocapi.server.McpServer#createContext}.
  */
 public class McpRequestValidator {
 

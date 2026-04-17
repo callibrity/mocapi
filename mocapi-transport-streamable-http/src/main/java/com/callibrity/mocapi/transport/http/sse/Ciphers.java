@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.transport.http;
+package com.callibrity.mocapi.transport.http.sse;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -29,7 +29,7 @@ import javax.crypto.spec.SecretKeySpec;
  * Stateless AES-256-GCM encryption utility. Derives a per-context key from a master key using
  * HMAC-SHA256, then encrypts/decrypts with a random nonce. Pure crypto — no domain knowledge.
  */
-final class Ciphers {
+public final class Ciphers {
 
   private static final String HMAC_ALGORITHM = "HmacSHA256";
   private static final String AES_ALGORITHM = "AES";
@@ -42,13 +42,13 @@ final class Ciphers {
 
   private Ciphers() {}
 
-  static void validateAesGcmKey(byte[] key) {
+  public static void validateAesGcmKey(byte[] key) {
     if (key == null || key.length != AES_256_KEY_LENGTH) {
       throw new IllegalArgumentException("Master key must be exactly 32 bytes (256 bits)");
     }
   }
 
-  static byte[] encryptAesGcm(byte[] masterKey, String keyContext, byte[] plaintext)
+  public static byte[] encryptAesGcm(byte[] masterKey, String keyContext, byte[] plaintext)
       throws GeneralSecurityException {
     SecretKey aesKey = deriveKey(masterKey, keyContext);
 
@@ -65,7 +65,7 @@ final class Ciphers {
     return combined;
   }
 
-  static byte[] decryptAesGcm(byte[] masterKey, String keyContext, byte[] ciphertext)
+  public static byte[] decryptAesGcm(byte[] masterKey, String keyContext, byte[] ciphertext)
       throws GeneralSecurityException {
     if (ciphertext.length <= GCM_NONCE_LENGTH) {
       throw new GeneralSecurityException("Ciphertext too short");

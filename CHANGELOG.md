@@ -6,6 +6,60 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-17
+
+### Breaking changes
+
+- `StreamableHttpController` constructor now takes `SseStreamFactory` instead
+  of `Odyssey` and `masterKey` (it still takes `ObjectMapper` for error
+  bodies). Applications providing a custom `StreamableHttpController` bean
+  must switch to the new constructor signature; default auto-configuration
+  continues to wire everything automatically.
+- `StreamableHttpController.SESSION_ID_HEADER` moved to
+  `StreamableHttpTransport.SESSION_ID_HEADER`. Callers referencing the
+  constant by its fully qualified name must update the import.
+- `SynchronousTransport` and `OdysseyTransport` are removed; both are
+  subsumed by the new lazy `StreamableHttpTransport` (package-private).
+- The SSE priming event (`PRIMING` event ID) previously sent on GET stream
+  subscribe is gone. Clients that relied on a `Last-Event-ID` anchor
+  appearing before any real events must switch to reconnecting with the
+  `Last-Event-ID` of the most recent real event they received.
+
+### Added
+
+- Lazy HTTP transport: every `JsonRpcCall` POST now runs through a single
+  transport that chooses JSON vs SSE based on the first outbound message.
+  Tools that only return a response receive `Content-Type: application/json`;
+  tools that emit progress, logging, elicitation, or sampling upgrade to
+  `text/event-stream` on the first non-response `send()`.
+- New `com.callibrity.mocapi.transport.http.writer` package with a sealed
+  `MessageWriter` state machine — `DirectMessageWriter` (initial),
+  `SseMessageWriter`, `ClosedMessageWriter`. Transitions are explicit; new
+  response shapes can be added by introducing another `MessageWriter`.
+- New `com.callibrity.mocapi.transport.http.sse` package exposing
+  `SseStream`, `SseStreamFactory`, and `DefaultSseStreamFactory`. All SSE
+  plumbing (stream creation, subscription, encrypting event mapper, resume)
+  now lives behind the factory.
+- TRACE-level logging on every writer transition
+  (`Direct → Closed`, `Direct → SSE`, `SSE → SSE`, `SSE → Closed`, plus a
+  `WARN` when a write is rejected against a closed writer). Enable with
+  `logging.level.com.callibrity.mocapi.transport.http.writer=TRACE`.
+
+### Changed
+
+- `POST /mcp` handler now returns `CompletableFuture<ResponseEntity<Object>>`
+  and runs every `JsonRpcCall` on a virtual thread. Spring MVC releases the
+  servlet thread until the future resolves. Notification and response POSTs
+  still 202 ACCEPTED synchronously.
+- `Ciphers` utility moved from `com.callibrity.mocapi.transport.http` to
+  `com.callibrity.mocapi.transport.http.sse`. Internal utility — the move is
+  documented here for completeness.
+
+### Documentation
+
+- `docs/architecture.md` rewritten to describe the lazy transport and
+  `MessageWriter` state machine.
+
 ## [0.4.1] - 2026-04-16
 
 ### Fixed
@@ -138,7 +192,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.4.1...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/callibrity/mocapi/releases/tag/0.5.0
 [0.4.1]: https://github.com/callibrity/mocapi/releases/tag/0.4.1
 [0.4.0]: https://github.com/callibrity/mocapi/releases/tag/0.4.0
 [0.3.0]: https://github.com/callibrity/mocapi/releases/tag/0.3.0

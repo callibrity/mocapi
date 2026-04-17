@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.transport.http;
 
 import static com.callibrity.mocapi.model.McpMethods.INITIALIZE;
+import static com.callibrity.mocapi.transport.http.StreamableHttpTransport.SESSION_ID_HEADER;
 import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
 
 import com.callibrity.mocapi.server.McpContext;
@@ -24,20 +25,14 @@ import com.callibrity.mocapi.server.McpContextResult.SessionIdRequired;
 import com.callibrity.mocapi.server.McpContextResult.SessionNotFound;
 import com.callibrity.mocapi.server.McpContextResult.ValidContext;
 import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.util.Base64;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import java.util.function.Supplier;
-import org.jwcarman.odyssey.core.Odyssey;
-import org.jwcarman.odyssey.core.SseEventMapper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -51,41 +46,35 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Thin HTTP adapter for the MCP Streamable HTTP transport. Delegates all protocol logic to {@link
- * McpServer} and handles only HTTP/SSE transport concerns.
+ * McpServer}; all SSE/encryption plumbing lives behind {@link SseStreamFactory}.
  */
 @RestController
 @RequestMapping("${mocapi.endpoint:/mcp}")
 public class StreamableHttpController {
 
-  public static final String SESSION_ID_HEADER = "MCP-Session-Id";
   public static final String MCP_PROTOCOL_VERSION_HEADER = "MCP-Protocol-Version";
   public static final String LAST_EVENT_ID_HEADER = "Last-Event-ID";
   public static final String INVALID_ORIGIN_MESSAGE = "Forbidden: Invalid Origin";
-  private static final String PRIMING_EVENT_ID = "PRIMING";
+
   private final McpServer server;
   private final McpRequestValidator validator;
-  private final Odyssey odyssey;
+  private final SseStreamFactory sseStreamFactory;
   private final ObjectMapper objectMapper;
-  private final byte[] masterKey;
 
   public StreamableHttpController(
       McpServer server,
       McpRequestValidator validator,
-      Odyssey odyssey,
-      ObjectMapper objectMapper,
-      byte[] masterKey) {
-    Ciphers.validateAesGcmKey(masterKey);
+      SseStreamFactory sseStreamFactory,
+      ObjectMapper objectMapper) {
     this.server = server;
     this.validator = validator;
-    this.odyssey = odyssey;
+    this.sseStreamFactory = sseStreamFactory;
     this.objectMapper = objectMapper;
-    this.masterKey = masterKey.clone();
   }
 
   @PostMapping(produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE})
@@ -151,7 +140,7 @@ public class StreamableHttpController {
   public ResponseEntity<Object> handleDelete(
       @RequestHeader(SESSION_ID_HEADER) String sessionId,
       @RequestHeader(value = MCP_PROTOCOL_VERSION_HEADER, required = false) String protocolVersion,
-      @RequestHeader(value = "Origin", required = false) String origin) {
+      @RequestHeader(value = HttpHeaders.ORIGIN, required = false) String origin) {
 
     if (!validator.isValidOrigin(origin)) {
       return jsonRpcError(HttpStatus.FORBIDDEN, -32000, INVALID_ORIGIN_MESSAGE);
@@ -195,15 +184,12 @@ public class StreamableHttpController {
   }
 
   private ResponseEntity<Object> handleGetStream(McpContext context, String lastEventId) {
-    String sessionId = context.sessionId();
     try {
-      if (lastEventId != null) {
-        return ResponseEntity.ok().body(reconnect(sessionId, lastEventId));
-      }
-      SseEmitter emitter =
-          odyssey.stream(sessionId, JsonRpcMessage.class)
-              .subscribe(cfg -> cfg.mapper(encryptingMapper(sessionId)));
-      return ResponseEntity.ok().body(emitter);
+      var stream =
+          lastEventId != null
+              ? sseStreamFactory.resumeStream(context, lastEventId)
+              : sseStreamFactory.sessionStream(context);
+      return ResponseEntity.ok().body(stream.createEmitter());
     } catch (IllegalArgumentException _) {
       return ResponseEntity.badRequest().build();
     }
@@ -211,26 +197,7 @@ public class StreamableHttpController {
 
   private CompletableFuture<ResponseEntity<Object>> handleCall(
       McpContext context, JsonRpcCall call) {
-    String sessionId = context.sessionId();
-    Supplier<LazyHttpTransport.SseWriter> sseSupplier =
-        () -> {
-          var stream = odyssey.stream(UUID.randomUUID().toString(), JsonRpcMessage.class);
-          var emitter =
-              stream.subscribe(
-                  cfg ->
-                      cfg.mapper(encryptingMapper(sessionId))
-                          .onSubscribe(
-                              e ->
-                                  e.send(
-                                      SseEmitter.event()
-                                          .id(
-                                              encrypt(
-                                                  sessionId,
-                                                  stream.name() + ":" + PRIMING_EVENT_ID))
-                                          .data(""))));
-          return new LazyHttpTransport.SseWriter(stream, emitter);
-        };
-    var transport = new LazyHttpTransport(sseSupplier);
+    var transport = new StreamableHttpTransport(() -> sseStreamFactory.responseStream(context));
     Thread.ofVirtual()
         .start(
             () -> {
@@ -253,60 +220,6 @@ public class StreamableHttpController {
       McpContext context, JsonRpcResponse response) {
     server.handleResponse(context, response);
     return CompletableFuture.completedFuture(ResponseEntity.accepted().build());
-  }
-
-  private SseEmitter reconnect(String sessionId, String lastEventId) {
-    String plaintext = decrypt(sessionId, lastEventId);
-    int colonIndex = plaintext.lastIndexOf(':');
-    if (colonIndex < 0) {
-      throw new IllegalArgumentException("Invalid encrypted event ID format");
-    }
-    String streamName = plaintext.substring(0, colonIndex);
-    String rawEventId = plaintext.substring(colonIndex + 1);
-    var mapper = encryptingMapper(sessionId);
-    var stream = odyssey.stream(streamName, JsonRpcMessage.class);
-    if (PRIMING_EVENT_ID.equals(rawEventId)) {
-      return stream.subscribe(cfg -> cfg.mapper(mapper));
-    }
-    return stream.resume(rawEventId, cfg -> cfg.mapper(mapper));
-  }
-
-  private SseEventMapper<JsonRpcMessage> encryptingMapper(String sessionId) {
-    return event -> {
-      String plaintext = event.streamName() + ":" + event.id();
-      String encryptedId = encrypt(sessionId, plaintext);
-      SseEmitter.SseEventBuilder builder =
-          SseEmitter.event().id(encryptedId).data(objectMapper.writeValueAsString(event.data()));
-      if (event.eventType() != null) {
-        builder.name(event.eventType());
-      }
-      return builder;
-    };
-  }
-
-  private String encrypt(String sessionId, String plaintext) {
-    try {
-      byte[] encrypted =
-          Ciphers.encryptAesGcm(masterKey, sessionId, plaintext.getBytes(StandardCharsets.UTF_8));
-      return Base64.getEncoder().encodeToString(encrypted);
-    } catch (GeneralSecurityException e) {
-      throw new IllegalStateException("Encryption failed", e);
-    }
-  }
-
-  private String decrypt(String sessionId, String ciphertext) {
-    byte[] combined;
-    try {
-      combined = Base64.getDecoder().decode(ciphertext);
-    } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("Malformed Base64 in encrypted token", e);
-    }
-    try {
-      byte[] plaintext = Ciphers.decryptAesGcm(masterKey, sessionId, combined);
-      return new String(plaintext, StandardCharsets.UTF_8);
-    } catch (GeneralSecurityException e) {
-      throw new IllegalArgumentException("Invalid or tampered encrypted token", e);
-    }
   }
 
   private ResponseEntity<Object> jsonRpcError(HttpStatus status, int code, String message) {

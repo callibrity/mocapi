@@ -22,6 +22,7 @@ import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerProperties;
 import com.callibrity.mocapi.transport.http.McpRequestValidator;
 import com.callibrity.mocapi.transport.http.StreamableHttpController;
+import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.odyssey.core.Odyssey;
@@ -103,13 +104,12 @@ class StreamableHttpAutoConfigurationTest {
 
     @Bean
     StreamableHttpController customController(
-        McpServer protocol, Odyssey odyssey, ObjectMapper objectMapper) {
+        McpServer protocol, SseStreamFactory sseStreamFactory, ObjectMapper objectMapper) {
       return new StreamableHttpController(
           protocol,
           new McpRequestValidator(java.util.List.of("localhost")),
-          odyssey,
-          objectMapper,
-          new byte[32]);
+          sseStreamFactory,
+          objectMapper);
     }
   }
 
