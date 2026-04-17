@@ -31,13 +31,16 @@ import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
+import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -49,6 +52,7 @@ import org.jwcarman.odyssey.core.SseEventMapper;
 import org.jwcarman.odyssey.core.SubscriberConfig;
 import org.jwcarman.odyssey.core.SubscriberCustomizer;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -69,6 +73,8 @@ class StreamableHttpControllerTest {
   @Mock private McpServer protocol;
   @Mock private Odyssey odyssey;
   @Mock private OdysseyStream<JsonRpcMessage> stream;
+  @Mock private SubscriberConfig<JsonRpcMessage> subscriberConfig;
+  @Captor private ArgumentCaptor<SseEventMapper<JsonRpcMessage>> sseEventMapperCaptor;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private StreamableHttpController controller;
@@ -87,7 +93,7 @@ class StreamableHttpControllerTest {
   class PostInitialize {
 
     @Test
-    void initializeReturnsJsonWithSessionHeader() {
+    void initializeReturnsJsonWithSessionHeader() throws Exception {
       doAnswer(
               invocation -> {
                 McpTransport transport = invocation.getArgument(2);
@@ -111,11 +117,10 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void initializeDelegatesToProtocolWithSynchronousTransport() {
+    void initializeDelegatesHandleCallToProtocol() throws Exception {
       doAnswer(
               invocation -> {
                 McpTransport transport = invocation.getArgument(2);
-                assertThat(transport).isInstanceOf(SynchronousTransport.class);
                 transport.emit(new McpEvent.SessionInitialized("s1", "2025-11-25"));
                 transport.send(
                     new JsonRpcResult(
@@ -128,7 +133,7 @@ class StreamableHttpControllerTest {
 
       post(initializeRequest(), null, null, POST_ACCEPT, null);
 
-      verify(protocol).handleCall(any(), any(), any(SynchronousTransport.class));
+      verify(protocol).handleCall(any(), any(), any(LazyHttpTransport.class));
     }
   }
 
@@ -141,39 +146,53 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void toolsCallReturnsSse() {
+    void toolsCallReturnsSseWhenHandlerSendsNotificationFirst() throws Exception {
       SseEmitter emitter = new SseEmitter();
       when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
       when(stream.subscribe(any())).thenReturn(emitter);
-
-      ObjectNode request = callRequest("tools/call");
-      var response = post(request, null, "session-1", POST_ACCEPT, null);
-
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-      assertThat(response.getBody()).isSameAs(emitter);
-    }
-
-    @Test
-    void toolsCallUsesOdysseyTransport() throws Exception {
-      CountDownLatch latch = new CountDownLatch(1);
-      when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
-      when(stream.subscribe(any())).thenReturn(new SseEmitter());
       doAnswer(
               invocation -> {
-                latch.countDown();
+                McpTransport transport = invocation.getArgument(2);
+                transport.send(new JsonRpcNotification("2.0", "notifications/progress", null));
+                transport.send(
+                    new JsonRpcResult(
+                        JsonNodeFactory.instance.objectNode(),
+                        JsonNodeFactory.instance.numberNode(1)));
                 return null;
               })
           .when(protocol)
           .handleCall(any(), any(), any());
 
-      post(callRequest("tools/call"), null, "session-1", POST_ACCEPT, null);
+      ObjectNode request = callRequest("tools/call");
+      var response = post(request, null, "session-1", POST_ACCEPT, null);
 
-      assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
-      verify(protocol).handleCall(any(), any(), any(OdysseyTransport.class));
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM);
+      assertThat(response.getBody()).isSameAs(emitter);
     }
 
     @Test
-    void nonToolsCallUsesSynchronousTransport() {
+    void toolsCallReturnsJsonWhenHandlerSendsOnlyResponse() throws Exception {
+      doAnswer(
+              invocation -> {
+                McpTransport transport = invocation.getArgument(2);
+                transport.send(
+                    new JsonRpcResult(
+                        JsonNodeFactory.instance.objectNode(),
+                        JsonNodeFactory.instance.numberNode(1)));
+                return null;
+              })
+          .when(protocol)
+          .handleCall(any(), any(), any());
+
+      var response = post(callRequest("tools/call"), null, "session-1", POST_ACCEPT, null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+    }
+
+    @Test
+    void nonToolsCallReturnsJson() throws Exception {
       doAnswer(
               invocation -> {
                 McpTransport transport = invocation.getArgument(2);
@@ -189,11 +208,12 @@ class StreamableHttpControllerTest {
       var response = post(callRequest("ping"), null, "session-1", POST_ACCEPT, null);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-      verify(protocol).handleCall(any(), any(), any(SynchronousTransport.class));
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+      verify(protocol).handleCall(any(), any(), any(LazyHttpTransport.class));
     }
 
     @Test
-    void notificationWithSessionReturns202() {
+    void notificationWithSessionReturns202() throws Exception {
       ObjectNode notification = objectMapper.createObjectNode();
       notification.put("jsonrpc", "2.0");
       notification.put("method", "notifications/initialized");
@@ -205,7 +225,7 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void responseWithSessionReturns202() {
+    void responseWithSessionReturns202() throws Exception {
       ObjectNode jsonRpcResponse = objectMapper.createObjectNode();
       jsonRpcResponse.put("jsonrpc", "2.0");
       jsonRpcResponse.put("id", 1);
@@ -222,19 +242,19 @@ class StreamableHttpControllerTest {
   class PostValidation {
 
     @Test
-    void rejectsInvalidAcceptHeader() {
+    void rejectsInvalidAcceptHeader() throws Exception {
       var response = post(callRequest("ping"), null, "s", "application/json", null);
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
 
     @Test
-    void rejectsInvalidOrigin() {
+    void rejectsInvalidOrigin() throws Exception {
       var response = post(callRequest("ping"), null, "s", POST_ACCEPT, "http://evil.example.com");
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
-    void notificationWithoutSessionReturns400() {
+    void notificationWithoutSessionReturns400() throws Exception {
       when(protocol.createContext(any(), any()))
           .thenReturn(
               new McpContextResult.SessionIdRequired(
@@ -248,7 +268,7 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void responseWithoutSessionReturns400() {
+    void responseWithoutSessionReturns400() throws Exception {
       when(protocol.createContext(any(), any()))
           .thenReturn(
               new McpContextResult.SessionIdRequired(
@@ -263,7 +283,7 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void postWithSessionNotFoundReturns404() {
+    void postWithSessionNotFoundReturns404() throws Exception {
       when(protocol.createContext(any(), any()))
           .thenReturn(new McpContextResult.SessionNotFound(-32001, "Session not found"));
 
@@ -273,7 +293,7 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void postWithProtocolVersionMismatchReturns400() {
+    void postWithProtocolVersionMismatchReturns400() throws Exception {
       when(protocol.createContext(any(), any()))
           .thenReturn(
               new McpContextResult.ProtocolVersionMismatch(-32002, "Protocol version mismatch"));
@@ -420,56 +440,30 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void primingHookSendsEncryptedPrimingEventBeforeJournalEvents() throws Exception {
-      SubscriberConfig<JsonRpcMessage> config = mock(SubscriberConfig.class);
-      when(config.mapper(any())).thenReturn(config);
-      when(config.onSubscribe(any())).thenReturn(config);
-
-      when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
-      when(stream.subscribe(any()))
-          .thenAnswer(
-              inv -> {
-                SubscriberCustomizer<JsonRpcMessage> customizer = inv.getArgument(0);
-                customizer.accept(config);
-                return new SseEmitter();
-              });
+      stubSubscribeApplyingCustomizerTo(subscriberConfig);
+      stubToolCallSendingNotificationThenResponse();
 
       post(callRequest("tools/call"), null, "session-1", POST_ACCEPT, null);
 
       ArgumentCaptor<SubscriberConfig.SubscribeHook> hookCaptor =
           ArgumentCaptor.forClass(SubscriberConfig.SubscribeHook.class);
-      verify(config).onSubscribe(hookCaptor.capture());
+      verify(subscriberConfig).onSubscribe(hookCaptor.capture());
 
       SseEmitter emitter = mock(SseEmitter.class);
       hookCaptor.getValue().accept(emitter);
-
-      // Hook body ran — verify it produced exactly one SSE event on the emitter.
       verify(emitter).send(any(SseEmitter.SseEventBuilder.class));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    void encryptingMapperBuildsSseEventFromDeliveredEvent() {
-      SubscriberConfig<JsonRpcMessage> config = mock(SubscriberConfig.class);
-      when(config.mapper(any())).thenReturn(config);
-      when(config.onSubscribe(any())).thenReturn(config);
-
-      when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
-      when(stream.subscribe(any()))
-          .thenAnswer(
-              inv -> {
-                SubscriberCustomizer<JsonRpcMessage> customizer = inv.getArgument(0);
-                customizer.accept(config);
-                return new SseEmitter();
-              });
+    void encryptingMapperBuildsSseEventFromDeliveredEvent() throws Exception {
+      stubSubscribeApplyingCustomizerTo(subscriberConfig);
+      stubToolCallSendingNotificationThenResponse();
 
       post(callRequest("tools/call"), null, "session-1", POST_ACCEPT, null);
 
-      ArgumentCaptor<SseEventMapper<JsonRpcMessage>> mapperCaptor =
-          ArgumentCaptor.forClass(SseEventMapper.class);
-      verify(config).mapper(mapperCaptor.capture());
-      SseEventMapper<JsonRpcMessage> mapper = mapperCaptor.getValue();
+      verify(subscriberConfig).mapper(sseEventMapperCaptor.capture());
+      SseEventMapper<JsonRpcMessage> mapper = sseEventMapperCaptor.getValue();
 
       JsonRpcMessage payload =
           new JsonRpcResult(
@@ -485,6 +479,34 @@ class StreamableHttpControllerTest {
           new DeliveredEvent<>(
               "evt-2", "stream-xyz", Instant.now(), null, payload, java.util.Map.of());
       assertThat(mapper.map(withoutType)).isNotNull();
+    }
+
+    private void stubSubscribeApplyingCustomizerTo(SubscriberConfig<JsonRpcMessage> config) {
+      when(config.mapper(any())).thenReturn(config);
+      when(config.onSubscribe(any())).thenReturn(config);
+      when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
+      when(stream.subscribe(any()))
+          .thenAnswer(
+              inv -> {
+                SubscriberCustomizer<JsonRpcMessage> customizer = inv.getArgument(0);
+                customizer.accept(config);
+                return new SseEmitter();
+              });
+    }
+
+    private void stubToolCallSendingNotificationThenResponse() {
+      doAnswer(
+              invocation -> {
+                McpTransport transport = invocation.getArgument(2);
+                transport.send(new JsonRpcNotification("2.0", "notifications/progress", null));
+                transport.send(
+                    new JsonRpcResult(
+                        JsonNodeFactory.instance.objectNode(),
+                        JsonNodeFactory.instance.numberNode(1)));
+                return null;
+              })
+          .when(protocol)
+          .handleCall(any(), any(), any());
     }
   }
 
@@ -535,13 +557,16 @@ class StreamableHttpControllerTest {
   }
 
   private ResponseEntity<Object> post(
-      ObjectNode body, String protocolVersion, String sessionId, String accept, String origin) {
-    return controller.handlePost(
-        objectMapper.treeToValue(body, JsonRpcMessage.class),
-        protocolVersion,
-        sessionId,
-        accept,
-        origin);
+      ObjectNode body, String protocolVersion, String sessionId, String accept, String origin)
+      throws InterruptedException, ExecutionException, TimeoutException {
+    CompletableFuture<ResponseEntity<Object>> future =
+        controller.handlePost(
+            objectMapper.treeToValue(body, JsonRpcMessage.class),
+            protocolVersion,
+            sessionId,
+            accept,
+            origin);
+    return future.get(5, TimeUnit.SECONDS);
   }
 
   private ObjectNode initializeRequest() {

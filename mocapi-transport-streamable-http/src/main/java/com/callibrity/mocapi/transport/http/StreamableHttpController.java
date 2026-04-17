@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.transport.http;
 
 import static com.callibrity.mocapi.model.McpMethods.INITIALIZE;
-import static com.callibrity.mocapi.model.McpMethods.TOOLS_CALL;
 import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
 
 import com.callibrity.mocapi.server.McpContext;
@@ -33,9 +32,13 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Base64;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import org.jwcarman.odyssey.core.Odyssey;
+import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.SseEventMapper;
+import org.jwcarman.odyssey.core.SubscriberConfig;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -87,20 +90,22 @@ public class StreamableHttpController {
   }
 
   @PostMapping(produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE})
-  public ResponseEntity<Object> handlePost(
+  public CompletableFuture<ResponseEntity<Object>> handlePost(
       @RequestBody JsonRpcMessage message,
       @RequestHeader(value = MCP_PROTOCOL_VERSION_HEADER, required = false) String protocolVersion,
       @RequestHeader(value = SESSION_ID_HEADER, required = false) String sessionId,
       @RequestHeader(value = "Accept", required = false) String accept,
       @RequestHeader(value = "Origin", required = false) String origin) {
     if (!acceptsJsonAndSse(accept)) {
-      return jsonRpcError(
-          HttpStatus.NOT_ACCEPTABLE,
-          -32000,
-          "Not Acceptable: Client must accept both application/json and text/event-stream");
+      return CompletableFuture.completedFuture(
+          jsonRpcError(
+              HttpStatus.NOT_ACCEPTABLE,
+              -32000,
+              "Not Acceptable: Client must accept both application/json and text/event-stream"));
     }
     if (!validator.isValidOrigin(origin)) {
-      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, INVALID_ORIGIN_MESSAGE);
+      return CompletableFuture.completedFuture(
+          jsonRpcError(HttpStatus.FORBIDDEN, -32000, INVALID_ORIGIN_MESSAGE));
     }
 
     return switch (message) {
@@ -108,12 +113,13 @@ public class StreamableHttpController {
         if (INITIALIZE.equals(call.method())) {
           yield handleCall(McpContext.empty(), call);
         }
-        yield withContext(sessionId, protocolVersion, ctx -> handleCall(ctx, call));
+        yield withContextAsync(sessionId, protocolVersion, ctx -> handleCall(ctx, call));
       }
       case JsonRpcNotification notification ->
-          withContext(sessionId, protocolVersion, ctx -> handleNotification(ctx, notification));
+          withContextAsync(
+              sessionId, protocolVersion, ctx -> handleNotification(ctx, notification));
       case JsonRpcResponse response ->
-          withContext(sessionId, protocolVersion, ctx -> handleResponse(ctx, response));
+          withContextAsync(sessionId, protocolVersion, ctx -> handleResponse(ctx, response));
     };
   }
 
@@ -164,13 +170,28 @@ public class StreamableHttpController {
   private ResponseEntity<Object> withContext(
       String sessionId,
       String protocolVersion,
-      java.util.function.Function<McpContext, ResponseEntity<Object>> action) {
+      Function<McpContext, ResponseEntity<Object>> action) {
     return switch (server.createContext(sessionId, protocolVersion)) {
       case ValidContext(var ctx) -> action.apply(ctx);
       case SessionIdRequired(var code, var msg) -> jsonRpcError(HttpStatus.BAD_REQUEST, code, msg);
       case SessionNotFound(var code, var msg) -> jsonRpcError(HttpStatus.NOT_FOUND, code, msg);
       case ProtocolVersionMismatch(var code, var msg) ->
           jsonRpcError(HttpStatus.BAD_REQUEST, code, msg);
+    };
+  }
+
+  private CompletableFuture<ResponseEntity<Object>> withContextAsync(
+      String sessionId,
+      String protocolVersion,
+      Function<McpContext, CompletableFuture<ResponseEntity<Object>>> action) {
+    return switch (server.createContext(sessionId, protocolVersion)) {
+      case ValidContext(var ctx) -> action.apply(ctx);
+      case SessionIdRequired(var code, var msg) ->
+          CompletableFuture.completedFuture(jsonRpcError(HttpStatus.BAD_REQUEST, code, msg));
+      case SessionNotFound(var code, var msg) ->
+          CompletableFuture.completedFuture(jsonRpcError(HttpStatus.NOT_FOUND, code, msg));
+      case ProtocolVersionMismatch(var code, var msg) ->
+          CompletableFuture.completedFuture(jsonRpcError(HttpStatus.BAD_REQUEST, code, msg));
     };
   }
 
@@ -189,41 +210,43 @@ public class StreamableHttpController {
     }
   }
 
-  private ResponseEntity<Object> handleCall(McpContext context, JsonRpcCall call) {
-    if (!TOOLS_CALL.equals(call.method())) {
-      var transport = new SynchronousTransport();
-      server.handleCall(context, call, transport);
-      return transport.toResponseEntity();
-    }
-
-    var streamName = UUID.randomUUID().toString();
-    var stream = odyssey.stream(streamName, JsonRpcMessage.class);
-    var transport = new OdysseyTransport(stream);
+  private CompletableFuture<ResponseEntity<Object>> handleCall(
+      McpContext context, JsonRpcCall call) {
+    var future = new CompletableFuture<ResponseEntity<Object>>();
     String sessionId = context.sessionId();
-
-    Thread.ofVirtual().start(() -> server.handleCall(context, call, transport));
-    var emitter =
-        stream.subscribe(
-            cfg ->
+    BiConsumer<SubscriberConfig<JsonRpcMessage>, OdysseyStream<JsonRpcMessage>>
+        subscribeConfigurer =
+            (cfg, stream) ->
                 cfg.mapper(encryptingMapper(sessionId))
                     .onSubscribe(
                         e ->
                             e.send(
                                 SseEmitter.event()
-                                    .id(encrypt(sessionId, streamName + ":" + PRIMING_EVENT_ID))
-                                    .data(""))));
-    return ResponseEntity.ok().contentType(MediaType.TEXT_EVENT_STREAM).body(emitter);
+                                    .id(encrypt(sessionId, stream.name() + ":" + PRIMING_EVENT_ID))
+                                    .data("")));
+    var transport = new LazyHttpTransport(future, odyssey, subscribeConfigurer);
+    Thread.ofVirtual()
+        .start(
+            () -> {
+              try {
+                server.handleCall(context, call, transport);
+              } catch (Exception e) {
+                future.completeExceptionally(e);
+              }
+            });
+    return future;
   }
 
-  private ResponseEntity<Object> handleNotification(
+  private CompletableFuture<ResponseEntity<Object>> handleNotification(
       McpContext context, JsonRpcNotification notification) {
     server.handleNotification(context, notification);
-    return ResponseEntity.accepted().build();
+    return CompletableFuture.completedFuture(ResponseEntity.accepted().build());
   }
 
-  private ResponseEntity<Object> handleResponse(McpContext context, JsonRpcResponse response) {
+  private CompletableFuture<ResponseEntity<Object>> handleResponse(
+      McpContext context, JsonRpcResponse response) {
     server.handleResponse(context, response);
-    return ResponseEntity.accepted().build();
+    return CompletableFuture.completedFuture(ResponseEntity.accepted().build());
   }
 
   private SseEmitter reconnect(String sessionId, String lastEventId) {
