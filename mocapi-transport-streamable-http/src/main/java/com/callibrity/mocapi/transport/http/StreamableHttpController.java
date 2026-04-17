@@ -32,13 +32,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Base64;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.jwcarman.odyssey.core.Odyssey;
-import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.SseEventMapper;
-import org.jwcarman.odyssey.core.SubscriberConfig;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -212,29 +211,36 @@ public class StreamableHttpController {
 
   private CompletableFuture<ResponseEntity<Object>> handleCall(
       McpContext context, JsonRpcCall call) {
-    var future = new CompletableFuture<ResponseEntity<Object>>();
     String sessionId = context.sessionId();
-    BiConsumer<SubscriberConfig<JsonRpcMessage>, OdysseyStream<JsonRpcMessage>>
-        subscribeConfigurer =
-            (cfg, stream) ->
-                cfg.mapper(encryptingMapper(sessionId))
-                    .onSubscribe(
-                        e ->
-                            e.send(
-                                SseEmitter.event()
-                                    .id(encrypt(sessionId, stream.name() + ":" + PRIMING_EVENT_ID))
-                                    .data("")));
-    var transport = new LazyHttpTransport(future, odyssey, subscribeConfigurer);
+    Supplier<LazyHttpTransport.SseWriter> sseSupplier =
+        () -> {
+          var stream = odyssey.stream(UUID.randomUUID().toString(), JsonRpcMessage.class);
+          var emitter =
+              stream.subscribe(
+                  cfg ->
+                      cfg.mapper(encryptingMapper(sessionId))
+                          .onSubscribe(
+                              e ->
+                                  e.send(
+                                      SseEmitter.event()
+                                          .id(
+                                              encrypt(
+                                                  sessionId,
+                                                  stream.name() + ":" + PRIMING_EVENT_ID))
+                                          .data(""))));
+          return new LazyHttpTransport.SseWriter(stream, emitter);
+        };
+    var transport = new LazyHttpTransport(sseSupplier);
     Thread.ofVirtual()
         .start(
             () -> {
               try {
                 server.handleCall(context, call, transport);
               } catch (Exception e) {
-                future.completeExceptionally(e);
+                transport.response().completeExceptionally(e);
               }
             });
-    return future;
+    return transport.response();
   }
 
   private CompletableFuture<ResponseEntity<Object>> handleNotification(

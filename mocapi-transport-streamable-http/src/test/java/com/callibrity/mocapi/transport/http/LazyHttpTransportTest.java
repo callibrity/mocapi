@@ -17,49 +17,38 @@ package com.callibrity.mocapi.transport.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.server.McpEvent;
+import com.callibrity.mocapi.transport.http.LazyHttpTransport.SseWriter;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.jwcarman.odyssey.core.Odyssey;
 import org.jwcarman.odyssey.core.OdysseyStream;
-import org.jwcarman.odyssey.core.SubscriberConfig;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 @ExtendWith(MockitoExtension.class)
 class LazyHttpTransportTest {
 
-  @Mock Odyssey odyssey;
   @Mock OdysseyStream<JsonRpcMessage> stream;
 
-  private final BiConsumer<SubscriberConfig<JsonRpcMessage>, OdysseyStream<JsonRpcMessage>>
-      noopConfigurer = (cfg, s) -> {};
-
   @Test
-  void sendingResponseFromPendingCompletesFutureAsJson() {
-    var future = new CompletableFuture<ResponseEntity<Object>>();
-    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
+  void sendingResponseFromOpenCompletesFutureAsJson() {
+    var transport = new LazyHttpTransport(unusedSseSupplier());
 
     var result = new JsonRpcResult(JsonNodeFactory.instance.objectNode().put("k", "v"), intNode(1));
     transport.send(result);
 
-    ResponseEntity<Object> entity = future.getNow(null);
+    var entity = transport.response().getNow(null);
     assertThat(entity).isNotNull();
     assertThat(entity.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(entity.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
@@ -68,19 +57,17 @@ class LazyHttpTransportTest {
 
   @Test
   void jsonResponseIncludesSessionInitializedHeader() {
-    var future = new CompletableFuture<ResponseEntity<Object>>();
-    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
+    var transport = new LazyHttpTransport(unusedSseSupplier());
     transport.emit(new McpEvent.SessionInitialized("session-42", "2025-11-25"));
     transport.send(new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1)));
 
-    var entity = future.getNow(null);
+    var entity = transport.response().getNow(null);
     assertThat(entity.getHeaders().getFirst("MCP-Session-Id")).isEqualTo("session-42");
   }
 
   @Test
   void sendAfterJsonCommitThrows() {
-    var future = new CompletableFuture<ResponseEntity<Object>>();
-    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
+    var transport = new LazyHttpTransport(unusedSseSupplier());
     transport.send(new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1)));
 
     assertThatThrownBy(
@@ -90,16 +77,14 @@ class LazyHttpTransportTest {
   }
 
   @Test
-  void sendingNotificationFromPendingUpgradesToSse() {
-    var future = new CompletableFuture<ResponseEntity<Object>>();
+  void sendingNotificationFromOpenUpgradesToSse() {
     var emitter = new SseEmitter();
-    wireStreamSubscribe(emitter);
-    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
+    var transport = new LazyHttpTransport(() -> new SseWriter(stream, emitter));
 
     var notification = new JsonRpcNotification("2.0", "notifications/progress", null);
     transport.send(notification);
 
-    var entity = future.getNow(null);
+    var entity = transport.response().getNow(null);
     assertThat(entity.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(entity.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM);
     assertThat(entity.getBody()).isSameAs(emitter);
@@ -107,25 +92,21 @@ class LazyHttpTransportTest {
   }
 
   @Test
-  void sendingServerInitiatedCallFromPendingUpgradesToSse() {
-    var future = new CompletableFuture<ResponseEntity<Object>>();
+  void sendingServerInitiatedCallFromOpenUpgradesToSse() {
     var emitter = new SseEmitter();
-    wireStreamSubscribe(emitter);
-    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
+    var transport = new LazyHttpTransport(() -> new SseWriter(stream, emitter));
 
     var call = JsonRpcCall.of("elicitation/create", null, intNode(7));
     transport.send(call);
 
-    var entity = future.getNow(null);
+    var entity = transport.response().getNow(null);
     assertThat(entity.getBody()).isSameAs(emitter);
     verify(stream).publish(call);
   }
 
   @Test
   void sseSubsequentResponseCompletesStream() {
-    var future = new CompletableFuture<ResponseEntity<Object>>();
-    wireStreamSubscribe(new SseEmitter());
-    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
+    var transport = new LazyHttpTransport(() -> new SseWriter(stream, new SseEmitter()));
 
     transport.send(new JsonRpcNotification("2.0", "notifications/progress", null));
     var response = new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1));
@@ -137,9 +118,7 @@ class LazyHttpTransportTest {
 
   @Test
   void sseAfterStreamCompleteThrows() {
-    var future = new CompletableFuture<ResponseEntity<Object>>();
-    wireStreamSubscribe(new SseEmitter());
-    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
+    var transport = new LazyHttpTransport(() -> new SseWriter(stream, new SseEmitter()));
 
     transport.send(new JsonRpcNotification("2.0", "notifications/progress", null));
     transport.send(new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1)));
@@ -152,19 +131,19 @@ class LazyHttpTransportTest {
 
   @Test
   void sseUpgradeIncludesSessionInitializedHeader() {
-    var future = new CompletableFuture<ResponseEntity<Object>>();
-    wireStreamSubscribe(new SseEmitter());
-    var transport = new LazyHttpTransport(future, odyssey, noopConfigurer);
+    var transport = new LazyHttpTransport(() -> new SseWriter(stream, new SseEmitter()));
     transport.emit(new McpEvent.SessionInitialized("session-99", "2025-11-25"));
 
     transport.send(new JsonRpcNotification("2.0", "notifications/progress", null));
 
-    assertThat(future.getNow(null).getHeaders().getFirst("MCP-Session-Id")).isEqualTo("session-99");
+    assertThat(transport.response().getNow(null).getHeaders().getFirst("MCP-Session-Id"))
+        .isEqualTo("session-99");
   }
 
-  private void wireStreamSubscribe(SseEmitter emitter) {
-    when(odyssey.stream(any(), eq(JsonRpcMessage.class))).thenReturn(stream);
-    when(stream.subscribe(any())).thenReturn(emitter);
+  private static Supplier<SseWriter> unusedSseSupplier() {
+    return () -> {
+      throw new AssertionError("should not be called");
+    };
   }
 
   private static tools.jackson.databind.JsonNode intNode(int value) {

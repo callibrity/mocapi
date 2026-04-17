@@ -22,42 +22,37 @@ import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import org.jwcarman.odyssey.core.Odyssey;
+import java.util.function.Supplier;
 import org.jwcarman.odyssey.core.OdysseyStream;
-import org.jwcarman.odyssey.core.SubscriberConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * Transport that chooses its HTTP response shape based on the first outbound message. Starts in a
- * {@link Pending} state; a {@link JsonRpcResponse} commits a JSON body and transitions to a {@link
- * NullWriter} (no further messages accepted), while a {@link JsonRpcRequest} opens an SSE stream
- * and transitions to an {@link SseWriter} that publishes subsequent messages through the stream.
+ * Transport that chooses its HTTP response shape based on the first outbound message. Starts in an
+ * {@link OpenWriter} state; a {@link JsonRpcResponse} commits a JSON body and transitions to a
+ * {@link TerminalWriter}; a {@link JsonRpcRequest} obtains an {@link SseWriter} from the supplier,
+ * commits an SSE body, and transitions to it.
  */
 final class LazyHttpTransport implements McpTransport {
 
   private static final Logger log = LoggerFactory.getLogger(LazyHttpTransport.class);
 
-  private final Odyssey odyssey;
-  private final BiConsumer<SubscriberConfig<JsonRpcMessage>, OdysseyStream<JsonRpcMessage>>
-      subscribeConfigurer;
+  private final CompletableFuture<ResponseEntity<Object>> response = new CompletableFuture<>();
+  private final Supplier<SseWriter> sseSupplier;
   private final List<Consumer<ResponseEntity<Object>>> decorators = new ArrayList<>();
-  private Writer writer;
+  private Writer writer = new OpenWriter();
 
-  LazyHttpTransport(
-      CompletableFuture<ResponseEntity<Object>> future,
-      Odyssey odyssey,
-      BiConsumer<SubscriberConfig<JsonRpcMessage>, OdysseyStream<JsonRpcMessage>>
-          subscribeConfigurer) {
-    this.odyssey = odyssey;
-    this.subscribeConfigurer = subscribeConfigurer;
-    this.writer = new Pending(future);
+  LazyHttpTransport(Supplier<SseWriter> sseSupplier) {
+    this.sseSupplier = sseSupplier;
+  }
+
+  public CompletableFuture<ResponseEntity<Object>> response() {
+    return response;
   }
 
   @Override
@@ -76,17 +71,11 @@ final class LazyHttpTransport implements McpTransport {
     decorators.forEach(d -> d.accept(entity));
   }
 
-  sealed interface Writer permits Pending, TerminalWriter, SseWriter {
+  sealed interface Writer permits OpenWriter, TerminalWriter, SseWriter {
     Writer send(JsonRpcMessage message);
   }
 
-  final class Pending implements Writer {
-    private final CompletableFuture<ResponseEntity<Object>> future;
-
-    Pending(CompletableFuture<ResponseEntity<Object>> future) {
-      this.future = future;
-    }
-
+  final class OpenWriter implements Writer {
     @Override
     public Writer send(JsonRpcMessage message) {
       return switch (message) {
@@ -100,23 +89,21 @@ final class LazyHttpTransport implements McpTransport {
       ResponseEntity<Object> entity =
           ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resp);
       decorate(entity);
-      future.complete(entity);
+      response.complete(entity);
       return new TerminalWriter();
     }
 
     private Writer upgradeToSse(JsonRpcRequest first) {
-      var stream = odyssey.stream(UUID.randomUUID().toString(), JsonRpcMessage.class);
+      SseWriter sseWriter = sseSupplier.get();
       log.info(
           "Upgrading HTTP response to SSE (stream={}, first message type={})",
-          stream.name(),
+          sseWriter.id(),
           first.getClass().getSimpleName());
-      var emitter = stream.subscribe(cfg -> subscribeConfigurer.accept(cfg, stream));
       ResponseEntity<Object> entity =
-          ResponseEntity.ok().contentType(MediaType.TEXT_EVENT_STREAM).body(emitter);
+          ResponseEntity.ok().contentType(MediaType.TEXT_EVENT_STREAM).body(sseWriter.emitter());
       decorate(entity);
-      future.complete(entity);
-      stream.publish(first);
-      return new SseWriter(stream);
+      response.complete(entity);
+      return sseWriter.send(first);
     }
   }
 
@@ -130,9 +117,19 @@ final class LazyHttpTransport implements McpTransport {
 
   static final class SseWriter implements Writer {
     private final OdysseyStream<JsonRpcMessage> stream;
+    private final SseEmitter emitter;
 
-    SseWriter(OdysseyStream<JsonRpcMessage> stream) {
+    SseWriter(OdysseyStream<JsonRpcMessage> stream, SseEmitter emitter) {
       this.stream = stream;
+      this.emitter = emitter;
+    }
+
+    SseEmitter emitter() {
+      return emitter;
+    }
+
+    String id() {
+      return stream.name();
     }
 
     @Override
