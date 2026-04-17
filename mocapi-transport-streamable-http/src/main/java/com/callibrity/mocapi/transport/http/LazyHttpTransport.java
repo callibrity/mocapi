@@ -20,7 +20,10 @@ import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.jwcarman.odyssey.core.OdysseyStream;
@@ -42,8 +45,8 @@ final class LazyHttpTransport implements McpTransport {
 
   private final Supplier<OdysseyStream<JsonRpcMessage>> streams;
   private final Function<OdysseyStream<JsonRpcMessage>, SseEmitter> emitters;
+  private final List<Consumer<ResponseEntity<Object>>> decorators = new ArrayList<>();
   private Writer writer;
-  private McpEvent.SessionInitialized sessionInitialized;
 
   LazyHttpTransport(
       CompletableFuture<ResponseEntity<Object>> future,
@@ -62,8 +65,12 @@ final class LazyHttpTransport implements McpTransport {
   @Override
   public void emit(McpEvent event) {
     if (event instanceof McpEvent.SessionInitialized si) {
-      sessionInitialized = si;
+      decorators.add(entity -> entity.getHeaders().add("MCP-Session-Id", si.sessionId()));
     }
+  }
+
+  private void decorate(ResponseEntity<Object> entity) {
+    decorators.forEach(d -> d.accept(entity));
   }
 
   sealed interface Writer permits Pending, JsonWriter, SseWriter {
@@ -87,11 +94,10 @@ final class LazyHttpTransport implements McpTransport {
 
     private Writer commitJson(JsonRpcResponse resp) {
       log.debug("Committing JSON response for request id={}", resp.id());
-      var builder = ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON);
-      if (sessionInitialized != null) {
-        builder.header("MCP-Session-Id", sessionInitialized.sessionId());
-      }
-      future.complete(builder.body(resp));
+      ResponseEntity<Object> entity =
+          ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resp);
+      decorate(entity);
+      future.complete(entity);
       return new JsonWriter();
     }
 
@@ -102,11 +108,10 @@ final class LazyHttpTransport implements McpTransport {
           stream.name(),
           first.getClass().getSimpleName());
       var emitter = emitters.apply(stream);
-      var builder = ResponseEntity.ok().contentType(MediaType.TEXT_EVENT_STREAM);
-      if (sessionInitialized != null) {
-        builder.header("MCP-Session-Id", sessionInitialized.sessionId());
-      }
-      future.complete(builder.body(emitter));
+      ResponseEntity<Object> entity =
+          ResponseEntity.ok().contentType(MediaType.TEXT_EVENT_STREAM).body(emitter);
+      decorate(entity);
+      future.complete(entity);
       stream.publish(first);
       return new SseWriter(stream);
     }
