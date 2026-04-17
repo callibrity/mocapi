@@ -86,7 +86,7 @@ class LazyHttpTransportTest {
     assertThatThrownBy(
             () -> transport.send(new JsonRpcNotification("2.0", "notifications/progress", null)))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("JSON response already committed");
+        .hasMessageContaining("Transport is terminal");
   }
 
   @Test
@@ -147,7 +147,7 @@ class LazyHttpTransportTest {
     assertThatThrownBy(
             () -> transport.send(new JsonRpcNotification("2.0", "notifications/late", null)))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("Stream completed");
+        .hasMessageContaining("Transport is terminal");
   }
 
   @Test

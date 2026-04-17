@@ -76,7 +76,7 @@ final class LazyHttpTransport implements McpTransport {
     decorators.forEach(d -> d.accept(entity));
   }
 
-  sealed interface Writer permits Pending, NullWriter, SseWriter {
+  sealed interface Writer permits Pending, TerminalWriter, SseWriter {
     Writer send(JsonRpcMessage message);
   }
 
@@ -101,7 +101,7 @@ final class LazyHttpTransport implements McpTransport {
           ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resp);
       decorate(entity);
       future.complete(entity);
-      return new NullWriter();
+      return new TerminalWriter();
     }
 
     private Writer upgradeToSse(JsonRpcRequest first) {
@@ -120,17 +120,16 @@ final class LazyHttpTransport implements McpTransport {
     }
   }
 
-  static final class NullWriter implements Writer {
+  static final class TerminalWriter implements Writer {
     @Override
     public Writer send(JsonRpcMessage message) {
       throw new IllegalStateException(
-          "JSON response already committed; cannot send " + message.getClass().getSimpleName());
+          "Transport is terminal; cannot send " + message.getClass().getSimpleName());
     }
   }
 
   static final class SseWriter implements Writer {
     private final OdysseyStream<JsonRpcMessage> stream;
-    private boolean completed;
 
     SseWriter(OdysseyStream<JsonRpcMessage> stream) {
       this.stream = stream;
@@ -138,13 +137,10 @@ final class LazyHttpTransport implements McpTransport {
 
     @Override
     public Writer send(JsonRpcMessage message) {
-      if (completed) {
-        throw new IllegalStateException("Stream completed");
-      }
       stream.publish(message);
       if (message instanceof JsonRpcResponse) {
         stream.complete();
-        completed = true;
+        return new TerminalWriter();
       }
       return this;
     }
