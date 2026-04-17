@@ -16,8 +16,11 @@
 package com.callibrity.mocapi.transport.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
+import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -45,6 +48,29 @@ class LazyHttpTransportTest {
     assertThat(entity.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(entity.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
     assertThat(entity.getBody()).isSameAs(result);
+  }
+
+  @Test
+  void jsonResponseIncludesSessionInitializedHeader() {
+    var future = new CompletableFuture<ResponseEntity<Object>>();
+    var transport = new LazyHttpTransport(future, unusedStreamFactory(), unusedEmitterFactory());
+    transport.emit(new McpEvent.SessionInitialized("session-42", "2025-11-25"));
+    transport.send(new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1)));
+
+    var entity = future.getNow(null);
+    assertThat(entity.getHeaders().getFirst("MCP-Session-Id")).isEqualTo("session-42");
+  }
+
+  @Test
+  void sendAfterJsonCommitThrows() {
+    var future = new CompletableFuture<ResponseEntity<Object>>();
+    var transport = new LazyHttpTransport(future, unusedStreamFactory(), unusedEmitterFactory());
+    transport.send(new JsonRpcResult(JsonNodeFactory.instance.objectNode(), intNode(1)));
+
+    assertThatThrownBy(
+            () -> transport.send(new JsonRpcNotification("2.0", "notifications/progress", null)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("JSON response already committed");
   }
 
   private static Supplier<OdysseyStream<JsonRpcMessage>> unusedStreamFactory() {
