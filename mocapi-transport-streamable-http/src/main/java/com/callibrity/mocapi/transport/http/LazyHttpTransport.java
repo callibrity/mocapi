@@ -24,6 +24,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.jwcarman.odyssey.core.OdysseyStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -35,6 +37,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * SynchronousTransport} and {@code OdysseyTransport}.
  */
 final class LazyHttpTransport implements McpTransport {
+
+  private static final Logger log = LoggerFactory.getLogger(LazyHttpTransport.class);
 
   private final Supplier<OdysseyStream<JsonRpcMessage>> streams;
   private final Function<OdysseyStream<JsonRpcMessage>, SseEmitter> emitters;
@@ -82,6 +86,7 @@ final class LazyHttpTransport implements McpTransport {
     }
 
     private Writer commitJson(JsonRpcResponse resp) {
+      log.debug("Committing JSON response for request id={}", resp.id());
       var builder = ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON);
       if (sessionInitialized != null) {
         builder.header("MCP-Session-Id", sessionInitialized.sessionId());
@@ -92,6 +97,10 @@ final class LazyHttpTransport implements McpTransport {
 
     private Writer upgradeToSse(JsonRpcRequest first) {
       var stream = streams.get();
+      log.info(
+          "Upgrading HTTP response to SSE (stream={}, first message type={})",
+          stream.name(),
+          first.getClass().getSimpleName());
       var emitter = emitters.apply(stream);
       var builder = ResponseEntity.ok().contentType(MediaType.TEXT_EVENT_STREAM);
       if (sessionInitialized != null) {
