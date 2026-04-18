@@ -98,7 +98,7 @@ class JakartaValidationIntegrationTest {
     void all_three_legs_of_the_validation_chain_are_wired_up() {
       assertThat(context.getBeansOfType(Validator.class)).isNotEmpty();
       assertThat(context.getBeansOfType(MethodValidatorFactory.class).values())
-          .anyMatch(f -> f instanceof JakartaMethodValidatorFactory);
+          .anyMatch(JakartaMethodValidatorFactory.class::isInstance);
       assertThat(context.getBeansOfType(ConstraintViolationExceptionTranslator.class)).isNotEmpty();
     }
 
@@ -110,7 +110,7 @@ class JakartaValidationIntegrationTest {
       var registry = context.getBean(JsonRpcExceptionTranslatorRegistry.class);
       var translators = context.getBeansOfType(JsonRpcExceptionTranslator.class);
       assertThat(translators.values())
-          .anyMatch(t -> t instanceof ConstraintViolationExceptionTranslator);
+          .anyMatch(ConstraintViolationExceptionTranslator.class::isInstance);
       assertThat(registry).isNotNull();
     }
   }

@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-18
+
 ### Added
 
 - New `mocapi-jakarta-validation-spring-boot-starter` pom-only starter
@@ -377,7 +379,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/callibrity/mocapi/releases/tag/0.9.0
 [0.8.0]: https://github.com/callibrity/mocapi/releases/tag/0.8.0
 [0.7.0]: https://github.com/callibrity/mocapi/releases/tag/0.7.0
 [0.6.0]: https://github.com/callibrity/mocapi/releases/tag/0.6.0
