@@ -29,6 +29,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.jwcarman.odyssey.core.OdysseyStream;
 import org.jwcarman.odyssey.core.SseEventMapper;
+import org.jwcarman.odyssey.core.SubscriberConfig;
+import org.jwcarman.odyssey.core.SubscriberCustomizer;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -38,10 +40,8 @@ import tools.jackson.databind.node.JsonNodeFactory;
 class DefaultSseStreamTest {
 
   @Mock OdysseyStream<JsonRpcMessage> odysseyStream;
-
-  @SuppressWarnings("unchecked")
-  @Mock
-  SseEventMapper<JsonRpcMessage> mapper;
+  @Mock SseEventMapper<JsonRpcMessage> mapper;
+  @Mock SubscriberConfig<JsonRpcMessage> subscriberConfig;
 
   @Test
   void writeDelegatesToOdysseyStreamPublish() {
@@ -76,16 +76,11 @@ class DefaultSseStreamTest {
   @Test
   void createEmitterInvokesEmitterFnWithUnderlyingStream() {
     SseEmitter emitter = new SseEmitter();
-    @SuppressWarnings("unchecked")
-    Function<OdysseyStream<JsonRpcMessage>, SseEmitter> emitterFn =
-        (Function<OdysseyStream<JsonRpcMessage>, SseEmitter>)
-            org.mockito.Mockito.mock(Function.class);
-    when(emitterFn.apply(odysseyStream)).thenReturn(emitter);
+    Function<OdysseyStream<JsonRpcMessage>, SseEmitter> emitterFn = s -> emitter;
 
     var stream = new DefaultSseStream(odysseyStream, emitterFn);
 
     assertThat(stream.createEmitter()).isSameAs(emitter);
-    verify(emitterFn).apply(odysseyStream);
   }
 
   @Test
@@ -108,5 +103,37 @@ class DefaultSseStreamTest {
 
     assertThat(stream.createEmitter()).isSameAs(emitter);
     verify(odysseyStream).resume(eq("evt-42"), any());
+  }
+
+  @Test
+  void factoryCreateSubscribePassesMapperToSubscriberConfig() {
+    when(odysseyStream.subscribe(any()))
+        .thenAnswer(
+            inv -> {
+              SubscriberCustomizer<JsonRpcMessage> customizer = inv.getArgument(0);
+              customizer.accept(subscriberConfig);
+              return new SseEmitter();
+            });
+
+    SseStream stream = DefaultSseStream.create(odysseyStream, mapper);
+    stream.createEmitter();
+
+    verify(subscriberConfig).mapper(mapper);
+  }
+
+  @Test
+  void factoryCreateResumePassesMapperToSubscriberConfig() {
+    when(odysseyStream.resume(eq("evt-42"), any()))
+        .thenAnswer(
+            inv -> {
+              SubscriberCustomizer<JsonRpcMessage> customizer = inv.getArgument(1);
+              customizer.accept(subscriberConfig);
+              return new SseEmitter();
+            });
+
+    SseStream stream = DefaultSseStream.create(odysseyStream, "evt-42", mapper);
+    stream.createEmitter();
+
+    verify(subscriberConfig).mapper(mapper);
   }
 }

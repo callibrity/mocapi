@@ -65,11 +65,7 @@ final class StreamableHttpTransport implements McpTransport {
   }
 
   private void commit(ResponseEntity<Object> entity) {
-    log.debug(
-        "Committing {} response",
-        entity.getHeaders().getContentType() == null
-            ? "unknown"
-            : entity.getHeaders().getContentType().toString());
+    log.debug("Committing {} response", entity.getHeaders().getContentType());
     decorators.forEach(d -> d.accept(entity));
     response.complete(entity);
   }

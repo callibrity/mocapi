@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.transport.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -198,6 +199,26 @@ class StreamableHttpControllerTest {
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
       verify(protocol).handleCall(any(), any(), any(StreamableHttpTransport.class));
+    }
+
+    @Test
+    void handlerExceptionCompletesFutureExceptionally() {
+      doThrow(new RuntimeException("handler blew up"))
+          .when(protocol)
+          .handleCall(any(), any(), any());
+
+      CompletableFuture<ResponseEntity<Object>> future =
+          controller.handlePost(
+              objectMapper.treeToValue(callRequest("ping"), JsonRpcMessage.class),
+              null,
+              "session-1",
+              POST_ACCEPT,
+              null);
+
+      assertThatThrownBy(() -> future.get(5, TimeUnit.SECONDS))
+          .isInstanceOf(ExecutionException.class)
+          .hasCauseInstanceOf(RuntimeException.class)
+          .hasMessageContaining("handler blew up");
     }
 
     @Test
