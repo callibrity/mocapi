@@ -25,8 +25,6 @@ import com.callibrity.mocapi.model.ResourceTemplateReference;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,13 +96,9 @@ public class McpCompletionsService {
 
   private static List<String> filterAndCap(List<String> candidates, CompletionArgument argument) {
     String prefix = argument == null || argument.value() == null ? "" : argument.value();
-    List<String> matches = new ArrayList<>();
-    for (String candidate : candidates) {
-      if (Strings.CI.startsWith(candidate, prefix)) {
-        matches.add(candidate);
-        if (matches.size() >= MAX_VALUES) break;
-      }
-    }
-    return Collections.unmodifiableList(matches);
+    return candidates.stream()
+        .filter(s -> Strings.CI.startsWith(s, prefix))
+        .limit(MAX_VALUES)
+        .toList();
   }
 }
