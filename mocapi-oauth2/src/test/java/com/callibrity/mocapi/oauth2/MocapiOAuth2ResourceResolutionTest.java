@@ -50,11 +50,9 @@ class MocapiOAuth2ResourceResolutionTest {
     // Clients following the metadata would get tokens with aud=https://other but the server's
     // audience validator only accepts "https://api.example.com" — silent incompatibility. The
     // resolver catches that at startup.
-    assertThatThrownBy(
-            () ->
-                MocapiOAuth2AutoConfiguration.resolveResource(
-                    properties("https://other.example.com"),
-                    rsProps(List.of("https://api.example.com"))))
+    MocapiOAuth2Properties props = properties("https://other.example.com");
+    ObjectProvider<OAuth2ResourceServerProperties> rs = rsProps(List.of("https://api.example.com"));
+    assertThatThrownBy(() -> MocapiOAuth2AutoConfiguration.resolveResource(props, rs))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("is not a member of")
         .hasMessageContaining("https://other.example.com");
@@ -86,11 +84,10 @@ class MocapiOAuth2ResourceResolutionTest {
   void multiple_audiences_without_explicit_resource_fails_as_ambiguous() {
     // Can't guess which audience to publish as the canonical resource. Asking the user to pick
     // is better than publishing the wrong one and breaking clients silently.
-    assertThatThrownBy(
-            () ->
-                MocapiOAuth2AutoConfiguration.resolveResource(
-                    properties(null),
-                    rsProps(List.of("https://api-a.example.com", "https://api-b.example.com"))))
+    MocapiOAuth2Properties props = properties(null);
+    ObjectProvider<OAuth2ResourceServerProperties> rs =
+        rsProps(List.of("https://api-a.example.com", "https://api-b.example.com"));
+    assertThatThrownBy(() -> MocapiOAuth2AutoConfiguration.resolveResource(props, rs))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("is not set and cannot be derived")
         .hasMessageContaining("2 entries");
@@ -101,9 +98,9 @@ class MocapiOAuth2ResourceResolutionTest {
     // This case is normally already rejected by validateComplianceMode with a more specific
     // "audiences is empty" message, but resolveResource is also reachable in isolation so it
     // has to refuse too.
-    assertThatThrownBy(
-            () ->
-                MocapiOAuth2AutoConfiguration.resolveResource(properties(null), rsProps(List.of())))
+    MocapiOAuth2Properties props = properties(null);
+    ObjectProvider<OAuth2ResourceServerProperties> rs = rsProps(List.of());
+    assertThatThrownBy(() -> MocapiOAuth2AutoConfiguration.resolveResource(props, rs))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("0 entries");
   }
@@ -112,8 +109,9 @@ class MocapiOAuth2ResourceResolutionTest {
   void null_resource_server_properties_bean_is_handled_as_empty_audiences() {
     // Defensive path: OAuth2ResourceServerProperties is always on the classpath in this module,
     // but resolveResource guards against the null provider anyway.
-    assertThatThrownBy(
-            () -> MocapiOAuth2AutoConfiguration.resolveResource(properties(null), provider(null)))
+    MocapiOAuth2Properties props = properties(null);
+    ObjectProvider<OAuth2ResourceServerProperties> nullRs = provider(null);
+    assertThatThrownBy(() -> MocapiOAuth2AutoConfiguration.resolveResource(props, nullRs))
         .isInstanceOf(IllegalStateException.class);
   }
 

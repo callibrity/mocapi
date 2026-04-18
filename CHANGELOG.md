@@ -6,6 +6,45 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-04-18
+
+### Added
+
+- Auto-derivation of `mocapi.oauth2.resource` from the Spring Boot
+  `spring.security.oauth2.resourceserver.jwt.audiences` property.
+  When `audiences` has exactly one entry and `mocapi.oauth2.resource`
+  is unset, mocapi publishes that single audience as the RFC 9728
+  protected-resource metadata `resource` field. Common case for
+  Auth0 / Okta / Keycloak / Entra setups with one logical API.
+  Removes the duplicate-string-in-two-properties ceremony that the
+  0.9.0 configuration required.
+
+### Changed
+
+- **Startup-time invariant**: `mocapi.oauth2.resource` (whether
+  explicitly set or auto-derived) must be a member of the configured
+  `spring.security.oauth2.resourceserver.jwt.audiences` list. A
+  mismatch fails at application start with a descriptive error
+  naming both the rejected resource and the accepted audiences.
+  Rationale: clients that follow the protected-resource metadata
+  document request tokens bound to the advertised `resource`
+  identifier; if that identifier isn't in the server's accepted
+  audiences, every token the client obtains would be rejected
+  during validation. Catching that at startup is cheaper than a
+  silently-broken deployment where every MCP request returns 401.
+
+### Notes
+
+- `@NotBlank` is no longer enforced on `mocapi.oauth2.resource` —
+  the property becomes optional with the auto-derivation handling
+  the common case. Applications that were already setting the
+  property with a matching audience keep working unchanged.
+- Documentation (`docs/authorization.md`) updated with the
+  minimum-configuration example (two Spring Boot properties, no
+  `mocapi.oauth2.*` needed), the recommended `jwk-set-uri` pattern
+  to skip Spring's OIDC discovery HTTP call at startup, and an
+  explicit note about the resource-must-be-in-audiences invariant.
+
 ## [0.9.0] - 2026-04-18
 
 ### Added
@@ -379,7 +418,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.10.0...HEAD
+[0.10.0]: https://github.com/callibrity/mocapi/releases/tag/0.10.0
 [0.9.0]: https://github.com/callibrity/mocapi/releases/tag/0.9.0
 [0.8.0]: https://github.com/callibrity/mocapi/releases/tag/0.8.0
 [0.7.0]: https://github.com/callibrity/mocapi/releases/tag/0.7.0
