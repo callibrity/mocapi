@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-18
+
 ### Added
 
 - MCP `completion/complete` support. Mocapi now advertises the
@@ -37,17 +39,53 @@ All notable changes to this project are documented in this file. The format is b
   accidentally pushed every example module and `mocapi-conformance`
   to Maven Central. Added release-profile `<skipPublishing>true</skipPublishing>`
   overrides in `examples/pom.xml` (cascades to every example) and in
-  `mocapi-conformance/pom.xml`. From 0.8.0 forward only the 11 real
+  `mocapi-conformance/pom.xml`. From 0.8.0 forward only the real
   library artifacts (plus the new `mocapi-bom`) will publish.
   0.7.0's example coordinates on Central are immutable and will
   remain but should be ignored — there are no consumers.
+- `McpCompletionsService.complete` would throw NPE on a request whose
+  `argument` record itself was absent (the MCP spec says it's required
+  but a malformed request could still arrive). Pulled the null guard
+  to the top of `complete` so both candidate lookup and prefix filter
+  always see a non-null argument, and return a well-formed empty
+  `CompleteResult` for the missing-argument case.
+
+### Changed
+
+- `examples/example-autoconfigure` — the shared module every backend
+  example depends on — now registers a `@PromptService` (template-backed
+  `summarize` with an enum detail argument) and a `@ResourceService`
+  (`docs://readme` fixed resource plus `env://{stage}/config` template
+  with enum stage variable) alongside the existing tool beans. Running
+  any example now shows the full trio of MCP capabilities, and both
+  enum-completion paths are exercised at startup.
+- Annotation-discovered methods (`@ToolMethod`, `@PromptMethod`,
+  `@ResourceMethod`, `@ResourceTemplateMethod`) are now sorted by
+  method name inside each service bean before registration. The JVM
+  makes no ordering guarantee for `Class.getDeclaredMethods` / the
+  Apache Commons `MethodUtils` wrapper, so startup logs could flap
+  across unrelated refactors. Sorting makes startup output
+  deterministic.
 
 ### Documentation
 
 - `mocapi-conformance/README.md`: the pending-scenarios table
   referenced resources and prompts as "not yet implemented" — both
   are fully wired up in the harness. Rewrote to list the actual
-  scenarios being exercised.
+  scenarios being exercised. Also dropped a stale `mocapi-compat`
+  reference after the module was renamed to `mocapi-conformance`
+  (directory, artifact, and Java package).
+- `docs/architecture.md` gains a new "Startup Logging" section
+  cataloging the log line format for every provider (tool, prompt,
+  resource, plus the nested completion-registration sub-lines).
+  Each of the tool, prompt, and resource guides gains a pointer to
+  the new section.
+- `docs/prompts-guide.md` and `docs/resources-guide.md` gain
+  dedicated "Argument Completions" / "Path Variable Completions"
+  sections documenting how enum-typed parameters and
+  `@Schema(allowableValues = {...})` surface as completions.
+- Dropped the stale "Completions" entry from the
+  "What Mocapi Does Not Implement" list in `docs/architecture.md`.
 
 ## [0.7.0] - 2026-04-17
 
@@ -295,7 +333,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/callibrity/mocapi/releases/tag/0.8.0
 [0.7.0]: https://github.com/callibrity/mocapi/releases/tag/0.7.0
 [0.6.0]: https://github.com/callibrity/mocapi/releases/tag/0.6.0
 [0.5.0]: https://github.com/callibrity/mocapi/releases/tag/0.5.0
