@@ -25,11 +25,15 @@ import com.callibrity.mocapi.model.LoggingLevel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpToolContextDefaultMethodsTest {
 
   record LogEntry(LoggingLevel level, String logger, String message) {}
@@ -60,18 +64,21 @@ class McpToolContextDefaultMethodsTest {
     }
   }
 
-  @ParameterizedTest
-  @MethodSource("loggingMethods")
-  void convenienceMethodDelegatesToLogWithCorrectLevel(
-      LoggingLevel expectedLevel, LogInvoker invoker) {
-    var ctx = new CapturingContext();
+  @Nested
+  class Logging_convenience_methods {
+    @ParameterizedTest
+    @MethodSource("com.callibrity.mocapi.api.tools.McpToolContextDefaultMethodsTest#loggingMethods")
+    void convenience_method_delegates_to_log_with_correct_level(
+        LoggingLevel expectedLevel, LogInvoker invoker) {
+      var ctx = new CapturingContext();
 
-    invoker.invoke(ctx, "test-logger", "test message");
+      invoker.invoke(ctx, "test-logger", "test message");
 
-    assertThat(ctx.entries).hasSize(1);
-    assertThat(ctx.entries.getFirst().level()).isEqualTo(expectedLevel);
-    assertThat(ctx.entries.getFirst().logger()).isEqualTo("test-logger");
-    assertThat(ctx.entries.getFirst().message()).isEqualTo("test message");
+      assertThat(ctx.entries).hasSize(1);
+      assertThat(ctx.entries.getFirst().level()).isEqualTo(expectedLevel);
+      assertThat(ctx.entries.getFirst().logger()).isEqualTo("test-logger");
+      assertThat(ctx.entries.getFirst().message()).isEqualTo("test message");
+    }
   }
 
   static Stream<Arguments> loggingMethods() {
@@ -86,34 +93,37 @@ class McpToolContextDefaultMethodsTest {
         Arguments.of(LoggingLevel.EMERGENCY, (LogInvoker) McpToolContext::emergency));
   }
 
-  @Test
-  void fluentElicitBuildsSchemaAndDelegatesToElicit() {
-    var ctx = new CapturingContext();
+  @Nested
+  class Fluent_elicit {
+    @Test
+    void fluent_elicit_builds_schema_and_delegates_to_elicit() {
+      var ctx = new CapturingContext();
 
-    ctx.elicit(
-        "Enter your info",
-        schema -> schema.string("name", "Your name").string("email", "Email", s -> s.email()));
+      ctx.elicit(
+          "Enter your info",
+          schema -> schema.string("name", "Your name").string("email", "Email", s -> s.email()));
 
-    assertThat(ctx.lastElicitParams).isNotNull();
-    assertThat(ctx.lastElicitParams.mode()).isEqualTo("form");
-    assertThat(ctx.lastElicitParams.message()).isEqualTo("Enter your info");
-    assertThat(ctx.lastElicitParams.requestedSchema()).isNotNull();
-    assertThat(ctx.lastElicitParams.requestedSchema().properties()).containsKeys("name", "email");
-    assertThat(ctx.lastElicitParams.requestedSchema().required()).contains("name", "email");
-  }
+      assertThat(ctx.lastElicitParams).isNotNull();
+      assertThat(ctx.lastElicitParams.mode()).isEqualTo("form");
+      assertThat(ctx.lastElicitParams.message()).isEqualTo("Enter your info");
+      assertThat(ctx.lastElicitParams.requestedSchema()).isNotNull();
+      assertThat(ctx.lastElicitParams.requestedSchema().properties()).containsKeys("name", "email");
+      assertThat(ctx.lastElicitParams.requestedSchema().required()).contains("name", "email");
+    }
 
-  @Test
-  void fluentElicitWithOptionalFieldExcludesFromRequired() {
-    var ctx = new CapturingContext();
+    @Test
+    void fluent_elicit_with_optional_field_excludes_from_required() {
+      var ctx = new CapturingContext();
 
-    ctx.elicit(
-        "Optional test",
-        schema ->
-            schema
-                .string("required", "Required")
-                .string("optional", "Optional", s -> s.optional()));
+      ctx.elicit(
+          "Optional test",
+          schema ->
+              schema
+                  .string("required", "Required")
+                  .string("optional", "Optional", s -> s.optional()));
 
-    assertThat(ctx.lastElicitParams.requestedSchema().required()).containsExactly("required");
+      assertThat(ctx.lastElicitParams.requestedSchema().required()).containsExactly("required");
+    }
   }
 
   @FunctionalInterface

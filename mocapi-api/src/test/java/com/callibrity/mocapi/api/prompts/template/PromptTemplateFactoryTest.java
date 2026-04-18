@@ -24,12 +24,15 @@ import com.callibrity.mocapi.model.TextContent;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class PromptTemplateFactoryTest {
 
   @Test
-  void defaultTwoArgCreateDelegatesToThreeArgWithNullDescription() {
+  void default_two_arg_create_delegates_to_three_arg_with_null_description() {
     AtomicReference<String> capturedDescription = new AtomicReference<>("sentinel");
     PromptTemplateFactory factory =
         (role, description, template) -> {
@@ -49,7 +52,7 @@ class PromptTemplateFactoryTest {
   }
 
   @Test
-  void threeArgCreatePreservesDescription() {
+  void three_arg_create_preserves_description() {
     PromptTemplateFactory factory =
         (role, description, template) ->
             args ->

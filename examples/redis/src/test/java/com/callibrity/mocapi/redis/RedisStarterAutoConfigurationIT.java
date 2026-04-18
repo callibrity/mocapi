@@ -19,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.substrate.core.atom.AtomSpi;
 import org.jwcarman.substrate.core.journal.JournalSpi;
@@ -42,18 +44,19 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.testcontainers.containers.GenericContainer;
 
 /** Verifies that Substrate's Redis backend auto-configures all four SPIs with a real Redis. */
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class RedisStarterAutoConfigurationIT {
 
   static GenericContainer<?> redis =
       new GenericContainer<>("redis:7-alpine").withExposedPorts(6379);
 
   @BeforeAll
-  static void startRedis() {
+  static void start_redis() {
     redis.start();
   }
 
   @AfterAll
-  static void stopRedis() {
+  static void stop_redis() {
     redis.stop();
   }
 
@@ -81,7 +84,7 @@ class RedisStarterAutoConfigurationIT {
   }
 
   @Test
-  void redisBackedAtomSpiIsAutoConfigured() {
+  void redis_backed_atom_spi_is_auto_configured() {
     contextRunner()
         .run(
             context -> {
@@ -91,7 +94,7 @@ class RedisStarterAutoConfigurationIT {
   }
 
   @Test
-  void redisBackedMailboxSpiIsAutoConfigured() {
+  void redis_backed_mailbox_spi_is_auto_configured() {
     contextRunner()
         .run(
             context -> {
@@ -101,7 +104,7 @@ class RedisStarterAutoConfigurationIT {
   }
 
   @Test
-  void redisBackedJournalSpiIsAutoConfigured() {
+  void redis_backed_journal_spi_is_auto_configured() {
     contextRunner()
         .run(
             context -> {
@@ -111,7 +114,7 @@ class RedisStarterAutoConfigurationIT {
   }
 
   @Test
-  void redisBackedNotifierSpiIsAutoConfigured() {
+  void redis_backed_notifier_spi_is_auto_configured() {
     contextRunner()
         .run(
             context -> {

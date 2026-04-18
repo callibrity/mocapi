@@ -20,6 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.substrate.core.atom.AtomSpi;
 import org.jwcarman.substrate.core.journal.JournalSpi;
@@ -47,18 +49,19 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Verifies that Substrate's Postgres backend auto-configures all four SPIs with a real PostgreSQL.
  */
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class PostgresqlStarterAutoConfigurationIT {
 
   static PostgreSQLContainer<?> postgres =
       new PostgreSQLContainer<>("postgres:16-alpine").withDatabaseName("mocapi");
 
   @BeforeAll
-  static void startPostgres() {
+  static void start_postgres() {
     postgres.start();
   }
 
   @AfterAll
-  static void stopPostgres() {
+  static void stop_postgres() {
     postgres.stop();
   }
 
@@ -100,7 +103,7 @@ class PostgresqlStarterAutoConfigurationIT {
   }
 
   @Test
-  void postgresBackedAtomSpiIsAutoConfigured() {
+  void postgres_backed_atom_spi_is_auto_configured() {
     contextRunner()
         .run(
             context -> {
@@ -110,7 +113,7 @@ class PostgresqlStarterAutoConfigurationIT {
   }
 
   @Test
-  void postgresBackedMailboxSpiIsAutoConfigured() {
+  void postgres_backed_mailbox_spi_is_auto_configured() {
     contextRunner()
         .run(
             context -> {
@@ -120,7 +123,7 @@ class PostgresqlStarterAutoConfigurationIT {
   }
 
   @Test
-  void postgresBackedJournalSpiIsAutoConfigured() {
+  void postgres_backed_journal_spi_is_auto_configured() {
     contextRunner()
         .run(
             context -> {
@@ -130,7 +133,7 @@ class PostgresqlStarterAutoConfigurationIT {
   }
 
   @Test
-  void postgresBackedNotifierSpiIsAutoConfigured() {
+  void postgres_backed_notifier_spi_is_auto_configured() {
     contextRunner()
         .run(
             context -> {

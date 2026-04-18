@@ -20,11 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.callibrity.mocapi.model.RequestedSchema;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class RequestedSchemaBuilderGoldenJsonTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -38,7 +41,7 @@ class RequestedSchemaBuilderGoldenJsonTest {
   @Test
   @SuppressWarnings(
       "deprecation") // Tests deprecated chooseLegacy() per MCP spec backward compatibility
-  void builderSchemaShouldMatchGoldenFixture() throws Exception {
+  void builder_schema_should_match_golden_fixture() throws Exception {
     RequestedSchema requestedSchema =
         new RequestedSchemaBuilder()
             .string("name", "Full name", "Jane Doe")
