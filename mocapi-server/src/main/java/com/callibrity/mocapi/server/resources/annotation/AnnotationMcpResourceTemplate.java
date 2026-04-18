@@ -27,6 +27,7 @@ import com.callibrity.mocapi.server.completions.CompletionCandidate;
 import com.callibrity.mocapi.server.completions.CompletionCandidates;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -53,6 +54,7 @@ public class AnnotationMcpResourceTemplate implements McpResourceTemplate {
     return MethodUtils.getMethodsListWithAnnotation(
             targetObject.getClass(), ResourceTemplateMethod.class)
         .stream()
+        .sorted(Comparator.comparing(Method::getName))
         .map(
             m ->
                 new AnnotationMcpResourceTemplate(

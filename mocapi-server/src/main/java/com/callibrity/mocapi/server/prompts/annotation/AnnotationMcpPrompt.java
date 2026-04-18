@@ -30,6 +30,7 @@ import com.callibrity.mocapi.server.tools.schema.Parameters;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.reflect.MethodUtils;
@@ -54,6 +55,7 @@ public class AnnotationMcpPrompt implements McpPrompt {
       StringValueResolver valueResolver) {
     return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), PromptMethod.class)
         .stream()
+        .sorted(Comparator.comparing(Method::getName))
         .map(
             m -> new AnnotationMcpPrompt(invokerFactory, resolvers, targetObject, m, valueResolver))
         .toList();

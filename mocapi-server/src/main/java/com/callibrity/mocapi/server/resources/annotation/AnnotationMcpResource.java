@@ -24,6 +24,7 @@ import com.callibrity.mocapi.api.resources.ResourceMethod;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import java.lang.reflect.Method;
+import java.util.Comparator;
 import java.util.List;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
@@ -39,6 +40,7 @@ public class AnnotationMcpResource implements McpResource {
       MethodInvokerFactory invokerFactory, Object targetObject, StringValueResolver valueResolver) {
     return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), ResourceMethod.class)
         .stream()
+        .sorted(Comparator.comparing(Method::getName))
         .map(m -> new AnnotationMcpResource(invokerFactory, targetObject, m, valueResolver))
         .toList();
   }

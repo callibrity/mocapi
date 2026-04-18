@@ -27,6 +27,7 @@ import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.Comparator;
 import java.util.List;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
@@ -49,6 +50,7 @@ public class AnnotationMcpTool implements McpTool {
       StringValueResolver valueResolver) {
     return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), ToolMethod.class)
         .stream()
+        .sorted(Comparator.comparing(Method::getName))
         .map(
             m ->
                 new AnnotationMcpTool(
