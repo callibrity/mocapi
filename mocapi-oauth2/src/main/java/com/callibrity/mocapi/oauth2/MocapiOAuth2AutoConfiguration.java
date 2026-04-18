@@ -96,7 +96,13 @@ public class MocapiOAuth2AutoConfiguration {
     validateComplianceMode(jwtDecoder, springResourceServerProperties);
   }
 
-  private static void validateComplianceMode(
+  /**
+   * Package-private for direct unit testing. The {@code rs == null} ternary branch and {@code
+   * audiences == null} left-hand {@code ||} branch aren't reachable from Spring-context tests:
+   * {@link OAuth2ResourceServerProperties} is always on the classpath, and Spring Boot's binder
+   * initializes the audiences list rather than leaving it null.
+   */
+  static void validateComplianceMode(
       ObjectProvider<JwtDecoder> jwtDecoder,
       ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties) {
     if (jwtDecoder.getIfAvailable() == null) {
@@ -215,9 +221,14 @@ public class MocapiOAuth2AutoConfiguration {
    * Returns the authorization-servers list mocapi advertises in the metadata document. Uses the
    * explicit {@code mocapi.oauth2.authorization-servers} property when set; otherwise falls back to
    * the standard Spring Boot resource-server {@code issuer-uri}, so single-IdP setups don't have to
-   * restate the value.
+   * restate the value. Returns an empty list when neither source is available.
+   *
+   * <p>Package-private for direct unit testing — the {@code rs == null} and blank-issuer-uri
+   * branches aren't reachable from Spring-context tests in this module because {@link
+   * OAuth2ResourceServerProperties} is always on the classpath and {@code issuer-uri} is always set
+   * to a non-blank value in the test fixtures.
    */
-  private static java.util.List<String> authorizationServersFor(
+  static java.util.List<String> authorizationServersFor(
       MocapiOAuth2Properties properties,
       ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties) {
     if (!properties.authorizationServers().isEmpty()) {
@@ -228,8 +239,6 @@ public class MocapiOAuth2AutoConfiguration {
       return java.util.List.of();
     }
     String issuerUri = rs.getJwt().getIssuerUri();
-    return (issuerUri == null || issuerUri.isBlank())
-        ? java.util.List.of()
-        : java.util.List.of(issuerUri);
+    return StringUtils.isBlank(issuerUri) ? java.util.List.of() : java.util.List.of(issuerUri);
   }
 }
