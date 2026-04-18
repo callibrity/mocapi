@@ -30,6 +30,8 @@ import com.callibrity.mocapi.model.ServerCapabilities;
 import java.time.Duration;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -37,6 +39,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpSessionServiceTest {
 
   private static final Duration TTL = Duration.ofMinutes(30);
@@ -57,7 +60,7 @@ class McpSessionServiceTest {
   }
 
   @Test
-  void createSavesToStoreAndReturnsSessionId() {
+  void create_saves_to_store_and_returns_session_id() {
     McpSession session =
         new McpSession(
             "my-session-id",
@@ -76,7 +79,7 @@ class McpSessionServiceTest {
   }
 
   @Test
-  void findReturnsSession() {
+  void find_returns_session() {
     McpSession session =
         new McpSession("session-1", "2025-11-25", null, null, LoggingLevel.WARNING);
     when(store.find("session-1")).thenReturn(Optional.of(session));
@@ -87,7 +90,7 @@ class McpSessionServiceTest {
   }
 
   @Test
-  void findReturnsEmptyWhenNotFound() {
+  void find_returns_empty_when_not_found() {
     when(store.find("unknown")).thenReturn(Optional.empty());
 
     Optional<McpSession> result = service.find("unknown");
@@ -96,14 +99,14 @@ class McpSessionServiceTest {
   }
 
   @Test
-  void deleteRemovesFromStore() {
+  void delete_removes_from_store() {
     service.delete("session-1");
 
     verify(store).delete("session-1");
   }
 
   @Test
-  void setLogLevelUpdatesSessionInStore() {
+  void set_log_level_updates_session_in_store() {
     McpSession session =
         new McpSession("session-1", "2025-11-25", null, null, LoggingLevel.WARNING);
     when(store.find("session-1")).thenReturn(Optional.of(session));
@@ -116,7 +119,7 @@ class McpSessionServiceTest {
   }
 
   @Test
-  void setLogLevelDoesNothingWhenSessionNotFound() {
+  void set_log_level_does_nothing_when_session_not_found() {
     when(store.find("unknown")).thenReturn(Optional.empty());
 
     service.setLogLevel("unknown", LoggingLevel.DEBUG);
@@ -125,7 +128,7 @@ class McpSessionServiceTest {
   }
 
   @Test
-  void markInitializedUpdatesSessionInStore() {
+  void mark_initialized_updates_session_in_store() {
     McpSession session =
         new McpSession("session-1", "2025-11-25", null, null, LoggingLevel.WARNING);
     when(store.find("session-1")).thenReturn(Optional.of(session));
@@ -138,7 +141,7 @@ class McpSessionServiceTest {
   }
 
   @Test
-  void markInitializedDoesNothingWhenSessionNotFound() {
+  void mark_initialized_does_nothing_when_session_not_found() {
     when(store.find("unknown")).thenReturn(Optional.empty());
 
     service.markInitialized("unknown");

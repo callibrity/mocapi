@@ -40,6 +40,8 @@ import com.callibrity.ripcurl.core.JsonRpcNotification;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -52,6 +54,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DefaultMcpToolContextTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
@@ -59,7 +62,7 @@ class DefaultMcpToolContextTest {
   @Mock private McpResponseCorrelationService correlationService;
 
   @Test
-  void sendProgressSendsNotificationThroughTransport() {
+  void send_progress_sends_notification_through_transport() {
     var transport = mock(McpTransport.class);
     var token = JsonNodeFactory.instance.stringNode("progress-1");
     var ctx = new DefaultMcpToolContext(transport, mapper, token, correlationService);
@@ -76,7 +79,7 @@ class DefaultMcpToolContextTest {
   }
 
   @Test
-  void sendProgressWithNullTokenIsNoOp() {
+  void send_progress_with_null_token_is_no_op() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
 
@@ -86,7 +89,7 @@ class DefaultMcpToolContextTest {
   }
 
   @Test
-  void logSendsNotificationThroughTransport() {
+  void log_sends_notification_through_transport() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
 
@@ -102,7 +105,7 @@ class DefaultMcpToolContextTest {
   }
 
   @Test
-  void logBelowSessionLevelIsDropped() {
+  void log_below_session_level_is_dropped() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.WARNING);
@@ -114,7 +117,7 @@ class DefaultMcpToolContextTest {
   }
 
   @Test
-  void logAtOrAboveSessionLevelIsSent() {
+  void log_at_or_above_session_level_is_sent() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.WARNING);
@@ -128,7 +131,7 @@ class DefaultMcpToolContextTest {
   }
 
   @Test
-  void elicitDelegatesToCorrelationService() {
+  void elicit_delegates_to_correlation_service() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var requestParams =
@@ -149,7 +152,7 @@ class DefaultMcpToolContextTest {
   }
 
   @Test
-  void sampleDelegatesToCorrelationService() {
+  void sample_delegates_to_correlation_service() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var requestParams =
@@ -177,7 +180,7 @@ class DefaultMcpToolContextTest {
 
   @ParameterizedTest
   @MethodSource("loggingConvenienceMethods")
-  void convenienceLogMethodDelegatesToLogWithCorrectLevel(
+  void convenience_log_method_delegates_to_log_with_correct_level(
       LoggingLevel expectedLevel, BiConsumer<DefaultMcpToolContext, String[]> method) {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);

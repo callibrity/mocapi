@@ -17,27 +17,30 @@ package com.callibrity.mocapi.server;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class EmptyMcpContextTest {
 
   @Test
-  void sessionIdIsNull() {
+  void session_id_is_null() {
     assertThat(McpContext.empty().sessionId()).isNull();
   }
 
   @Test
-  void protocolVersionIsNull() {
+  void protocol_version_is_null() {
     assertThat(McpContext.empty().protocolVersion()).isNull();
   }
 
   @Test
-  void sessionIsEmpty() {
+  void session_is_empty() {
     assertThat(McpContext.empty().session()).isEmpty();
   }
 
   @Test
-  void emptyReturnsSameInstance() {
+  void empty_returns_same_instance() {
     assertThat(McpContext.empty()).isSameAs(McpContext.empty());
   }
 }

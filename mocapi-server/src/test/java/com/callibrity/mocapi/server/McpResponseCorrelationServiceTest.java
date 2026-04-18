@@ -33,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.codec.jackson.JacksonCodecFactory;
 import org.jwcarman.codec.spi.CodecFactory;
@@ -46,6 +48,7 @@ import org.jwcarman.substrate.core.transform.PayloadTransformer;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
 import tools.jackson.databind.ObjectMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpResponseCorrelationServiceTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -77,7 +80,7 @@ class McpResponseCorrelationServiceTest {
   }
 
   @Test
-  void sendAndAwaitDeliversCorrelatedResponse() throws Exception {
+  void send_and_await_delivers_correlated_response() throws Exception {
     var transport = new LatchingTransport(1);
 
     var resultRef = new AtomicReference<ElicitResult>();
@@ -116,7 +119,7 @@ class McpResponseCorrelationServiceTest {
   }
 
   @Test
-  void sendAndAwaitTimesOut() {
+  void send_and_await_times_out() {
     var transport = new LatchingTransport(1);
     var shortTimeoutService =
         new McpResponseCorrelationService(mailboxFactory, objectMapper, Duration.ofMillis(200));
@@ -131,7 +134,7 @@ class McpResponseCorrelationServiceTest {
   }
 
   @Test
-  void orphanResponseIsSilentlyDropped() {
+  void orphan_response_is_silently_dropped() {
     var response =
         new JsonRpcResult(
             objectMapper.createObjectNode(), objectMapper.valueToTree("nonexistent-id"));
@@ -140,7 +143,7 @@ class McpResponseCorrelationServiceTest {
   }
 
   @Test
-  void multipleCorrelationsAreIndependent() throws Exception {
+  void multiple_correlations_are_independent() throws Exception {
     var transport = new LatchingTransport(2);
 
     var result0 = new AtomicReference<ElicitResult>();
@@ -206,7 +209,7 @@ class McpResponseCorrelationServiceTest {
   }
 
   @Test
-  void deliverWithJsonRpcErrorDoesNotDeliverToMailbox() throws Exception {
+  void deliver_with_json_rpc_error_does_not_deliver_to_mailbox() throws Exception {
     var transport = new LatchingTransport(1);
 
     var resultRef = new AtomicReference<ElicitResult>();

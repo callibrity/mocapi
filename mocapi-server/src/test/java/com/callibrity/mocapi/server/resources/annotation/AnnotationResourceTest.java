@@ -25,12 +25,15 @@ import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.core.convert.support.DefaultConversionService;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class AnnotationResourceTest {
 
   private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory(List.of());
@@ -81,7 +84,7 @@ class AnnotationResourceTest {
   }
 
   @Test
-  void fixedResourceBuildsDescriptorAndInvokes() {
+  void fixed_resource_builds_descriptor_and_invokes() {
     var resource = ResourceServiceScanner.createResources(invokerFactory, new Fixture()).getFirst();
 
     assertThat(resource.descriptor().uri()).isEqualTo("test://hello");
@@ -94,7 +97,7 @@ class AnnotationResourceTest {
   }
 
   @Test
-  void templateBuildsDescriptorAndInvokesWithConvertedPathVariables() {
+  void template_builds_descriptor_and_invokes_with_converted_path_variables() {
     var template =
         ResourceServiceScanner.createResourceTemplates(
                 invokerFactory, templateResolvers, new Fixture())
@@ -110,7 +113,7 @@ class AnnotationResourceTest {
   }
 
   @Test
-  void templateReadWithNullPathVariablesInvokesWithEmptyMap() {
+  void template_read_with_null_path_variables_invokes_with_empty_map() {
     var template =
         ResourceServiceScanner.createResourceTemplates(
                 invokerFactory, templateResolvers, new StringPathFixture())
@@ -123,7 +126,7 @@ class AnnotationResourceTest {
   }
 
   @Test
-  void resourceMethodWithNonResultReturnTypeIsRejected() {
+  void resource_method_with_non_result_return_type_is_rejected() {
     var target = new BadResource();
     assertThatThrownBy(() -> ResourceServiceScanner.createResources(invokerFactory, target))
         .isInstanceOf(IllegalArgumentException.class)
@@ -131,7 +134,7 @@ class AnnotationResourceTest {
   }
 
   @Test
-  void templateMethodWithNonResultReturnTypeIsRejected() {
+  void template_method_with_non_result_return_type_is_rejected() {
     var target = new BadTemplate();
     assertThatThrownBy(
             () ->

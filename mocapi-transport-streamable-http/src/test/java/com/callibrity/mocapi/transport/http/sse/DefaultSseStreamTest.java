@@ -25,6 +25,8 @@ import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.function.Function;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.jwcarman.odyssey.core.OdysseyStream;
@@ -37,6 +39,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DefaultSseStreamTest {
 
   @Mock OdysseyStream<JsonRpcMessage> odysseyStream;
@@ -44,7 +47,7 @@ class DefaultSseStreamTest {
   @Mock SubscriberConfig<JsonRpcMessage> subscriberConfig;
 
   @Test
-  void writeDelegatesToOdysseyStreamPublish() {
+  void write_delegates_to_odyssey_stream_publish() {
     Function<OdysseyStream<JsonRpcMessage>, SseEmitter> unusedEmitterFn =
         s -> {
           throw new AssertionError("should not be called");
@@ -58,7 +61,7 @@ class DefaultSseStreamTest {
   }
 
   @Test
-  void writeAcceptsAnyJsonRpcMessageType() {
+  void write_accepts_any_json_rpc_message_type() {
     Function<OdysseyStream<JsonRpcMessage>, SseEmitter> unusedEmitterFn =
         s -> {
           throw new AssertionError("should not be called");
@@ -74,7 +77,7 @@ class DefaultSseStreamTest {
   }
 
   @Test
-  void createEmitterInvokesEmitterFnWithUnderlyingStream() {
+  void create_emitter_invokes_emitter_fn_with_underlying_stream() {
     SseEmitter emitter = new SseEmitter();
     Function<OdysseyStream<JsonRpcMessage>, SseEmitter> emitterFn = s -> emitter;
 
@@ -84,7 +87,7 @@ class DefaultSseStreamTest {
   }
 
   @Test
-  void factoryCreateSubscribesWithMapper() {
+  void factory_create_subscribes_with_mapper() {
     SseEmitter emitter = new SseEmitter();
     when(odysseyStream.subscribe(any())).thenReturn(emitter);
 
@@ -95,7 +98,7 @@ class DefaultSseStreamTest {
   }
 
   @Test
-  void factoryCreateWithLastEventIdResumesWithMapper() {
+  void factory_create_with_last_event_id_resumes_with_mapper() {
     SseEmitter emitter = new SseEmitter();
     when(odysseyStream.resume(eq("evt-42"), any())).thenReturn(emitter);
 
@@ -106,7 +109,7 @@ class DefaultSseStreamTest {
   }
 
   @Test
-  void factoryCreateSubscribePassesMapperToSubscriberConfig() {
+  void factory_create_subscribe_passes_mapper_to_subscriber_config() {
     when(odysseyStream.subscribe(any()))
         .thenAnswer(
             inv -> {
@@ -122,7 +125,7 @@ class DefaultSseStreamTest {
   }
 
   @Test
-  void factoryCreateResumePassesMapperToSubscriberConfig() {
+  void factory_create_resume_passes_mapper_to_subscriber_config() {
     when(odysseyStream.resume(eq("evt-42"), any()))
         .thenAnswer(
             inv -> {

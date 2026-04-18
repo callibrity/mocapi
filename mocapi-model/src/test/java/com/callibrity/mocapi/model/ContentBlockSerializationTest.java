@@ -18,16 +18,19 @@ package com.callibrity.mocapi.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ContentBlockSerializationTest {
 
   private final ObjectMapper mapper = JsonMapper.builder().build();
 
   @Test
-  void textContentRoundTrip() throws Exception {
+  void text_content_round_trip() throws Exception {
     var original = new TextContent("hello", null);
     String json = mapper.writeValueAsString(original);
     assertThat(json)
@@ -41,7 +44,7 @@ class ContentBlockSerializationTest {
   }
 
   @Test
-  void imageContentRoundTrip() throws Exception {
+  void image_content_round_trip() throws Exception {
     var original = new ImageContent("base64data", "image/png", null);
     String json = mapper.writeValueAsString(original);
     assertThat(json).contains("\"type\":\"image\"");
@@ -54,7 +57,7 @@ class ContentBlockSerializationTest {
   }
 
   @Test
-  void audioContentRoundTrip() throws Exception {
+  void audio_content_round_trip() throws Exception {
     var original = new AudioContent("audiodata", "audio/wav", null);
     String json = mapper.writeValueAsString(original);
     assertThat(json).contains("\"type\":\"audio\"");
@@ -64,7 +67,7 @@ class ContentBlockSerializationTest {
   }
 
   @Test
-  void resourceLinkRoundTrip() throws Exception {
+  void resource_link_round_trip() throws Exception {
     var original = new ResourceLink("file:///test.txt", "text/plain", null);
     String json = mapper.writeValueAsString(original);
     assertThat(json).contains("\"type\":\"resource_link\"");
@@ -75,7 +78,7 @@ class ContentBlockSerializationTest {
   }
 
   @Test
-  void embeddedResourceRoundTrip() throws Exception {
+  void embedded_resource_round_trip() throws Exception {
     var resource = new TextResourceContents("file:///test.txt", "text/plain", "content");
     var original = new EmbeddedResource(resource, null);
     String json = mapper.writeValueAsString(original);
@@ -89,7 +92,7 @@ class ContentBlockSerializationTest {
   }
 
   @Test
-  void textContentWithAnnotations() throws Exception {
+  void text_content_with_annotations() throws Exception {
     var annotations = new Annotations(List.of(Role.USER), 0.8, "2025-01-01T00:00:00Z");
     var original = new TextContent("annotated", annotations);
     String json = mapper.writeValueAsString(original);

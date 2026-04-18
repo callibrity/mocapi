@@ -17,12 +17,15 @@ package com.callibrity.mocapi.api.elicitation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpElicitationNotSupportedExceptionTest {
 
   @Test
-  void constructorShouldSetMessage() {
+  void constructor_should_set_message() {
     var ex = new McpElicitationNotSupportedException("elicitation not supported");
     assertThat(ex).hasMessage("elicitation not supported").hasNoCause();
   }

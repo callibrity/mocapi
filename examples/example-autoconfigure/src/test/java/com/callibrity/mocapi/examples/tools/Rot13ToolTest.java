@@ -17,12 +17,15 @@ package com.callibrity.mocapi.examples.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class Rot13ToolTest {
 
   @Test
-  void encodingShouldRotateChars() {
+  void encoding_should_rotate_chars() {
     var tool = new Rot13Tool();
     var response = tool.encode("(A-b]}");
     assertThat(response).isNotNull();

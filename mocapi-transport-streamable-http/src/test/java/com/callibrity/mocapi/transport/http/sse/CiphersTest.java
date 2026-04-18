@@ -21,8 +21,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class CiphersTest {
 
   private static final SecureRandom RANDOM = new SecureRandom();
@@ -34,26 +37,26 @@ class CiphersTest {
   }
 
   @Test
-  void validateAesGcmKeyShouldRejectNullKey() {
+  void validate_aes_gcm_key_should_reject_null_key() {
     assertThatThrownBy(() -> Ciphers.validateAesGcmKey(null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("32 bytes");
   }
 
   @Test
-  void validateAesGcmKeyShouldRejectShortKey() {
+  void validate_aes_gcm_key_should_reject_short_key() {
     assertThatThrownBy(() -> Ciphers.validateAesGcmKey(new byte[16]))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("32 bytes");
   }
 
   @Test
-  void validateAesGcmKeyShouldAcceptValidKey() {
+  void validate_aes_gcm_key_should_accept_valid_key() {
     Ciphers.validateAesGcmKey(validKey());
   }
 
   @Test
-  void decryptShouldRejectCiphertextTooShort() {
+  void decrypt_should_reject_ciphertext_too_short() {
     byte[] key = validKey();
     // 12 bytes or fewer is too short (nonce is 12 bytes, need at least 1 byte of ciphertext)
     assertThatThrownBy(() -> Ciphers.decryptAesGcm(key, "ctx", new byte[12]))
@@ -62,7 +65,8 @@ class CiphersTest {
   }
 
   @Test
-  void roundTripEncryptDecryptShouldProduceOriginalPlaintext() throws GeneralSecurityException {
+  void round_trip_encrypt_decrypt_should_produce_original_plaintext()
+      throws GeneralSecurityException {
     byte[] key = validKey();
     byte[] plaintext = "hello, world".getBytes(StandardCharsets.UTF_8);
 

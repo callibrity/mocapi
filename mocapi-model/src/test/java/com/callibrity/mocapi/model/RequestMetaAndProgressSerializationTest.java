@@ -17,83 +17,100 @@ package com.callibrity.mocapi.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.StringNode;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class RequestMetaAndProgressSerializationTest {
 
   private final ObjectMapper mapper = JsonMapper.builder().build();
 
-  @Test
-  void requestMetaWithStringToken() throws Exception {
-    var meta = new RequestMeta(StringNode.valueOf("token-abc"));
-    String json = mapper.writeValueAsString(meta);
-    assertThat(json).isEqualTo("{\"progressToken\":\"token-abc\"}");
+  @Nested
+  class Request_meta {
 
-    var deserialized = mapper.readValue(json, RequestMeta.class);
-    assertThat(deserialized.progressToken().asString()).isEqualTo("token-abc");
+    @Test
+    void serializes_string_progress_token() throws Exception {
+      var meta = new RequestMeta(StringNode.valueOf("token-abc"));
+      String json = mapper.writeValueAsString(meta);
+      assertThat(json).isEqualTo("{\"progressToken\":\"token-abc\"}");
+
+      var deserialized = mapper.readValue(json, RequestMeta.class);
+      assertThat(deserialized.progressToken().asString()).isEqualTo("token-abc");
+    }
+
+    @Test
+    void deserializes_numeric_progress_token() throws Exception {
+      String json = "{\"progressToken\":42}";
+      var deserialized = mapper.readValue(json, RequestMeta.class);
+      assertThat(deserialized.progressToken()).isEqualTo(IntNode.valueOf(42));
+      assertThat(deserialized.progressToken().asInt()).isEqualTo(42);
+    }
+
+    @Test
+    void omits_null_progress_token() throws Exception {
+      var meta = new RequestMeta(null);
+      String json = mapper.writeValueAsString(meta);
+      assertThat(json).isEqualTo("{}");
+    }
   }
 
-  @Test
-  void requestMetaWithNumericToken() throws Exception {
-    String json = "{\"progressToken\":42}";
-    var deserialized = mapper.readValue(json, RequestMeta.class);
-    assertThat(deserialized.progressToken()).isEqualTo(IntNode.valueOf(42));
-    assertThat(deserialized.progressToken().asInt()).isEqualTo(42);
+  @Nested
+  class Progress_notification_params {
+
+    @Test
+    void round_trips_all_fields() throws Exception {
+      var params =
+          new ProgressNotificationParams(StringNode.valueOf("token-1"), 0.5, 1.0, "halfway");
+      String json = mapper.writeValueAsString(params);
+      assertThat(json)
+          .contains("\"progressToken\":\"token-1\"")
+          .contains("\"progress\":0.5")
+          .contains("\"total\":1.0")
+          .contains("\"message\":\"halfway\"");
+
+      var deserialized = mapper.readValue(json, ProgressNotificationParams.class);
+      assertThat(deserialized.progressToken().asString()).isEqualTo("token-1");
+      assertThat(deserialized.progress()).isEqualTo(0.5);
+      assertThat(deserialized.total()).isEqualTo(1.0);
+      assertThat(deserialized.message()).isEqualTo("halfway");
+    }
+
+    @Test
+    void deserializes_numeric_progress_token() throws Exception {
+      String json = "{\"progressToken\":99,\"progress\":0.75}";
+      var deserialized = mapper.readValue(json, ProgressNotificationParams.class);
+      assertThat(deserialized.progressToken().asInt()).isEqualTo(99);
+      assertThat(deserialized.progress()).isEqualTo(0.75);
+    }
+
+    @Test
+    void omits_null_optional_fields() throws Exception {
+      var params = new ProgressNotificationParams(StringNode.valueOf("t"), 0.0, null, null);
+      String json = mapper.writeValueAsString(params);
+      assertThat(json).doesNotContain("total").doesNotContain("message");
+    }
   }
 
-  @Test
-  void requestMetaNullTokenOmitted() throws Exception {
-    var meta = new RequestMeta(null);
-    String json = mapper.writeValueAsString(meta);
-    assertThat(json).isEqualTo("{}");
-  }
+  @Nested
+  class Progress_notification {
 
-  @Test
-  void progressNotificationParamsRoundTrip() throws Exception {
-    var params = new ProgressNotificationParams(StringNode.valueOf("token-1"), 0.5, 1.0, "halfway");
-    String json = mapper.writeValueAsString(params);
-    assertThat(json)
-        .contains("\"progressToken\":\"token-1\"")
-        .contains("\"progress\":0.5")
-        .contains("\"total\":1.0")
-        .contains("\"message\":\"halfway\"");
+    @Test
+    void round_trips_method_and_params() throws Exception {
+      var params = new ProgressNotificationParams(StringNode.valueOf("tok"), 0.3, 1.0, "working");
+      var notification = new ProgressNotification(ProgressNotification.METHOD_NAME, params);
+      String json = mapper.writeValueAsString(notification);
+      assertThat(json).contains("\"method\":\"notifications/progress\"").contains("\"params\":");
 
-    var deserialized = mapper.readValue(json, ProgressNotificationParams.class);
-    assertThat(deserialized.progressToken().asString()).isEqualTo("token-1");
-    assertThat(deserialized.progress()).isEqualTo(0.5);
-    assertThat(deserialized.total()).isEqualTo(1.0);
-    assertThat(deserialized.message()).isEqualTo("halfway");
-  }
-
-  @Test
-  void progressNotificationParamsWithNumericToken() throws Exception {
-    String json = "{\"progressToken\":99,\"progress\":0.75}";
-    var deserialized = mapper.readValue(json, ProgressNotificationParams.class);
-    assertThat(deserialized.progressToken().asInt()).isEqualTo(99);
-    assertThat(deserialized.progress()).isEqualTo(0.75);
-  }
-
-  @Test
-  void progressNotificationParamsNullFieldsOmitted() throws Exception {
-    var params = new ProgressNotificationParams(StringNode.valueOf("t"), 0.0, null, null);
-    String json = mapper.writeValueAsString(params);
-    assertThat(json).doesNotContain("total").doesNotContain("message");
-  }
-
-  @Test
-  void progressNotificationRoundTrip() throws Exception {
-    var params = new ProgressNotificationParams(StringNode.valueOf("tok"), 0.3, 1.0, "working");
-    var notification = new ProgressNotification(ProgressNotification.METHOD_NAME, params);
-    String json = mapper.writeValueAsString(notification);
-    assertThat(json).contains("\"method\":\"notifications/progress\"").contains("\"params\":");
-
-    var deserialized = mapper.readValue(json, ProgressNotification.class);
-    assertThat(deserialized.method()).isEqualTo("notifications/progress");
-    assertThat(deserialized.params().progressToken().asString()).isEqualTo("tok");
-    assertThat(deserialized.params().progress()).isEqualTo(0.3);
+      var deserialized = mapper.readValue(json, ProgressNotification.class);
+      assertThat(deserialized.method()).isEqualTo("notifications/progress");
+      assertThat(deserialized.params().progressToken().asString()).isEqualTo("tok");
+      assertThat(deserialized.params().progress()).isEqualTo(0.3);
+    }
   }
 }

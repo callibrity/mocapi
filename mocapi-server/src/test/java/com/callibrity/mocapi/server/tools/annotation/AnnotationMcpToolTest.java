@@ -27,6 +27,8 @@ import com.callibrity.mocapi.server.tools.util.HelloTool;
 import com.callibrity.mocapi.server.tools.util.InteractiveTool;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.util.List;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
@@ -35,6 +37,7 @@ import org.jwcarman.methodical.param.ParameterResolver;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class AnnotationMcpToolTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
@@ -50,7 +53,7 @@ class AnnotationMcpToolTest {
   }
 
   @Test
-  void defaultAnnotationShouldGenerateCorrectMetadata() {
+  void default_annotation_should_generate_correct_metadata() {
     var tools = createTools(new HelloTool());
     assertThat(tools).hasSize(1);
 
@@ -63,7 +66,7 @@ class AnnotationMcpToolTest {
   }
 
   @Test
-  void customAnnotationShouldReturnCorrectMetadata() {
+  void custom_annotation_should_return_correct_metadata() {
     var tools = createTools(new CustomizedTool());
     assertThat(tools).hasSize(1);
 
@@ -74,7 +77,7 @@ class AnnotationMcpToolTest {
   }
 
   @Test
-  void shouldCallSimpleToolCorrectly() {
+  void should_call_simple_tool_correctly() {
     var tool = createTools(new HelloTool()).getFirst();
     var result = tool.call(mapper.createObjectNode().put("name", "Mocapi"));
 
@@ -84,21 +87,21 @@ class AnnotationMcpToolTest {
   }
 
   @Test
-  void interactiveToolShouldHaveOutputSchema() {
+  void interactive_tool_should_have_output_schema() {
     var tool = createTools(new InteractiveTool()).getFirst();
     assertThat(tool.descriptor().outputSchema()).isNotNull();
     assertThat(tool.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
   }
 
   @Test
-  void voidToolShouldHaveNullOutputSchema() {
+  void void_tool_should_have_null_output_schema() {
     var tools = createTools(new BoxedVoidTool());
     assertThat(tools).hasSize(1);
     assertThat(tools.getFirst().descriptor().outputSchema()).isNull();
   }
 
   @Test
-  void mcpToolParamsWithOtherNonContextParamShouldThrow() {
+  void mcp_tool_params_with_other_non_context_param_should_throw() {
     var target = new InvalidMixedParamsTool();
     assertThatThrownBy(() -> createTools(target))
         .isInstanceOf(IllegalArgumentException.class)
@@ -106,7 +109,7 @@ class AnnotationMcpToolTest {
   }
 
   @Test
-  void mcpToolParamsWithContextParamOnlyShouldSucceed() {
+  void mcp_tool_params_with_context_param_only_should_succeed() {
     var tools = createTools(new ValidParamsWithContextTool());
     assertThat(tools).hasSize(1);
   }

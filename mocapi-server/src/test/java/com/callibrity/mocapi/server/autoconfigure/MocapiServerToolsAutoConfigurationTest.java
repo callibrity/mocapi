@@ -23,6 +23,8 @@ import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
@@ -34,6 +36,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MocapiServerToolsAutoConfigurationTest {
 
   private final ApplicationContextRunner contextRunner =
@@ -73,7 +76,7 @@ class MocapiServerToolsAutoConfigurationTest {
   }
 
   @Test
-  void defaultBeansAreAutoConfigured() {
+  void default_beans_are_auto_configured() {
     contextRunner.run(
         context -> {
           assertThat(context).hasSingleBean(MethodSchemaGenerator.class);
@@ -82,12 +85,12 @@ class MocapiServerToolsAutoConfigurationTest {
   }
 
   @Test
-  void mcpToolsServiceIsAutoConfigured() {
+  void mcp_tools_service_is_auto_configured() {
     contextRunner.run(context -> assertThat(context).hasSingleBean(McpToolsService.class));
   }
 
   @Test
-  void methodSchemaGeneratorIsDefaultImplementation() {
+  void method_schema_generator_is_default_implementation() {
     contextRunner.run(
         context ->
             assertThat(context.getBean(MethodSchemaGenerator.class))
@@ -95,7 +98,7 @@ class MocapiServerToolsAutoConfigurationTest {
   }
 
   @Test
-  void defaultSchemaVersionPropertyIsBound() {
+  void default_schema_version_property_is_bound() {
     contextRunner.run(
         context -> {
           MocapiServerToolsProperties props = context.getBean(MocapiServerToolsProperties.class);
@@ -105,7 +108,7 @@ class MocapiServerToolsAutoConfigurationTest {
   }
 
   @Test
-  void schemaVersionCanBeOverridden() {
+  void schema_version_can_be_overridden() {
     contextRunner
         .withPropertyValues("mocapi.tools.schema-version=draft_7")
         .run(
@@ -118,7 +121,7 @@ class MocapiServerToolsAutoConfigurationTest {
   }
 
   @Test
-  void customMethodSchemaGeneratorOverridesDefault() {
+  void custom_method_schema_generator_overrides_default() {
     contextRunner
         .withUserConfiguration(CustomSchemaGeneratorConfig.class)
         .run(

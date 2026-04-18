@@ -19,12 +19,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class BlobResourceContentsTest {
 
   @Test
-  void ofEncodesBytesToBase64() {
+  void of_encodes_bytes_to_base64() {
     byte[] payload = "hello".getBytes(StandardCharsets.UTF_8);
 
     var blob = BlobResourceContents.of("img://x", "application/octet-stream", payload);
@@ -36,14 +39,14 @@ class BlobResourceContentsTest {
   }
 
   @Test
-  void ofHandlesEmptyArray() {
+  void of_handles_empty_array() {
     var blob = BlobResourceContents.of("img://x", "image/png", new byte[0]);
 
     assertThat(blob.blob()).isEmpty();
   }
 
   @Test
-  void ofRoundTripsBinaryContent() {
+  void of_round_trips_binary_content() {
     byte[] payload = {(byte) 0x89, 0x50, 0x4E, 0x47, (byte) 0xC3, (byte) 0xA9};
 
     var blob = BlobResourceContents.of("img://x", "image/png", payload);
@@ -52,7 +55,7 @@ class BlobResourceContentsTest {
   }
 
   @Test
-  void ofAllowsNullMimeType() {
+  void of_allows_null_mime_type() {
     var blob = BlobResourceContents.of("img://x", null, new byte[] {1, 2, 3});
 
     assertThat(blob.mimeType()).isNull();
@@ -60,7 +63,7 @@ class BlobResourceContentsTest {
   }
 
   @Test
-  void canonicalConstructorStillAcceptsPreEncodedString() {
+  void canonical_constructor_still_accepts_pre_encoded_string() {
     String alreadyEncoded =
         Base64.getEncoder().encodeToString("hi".getBytes(StandardCharsets.UTF_8));
 

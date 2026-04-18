@@ -33,6 +33,8 @@ import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.List;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.aot.generate.GenerationContext;
 import org.springframework.aot.hint.ExecutableMode;
@@ -43,6 +45,7 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.RegisteredBean;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MocapiServicesAotProcessorTest {
 
   public record GreetArgs(String name) {}
@@ -120,12 +123,12 @@ class MocapiServicesAotProcessorTest {
   private final MocapiServicesAotProcessor processor = new MocapiServicesAotProcessor();
 
   @Test
-  void returnsNullForUnrelatedBean() {
+  void returns_null_for_unrelated_bean() {
     assertThat(processor.processAheadOfTime(registeredBean("x", UnrelatedBean.class))).isNull();
   }
 
   @Test
-  void toolServiceRegistersInvokeAndParameterAndReturnHints() {
+  void tool_service_registers_invoke_and_parameter_and_return_hints() {
     var hints = applyContribution(SampleTool.class);
 
     assertMethodHint(hints, SampleTool.class, "greet");
@@ -136,7 +139,7 @@ class MocapiServicesAotProcessorTest {
   }
 
   @Test
-  void toolServiceIgnoresUnannotatedMethods() {
+  void tool_service_ignores_unannotated_methods() {
     var hints = applyContribution(SampleTool.class);
 
     assertThat(hints.reflection().typeHints())
@@ -147,21 +150,21 @@ class MocapiServicesAotProcessorTest {
   }
 
   @Test
-  void skipsBindingHintsForVoidReturn() {
+  void skips_binding_hints_for_void_return() {
     var hints = applyContribution(SampleTool.class);
 
     assertTypeHintNotRegistered(hints, void.class);
   }
 
   @Test
-  void skipsBindingHintsForBoxedVoidReturn() {
+  void skips_binding_hints_for_boxed_void_return() {
     var hints = applyContribution(SampleTool.class);
 
     assertTypeHintNotRegistered(hints, Void.class);
   }
 
   @Test
-  void beanWithMultipleServiceAnnotationsRegistersAllMethodKinds() {
+  void bean_with_multiple_service_annotations_registers_all_method_kinds() {
     var hints = applyContribution(SampleCombined.class);
 
     assertMethodHint(hints, SampleCombined.class, "asTool");
@@ -169,7 +172,7 @@ class MocapiServicesAotProcessorTest {
   }
 
   @Test
-  void promptServiceRegistersInvokeAndReturnHints() {
+  void prompt_service_registers_invoke_and_return_hints() {
     var hints = applyContribution(SamplePrompt.class);
 
     assertMethodHint(hints, SamplePrompt.class, "sayHi");
@@ -177,7 +180,7 @@ class MocapiServicesAotProcessorTest {
   }
 
   @Test
-  void resourceServiceRegistersBothResourceAndTemplateMethodHints() {
+  void resource_service_registers_both_resource_and_template_method_hints() {
     var hints = applyContribution(SampleResource.class);
 
     assertMethodHint(hints, SampleResource.class, "fixed");

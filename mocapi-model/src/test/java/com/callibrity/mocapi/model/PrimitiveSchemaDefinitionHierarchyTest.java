@@ -18,16 +18,19 @@ package com.callibrity.mocapi.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class PrimitiveSchemaDefinitionHierarchyTest {
 
   private final ObjectMapper mapper = JsonMapper.builder().build();
 
   @Test
-  void singleSelectBranchInstanceofChain() {
+  void single_select_branch_instanceof_chain() {
     var untitled = new UntitledSingleSelectEnumSchema("Color", null, List.of("red", "blue"), null);
     assertThat(untitled)
         .isInstanceOf(SingleSelectEnumSchema.class)
@@ -44,7 +47,7 @@ class PrimitiveSchemaDefinitionHierarchyTest {
   }
 
   @Test
-  void multiSelectBranchInstanceofChain() {
+  void multi_select_branch_instanceof_chain() {
     var untitled =
         new UntitledMultiSelectEnumSchema(
             "Tags", null, 1, 3, new EnumItemsSchema(List.of("a", "b")), null);
@@ -71,14 +74,14 @@ class PrimitiveSchemaDefinitionHierarchyTest {
   @SuppressWarnings(
       "deprecation") // Tests the deprecated LegacyTitledEnumSchema per MCP spec backward
   // compatibility
-  void legacyTitledEnumInstanceofChain() {
+  void legacy_titled_enum_instanceof_chain() {
     var legacy =
         new LegacyTitledEnumSchema("Status", null, List.of("active"), List.of("Active"), null);
     assertThat(legacy).isInstanceOf(EnumSchema.class).isInstanceOf(PrimitiveSchemaDefinition.class);
   }
 
   @Test
-  void nonEnumTypesAreNotEnumSchema() {
+  void non_enum_types_are_not_enum_schema() {
     var string = new StringSchema("Name", null, null, null, null, null);
     var number = new NumberSchema("number", "Rating", null, null, null, null);
     var bool = new BooleanSchema("Flag", null, null);
@@ -89,7 +92,7 @@ class PrimitiveSchemaDefinitionHierarchyTest {
   }
 
   @Test
-  void switchOverPrimitiveSchemaDefinitionIsExhaustive() {
+  void switch_over_primitive_schema_definition_is_exhaustive() {
     List<PrimitiveSchemaDefinition> schemas =
         List.of(
             new StringSchema("S", null, null, null, null, null),
@@ -113,7 +116,7 @@ class PrimitiveSchemaDefinitionHierarchyTest {
   @SuppressWarnings(
       "deprecation") // Switch must cover deprecated LegacyTitledEnumSchema per MCP spec backward
   // compatibility
-  void switchOverEnumSchemaIsExhaustive() {
+  void switch_over_enum_schema_is_exhaustive() {
     List<EnumSchema> enums =
         List.of(
             new UntitledSingleSelectEnumSchema("A", null, List.of("x"), null),
@@ -136,7 +139,7 @@ class PrimitiveSchemaDefinitionHierarchyTest {
   @SuppressWarnings(
       "deprecation") // Tests wire format of deprecated LegacyTitledEnumSchema per MCP spec backward
   // compatibility
-  void wireFormatUnchangedForAllEightLeafTypes() throws Exception {
+  void wire_format_unchanged_for_all_eight_leaf_types() throws Exception {
     List<PrimitiveSchemaDefinition> schemas =
         List.of(
             new StringSchema("Name", "desc", 1, 100, StringFormat.EMAIL, "default@test.com"),

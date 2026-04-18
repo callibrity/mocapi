@@ -17,19 +17,22 @@ package com.callibrity.mocapi.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class CreateMessageResultTest {
 
   @Test
-  void textReturnsStringWhenContentIsTextContent() {
+  void text_returns_string_when_content_is_text_content() {
     var result =
         new CreateMessageResult(Role.ASSISTANT, new TextContent("Hello", null), "gpt", null);
     assertThat(result.text()).isEqualTo("Hello");
   }
 
   @Test
-  void textReturnsNullWhenContentIsImageContent() {
+  void text_returns_null_when_content_is_image_content() {
     var result =
         new CreateMessageResult(
             Role.ASSISTANT, new ImageContent("data", "image/png", null), "gpt", null);
@@ -37,7 +40,7 @@ class CreateMessageResultTest {
   }
 
   @Test
-  void textReturnsNullWhenContentIsNull() {
+  void text_returns_null_when_content_is_null() {
     var result = new CreateMessageResult(Role.ASSISTANT, null, "gpt", null);
     assertThat(result.text()).isNull();
   }

@@ -28,12 +28,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.core.convert.support.DefaultConversionService;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class AnnotationMcpPromptTest {
 
   private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory(List.of());
@@ -81,7 +84,7 @@ class AnnotationMcpPromptTest {
   }
 
   @Test
-  void generatesDescriptorFromAnnotationAndParameters() {
+  void generates_descriptor_from_annotation_and_parameters() {
     var prompt = createPrompts(new SummarizePrompt()).getFirst();
 
     var d = prompt.descriptor();
@@ -96,7 +99,7 @@ class AnnotationMcpPromptTest {
   }
 
   @Test
-  void invokesMethodWithConvertedArgs() {
+  void invokes_method_with_converted_args() {
     var prompt = createPrompts(new SummarizePrompt()).getFirst();
 
     var result = prompt.get(Map.of("text", "hello world", "detail", "BRIEF"));
@@ -107,7 +110,7 @@ class AnnotationMcpPromptTest {
   }
 
   @Test
-  void missingOptionalArgComesThroughAsNull() {
+  void missing_optional_arg_comes_through_as_null() {
     var prompt = createPrompts(new SummarizePrompt()).getFirst();
 
     var result = prompt.get(Map.of("text", "hi"));
@@ -117,14 +120,14 @@ class AnnotationMcpPromptTest {
   }
 
   @Test
-  void wholeMapParameterIsNotDeclaredAsAnArgument() {
+  void whole_map_parameter_is_not_declared_as_an_argument() {
     var prompt = createPrompts(new WholeMapPrompt()).getFirst();
 
     assertThat(prompt.descriptor().arguments()).isEmpty();
   }
 
   @Test
-  void mapTypedParamReceivesWholeArgumentsMap() {
+  void map_typed_param_receives_whole_arguments_map() {
     var prompt = createPrompts(new WholeMapPrompt()).getFirst();
 
     var result = prompt.get(Map.of("a", "1", "b", "2"));
@@ -134,7 +137,7 @@ class AnnotationMcpPromptTest {
   }
 
   @Test
-  void getWithNullArgumentsInvokesWithEmptyMap() {
+  void get_with_null_arguments_invokes_with_empty_map() {
     var prompt = createPrompts(new WholeMapPrompt()).getFirst();
 
     var result = prompt.get(null);
@@ -144,7 +147,7 @@ class AnnotationMcpPromptTest {
   }
 
   @Test
-  void rejectsMethodWithNonGetPromptResultReturnType() {
+  void rejects_method_with_non_get_prompt_result_return_type() {
     var target = new BadReturnPrompt();
     assertThatThrownBy(() -> createPrompts(target))
         .isInstanceOf(IllegalArgumentException.class)

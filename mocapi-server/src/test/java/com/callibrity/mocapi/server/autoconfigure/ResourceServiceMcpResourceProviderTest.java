@@ -26,6 +26,8 @@ import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
@@ -37,6 +39,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ResourceServiceMcpResourceProviderTest {
 
   private final ApplicationContextRunner contextRunner =
@@ -93,7 +96,7 @@ class ResourceServiceMcpResourceProviderTest {
   }
 
   @Test
-  void discoversResourceServiceBeans() {
+  void discovers_resource_service_beans() {
     contextRunner
         .withBean(SampleResourceService.class, SampleResourceService::new)
         .run(
@@ -109,7 +112,7 @@ class ResourceServiceMcpResourceProviderTest {
   }
 
   @Test
-  void returnsEmptyListsWhenNoResourceServiceBeans() {
+  void returns_empty_lists_when_no_resource_service_beans() {
     contextRunner.run(
         context -> {
           var provider = context.getBean(ResourceServiceMcpResourceProvider.class);
@@ -119,7 +122,7 @@ class ResourceServiceMcpResourceProviderTest {
   }
 
   @Test
-  void returnsUnmodifiableLists() {
+  void returns_unmodifiable_lists() {
     contextRunner
         .withBean(SampleResourceService.class, SampleResourceService::new)
         .run(

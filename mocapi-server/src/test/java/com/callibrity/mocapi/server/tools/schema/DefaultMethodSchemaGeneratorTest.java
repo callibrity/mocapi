@@ -23,11 +23,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DefaultMethodSchemaGeneratorTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
@@ -62,10 +65,10 @@ class DefaultMethodSchemaGeneratorTest {
   }
 
   @Nested
-  class GenerateInputSchemaFromRecord {
+  class Generate_input_schema_from_record {
 
     @Test
-    void generatesObjectSchemaFromRecordParameter() throws Exception {
+    void generates_object_schema_from_record_parameter() throws Exception {
       var target = new ToolWithRecordParam();
       Method method = ToolWithRecordParam.class.getMethod("doWork", SimpleParams.class);
 
@@ -81,7 +84,7 @@ class DefaultMethodSchemaGeneratorTest {
     }
 
     @Test
-    void includesRequiredFieldsFromValidationAnnotations() throws Exception {
+    void includes_required_fields_from_validation_annotations() throws Exception {
       var target = new ToolWithRequiredRecordParam();
       Method method = ToolWithRequiredRecordParam.class.getMethod("doWork", RequiredParams.class);
 
@@ -101,7 +104,7 @@ class DefaultMethodSchemaGeneratorTest {
     }
 
     @Test
-    void removesSchemaVersionFromInnerSchemaAndAddsToOuter() throws Exception {
+    void removes_schema_version_from_inner_schema_and_adds_to_outer() throws Exception {
       var target = new ToolWithRecordParam();
       Method method = ToolWithRecordParam.class.getMethod("doWork", SimpleParams.class);
 
@@ -113,10 +116,10 @@ class DefaultMethodSchemaGeneratorTest {
   }
 
   @Nested
-  class GenerateInputSchemaFromParameters {
+  class Generate_input_schema_from_parameters {
 
     @Test
-    void excludesNullableParameterFromRequiredArray() throws Exception {
+    void excludes_nullable_parameter_from_required_array() throws Exception {
       var target = new ToolWithOptionalParameters();
       Method method =
           ToolWithOptionalParameters.class.getMethod("doWork", String.class, String.class);
@@ -133,10 +136,10 @@ class DefaultMethodSchemaGeneratorTest {
   }
 
   @Nested
-  class GenerateSchema {
+  class Generate_schema {
 
     @Test
-    void generatesSchemaForSimpleClass() {
+    void generates_schema_for_simple_class() {
       ObjectNode schema = generator.generateSchema(SimpleParams.class);
 
       assertThat(schema).isNotNull();
@@ -148,7 +151,7 @@ class DefaultMethodSchemaGeneratorTest {
     }
 
     @Test
-    void generatesSchemaForPrimitiveType() {
+    void generates_schema_for_primitive_type() {
       ObjectNode schema = generator.generateSchema(String.class);
 
       assertThat(schema).isNotNull();

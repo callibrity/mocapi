@@ -34,6 +34,8 @@ import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.substrate.atom.AtomFactory;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
@@ -44,6 +46,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MocapiServerAutoConfigurationTest {
 
   private final ApplicationContextRunner contextRunner =
@@ -76,7 +79,7 @@ class MocapiServerAutoConfigurationTest {
   }
 
   @Test
-  void defaultBeansAreAutoConfigured() {
+  void default_beans_are_auto_configured() {
     contextRunner.run(
         context -> {
           assertThat(context).hasSingleBean(Implementation.class);
@@ -96,14 +99,14 @@ class MocapiServerAutoConfigurationTest {
   }
 
   @Test
-  void mcpServerBeanIsDefaultMcpServer() {
+  void mcp_server_bean_is_default_mcp_server() {
     contextRunner.run(
         context ->
             assertThat(context.getBean(McpServer.class)).isInstanceOf(DefaultMcpServer.class));
   }
 
   @Test
-  void implementationUsesUnknownVersionWhenBuildPropertiesAbsent() {
+  void implementation_uses_unknown_version_when_build_properties_absent() {
     contextRunner.run(
         context -> {
           Implementation impl = context.getBean(Implementation.class);
@@ -112,7 +115,7 @@ class MocapiServerAutoConfigurationTest {
   }
 
   @Test
-  void implementationUsesBuildPropertiesVersionWhenPresent() {
+  void implementation_uses_build_properties_version_when_present() {
     contextRunner
         .withUserConfiguration(BuildPropertiesConfig.class)
         .run(
@@ -134,7 +137,7 @@ class MocapiServerAutoConfigurationTest {
   }
 
   @Test
-  void defaultPropertiesAreBound() {
+  void default_properties_are_bound() {
     contextRunner.run(
         context -> {
           MocapiServerProperties props = context.getBean(MocapiServerProperties.class);
@@ -149,7 +152,7 @@ class MocapiServerAutoConfigurationTest {
   }
 
   @Test
-  void propertiesCanBeOverridden() {
+  void properties_can_be_overridden() {
     contextRunner
         .withPropertyValues(
             "mocapi.server-name=custom-server",
@@ -167,7 +170,7 @@ class MocapiServerAutoConfigurationTest {
   }
 
   @Test
-  void customImplementationOverridesDefault() {
+  void custom_implementation_overrides_default() {
     Implementation custom = new Implementation("custom", "Custom Server", "9.9.9");
     contextRunner
         .withBean(Implementation.class, () -> custom)
@@ -179,7 +182,7 @@ class MocapiServerAutoConfigurationTest {
   }
 
   @Test
-  void customSessionStoreOverridesDefault() {
+  void custom_session_store_overrides_default() {
     McpSessionStore custom = SessionStoreTestSupport.create();
     contextRunner
         .withBean(McpSessionStore.class, () -> custom)
@@ -191,7 +194,7 @@ class MocapiServerAutoConfigurationTest {
   }
 
   @Test
-  void customServerCapabilitiesOverridesDefault() {
+  void custom_server_capabilities_overrides_default() {
     ServerCapabilities custom = new ServerCapabilities(null, null, null, null, null);
     contextRunner
         .withBean(ServerCapabilities.class, () -> custom)
@@ -203,7 +206,7 @@ class MocapiServerAutoConfigurationTest {
   }
 
   @Test
-  void customPingServiceOverridesDefault() {
+  void custom_ping_service_overrides_default() {
     McpPingService custom = new McpPingService();
     contextRunner
         .withBean(McpPingService.class, () -> custom)

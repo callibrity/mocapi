@@ -26,6 +26,8 @@ import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -34,6 +36,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class SseMessageWriterTest {
 
   @Mock SseStream stream;
@@ -41,12 +44,12 @@ class SseMessageWriterTest {
   private SseMessageWriter writer;
 
   @BeforeEach
-  void setUp() {
+  void set_up() {
     writer = new SseMessageWriter(stream);
   }
 
   @Test
-  void writeResultPublishesAndTransitionsToClosed() {
+  void write_result_publishes_and_transitions_to_closed() {
     var result =
         new JsonRpcResult(
             JsonNodeFactory.instance.objectNode().put("k", "v"),
@@ -60,7 +63,7 @@ class SseMessageWriterTest {
   }
 
   @Test
-  void writeErrorPublishesAndTransitionsToClosed() {
+  void write_error_publishes_and_transitions_to_closed() {
     var error = new JsonRpcError(42, "boom", JsonNodeFactory.instance.numberNode(1));
 
     MessageWriter next = writer.write(error);
@@ -70,7 +73,7 @@ class SseMessageWriterTest {
   }
 
   @Test
-  void writeNotificationPublishesAndStaysOpen() {
+  void write_notification_publishes_and_stays_open() {
     var notification = new JsonRpcNotification("2.0", "notifications/progress", null);
 
     MessageWriter next = writer.write(notification);
@@ -81,7 +84,7 @@ class SseMessageWriterTest {
   }
 
   @Test
-  void writeCallPublishesAndStaysOpen() {
+  void write_call_publishes_and_stays_open() {
     var call = JsonRpcCall.of("elicitation/create", null, JsonNodeFactory.instance.numberNode(7));
 
     MessageWriter next = writer.write(call);
@@ -92,7 +95,7 @@ class SseMessageWriterTest {
   }
 
   @Test
-  void multipleNotificationsStayOnSameWriter() {
+  void multiple_notifications_stay_on_same_writer() {
     var first = new JsonRpcNotification("2.0", "notifications/progress", null);
     var second = new JsonRpcNotification("2.0", "notifications/message", null);
 
@@ -106,7 +109,7 @@ class SseMessageWriterTest {
   }
 
   @Test
-  void emitterDelegatesToStream() {
+  void emitter_delegates_to_stream() {
     SseEmitter emitter = new SseEmitter();
     when(stream.createEmitter()).thenReturn(emitter);
 

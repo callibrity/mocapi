@@ -19,9 +19,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.param.ParameterInfo;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ScopedValueResolverTest {
 
   private static final ScopedValue<String> TEST_VALUE = ScopedValue.newInstance();
@@ -30,28 +33,28 @@ class ScopedValueResolverTest {
       new ScopedValueResolver<>(String.class, TEST_VALUE) {};
 
   @Test
-  void supportsMatchingType() {
+  void supports_matching_type() {
     var info = mock(ParameterInfo.class);
     doReturn(String.class).when(info).resolvedType();
     assertThat(resolver.supports(info)).isTrue();
   }
 
   @Test
-  void doesNotSupportNonMatchingType() {
+  void does_not_support_non_matching_type() {
     var info = mock(ParameterInfo.class);
     doReturn(Integer.class).when(info).resolvedType();
     assertThat(resolver.supports(info)).isFalse();
   }
 
   @Test
-  void resolvesValueWhenBound() {
+  void resolves_value_when_bound() {
     var info = mock(ParameterInfo.class);
     var result = ScopedValue.where(TEST_VALUE, "hello").call(() -> resolver.resolve(info, null));
     assertThat(result).isEqualTo("hello");
   }
 
   @Test
-  void returnsNullWhenNotBound() {
+  void returns_null_when_not_bound() {
     var info = mock(ParameterInfo.class);
     assertThat(resolver.resolve(info, null)).isNull();
   }

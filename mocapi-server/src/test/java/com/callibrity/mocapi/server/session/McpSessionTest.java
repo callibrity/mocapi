@@ -23,12 +23,15 @@ import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.RootsCapability;
 import com.callibrity.mocapi.model.SamplingCapability;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpSessionTest {
 
   @Test
-  void twoArgConstructorDefaultsToWarningAndNotInitialized() {
+  void two_arg_constructor_defaults_to_warning_and_not_initialized() {
     var session = new McpSession("s1", "2025-11-25", null, null);
 
     assertThat(session.logLevel()).isEqualTo(LoggingLevel.WARNING);
@@ -36,7 +39,7 @@ class McpSessionTest {
   }
 
   @Test
-  void threeArgConstructorDefaultsToNotInitialized() {
+  void three_arg_constructor_defaults_to_not_initialized() {
     var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.DEBUG);
 
     assertThat(session.logLevel()).isEqualTo(LoggingLevel.DEBUG);
@@ -44,7 +47,7 @@ class McpSessionTest {
   }
 
   @Test
-  void withLogLevelReturnsNewSessionWithUpdatedLevel() {
+  void with_log_level_returns_new_session_with_updated_level() {
     var session = new McpSession("s1", "2025-11-25", null, null);
     var updated = session.withLogLevel(LoggingLevel.ERROR);
 
@@ -54,7 +57,7 @@ class McpSessionTest {
   }
 
   @Test
-  void withInitializedReturnsNewSessionWithUpdatedFlag() {
+  void with_initialized_returns_new_session_with_updated_flag() {
     var session = new McpSession("s1", "2025-11-25", null, null);
     var updated = session.withInitialized(true);
 
@@ -64,7 +67,7 @@ class McpSessionTest {
   }
 
   @Test
-  void supportsElicitationFormReturnsTrueWhenCapabilityPresent() {
+  void supports_elicitation_form_returns_true_when_capability_present() {
     var capabilities = new ClientCapabilities(null, null, new ElicitationCapability());
     var session = new McpSession("s1", "2025-11-25", capabilities, null);
 
@@ -72,7 +75,7 @@ class McpSessionTest {
   }
 
   @Test
-  void supportsElicitationFormReturnsFalseWhenCapabilityAbsent() {
+  void supports_elicitation_form_returns_false_when_capability_absent() {
     var capabilities = new ClientCapabilities(null, null, null);
     var session = new McpSession("s1", "2025-11-25", capabilities, null);
 
@@ -80,14 +83,14 @@ class McpSessionTest {
   }
 
   @Test
-  void supportsElicitationFormReturnsFalseWhenCapabilitiesNull() {
+  void supports_elicitation_form_returns_false_when_capabilities_null() {
     var session = new McpSession("s1", "2025-11-25", null, null);
 
     assertThat(session.supportsElicitationForm()).isFalse();
   }
 
   @Test
-  void supportsSamplingReturnsTrueWhenCapabilityPresent() {
+  void supports_sampling_returns_true_when_capability_present() {
     var capabilities = new ClientCapabilities(null, new SamplingCapability(), null);
 
     var session = new McpSession("s1", "2025-11-25", capabilities, null);
@@ -96,14 +99,14 @@ class McpSessionTest {
   }
 
   @Test
-  void supportsSamplingReturnsFalseWhenCapabilityAbsent() {
+  void supports_sampling_returns_false_when_capability_absent() {
     var session = new McpSession("s1", "2025-11-25", null, null);
 
     assertThat(session.supportsSampling()).isFalse();
   }
 
   @Test
-  void supportsRootsReturnsTrueWhenCapabilityPresent() {
+  void supports_roots_returns_true_when_capability_present() {
     var capabilities = new ClientCapabilities(new RootsCapability(true), null, null);
     var session = new McpSession("s1", "2025-11-25", capabilities, null);
 
@@ -111,14 +114,14 @@ class McpSessionTest {
   }
 
   @Test
-  void supportsRootsReturnsFalseWhenCapabilityAbsent() {
+  void supports_roots_returns_false_when_capability_absent() {
     var session = new McpSession("s1", "2025-11-25", null, null);
 
     assertThat(session.supportsRoots()).isFalse();
   }
 
   @Test
-  void supportsSamplingReturnsFalseWhenSamplingNull() {
+  void supports_sampling_returns_false_when_sampling_null() {
     var capabilities = new ClientCapabilities(null, null, null);
     var session = new McpSession("s1", "2025-11-25", capabilities, null);
 
@@ -126,7 +129,7 @@ class McpSessionTest {
   }
 
   @Test
-  void supportsRootsReturnsFalseWhenRootsNull() {
+  void supports_roots_returns_false_when_roots_null() {
     var capabilities = new ClientCapabilities(null, null, null);
     var session = new McpSession("s1", "2025-11-25", capabilities, null);
 
@@ -134,7 +137,7 @@ class McpSessionTest {
   }
 
   @Test
-  void sessionPreservesClientInfo() {
+  void session_preserves_client_info() {
     var clientInfo = new Implementation("test-client", "Test", "1.0");
     var session = new McpSession("s1", "2025-11-25", null, clientInfo);
 

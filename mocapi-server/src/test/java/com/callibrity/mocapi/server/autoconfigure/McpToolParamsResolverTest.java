@@ -23,12 +23,15 @@ import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.api.tools.McpToolParams;
 import java.lang.reflect.Parameter;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.ParameterResolutionException;
 import org.jwcarman.methodical.param.ParameterInfo;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpToolParamsResolverTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
@@ -45,7 +48,7 @@ class McpToolParamsResolverTest {
   }
 
   @Test
-  void supportsParameterWithMcpToolParamsAnnotation() throws Exception {
+  void supports_parameter_with_mcp_tool_params_annotation() throws Exception {
     var param =
         getClass().getDeclaredMethod("methodWithAnnotated", TestParams.class).getParameters()[0];
     var info = paramInfo(param, TestParams.class);
@@ -53,7 +56,7 @@ class McpToolParamsResolverTest {
   }
 
   @Test
-  void doesNotSupportParameterWithoutAnnotation() throws Exception {
+  void does_not_support_parameter_without_annotation() throws Exception {
     var param =
         getClass().getDeclaredMethod("methodWithoutAnnotation", String.class).getParameters()[0];
     var info = paramInfo(param, String.class);
@@ -61,7 +64,7 @@ class McpToolParamsResolverTest {
   }
 
   @Test
-  void resolvesJsonToRecord() throws Exception {
+  void resolves_json_to_record() throws Exception {
     var param =
         getClass().getDeclaredMethod("methodWithAnnotated", TestParams.class).getParameters()[0];
     var info = paramInfo(param, TestParams.class);
@@ -74,7 +77,7 @@ class McpToolParamsResolverTest {
   }
 
   @Test
-  void returnsNullForNullArguments() throws Exception {
+  void returns_null_for_null_arguments() throws Exception {
     var param =
         getClass().getDeclaredMethod("methodWithAnnotated", TestParams.class).getParameters()[0];
     var info = paramInfo(param, TestParams.class);
@@ -83,7 +86,7 @@ class McpToolParamsResolverTest {
   }
 
   @Test
-  void returnsNullForJsonNull() throws Exception {
+  void returns_null_for_json_null() throws Exception {
     var param =
         getClass().getDeclaredMethod("methodWithAnnotated", TestParams.class).getParameters()[0];
     var info = paramInfo(param, TestParams.class);
@@ -92,7 +95,7 @@ class McpToolParamsResolverTest {
   }
 
   @Test
-  void throwsParameterResolutionExceptionForInvalidJson() throws Exception {
+  void throws_parameter_resolution_exception_for_invalid_json() throws Exception {
     var param =
         getClass().getDeclaredMethod("methodWithAnnotated", TestParams.class).getParameters()[0];
     var info = paramInfo(param, TestParams.class);

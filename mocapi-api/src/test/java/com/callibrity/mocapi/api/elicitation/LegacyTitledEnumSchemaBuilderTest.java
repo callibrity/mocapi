@@ -19,15 +19,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.LegacyTitledEnumSchema;
 import java.util.List;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @SuppressWarnings(
     "deprecation") // Tests deliberately exercise deprecated LegacyTitledEnumSchemaBuilder per MCP
 // spec backward compatibility
 class LegacyTitledEnumSchemaBuilderTest {
 
   @Test
-  void shouldProduceEnumWithEnumNames() {
+  void should_produce_enum_with_enum_names() {
     LegacyTitledEnumSchema schema =
         new LegacyTitledEnumSchemaBuilder(
                 List.of("opt1", "opt2", "opt3"),
@@ -40,7 +43,7 @@ class LegacyTitledEnumSchemaBuilderTest {
   }
 
   @Test
-  void defaultShouldBeRequired() {
+  void default_should_be_required() {
     LegacyTitledEnumSchemaBuilder builder =
         new LegacyTitledEnumSchemaBuilder(List.of("a"), List.of("A"));
 
@@ -48,7 +51,7 @@ class LegacyTitledEnumSchemaBuilderTest {
   }
 
   @Test
-  void optionalShouldSetRequiredFalse() {
+  void optional_should_set_required_false() {
     LegacyTitledEnumSchemaBuilder builder =
         new LegacyTitledEnumSchemaBuilder(List.of("a"), List.of("A")).optional();
 
@@ -56,7 +59,7 @@ class LegacyTitledEnumSchemaBuilderTest {
   }
 
   @Test
-  void descriptionAndTitleShouldBeSetOnSchema() {
+  void description_and_title_should_be_set_on_schema() {
     LegacyTitledEnumSchema schema =
         new LegacyTitledEnumSchemaBuilder(List.of("a", "b"), List.of("A", "B"))
             .description("Pick one")

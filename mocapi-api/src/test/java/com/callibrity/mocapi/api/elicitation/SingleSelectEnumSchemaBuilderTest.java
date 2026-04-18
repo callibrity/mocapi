@@ -21,8 +21,12 @@ import com.callibrity.mocapi.model.SingleSelectEnumSchema;
 import com.callibrity.mocapi.model.TitledSingleSelectEnumSchema;
 import com.callibrity.mocapi.model.UntitledSingleSelectEnumSchema;
 import java.util.List;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class SingleSelectEnumSchemaBuilderTest {
 
   enum Tag {
@@ -47,179 +51,186 @@ class SingleSelectEnumSchemaBuilderTest {
     }
   }
 
-  // --- Default (untitled) tests ---
+  @Nested
+  class Untitled {
 
-  @Test
-  void fromEnumShouldDefaultToUntitled() {
-    SingleSelectEnumSchema schema = SingleSelectEnumSchemaBuilder.fromEnum(Tag.class).build();
+    @Test
+    void from_enum_should_default_to_untitled() {
+      SingleSelectEnumSchema schema = SingleSelectEnumSchemaBuilder.fromEnum(Tag.class).build();
 
-    assertThat(schema).isInstanceOf(UntitledSingleSelectEnumSchema.class);
-    var untitled = (UntitledSingleSelectEnumSchema) schema;
-    assertThat(untitled.type()).isEqualTo("string");
-    assertThat(untitled.values()).containsExactly("JAVA", "PYTHON", "GO");
+      assertThat(schema).isInstanceOf(UntitledSingleSelectEnumSchema.class);
+      var untitled = (UntitledSingleSelectEnumSchema) schema;
+      assertThat(untitled.type()).isEqualTo("string");
+      assertThat(untitled.values()).containsExactly("JAVA", "PYTHON", "GO");
+    }
+
+    @Test
+    void from_enum_with_default_should_include_default() {
+      SingleSelectEnumSchema schema =
+          SingleSelectEnumSchemaBuilder.fromEnum(Tag.class).defaultValue(Tag.PYTHON).build();
+
+      assertThat(schema).isInstanceOf(UntitledSingleSelectEnumSchema.class);
+      var untitled = (UntitledSingleSelectEnumSchema) schema;
+      assertThat(untitled.defaultValue()).isEqualTo("PYTHON");
+    }
+
+    @Test
+    void from_raw_strings_should_produce_untitled() {
+      SingleSelectEnumSchema schema =
+          SingleSelectEnumSchemaBuilder.from(List.of("red", "green", "blue")).build();
+
+      assertThat(schema).isInstanceOf(UntitledSingleSelectEnumSchema.class);
+      var untitled = (UntitledSingleSelectEnumSchema) schema;
+      assertThat(untitled.type()).isEqualTo("string");
+      assertThat(untitled.values()).containsExactly("red", "green", "blue");
+    }
+
+    @Test
+    void from_raw_strings_with_default_should_include_default() {
+      SingleSelectEnumSchema schema =
+          SingleSelectEnumSchemaBuilder.from(List.of("red", "green")).defaultValue("green").build();
+
+      var untitled = (UntitledSingleSelectEnumSchema) schema;
+      assertThat(untitled.defaultValue()).isEqualTo("green");
+    }
+
+    @Test
+    void from_arbitrary_items_should_default_to_untitled() {
+      record Status(String code, String label) {}
+      List<Status> statuses = List.of(new Status("a", "Active"), new Status("i", "Inactive"));
+
+      SingleSelectEnumSchema schema =
+          SingleSelectEnumSchemaBuilder.from(statuses, Status::code).build();
+
+      assertThat(schema).isInstanceOf(UntitledSingleSelectEnumSchema.class);
+      var untitled = (UntitledSingleSelectEnumSchema) schema;
+      assertThat(untitled.values()).containsExactly("a", "i");
+    }
+
+    @Test
+    void from_arbitrary_items_with_default_should_include_default() {
+      record Status(String code, String label) {}
+      List<Status> statuses = List.of(new Status("a", "Active"), new Status("i", "Inactive"));
+
+      SingleSelectEnumSchema schema =
+          SingleSelectEnumSchemaBuilder.from(statuses, Status::code)
+              .defaultValue(statuses.get(0))
+              .build();
+
+      var untitled = (UntitledSingleSelectEnumSchema) schema;
+      assertThat(untitled.defaultValue()).isEqualTo("a");
+    }
   }
 
-  @Test
-  void fromEnumWithDefaultShouldIncludeDefault() {
-    SingleSelectEnumSchema schema =
-        SingleSelectEnumSchemaBuilder.fromEnum(Tag.class).defaultValue(Tag.PYTHON).build();
+  @Nested
+  class Titled {
 
-    assertThat(schema).isInstanceOf(UntitledSingleSelectEnumSchema.class);
-    var untitled = (UntitledSingleSelectEnumSchema) schema;
-    assertThat(untitled.defaultValue()).isEqualTo("PYTHON");
+    @Test
+    void from_enum_with_titled_should_produce_titled() {
+      SingleSelectEnumSchema schema =
+          SingleSelectEnumSchemaBuilder.fromEnum(Tag.class).titled(Enum::name).build();
+
+      assertThat(schema).isInstanceOf(TitledSingleSelectEnumSchema.class);
+      var titled = (TitledSingleSelectEnumSchema) schema;
+      assertThat(titled.oneOf()).hasSize(3);
+      assertThat(titled.oneOf().get(0).value()).isEqualTo("JAVA");
+      assertThat(titled.oneOf().get(0).title()).isEqualTo("JAVA");
+    }
+
+    @Test
+    void from_enum_with_titled_to_string_should_use_to_string() {
+      SingleSelectEnumSchema schema =
+          SingleSelectEnumSchemaBuilder.fromEnum(TitledColor.class)
+              .titled(TitledColor::toString)
+              .build();
+
+      var titled = (TitledSingleSelectEnumSchema) schema;
+      assertThat(titled.oneOf().get(0).value()).isEqualTo("RED");
+      assertThat(titled.oneOf().get(0).title()).isEqualTo("Crimson Red");
+    }
+
+    @Test
+    void from_enum_with_custom_titled_fn_should_use_it() {
+      SingleSelectEnumSchema schema =
+          SingleSelectEnumSchemaBuilder.fromEnum(Tag.class)
+              .titled(t -> t.name().toLowerCase())
+              .build();
+
+      var titled = (TitledSingleSelectEnumSchema) schema;
+      assertThat(titled.oneOf().get(0).title()).isEqualTo("java");
+    }
+
+    @Test
+    void from_raw_strings_with_titled_should_produce_titled() {
+      SingleSelectEnumSchema schema =
+          SingleSelectEnumSchemaBuilder.from(List.of("red", "green", "blue"))
+              .titled(s -> Character.toUpperCase(s.charAt(0)) + s.substring(1))
+              .build();
+
+      assertThat(schema).isInstanceOf(TitledSingleSelectEnumSchema.class);
+      var titled = (TitledSingleSelectEnumSchema) schema;
+      assertThat(titled.oneOf()).hasSize(3);
+      assertThat(titled.oneOf().get(0).value()).isEqualTo("red");
+      assertThat(titled.oneOf().get(0).title()).isEqualTo("Red");
+    }
+
+    @Test
+    void from_arbitrary_items_with_titled_should_use_custom_title() {
+      record Status(String code, String label) {}
+      List<Status> statuses = List.of(new Status("a", "Active"), new Status("i", "Inactive"));
+
+      SingleSelectEnumSchema schema =
+          SingleSelectEnumSchemaBuilder.from(statuses, Status::code).titled(Status::label).build();
+
+      var titled = (TitledSingleSelectEnumSchema) schema;
+      assertThat(titled.oneOf().get(0).title()).isEqualTo("Active");
+    }
+
+    @Test
+    void titled_with_default_value_should_include_default() {
+      SingleSelectEnumSchema schema =
+          SingleSelectEnumSchemaBuilder.fromEnum(Tag.class)
+              .titled(t -> t.name().toLowerCase())
+              .defaultValue(Tag.PYTHON)
+              .build();
+
+      var titled = (TitledSingleSelectEnumSchema) schema;
+      assertThat(titled.defaultValue()).isEqualTo("PYTHON");
+      assertThat(titled.oneOf().get(0).title()).isEqualTo("java");
+    }
   }
 
-  @Test
-  void fromRawStringsShouldProduceUntitled() {
-    SingleSelectEnumSchema schema =
-        SingleSelectEnumSchemaBuilder.from(List.of("red", "green", "blue")).build();
+  @Nested
+  class Required_and_optional {
 
-    assertThat(schema).isInstanceOf(UntitledSingleSelectEnumSchema.class);
-    var untitled = (UntitledSingleSelectEnumSchema) schema;
-    assertThat(untitled.type()).isEqualTo("string");
-    assertThat(untitled.values()).containsExactly("red", "green", "blue");
-  }
+    @Test
+    void optional_should_set_required_false() {
+      SingleSelectEnumSchemaBuilder<Tag> builder =
+          SingleSelectEnumSchemaBuilder.fromEnum(Tag.class).optional();
 
-  @Test
-  void fromRawStringsWithDefaultShouldIncludeDefault() {
-    SingleSelectEnumSchema schema =
-        SingleSelectEnumSchemaBuilder.from(List.of("red", "green")).defaultValue("green").build();
+      assertThat(builder.isRequired()).isFalse();
+    }
 
-    var untitled = (UntitledSingleSelectEnumSchema) schema;
-    assertThat(untitled.defaultValue()).isEqualTo("green");
-  }
+    @Test
+    void default_should_be_required() {
+      SingleSelectEnumSchemaBuilder<Tag> builder =
+          SingleSelectEnumSchemaBuilder.fromEnum(Tag.class);
 
-  @Test
-  void fromArbitraryItemsShouldDefaultToUntitled() {
-    record Status(String code, String label) {}
-    List<Status> statuses = List.of(new Status("a", "Active"), new Status("i", "Inactive"));
+      assertThat(builder.isRequired()).isTrue();
+    }
 
-    SingleSelectEnumSchema schema =
-        SingleSelectEnumSchemaBuilder.from(statuses, Status::code).build();
+    @Test
+    void description_and_title_should_be_set_on_schema() {
+      SingleSelectEnumSchema schema =
+          SingleSelectEnumSchemaBuilder.fromEnum(Tag.class)
+              .description("Pick a language")
+              .title("Language")
+              .build();
 
-    assertThat(schema).isInstanceOf(UntitledSingleSelectEnumSchema.class);
-    var untitled = (UntitledSingleSelectEnumSchema) schema;
-    assertThat(untitled.values()).containsExactly("a", "i");
-  }
-
-  @Test
-  void fromArbitraryItemsWithDefaultShouldIncludeDefault() {
-    record Status(String code, String label) {}
-    List<Status> statuses = List.of(new Status("a", "Active"), new Status("i", "Inactive"));
-
-    SingleSelectEnumSchema schema =
-        SingleSelectEnumSchemaBuilder.from(statuses, Status::code)
-            .defaultValue(statuses.get(0))
-            .build();
-
-    var untitled = (UntitledSingleSelectEnumSchema) schema;
-    assertThat(untitled.defaultValue()).isEqualTo("a");
-  }
-
-  // --- Titled tests ---
-
-  @Test
-  void fromEnumWithTitledShouldProduceTitled() {
-    SingleSelectEnumSchema schema =
-        SingleSelectEnumSchemaBuilder.fromEnum(Tag.class).titled(Enum::name).build();
-
-    assertThat(schema).isInstanceOf(TitledSingleSelectEnumSchema.class);
-    var titled = (TitledSingleSelectEnumSchema) schema;
-    assertThat(titled.oneOf()).hasSize(3);
-    assertThat(titled.oneOf().get(0).value()).isEqualTo("JAVA");
-    assertThat(titled.oneOf().get(0).title()).isEqualTo("JAVA");
-  }
-
-  @Test
-  void fromEnumWithTitledToStringShouldUseToString() {
-    SingleSelectEnumSchema schema =
-        SingleSelectEnumSchemaBuilder.fromEnum(TitledColor.class)
-            .titled(TitledColor::toString)
-            .build();
-
-    var titled = (TitledSingleSelectEnumSchema) schema;
-    assertThat(titled.oneOf().get(0).value()).isEqualTo("RED");
-    assertThat(titled.oneOf().get(0).title()).isEqualTo("Crimson Red");
-  }
-
-  @Test
-  void fromEnumWithCustomTitledFnShouldUseIt() {
-    SingleSelectEnumSchema schema =
-        SingleSelectEnumSchemaBuilder.fromEnum(Tag.class)
-            .titled(t -> t.name().toLowerCase())
-            .build();
-
-    var titled = (TitledSingleSelectEnumSchema) schema;
-    assertThat(titled.oneOf().get(0).title()).isEqualTo("java");
-  }
-
-  @Test
-  void fromRawStringsWithTitledShouldProduceTitled() {
-    SingleSelectEnumSchema schema =
-        SingleSelectEnumSchemaBuilder.from(List.of("red", "green", "blue"))
-            .titled(s -> Character.toUpperCase(s.charAt(0)) + s.substring(1))
-            .build();
-
-    assertThat(schema).isInstanceOf(TitledSingleSelectEnumSchema.class);
-    var titled = (TitledSingleSelectEnumSchema) schema;
-    assertThat(titled.oneOf()).hasSize(3);
-    assertThat(titled.oneOf().get(0).value()).isEqualTo("red");
-    assertThat(titled.oneOf().get(0).title()).isEqualTo("Red");
-  }
-
-  @Test
-  void fromArbitraryItemsWithTitledShouldUseCustomTitle() {
-    record Status(String code, String label) {}
-    List<Status> statuses = List.of(new Status("a", "Active"), new Status("i", "Inactive"));
-
-    SingleSelectEnumSchema schema =
-        SingleSelectEnumSchemaBuilder.from(statuses, Status::code).titled(Status::label).build();
-
-    var titled = (TitledSingleSelectEnumSchema) schema;
-    assertThat(titled.oneOf().get(0).title()).isEqualTo("Active");
-  }
-
-  @Test
-  void titledWithDefaultValueShouldIncludeDefault() {
-    SingleSelectEnumSchema schema =
-        SingleSelectEnumSchemaBuilder.fromEnum(Tag.class)
-            .titled(t -> t.name().toLowerCase())
-            .defaultValue(Tag.PYTHON)
-            .build();
-
-    var titled = (TitledSingleSelectEnumSchema) schema;
-    assertThat(titled.defaultValue()).isEqualTo("PYTHON");
-    assertThat(titled.oneOf().get(0).title()).isEqualTo("java");
-  }
-
-  // --- Required/optional tests ---
-
-  @Test
-  void optionalShouldSetRequiredFalse() {
-    SingleSelectEnumSchemaBuilder<Tag> builder =
-        SingleSelectEnumSchemaBuilder.fromEnum(Tag.class).optional();
-
-    assertThat(builder.isRequired()).isFalse();
-  }
-
-  @Test
-  void defaultShouldBeRequired() {
-    SingleSelectEnumSchemaBuilder<Tag> builder = SingleSelectEnumSchemaBuilder.fromEnum(Tag.class);
-
-    assertThat(builder.isRequired()).isTrue();
-  }
-
-  @Test
-  void descriptionAndTitleShouldBeSetOnSchema() {
-    SingleSelectEnumSchema schema =
-        SingleSelectEnumSchemaBuilder.fromEnum(Tag.class)
-            .description("Pick a language")
-            .title("Language")
-            .build();
-
-    assertThat(schema).isInstanceOf(UntitledSingleSelectEnumSchema.class);
-    var untitled = (UntitledSingleSelectEnumSchema) schema;
-    assertThat(untitled.description()).isEqualTo("Pick a language");
-    assertThat(untitled.title()).isEqualTo("Language");
+      assertThat(schema).isInstanceOf(UntitledSingleSelectEnumSchema.class);
+      var untitled = (UntitledSingleSelectEnumSchema) schema;
+      assertThat(untitled.description()).isEqualTo("Pick a language");
+      assertThat(untitled.title()).isEqualTo("Language");
+    }
   }
 }

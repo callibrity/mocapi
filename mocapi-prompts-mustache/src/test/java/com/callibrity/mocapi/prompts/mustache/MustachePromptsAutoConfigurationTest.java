@@ -21,6 +21,8 @@ import com.callibrity.mocapi.api.prompts.template.PromptTemplate;
 import com.callibrity.mocapi.api.prompts.template.PromptTemplateFactory;
 import com.callibrity.mocapi.model.Role;
 import java.util.Map;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
@@ -28,6 +30,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MustachePromptsAutoConfigurationTest {
 
   private final ApplicationContextRunner contextRunner =
@@ -35,7 +38,7 @@ class MustachePromptsAutoConfigurationTest {
           .withConfiguration(AutoConfigurations.of(MustachePromptsAutoConfiguration.class));
 
   @Test
-  void registersMustacheFactoryByDefault() {
+  void registers_mustache_factory_by_default() {
     contextRunner.run(
         context -> {
           assertThat(context).hasSingleBean(PromptTemplateFactory.class);
@@ -45,7 +48,7 @@ class MustachePromptsAutoConfigurationTest {
   }
 
   @Test
-  void factoryProducesWorkingTemplates() {
+  void factory_produces_working_templates() {
     contextRunner.run(
         context -> {
           var factory = context.getBean(PromptTemplateFactory.class);
@@ -59,7 +62,7 @@ class MustachePromptsAutoConfigurationTest {
   }
 
   @Test
-  void userSuppliedBeanWins() {
+  void user_supplied_bean_wins() {
     contextRunner
         .withUserConfiguration(CustomFactoryConfig.class)
         .run(
@@ -71,7 +74,7 @@ class MustachePromptsAutoConfigurationTest {
   }
 
   @Test
-  void backsOffWhenMustacheIsNotOnClasspath() {
+  void backs_off_when_mustache_is_not_on_classpath() {
     contextRunner
         .withClassLoader(new FilteredClassLoader(com.samskivert.mustache.Mustache.class))
         .run(context -> assertThat(context).doesNotHaveBean(PromptTemplateFactory.class));

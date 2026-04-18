@@ -17,16 +17,19 @@ package com.callibrity.mocapi.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class EmptyResultSerializationTest {
 
   private final ObjectMapper mapper = JsonMapper.builder().build();
 
   @Test
-  void serializesToEmptyObject() throws Exception {
+  void serializes_to_empty_object() throws Exception {
     String json = mapper.writeValueAsString(EmptyResult.INSTANCE);
     assertThat(json).isEqualTo("{}");
   }

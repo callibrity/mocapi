@@ -18,16 +18,19 @@ package com.callibrity.mocapi.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ResourceContentsSerializationTest {
 
   private final ObjectMapper mapper = JsonMapper.builder().build();
 
   @Test
-  void textResourceContentsRoundTrip() throws Exception {
+  void text_resource_contents_round_trip() throws Exception {
     var original = new TextResourceContents("file:///test.txt", "text/plain", "hello");
     String json = mapper.writeValueAsString(original);
 
@@ -39,7 +42,7 @@ class ResourceContentsSerializationTest {
   }
 
   @Test
-  void blobResourceContentsRoundTrip() throws Exception {
+  void blob_resource_contents_round_trip() throws Exception {
     var original = new BlobResourceContents("file:///test.bin", "application/octet-stream", "YmFz");
     String json = mapper.writeValueAsString(original);
 
@@ -51,7 +54,7 @@ class ResourceContentsSerializationTest {
   }
 
   @Test
-  void readResourceResultRoundTrip() throws Exception {
+  void read_resource_result_round_trip() throws Exception {
     var text = new TextResourceContents("file:///a.txt", "text/plain", "hello");
     var blob = new BlobResourceContents("file:///b.bin", "application/octet-stream", "YmFz");
     var original = new ReadResourceResult(List.of(text, blob));

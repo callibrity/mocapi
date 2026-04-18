@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -41,6 +43,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DirectMessageWriterTest {
 
   @Mock SseStream sseStream;
@@ -49,13 +52,13 @@ class DirectMessageWriterTest {
   private Consumer<ResponseEntity<Object>> consumer;
 
   @BeforeEach
-  void setUp() {
+  void set_up() {
     committed = new ArrayList<>();
     consumer = committed::add;
   }
 
   @Test
-  void writeResultCommitsJsonAndTransitionsToClosed() {
+  void write_result_commits_json_and_transitions_to_closed() {
     var writer = new DirectMessageWriter(unusedStreamSupplier(), consumer);
     var result =
         new JsonRpcResult(
@@ -73,7 +76,7 @@ class DirectMessageWriterTest {
   }
 
   @Test
-  void writeErrorCommitsJsonAndTransitionsToClosed() {
+  void write_error_commits_json_and_transitions_to_closed() {
     var writer = new DirectMessageWriter(unusedStreamSupplier(), consumer);
     var error = new JsonRpcError(42, "boom", JsonNodeFactory.instance.numberNode(1));
 
@@ -87,7 +90,7 @@ class DirectMessageWriterTest {
   }
 
   @Test
-  void writeResponseDoesNotPullStream() {
+  void write_response_does_not_pull_stream() {
     Supplier<SseStream> exploding =
         () -> {
           throw new AssertionError("should not be called");
@@ -103,7 +106,7 @@ class DirectMessageWriterTest {
   }
 
   @Test
-  void writeNotificationCommitsSseAndTransitionsToSseWriter() {
+  void write_notification_commits_sse_and_transitions_to_sse_writer() {
     SseEmitter emitter = new SseEmitter();
     when(sseStream.createEmitter()).thenReturn(emitter);
     var writer = new DirectMessageWriter(() -> sseStream, consumer);
@@ -121,7 +124,7 @@ class DirectMessageWriterTest {
   }
 
   @Test
-  void writeCallCommitsSseAndTransitionsToSseWriter() {
+  void write_call_commits_sse_and_transitions_to_sse_writer() {
     SseEmitter emitter = new SseEmitter();
     when(sseStream.createEmitter()).thenReturn(emitter);
     var writer = new DirectMessageWriter(() -> sseStream, consumer);
@@ -135,7 +138,7 @@ class DirectMessageWriterTest {
   }
 
   @Test
-  void writeNotificationPullsStreamExactlyOnce() {
+  void write_notification_pulls_stream_exactly_once() {
     SseEmitter emitter = new SseEmitter();
     when(sseStream.createEmitter()).thenReturn(emitter);
     int[] supplierInvocations = {0};
@@ -152,7 +155,7 @@ class DirectMessageWriterTest {
   }
 
   @Test
-  void sseUpgradeDoesNotWriteResponseToStream() {
+  void sse_upgrade_does_not_write_response_to_stream() {
     SseEmitter emitter = new SseEmitter();
     when(sseStream.createEmitter()).thenReturn(emitter);
     var writer = new DirectMessageWriter(() -> sseStream, consumer);

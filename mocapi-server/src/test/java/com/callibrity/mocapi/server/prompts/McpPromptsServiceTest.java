@@ -33,8 +33,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpPromptsServiceTest {
 
   private McpPromptsService service;
@@ -70,7 +73,7 @@ class McpPromptsServiceTest {
   }
 
   @Test
-  void listPromptsReturnsSortedDescriptors() {
+  void list_prompts_returns_sorted_descriptors() {
     var result = service.listPrompts(null);
 
     assertThat(result.prompts()).hasSize(2);
@@ -80,7 +83,7 @@ class McpPromptsServiceTest {
   }
 
   @Test
-  void getPromptReturnsResult() {
+  void get_prompt_returns_result() {
     var params = new GetPromptRequestParams("alpha-prompt", Map.of("arg1", "hello"), null);
 
     var result = service.getPrompt(params);
@@ -92,7 +95,7 @@ class McpPromptsServiceTest {
   }
 
   @Test
-  void getPromptWithNullArgumentsUsesEmptyMap() {
+  void get_prompt_with_null_arguments_uses_empty_map() {
     var params = new GetPromptRequestParams("alpha-prompt", null, null);
 
     var result = service.getPrompt(params);
@@ -102,7 +105,7 @@ class McpPromptsServiceTest {
   }
 
   @Test
-  void getPromptThrowsForUnknownName() {
+  void get_prompt_throws_for_unknown_name() {
     var params = new GetPromptRequestParams("nonexistent", null, null);
 
     assertThatThrownBy(() -> service.getPrompt(params))
@@ -111,31 +114,31 @@ class McpPromptsServiceTest {
   }
 
   @Test
-  void lookupReturnsPrompt() {
+  void lookup_returns_prompt() {
     McpPrompt found = service.lookup("beta-prompt");
     assertThat(found.descriptor().name()).isEqualTo("beta-prompt");
   }
 
   @Test
-  void lookupThrowsForUnknownName() {
+  void lookup_throws_for_unknown_name() {
     assertThatThrownBy(() -> service.lookup("missing"))
         .isInstanceOf(JsonRpcException.class)
         .hasMessageContaining("Prompt missing not found.");
   }
 
   @Test
-  void isEmptyReturnsTrueWhenNoPrompts() {
+  void is_empty_returns_true_when_no_prompts() {
     var emptyService = new McpPromptsService(List.of());
     assertThat(emptyService.isEmpty()).isTrue();
   }
 
   @Test
-  void isEmptyReturnsFalseWhenPromptsExist() {
+  void is_empty_returns_false_when_prompts_exist() {
     assertThat(service.isEmpty()).isFalse();
   }
 
   @Test
-  void paginationWorks() {
+  void pagination_works() {
     List<McpPrompt> prompts =
         IntStream.range(0, 5)
             .mapToObj(i -> prompt(String.format("prompt-%03d", i), "desc " + i))
@@ -159,7 +162,7 @@ class McpPromptsServiceTest {
   }
 
   @Test
-  void invalidCursorThrowsException() {
+  void invalid_cursor_throws_exception() {
     var params = new PaginatedRequestParams("not-valid-base64!!!", null);
     assertThatThrownBy(() -> service.listPrompts(params))
         .isInstanceOf(JsonRpcException.class)
@@ -167,7 +170,7 @@ class McpPromptsServiceTest {
   }
 
   @Test
-  void outOfRangeCursorReturnsEmptyPage() {
+  void out_of_range_cursor_returns_empty_page() {
     var largeOffset =
         java.util.Base64.getEncoder()
             .encodeToString(java.nio.ByteBuffer.allocate(4).putInt(100).array());

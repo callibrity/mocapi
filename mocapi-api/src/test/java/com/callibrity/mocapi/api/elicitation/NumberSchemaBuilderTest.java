@@ -18,12 +18,15 @@ package com.callibrity.mocapi.api.elicitation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.NumberSchema;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class NumberSchemaBuilderTest {
 
   @Test
-  void minimalNumberShouldHaveTypeAndDescription() {
+  void minimal_number_should_have_type_and_description() {
     NumberSchema schema = new NumberSchemaBuilder().description("Score").build();
 
     assertThat(schema.type()).isEqualTo("number");
@@ -31,7 +34,7 @@ class NumberSchemaBuilderTest {
   }
 
   @Test
-  void titleShouldBeIncluded() {
+  void title_should_be_included() {
     NumberSchema schema =
         new NumberSchemaBuilder().description("Score").title("Test Score").build();
 
@@ -39,28 +42,28 @@ class NumberSchemaBuilderTest {
   }
 
   @Test
-  void defaultValueShouldBeIncluded() {
+  void default_value_should_be_included() {
     NumberSchema schema = new NumberSchemaBuilder().description("Score").defaultValue(95.5).build();
 
     assertThat(schema.defaultValue()).isEqualTo(95.5);
   }
 
   @Test
-  void minimumShouldBeIncluded() {
+  void minimum_should_be_included() {
     NumberSchema schema = new NumberSchemaBuilder().description("Score").minimum(0.0).build();
 
     assertThat(schema.minimum()).isEqualTo(0.0);
   }
 
   @Test
-  void maximumShouldBeIncluded() {
+  void maximum_should_be_included() {
     NumberSchema schema = new NumberSchemaBuilder().description("Score").maximum(100.0).build();
 
     assertThat(schema.maximum()).isEqualTo(100.0);
   }
 
   @Test
-  void constraintChainingShouldWork() {
+  void constraint_chaining_should_work() {
     NumberSchema schema =
         new NumberSchemaBuilder()
             .description("Score")
@@ -77,14 +80,14 @@ class NumberSchemaBuilderTest {
   }
 
   @Test
-  void defaultShouldBeRequired() {
+  void default_should_be_required() {
     NumberSchemaBuilder builder = new NumberSchemaBuilder();
 
     assertThat(builder.isRequired()).isTrue();
   }
 
   @Test
-  void optionalShouldSetRequiredFalse() {
+  void optional_should_set_required_false() {
     NumberSchemaBuilder builder = new NumberSchemaBuilder().optional();
 
     assertThat(builder.isRequired()).isFalse();

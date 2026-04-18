@@ -18,12 +18,15 @@ package com.callibrity.mocapi.api.elicitation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.BooleanSchema;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class BooleanSchemaBuilderTest {
 
   @Test
-  void minimalBooleanShouldHaveTypeAndDescription() {
+  void minimal_boolean_should_have_type_and_description() {
     BooleanSchema schema = new BooleanSchemaBuilder().description("Active").build();
 
     assertThat(schema.type()).isEqualTo("boolean");
@@ -31,7 +34,7 @@ class BooleanSchemaBuilderTest {
   }
 
   @Test
-  void titleShouldBeIncluded() {
+  void title_should_be_included() {
     BooleanSchema schema =
         new BooleanSchemaBuilder().description("Active").title("Is Active").build();
 
@@ -39,7 +42,7 @@ class BooleanSchemaBuilderTest {
   }
 
   @Test
-  void defaultTrueShouldBeIncluded() {
+  void default_true_should_be_included() {
     BooleanSchema schema =
         new BooleanSchemaBuilder().description("Active").defaultValue(true).build();
 
@@ -47,7 +50,7 @@ class BooleanSchemaBuilderTest {
   }
 
   @Test
-  void defaultFalseShouldBeIncluded() {
+  void default_false_should_be_included() {
     BooleanSchema schema =
         new BooleanSchemaBuilder().description("Active").defaultValue(false).build();
 
@@ -55,7 +58,7 @@ class BooleanSchemaBuilderTest {
   }
 
   @Test
-  void constraintChainingShouldWork() {
+  void constraint_chaining_should_work() {
     BooleanSchema schema =
         new BooleanSchemaBuilder()
             .description("Active")
@@ -68,14 +71,14 @@ class BooleanSchemaBuilderTest {
   }
 
   @Test
-  void defaultShouldBeRequired() {
+  void default_should_be_required() {
     BooleanSchemaBuilder builder = new BooleanSchemaBuilder();
 
     assertThat(builder.isRequired()).isTrue();
   }
 
   @Test
-  void optionalShouldSetRequiredFalse() {
+  void optional_should_set_required_false() {
     BooleanSchemaBuilder builder = new BooleanSchemaBuilder().optional();
 
     assertThat(builder.isRequired()).isFalse();

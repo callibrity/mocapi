@@ -17,16 +17,19 @@ package com.callibrity.mocapi.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class CompletionRefSerializationTest {
 
   private final ObjectMapper mapper = JsonMapper.builder().build();
 
   @Test
-  void promptReferenceRoundTrip() throws Exception {
+  void prompt_reference_round_trip() throws Exception {
     var original = new PromptReference("ref/prompt", "greeting");
     String json = mapper.writeValueAsString(original);
     assertThat(json).contains("\"type\":\"ref/prompt\"").contains("\"name\":\"greeting\"");
@@ -38,7 +41,7 @@ class CompletionRefSerializationTest {
   }
 
   @Test
-  void resourceTemplateReferenceRoundTrip() throws Exception {
+  void resource_template_reference_round_trip() throws Exception {
     var original = new ResourceTemplateReference("ref/resource", "file:///{path}");
     String json = mapper.writeValueAsString(original);
     assertThat(json).contains("\"type\":\"ref/resource\"").contains("\"uri\":\"file:///{path}\"");

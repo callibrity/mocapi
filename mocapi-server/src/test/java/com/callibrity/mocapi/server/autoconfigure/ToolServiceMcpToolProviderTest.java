@@ -24,6 +24,8 @@ import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
@@ -35,6 +37,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ToolServiceMcpToolProviderTest {
 
   private final ApplicationContextRunner contextRunner =
@@ -83,7 +86,7 @@ class ToolServiceMcpToolProviderTest {
   }
 
   @Test
-  void discoversToolServiceBeans() {
+  void discovers_tool_service_beans() {
     contextRunner
         .withBean(SampleToolService.class, SampleToolService::new)
         .run(
@@ -97,7 +100,7 @@ class ToolServiceMcpToolProviderTest {
   }
 
   @Test
-  void returnsEmptyListWhenNoToolServiceBeans() {
+  void returns_empty_list_when_no_tool_service_beans() {
     contextRunner.run(
         context -> {
           ToolServiceMcpToolProvider provider = context.getBean(ToolServiceMcpToolProvider.class);
@@ -106,7 +109,7 @@ class ToolServiceMcpToolProviderTest {
   }
 
   @Test
-  void returnsUnmodifiableList() {
+  void returns_unmodifiable_list() {
     contextRunner
         .withBean(SampleToolService.class, SampleToolService::new)
         .run(

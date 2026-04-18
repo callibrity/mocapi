@@ -28,6 +28,8 @@ import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
@@ -39,6 +41,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class PromptServiceMcpPromptProviderTest {
 
   private final ApplicationContextRunner contextRunner =
@@ -89,7 +92,7 @@ class PromptServiceMcpPromptProviderTest {
   }
 
   @Test
-  void discoversPromptServiceBeans() {
+  void discovers_prompt_service_beans() {
     contextRunner
         .withBean(SamplePromptService.class, SamplePromptService::new)
         .run(
@@ -102,7 +105,7 @@ class PromptServiceMcpPromptProviderTest {
   }
 
   @Test
-  void returnsEmptyListWhenNoPromptServiceBeans() {
+  void returns_empty_list_when_no_prompt_service_beans() {
     contextRunner.run(
         context -> {
           var provider = context.getBean(PromptServiceMcpPromptProvider.class);
@@ -111,7 +114,7 @@ class PromptServiceMcpPromptProviderTest {
   }
 
   @Test
-  void returnsUnmodifiableList() {
+  void returns_unmodifiable_list() {
     contextRunner
         .withBean(SamplePromptService.class, SamplePromptService::new)
         .run(

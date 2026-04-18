@@ -21,19 +21,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.Map;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MustachePromptTemplateFactoryTest {
 
   private final MustachePromptTemplateFactory factory = new MustachePromptTemplateFactory();
 
   @Test
-  void returnsMustachePromptTemplateInstance() {
+  void returns_mustache_prompt_template_instance() {
     assertThat(factory.create(Role.USER, "hello")).isInstanceOf(MustachePromptTemplate.class);
   }
 
   @Test
-  void producesTemplatesThatRenderAgainstArguments() {
+  void produces_templates_that_render_against_arguments() {
     var template = factory.create(Role.USER, "Hello {{name}}!");
 
     var result = template.render(Map.of("name", "Mocapi"));
@@ -44,7 +47,7 @@ class MustachePromptTemplateFactoryTest {
   }
 
   @Test
-  void defaultCompilerLeavesHtmlUnescaped() {
+  void default_compiler_leaves_html_unescaped() {
     var template = factory.create(Role.USER, "{{v}}");
 
     var result = template.render(Map.of("v", "<b>hi & bye</b>"));
@@ -54,7 +57,7 @@ class MustachePromptTemplateFactoryTest {
   }
 
   @Test
-  void defaultCompilerTreatsMissingValuesAsEmpty() {
+  void default_compiler_treats_missing_values_as_empty() {
     var template = factory.create(Role.USER, "x={{missing}}");
 
     var result = template.render(Map.of());
@@ -64,7 +67,7 @@ class MustachePromptTemplateFactoryTest {
   }
 
   @Test
-  void propagatesDescriptionToRenderedResults() {
+  void propagates_description_to_rendered_results() {
     var template = factory.create(Role.USER, "a summary prompt", "{{v}}");
 
     var result = template.render(Map.of("v", "hi"));
@@ -73,7 +76,7 @@ class MustachePromptTemplateFactoryTest {
   }
 
   @Test
-  void twoArgOverloadOmitsDescription() {
+  void two_arg_overload_omits_description() {
     var template = factory.create(Role.USER, "{{v}}");
 
     var result = template.render(Map.of("v", "hi"));
@@ -82,7 +85,7 @@ class MustachePromptTemplateFactoryTest {
   }
 
   @Test
-  void invalidTemplateIsWrappedInIllegalArgumentException() {
+  void invalid_template_is_wrapped_in_illegal_argument_exception() {
     assertThatThrownBy(() -> factory.create(Role.USER, "{{#section}}no end tag"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Mustache");

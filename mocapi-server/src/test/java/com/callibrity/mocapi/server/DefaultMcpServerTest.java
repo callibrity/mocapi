@@ -33,6 +33,8 @@ import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -41,6 +43,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DefaultMcpServerTest {
 
   private static final String PROTOCOL_VERSION = "2025-11-25";
@@ -59,7 +62,7 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void initializeCallIsDispatchedWithTransportBound() {
+  void initialize_call_is_dispatched_with_transport_bound() {
     JsonRpcResult dispatchResult =
         new JsonRpcResult(
             JsonNodeFactory.instance.objectNode().put("protocolVersion", PROTOCOL_VERSION),
@@ -84,7 +87,7 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void initializeCallDoesNotRequireSessionId() {
+  void initialize_call_does_not_require_session_id() {
     when(dispatcher.dispatch(any(JsonRpcCall.class))).thenReturn(null);
 
     JsonRpcCall call = JsonRpcCall.of("initialize", null, JsonNodeFactory.instance.numberNode(1));
@@ -96,26 +99,26 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void createContextReturnsSessionIdRequiredForNullSessionId() {
+  void create_context_returns_session_id_required_for_null_session_id() {
     assertThat(server.createContext(null, null))
         .isInstanceOf(McpContextResult.SessionIdRequired.class);
   }
 
   @Test
-  void createContextReturnsSessionIdRequiredForEmptySessionId() {
+  void create_context_returns_session_id_required_for_empty_session_id() {
     assertThat(server.createContext("", null))
         .isInstanceOf(McpContextResult.SessionIdRequired.class);
   }
 
   @Test
-  void createContextReturnsSessionNotFoundForNonExistentSession() {
+  void create_context_returns_session_not_found_for_non_existent_session() {
     when(sessionService.find("unknown")).thenReturn(Optional.empty());
     assertThat(server.createContext("unknown", PROTOCOL_VERSION))
         .isInstanceOf(McpContextResult.SessionNotFound.class);
   }
 
   @Test
-  void createContextReturnsValidContextForKnownSession() {
+  void create_context_returns_valid_context_for_known_session() {
     McpSession session = session("known", true);
     when(sessionService.find("known")).thenReturn(Optional.of(session));
     var result = server.createContext("known", PROTOCOL_VERSION);
@@ -126,7 +129,7 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void createContextReturnsProtocolVersionMismatchForBadVersion() {
+  void create_context_returns_protocol_version_mismatch_for_bad_version() {
     McpSession session = session("valid", true);
     when(sessionService.find("valid")).thenReturn(Optional.of(session));
     assertThat(server.createContext("valid", "9999-01-01"))
@@ -134,7 +137,7 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void createContextReturnsValidContextForNullProtocolVersion() {
+  void create_context_returns_valid_context_for_null_protocol_version() {
     McpSession session = session("valid", true);
     when(sessionService.find("valid")).thenReturn(Optional.of(session));
     assertThat(server.createContext("valid", null))
@@ -142,7 +145,7 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void callWithValidSessionDispatchesAndSendsResult() {
+  void call_with_valid_session_dispatches_and_sends_result() {
     McpSession session = session("valid", true);
 
     JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(2));
@@ -161,7 +164,7 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void callWithValidSessionBindsSessionToScopedValue() {
+  void call_with_valid_session_binds_session_to_scoped_value() {
     McpSession session = session("valid", true);
 
     JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(3));
@@ -180,7 +183,7 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void callDispatchReturningNullSendsNothing() {
+  void call_dispatch_returning_null_sends_nothing() {
     McpSession session = session("valid", true);
 
     JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(4));
@@ -193,7 +196,7 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void notificationWithValidSessionDispatches() {
+  void notification_with_valid_session_dispatches() {
     McpSession session = session("valid", true);
 
     JsonRpcNotification notification =
@@ -206,7 +209,7 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void notificationWithValidSessionBindsSessionToScopedValue() {
+  void notification_with_valid_session_binds_session_to_scoped_value() {
     McpSession session = session("valid", true);
 
     JsonRpcNotification notification =
@@ -225,7 +228,7 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void responseMessagesAreDeliveredToCorrelationService() {
+  void response_messages_are_delivered_to_correlation_service() {
     JsonRpcResponse response =
         new JsonRpcResult(
             JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(1));
@@ -238,7 +241,7 @@ class DefaultMcpServerTest {
   }
 
   @Test
-  void terminateDeletesSession() {
+  void terminate_deletes_session() {
     McpSession session =
         new McpSession(
             "session-to-delete",

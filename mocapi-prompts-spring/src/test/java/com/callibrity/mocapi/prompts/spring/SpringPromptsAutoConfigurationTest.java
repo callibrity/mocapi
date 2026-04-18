@@ -22,12 +22,15 @@ import com.callibrity.mocapi.api.prompts.template.PromptTemplateFactory;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.Map;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class SpringPromptsAutoConfigurationTest {
 
   private final ApplicationContextRunner contextRunner =
@@ -35,7 +38,7 @@ class SpringPromptsAutoConfigurationTest {
           .withConfiguration(AutoConfigurations.of(SpringPromptsAutoConfiguration.class));
 
   @Test
-  void registersSpringFactoryByDefault() {
+  void registers_spring_factory_by_default() {
     contextRunner.run(
         context -> {
           assertThat(context).hasSingleBean(PromptTemplateFactory.class);
@@ -45,7 +48,7 @@ class SpringPromptsAutoConfigurationTest {
   }
 
   @Test
-  void factoryProducesWorkingTemplates() {
+  void factory_produces_working_templates() {
     contextRunner.run(
         context -> {
           var factory = context.getBean(PromptTemplateFactory.class);
@@ -57,7 +60,7 @@ class SpringPromptsAutoConfigurationTest {
   }
 
   @Test
-  void userSuppliedBeanWins() {
+  void user_supplied_bean_wins() {
     contextRunner
         .withUserConfiguration(CustomFactoryConfig.class)
         .run(

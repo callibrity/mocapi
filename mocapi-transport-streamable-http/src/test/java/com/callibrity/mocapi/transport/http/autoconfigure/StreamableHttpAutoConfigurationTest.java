@@ -24,6 +24,8 @@ import com.callibrity.mocapi.transport.http.McpRequestValidator;
 import com.callibrity.mocapi.transport.http.StreamableHttpController;
 import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
 import java.util.Base64;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.odyssey.core.Odyssey;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -32,6 +34,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class StreamableHttpAutoConfigurationTest {
 
   private static final String MASTER_KEY = Base64.getEncoder().encodeToString(new byte[32]);
@@ -68,7 +71,7 @@ class StreamableHttpAutoConfigurationTest {
   }
 
   @Test
-  void defaultBeansAreAutoConfigured() {
+  void default_beans_are_auto_configured() {
     contextRunner.run(
         context -> {
           assertThat(context).hasSingleBean(McpRequestValidator.class);
@@ -77,7 +80,7 @@ class StreamableHttpAutoConfigurationTest {
   }
 
   @Test
-  void customRequestValidatorOverridesDefault() {
+  void custom_request_validator_overrides_default() {
     McpRequestValidator custom = new McpRequestValidator(java.util.List.of("example.com"));
     contextRunner
         .withBean(McpRequestValidator.class, () -> custom)
@@ -89,7 +92,7 @@ class StreamableHttpAutoConfigurationTest {
   }
 
   @Test
-  void customStreamableHttpControllerOverridesDefault() {
+  void custom_streamable_http_controller_overrides_default() {
     contextRunner
         .withUserConfiguration(CustomControllerConfig.class)
         .run(
@@ -114,7 +117,7 @@ class StreamableHttpAutoConfigurationTest {
   }
 
   @Test
-  void beansAreNotCreatedWhenMcpServerBeanIsMissing() {
+  void beans_are_not_created_when_mcp_server_bean_is_missing() {
     new WebApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(StreamableHttpAutoConfiguration.class))
         .withPropertyValues(
@@ -132,7 +135,7 @@ class StreamableHttpAutoConfigurationTest {
   }
 
   @Test
-  void missingMasterKeyFailsWithHelpfulMessage() {
+  void missing_master_key_fails_with_helpful_message() {
     contextRunner
         .withPropertyValues("mocapi.session-encryption-master-key=")
         .run(
@@ -147,7 +150,7 @@ class StreamableHttpAutoConfigurationTest {
   }
 
   @Test
-  void invalidBase64MasterKeyFailsWithHelpfulMessage() {
+  void invalid_base64_master_key_fails_with_helpful_message() {
     contextRunner
         .withPropertyValues("mocapi.session-encryption-master-key=not!!!valid~base64")
         .run(
@@ -162,7 +165,7 @@ class StreamableHttpAutoConfigurationTest {
   }
 
   @Test
-  void wrongLengthMasterKeyFailsWithHelpfulMessage() {
+  void wrong_length_master_key_fails_with_helpful_message() {
     // 16 bytes encoded — base64-valid but AES-256 needs 32.
     String shortKey = java.util.Base64.getEncoder().encodeToString(new byte[16]);
     contextRunner
@@ -180,7 +183,7 @@ class StreamableHttpAutoConfigurationTest {
   }
 
   @Test
-  void allowedOriginsPropertyIsUsedByValidator() {
+  void allowed_origins_property_is_used_by_validator() {
     contextRunner
         .withPropertyValues("mocapi.allowed-origins=example.com,other.com")
         .run(

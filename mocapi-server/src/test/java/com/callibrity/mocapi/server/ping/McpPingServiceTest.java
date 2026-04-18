@@ -18,12 +18,15 @@ package com.callibrity.mocapi.server.ping;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.EmptyResult;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpPingServiceTest {
 
   @Test
-  void pingReturnsEmptyResult() {
+  void ping_returns_empty_result() {
     McpPingService service = new McpPingService();
 
     EmptyResult result = service.ping();

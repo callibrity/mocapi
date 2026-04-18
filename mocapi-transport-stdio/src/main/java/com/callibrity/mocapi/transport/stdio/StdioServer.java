@@ -35,6 +35,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,14 +77,22 @@ public final class StdioServer {
     return new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
   }
 
-  /** Runs the reader loop until input closes. Returns on EOF. */
+  /**
+   * Runs the reader loop until input closes. Each inbound message is dispatched on a virtual
+   * thread; on EOF the executor closes and awaits in-flight dispatches so the JVM doesn't exit
+   * before their stdout responses are written. {@link java.util.concurrent.ExecutorService#close}
+   * performs shutdown + awaitTermination in one shot.
+   */
   public void run() throws Exception {
-    try (BufferedReader reader =
-        input instanceof BufferedReader br ? br : new BufferedReader(input)) {
+    try (var dispatcher =
+            Executors.newThreadPerTaskExecutor(
+                Thread.ofVirtual().name("mocapi-stdio-dispatch-", 0).factory());
+        BufferedReader reader =
+            input instanceof BufferedReader br ? br : new BufferedReader(input)) {
       String line;
       while ((line = reader.readLine()) != null) {
         final String captured = line;
-        Thread.ofVirtual().name("mocapi-stdio-dispatch").start(() -> dispatch(captured));
+        dispatcher.submit(() -> dispatch(captured));
       }
     }
     log.info("stdin closed; stdio server exiting");

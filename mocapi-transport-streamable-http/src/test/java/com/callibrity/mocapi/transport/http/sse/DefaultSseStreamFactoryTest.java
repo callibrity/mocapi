@@ -34,6 +34,8 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.jwcarman.odyssey.core.DeliveredEvent;
@@ -51,6 +53,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DefaultSseStreamFactoryTest {
 
   @Mock Odyssey odyssey;
@@ -64,14 +67,14 @@ class DefaultSseStreamFactoryTest {
   private DefaultSseStreamFactory factory;
 
   @BeforeEach
-  void setUp() {
+  void set_up() {
     masterKey = new byte[32];
     new SecureRandom().nextBytes(masterKey);
     factory = new DefaultSseStreamFactory(odyssey, objectMapper, masterKey);
   }
 
   @Test
-  void responseStreamCreatesOdysseyStreamWithRandomUuidName() {
+  void response_stream_creates_odyssey_stream_with_random_uuid_name() {
     when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
 
     factory.responseStream(new StubContext("session-1"));
@@ -83,7 +86,7 @@ class DefaultSseStreamFactoryTest {
   }
 
   @Test
-  void responseStreamProducesDistinctStreamNamesAcrossCalls() {
+  void response_stream_produces_distinct_stream_names_across_calls() {
     when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
 
     factory.responseStream(new StubContext("session-1"));
@@ -96,7 +99,7 @@ class DefaultSseStreamFactoryTest {
   }
 
   @Test
-  void sessionStreamCreatesOdysseyStreamNamedBySessionId() {
+  void session_stream_creates_odyssey_stream_named_by_session_id() {
     when(odyssey.stream("session-42", JsonRpcMessage.class)).thenReturn(stream);
 
     factory.sessionStream(new StubContext("session-42"));
@@ -105,7 +108,7 @@ class DefaultSseStreamFactoryTest {
   }
 
   @Test
-  void resumeStreamDecryptsEventIdAndResumesOnNamedStream() {
+  void resume_stream_decrypts_event_id_and_resumes_on_named_stream() {
     String sessionId = "session-99";
     String plaintext = "stream-name-xyz:evt-7";
     String encrypted = encrypt(sessionId, plaintext);
@@ -120,7 +123,7 @@ class DefaultSseStreamFactoryTest {
   }
 
   @Test
-  void resumeStreamThrowsIfDecryptedEventIdHasNoColon() {
+  void resume_stream_throws_if_decrypted_event_id_has_no_colon() {
     String sessionId = "session-99";
     String encrypted = encrypt(sessionId, "no-colon-in-this-string");
     var context = new StubContext(sessionId);
@@ -131,7 +134,7 @@ class DefaultSseStreamFactoryTest {
   }
 
   @Test
-  void resumeStreamThrowsOnMalformedBase64() {
+  void resume_stream_throws_on_malformed_base64() {
     var context = new StubContext("session-1");
 
     assertThatThrownBy(() -> factory.resumeStream(context, "not!!!valid~base64"))
@@ -140,7 +143,7 @@ class DefaultSseStreamFactoryTest {
   }
 
   @Test
-  void resumeStreamThrowsOnTamperedCiphertext() {
+  void resume_stream_throws_on_tampered_ciphertext() {
     String encrypted = encrypt("session-1", "stream-x:evt-1");
     byte[] raw = Base64.getDecoder().decode(encrypted);
     raw[raw.length - 1] ^= 0x01;
@@ -153,7 +156,7 @@ class DefaultSseStreamFactoryTest {
   }
 
   @Test
-  void encryptingMapperProducesEncryptedEventIdAndSerializedData() {
+  void encrypting_mapper_produces_encrypted_event_id_and_serialized_data() {
     String sessionId = "session-mapper-test";
     when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
     when(subscriberConfig.mapper(any())).thenReturn(subscriberConfig);
@@ -188,7 +191,7 @@ class DefaultSseStreamFactoryTest {
   }
 
   @Test
-  void encryptedEventIdRoundTripsThroughResumeStream() {
+  void encrypted_event_id_round_trips_through_resume_stream() {
     String sessionId = "session-round-trip";
     // Encrypt the same way the mapper would — streamName:eventId
     String encrypted = encrypt(sessionId, "my-stream:my-event");
@@ -202,7 +205,7 @@ class DefaultSseStreamFactoryTest {
   }
 
   @Test
-  void sessionIdActsAsContextSoOtherSessionCannotDecrypt() {
+  void session_id_acts_as_context_so_other_session_cannot_decrypt() {
     String encrypted = encrypt("session-A", "stream-x:evt-1");
     var wrongSessionContext = new StubContext("session-B");
 

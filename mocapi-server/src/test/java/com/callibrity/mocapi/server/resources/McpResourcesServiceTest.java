@@ -33,8 +33,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpResourcesServiceTest {
 
   private McpResourcesService service;
@@ -87,7 +90,7 @@ class McpResourcesServiceTest {
   }
 
   @Test
-  void listResourcesReturnsSortedDescriptors() {
+  void list_resources_returns_sorted_descriptors() {
     var result = service.listResources(null);
 
     assertThat(result.resources()).hasSize(2);
@@ -97,7 +100,7 @@ class McpResourcesServiceTest {
   }
 
   @Test
-  void listResourceTemplatesReturnsSortedDescriptors() {
+  void list_resource_templates_returns_sorted_descriptors() {
     var result = service.listResourceTemplates(null);
 
     assertThat(result.resourceTemplates()).hasSize(1);
@@ -106,7 +109,7 @@ class McpResourcesServiceTest {
   }
 
   @Test
-  void readResourceByExactUri() {
+  void read_resource_by_exact_uri() {
     var params = new ResourceRequestParams("test://a", null);
 
     var result = service.readResource(params);
@@ -118,7 +121,7 @@ class McpResourcesServiceTest {
   }
 
   @Test
-  void readResourceByTemplateMatch() {
+  void read_resource_by_template_match() {
     var params = new ResourceRequestParams("test://items/42", null);
 
     var result = service.readResource(params);
@@ -129,7 +132,7 @@ class McpResourcesServiceTest {
   }
 
   @Test
-  void exactMatchTakesPrecedenceOverTemplate() {
+  void exact_match_takes_precedence_over_template() {
     var exactResource = resource("test://items/special", "Special", "desc", "text/plain");
     var templateResource = template("test://items/{id}", "Item", "desc", "application/json");
     var svc =
@@ -143,7 +146,7 @@ class McpResourcesServiceTest {
   }
 
   @Test
-  void readResourceThrowsForUnknownUri() {
+  void read_resource_throws_for_unknown_uri() {
     var params = new ResourceRequestParams("test://unknown", null);
 
     assertThatThrownBy(() -> service.readResource(params))
@@ -152,18 +155,18 @@ class McpResourcesServiceTest {
   }
 
   @Test
-  void isEmptyReturnsTrueWhenNoResourcesOrTemplates() {
+  void is_empty_returns_true_when_no_resources_or_templates() {
     var emptyService = new McpResourcesService(List.of(), List.of());
     assertThat(emptyService.isEmpty()).isTrue();
   }
 
   @Test
-  void isEmptyReturnsFalseWhenResourcesExist() {
+  void is_empty_returns_false_when_resources_exist() {
     assertThat(service.isEmpty()).isFalse();
   }
 
   @Test
-  void isEmptyReturnsFalseWithOnlyTemplates() {
+  void is_empty_returns_false_with_only_templates() {
     var svc =
         new McpResourcesService(
             List.of(),
@@ -172,7 +175,7 @@ class McpResourcesServiceTest {
   }
 
   @Test
-  void paginationWorksForResources() {
+  void pagination_works_for_resources() {
     List<McpResource> resources =
         IntStream.range(0, 5)
             .mapToObj(
@@ -197,7 +200,7 @@ class McpResourcesServiceTest {
   }
 
   @Test
-  void paginationWorksForTemplates() {
+  void pagination_works_for_templates() {
     List<McpResourceTemplate> templates =
         IntStream.range(0, 3)
             .mapToObj(
@@ -215,7 +218,7 @@ class McpResourcesServiceTest {
   }
 
   @Test
-  void invalidCursorThrowsException() {
+  void invalid_cursor_throws_exception() {
     var params = new PaginatedRequestParams("not-valid-base64!!!", null);
     assertThatThrownBy(() -> service.listResources(params))
         .isInstanceOf(JsonRpcException.class)
@@ -223,7 +226,7 @@ class McpResourcesServiceTest {
   }
 
   @Test
-  void duplicateUriTemplateThrowsException() {
+  void duplicate_uri_template_throws_exception() {
     var t1 = template("test://items/{id}", "T1", "first", "text/plain");
     var t2 = template("test://items/{id}", "T2", "duplicate", "text/plain");
 
@@ -235,7 +238,7 @@ class McpResourcesServiceTest {
   }
 
   @Test
-  void outOfRangeCursorReturnsEmptyPage() {
+  void out_of_range_cursor_returns_empty_page() {
     var svc =
         new McpResourcesService(
             List.of(() -> List.of(resource("test://a", "A", "desc", "text/plain"))), List.of(), 2);

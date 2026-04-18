@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Map;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.ParameterResolutionException;
 import org.jwcarman.methodical.param.ParameterInfo;
@@ -28,6 +30,7 @@ import org.jwcarman.specular.TypeRef;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class StringMapArgResolverTest {
 
   enum Color {
@@ -61,28 +64,28 @@ class StringMapArgResolverTest {
   private final StringMapArgResolver resolver = new StringMapArgResolver(conversionService);
 
   @Test
-  void supportsStringParameter() {
+  void supports_string_parameter() {
     assertThat(resolver.supports(paramInfo("stringArg", String.class))).isTrue();
   }
 
   @Test
-  void supportsConvertibleParameter() {
+  void supports_convertible_parameter() {
     assertThat(resolver.supports(paramInfo("intArg", int.class))).isTrue();
     assertThat(resolver.supports(paramInfo("enumArg", Color.class))).isTrue();
   }
 
   @Test
-  void supportsMapParameter() {
+  void supports_map_parameter() {
     assertThat(resolver.supports(paramInfo("mapArg", Map.class))).isTrue();
   }
 
   @Test
-  void doesNotSupportUnconvertibleParameter() {
+  void does_not_support_unconvertible_parameter() {
     assertThat(resolver.supports(paramInfo("unsupportedArg", Unconvertible.class))).isFalse();
   }
 
   @Test
-  void resolvesWholeMapForMapParameter() {
+  void resolves_whole_map_for_map_parameter() {
     var info = paramInfo("mapArg", Map.class);
     var args = Map.of("a", "1", "b", "2");
 
@@ -92,7 +95,7 @@ class StringMapArgResolverTest {
   }
 
   @Test
-  void resolvesEmptyMapForMapParameterWhenArgumentsAreNull() {
+  void resolves_empty_map_for_map_parameter_when_arguments_are_null() {
     var info = paramInfo("mapArg", Map.class);
 
     Object resolved = resolver.resolve(info, null);
@@ -101,7 +104,7 @@ class StringMapArgResolverTest {
   }
 
   @Test
-  void resolvesStringValueByParameterName() {
+  void resolves_string_value_by_parameter_name() {
     var info = paramInfo("stringArg", String.class);
 
     Object resolved = resolver.resolve(info, Map.of("name", "alice"));
@@ -110,7 +113,7 @@ class StringMapArgResolverTest {
   }
 
   @Test
-  void convertsValueToDeclaredType() {
+  void converts_value_to_declared_type() {
     var info = paramInfo("intArg", int.class);
 
     Object resolved = resolver.resolve(info, Map.of("age", "42"));
@@ -119,7 +122,7 @@ class StringMapArgResolverTest {
   }
 
   @Test
-  void convertsValueToEnum() {
+  void converts_value_to_enum() {
     var info = paramInfo("enumArg", Color.class);
 
     Object resolved = resolver.resolve(info, Map.of("color", "RED"));
@@ -128,21 +131,21 @@ class StringMapArgResolverTest {
   }
 
   @Test
-  void returnsNullWhenArgumentMissing() {
+  void returns_null_when_argument_missing() {
     var info = paramInfo("stringArg", String.class);
 
     assertThat(resolver.resolve(info, Map.of())).isNull();
   }
 
   @Test
-  void returnsNullWhenArgumentsAreNullForScalarParameter() {
+  void returns_null_when_arguments_are_null_for_scalar_parameter() {
     var info = paramInfo("stringArg", String.class);
 
     assertThat(resolver.resolve(info, null)).isNull();
   }
 
   @Test
-  void wrapsConversionFailureInParameterResolutionException() {
+  void wraps_conversion_failure_in_parameter_resolution_exception() {
     var info = paramInfo("intArg", int.class);
 
     var args = Map.of("age", "not-a-number");

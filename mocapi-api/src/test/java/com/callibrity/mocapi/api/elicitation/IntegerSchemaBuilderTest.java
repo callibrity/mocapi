@@ -18,12 +18,15 @@ package com.callibrity.mocapi.api.elicitation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.NumberSchema;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class IntegerSchemaBuilderTest {
 
   @Test
-  void minimalIntegerShouldHaveTypeAndDescription() {
+  void minimal_integer_should_have_type_and_description() {
     NumberSchema schema = new IntegerSchemaBuilder().description("Age").build();
 
     assertThat(schema.type()).isEqualTo("integer");
@@ -31,35 +34,35 @@ class IntegerSchemaBuilderTest {
   }
 
   @Test
-  void titleShouldBeIncluded() {
+  void title_should_be_included() {
     NumberSchema schema = new IntegerSchemaBuilder().description("Age").title("Your Age").build();
 
     assertThat(schema.title()).isEqualTo("Your Age");
   }
 
   @Test
-  void defaultValueShouldBeIncluded() {
+  void default_value_should_be_included() {
     NumberSchema schema = new IntegerSchemaBuilder().description("Age").defaultValue(25).build();
 
     assertThat(schema.defaultValue()).isEqualTo(25);
   }
 
   @Test
-  void minimumShouldBeIncluded() {
+  void minimum_should_be_included() {
     NumberSchema schema = new IntegerSchemaBuilder().description("Age").minimum(0).build();
 
     assertThat(schema.minimum()).isEqualTo(0);
   }
 
   @Test
-  void maximumShouldBeIncluded() {
+  void maximum_should_be_included() {
     NumberSchema schema = new IntegerSchemaBuilder().description("Age").maximum(150).build();
 
     assertThat(schema.maximum()).isEqualTo(150);
   }
 
   @Test
-  void constraintChainingShouldWork() {
+  void constraint_chaining_should_work() {
     NumberSchema schema =
         new IntegerSchemaBuilder()
             .description("Age")
@@ -76,14 +79,14 @@ class IntegerSchemaBuilderTest {
   }
 
   @Test
-  void defaultShouldBeRequired() {
+  void default_should_be_required() {
     IntegerSchemaBuilder builder = new IntegerSchemaBuilder();
 
     assertThat(builder.isRequired()).isTrue();
   }
 
   @Test
-  void optionalShouldSetRequiredFalse() {
+  void optional_should_set_required_false() {
     IntegerSchemaBuilder builder = new IntegerSchemaBuilder().optional();
 
     assertThat(builder.isRequired()).isFalse();

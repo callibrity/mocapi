@@ -19,18 +19,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.EmptyResult;
 import com.callibrity.mocapi.server.session.McpSessionService;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpLifecycleServiceTest {
 
   @Mock private McpSessionService sessionService;
 
   @Test
-  void cancelledWithNullParamsDoesNotThrow() {
+  void cancelled_with_null_params_does_not_throw() {
     var service = new McpLifecycleService(sessionService);
 
     EmptyResult result = service.cancelled(null);

@@ -32,10 +32,13 @@ import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.session.McpSession;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.TypeReference;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MocapiRuntimeHintsTest {
 
   private final RuntimeHints hints = new RuntimeHints();
@@ -45,12 +48,12 @@ class MocapiRuntimeHintsTest {
   }
 
   @Test
-  void registersBindingHintsForMcpSession() {
+  void registers_binding_hints_for_mcp_session() {
     assertTypeHintRegistered(McpSession.class);
   }
 
   @Test
-  void registersHintsForJsonRpcEnvelopeTypes() {
+  void registers_hints_for_json_rpc_envelope_types() {
     assertTypeHintRegistered(CallToolResult.class);
     assertTypeHintRegistered(GetPromptResult.class);
     assertTypeHintRegistered(ReadResourceResult.class);
@@ -58,7 +61,7 @@ class MocapiRuntimeHintsTest {
   }
 
   @Test
-  void registersHintsForDescriptorTypes() {
+  void registers_hints_for_descriptor_types() {
     assertTypeHintRegistered(Tool.class);
     assertTypeHintRegistered(Prompt.class);
     assertTypeHintRegistered(Resource.class);
@@ -66,25 +69,25 @@ class MocapiRuntimeHintsTest {
   }
 
   @Test
-  void registersHintsForSealedContentBlockHierarchy() {
+  void registers_hints_for_sealed_content_block_hierarchy() {
     assertTypeHintRegistered(ContentBlock.class);
     assertTypeHintRegistered(TextContent.class);
   }
 
   @Test
-  void registersHintsForSealedResourceContentsHierarchy() {
+  void registers_hints_for_sealed_resource_contents_hierarchy() {
     assertTypeHintRegistered(ResourceContents.class);
     assertTypeHintRegistered(TextResourceContents.class);
     assertTypeHintRegistered(BlobResourceContents.class);
   }
 
   @Test
-  void registersHintsForNestedPromptMessage() {
+  void registers_hints_for_nested_prompt_message() {
     assertTypeHintRegistered(PromptMessage.class);
   }
 
   @Test
-  void registersResourcePatternsForJsonSkemaMetaSchemas() {
+  void registers_resource_patterns_for_json_skema_meta_schemas() {
     var patterns =
         hints
             .resources()

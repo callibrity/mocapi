@@ -23,12 +23,15 @@ import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.SetLevelRequestParams;
 import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.session.McpSessionService;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpLoggingServiceTest {
 
   @Test
-  void setLevelDelegatesToSessionService() {
+  void set_level_delegates_to_session_service() {
     McpSessionService sessionService = mock(McpSessionService.class);
     McpLoggingService service = new McpLoggingService(sessionService);
     McpSession session = new McpSession("sess-1", "2025-11-25", null, null, LoggingLevel.WARNING);

@@ -43,6 +43,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,6 +60,7 @@ import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class StreamableHttpControllerTest {
 
   private static final String POST_ACCEPT = "application/json, text/event-stream";
@@ -71,16 +74,16 @@ class StreamableHttpControllerTest {
   private StreamableHttpController controller;
 
   @BeforeEach
-  void setUp() {
+  void set_up() {
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
     controller = new StreamableHttpController(protocol, validator, sseStreamFactory, objectMapper);
   }
 
   @Nested
-  class PostInitialize {
+  class Post_initialize {
 
     @Test
-    void initializeReturnsJsonWithSessionHeader() throws Exception {
+    void initialize_returns_json_with_session_header() throws Exception {
       doAnswer(
               invocation -> {
                 McpTransport transport = invocation.getArgument(2);
@@ -104,7 +107,7 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void initializeDelegatesHandleCallToProtocol() throws Exception {
+    void initialize_delegates_handle_call_to_protocol() throws Exception {
       doAnswer(
               invocation -> {
                 McpTransport transport = invocation.getArgument(2);
@@ -125,15 +128,15 @@ class StreamableHttpControllerTest {
   }
 
   @Nested
-  class PostWithSession {
+  class Post_with_session {
 
     @BeforeEach
-    void setUpSession() {
+    void set_up_session() {
       when(protocol.createContext(anyString(), any())).thenReturn(validContext("session-1"));
     }
 
     @Test
-    void toolsCallReturnsSseWhenHandlerSendsNotificationFirst() throws Exception {
+    void tools_call_returns_sse_when_handler_sends_notification_first() throws Exception {
       SseEmitter emitter = new SseEmitter();
       when(sseStreamFactory.responseStream(any(McpContext.class))).thenReturn(sseStream);
       when(sseStream.createEmitter()).thenReturn(emitter);
@@ -161,7 +164,7 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void toolsCallReturnsJsonWhenHandlerSendsOnlyResponse() throws Exception {
+    void tools_call_returns_json_when_handler_sends_only_response() throws Exception {
       doAnswer(
               invocation -> {
                 McpTransport transport = invocation.getArgument(2);
@@ -181,7 +184,7 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void nonToolsCallReturnsJson() throws Exception {
+    void non_tools_call_returns_json() throws Exception {
       doAnswer(
               invocation -> {
                 McpTransport transport = invocation.getArgument(2);
@@ -202,7 +205,7 @@ class StreamableHttpControllerTest {
     }
 
     @Test
-    void handlerExceptionCompletesFutureExceptionally() {
+    void handler_exception_completes_future_exceptionally() {
       doThrow(new RuntimeException("handler blew up"))
           .when(protocol)
           .handleCall(any(), any(), any());

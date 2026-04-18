@@ -17,18 +17,21 @@ package com.callibrity.mocapi.api.elicitation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpElicitationExceptionTest {
 
   @Test
-  void singleArgConstructorShouldSetMessage() {
+  void single_arg_constructor_should_set_message() {
     var ex = new McpElicitationException("elicitation failed");
     assertThat(ex).hasMessage("elicitation failed").hasNoCause();
   }
 
   @Test
-  void twoArgConstructorShouldSetMessageAndCause() {
+  void two_arg_constructor_should_set_message_and_cause() {
     var cause = new RuntimeException("root cause");
     var ex = new McpElicitationException("elicitation failed", cause);
     assertThat(ex).hasMessage("elicitation failed").hasCause(cause);

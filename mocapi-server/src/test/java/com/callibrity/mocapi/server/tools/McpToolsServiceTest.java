@@ -43,6 +43,8 @@ import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.jwcarman.methodical.MethodInvokerFactory;
@@ -55,6 +57,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpToolsServiceTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
@@ -89,7 +92,7 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void listToolsReturnsAllToolDescriptors() {
+  void list_tools_returns_all_tool_descriptors() {
     var result = service.listTools(null);
 
     assertThat(result.tools()).hasSize(4);
@@ -103,7 +106,7 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void listToolsDescriptorsHaveInputSchemas() {
+  void list_tools_descriptors_have_input_schemas() {
     var result = service.listTools(null);
 
     var helloTool =
@@ -113,7 +116,7 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void callSimpleToolReturnsResult() {
+  void call_simple_tool_returns_result() {
     var params =
         new CallToolRequestParams(
             "hello-tool.say-hello", mapper.createObjectNode().put("name", "World"), null, null);
@@ -126,7 +129,7 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void callVoidToolReturnsEmptyResult() {
+  void call_void_tool_returns_empty_result() {
     var params =
         new CallToolRequestParams(
             "fire-and-forget", mapper.createObjectNode().put("message", "hello"), null, null);
@@ -140,7 +143,7 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void callInteractiveToolWithProgressAndResult() {
+  void call_interactive_tool_with_progress_and_result() {
     var transport = mock(McpTransport.class);
     var session = new McpSession("test-session", "2025-11-25", null, null, LoggingLevel.DEBUG);
     var progressToken = JsonNodeFactory.instance.stringNode("tok-1");
@@ -179,7 +182,7 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void callMissingToolThrowsException() {
+  void call_missing_tool_throws_exception() {
     var params = new CallToolRequestParams("nonexistent", mapper.createObjectNode(), null, null);
 
     assertThatThrownBy(() -> service.callTool(params))
@@ -188,7 +191,7 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void callToolWithInvalidInputThrowsException() {
+  void call_tool_with_invalid_input_throws_exception() {
     var params =
         new CallToolRequestParams("hello-tool.say-hello", mapper.createObjectNode(), null, null);
 
@@ -196,7 +199,7 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void callThrowingToolReturnsErrorResult() {
+  void call_throwing_tool_returns_error_result() {
     var params =
         new CallToolRequestParams(
             "throwing-tool.explode", mapper.createObjectNode().put("input", "test"), null, null);
@@ -210,25 +213,25 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void lookupFindsToolByName() {
+  void lookup_finds_tool_by_name() {
     var tool = service.lookup("hello-tool.say-hello");
     assertThat(tool).isNotNull();
     assertThat(tool.descriptor().name()).isEqualTo("hello-tool.say-hello");
   }
 
   @Test
-  void isEmptyReturnsFalseWhenToolsExist() {
+  void is_empty_returns_false_when_tools_exist() {
     assertThat(service.isEmpty()).isFalse();
   }
 
   @Test
-  void isEmptyReturnsTrueWhenNoTools() {
+  void is_empty_returns_true_when_no_tools() {
     var emptyService = new McpToolsService(List.of(), mapper, correlationService);
     assertThat(emptyService.isEmpty()).isTrue();
   }
 
   @Test
-  void callToolTimeoutReturnsErrorResultWithDescriptiveMessage() {
+  void call_tool_timeout_returns_error_result_with_descriptive_message() {
     var timeoutTool =
         AnnotationMcpTool.createTools(generator, invokerFactory, resolvers, new TimeoutTool())
             .stream()
@@ -252,7 +255,7 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void toCallToolResultHandlesNullResult() {
+  void to_call_tool_result_handles_null_result() {
     var result = service.toCallToolResult(null);
     assertThat(result.isError()).isNull();
     assertThat(result.structuredContent()).isNull();
@@ -261,7 +264,7 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void toCallToolResultPassesThroughCallToolResult() {
+  void to_call_tool_result_passes_through_call_tool_result() {
     var original =
         new com.callibrity.mocapi.model.CallToolResult(
             List.of(new TextContent("test", null)), null, null);
@@ -270,27 +273,27 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void interactiveToolOutputSchemaIsGenerated() {
+  void interactive_tool_output_schema_is_generated() {
     var tool = service.lookup("interactive-greet");
     assertThat(tool.descriptor().outputSchema()).isNotNull();
     assertThat(tool.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
   }
 
   @Test
-  void simpleToolOutputSchemaIsGenerated() {
+  void simple_tool_output_schema_is_generated() {
     var tool = service.lookup("hello-tool.say-hello");
     assertThat(tool.descriptor().outputSchema()).isNotNull();
     assertThat(tool.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
   }
 
   @Test
-  void voidToolHasNoOutputSchema() {
+  void void_tool_has_no_output_schema() {
     var tool = service.lookup("fire-and-forget");
     assertThat(tool.descriptor().outputSchema()).isNull();
   }
 
   @Test
-  void callToolWithNullArgumentsFallsToEmptyObject() {
+  void call_tool_with_null_arguments_falls_to_empty_object() {
     var params = new CallToolRequestParams("fire-and-forget", null, null, null);
 
     // Null arguments are replaced with an empty ObjectNode, which then fails schema validation
@@ -301,7 +304,7 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void toCallToolResultWithNonObjectResultHasNullStructuredContent() {
+  void to_call_tool_result_with_non_object_result_has_null_structured_content() {
     var result = service.toCallToolResult("just a string");
 
     assertThat(result.isError()).isNull();
@@ -311,7 +314,7 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void toErrorCallToolResultUsesToStringWhenMessageIsNull() {
+  void to_error_call_tool_result_uses_to_string_when_message_is_null() {
     var exception = new RuntimeException((String) null);
     var result = McpToolsService.toErrorCallToolResult(exception);
 

@@ -26,6 +26,8 @@ import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.util.function.Supplier;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -36,24 +38,25 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class StreamableHttpTransportTest {
 
   @Mock SseStream sseStream;
 
   @Test
-  void exposesSessionIdHeaderConstant() {
+  void exposes_session_id_header_constant() {
     assertThat(StreamableHttpTransport.SESSION_ID_HEADER).isEqualTo("MCP-Session-Id");
   }
 
   @Test
-  void responseFutureIsInitiallyIncomplete() {
+  void response_future_is_initially_incomplete() {
     var transport = new StreamableHttpTransport(unusedSupplier());
 
     assertThat(transport.response()).isNotCompleted();
   }
 
   @Test
-  void sendResponseCompletesFutureWithJsonEntity() {
+  void send_response_completes_future_with_json_entity() {
     var transport = new StreamableHttpTransport(unusedSupplier());
     var result =
         new JsonRpcResult(
@@ -70,7 +73,7 @@ class StreamableHttpTransportTest {
   }
 
   @Test
-  void sendErrorCompletesFutureWithJsonEntity() {
+  void send_error_completes_future_with_json_entity() {
     var transport = new StreamableHttpTransport(unusedSupplier());
     var error = new JsonRpcError(-32000, "err", JsonNodeFactory.instance.numberNode(1));
 
@@ -82,7 +85,7 @@ class StreamableHttpTransportTest {
   }
 
   @Test
-  void sendNotificationUpgradesToSse() {
+  void send_notification_upgrades_to_sse() {
     SseEmitter emitter = new SseEmitter();
     when(sseStream.createEmitter()).thenReturn(emitter);
     var transport = new StreamableHttpTransport(() -> sseStream);
@@ -98,7 +101,7 @@ class StreamableHttpTransportTest {
   }
 
   @Test
-  void subsequentSendsAfterSseUpgradeGoToStream() {
+  void subsequent_sends_after_sse_upgrade_go_to_stream() {
     when(sseStream.createEmitter()).thenReturn(new SseEmitter());
     var transport = new StreamableHttpTransport(() -> sseStream);
 
@@ -112,7 +115,7 @@ class StreamableHttpTransportTest {
   }
 
   @Test
-  void sendAfterJsonCommitThrows() {
+  void send_after_json_commit_throws() {
     var transport = new StreamableHttpTransport(unusedSupplier());
     transport.send(
         new JsonRpcResult(
@@ -126,7 +129,7 @@ class StreamableHttpTransportTest {
   }
 
   @Test
-  void sendAfterSseTerminalResponseThrows() {
+  void send_after_sse_terminal_response_throws() {
     when(sseStream.createEmitter()).thenReturn(new SseEmitter());
     var transport = new StreamableHttpTransport(() -> sseStream);
     transport.send(new JsonRpcNotification("2.0", "notifications/progress", null));
@@ -141,7 +144,7 @@ class StreamableHttpTransportTest {
   }
 
   @Test
-  void emitSessionInitializedAddsSessionHeaderOnJsonCommit() {
+  void emit_session_initialized_adds_session_header_on_json_commit() {
     var transport = new StreamableHttpTransport(unusedSupplier());
 
     transport.emit(new McpEvent.SessionInitialized("sess-42", "2025-11-25"));
@@ -155,7 +158,7 @@ class StreamableHttpTransportTest {
   }
 
   @Test
-  void emitSessionInitializedAddsSessionHeaderOnSseCommit() {
+  void emit_session_initialized_adds_session_header_on_sse_commit() {
     when(sseStream.createEmitter()).thenReturn(new SseEmitter());
     var transport = new StreamableHttpTransport(() -> sseStream);
 
@@ -168,7 +171,7 @@ class StreamableHttpTransportTest {
   }
 
   @Test
-  void withoutEmitSessionHeaderIsAbsent() {
+  void without_emit_session_header_is_absent() {
     var transport = new StreamableHttpTransport(unusedSupplier());
 
     transport.send(

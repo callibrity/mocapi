@@ -20,8 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import java.lang.reflect.Parameter;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ParametersTest {
 
   // --- Reflective targets ---
@@ -53,14 +56,14 @@ class ParametersTest {
   // --- Tests ---
 
   @Test
-  void descriptionOfShouldReturnNullWhenSchemaDescriptionIsBlank() throws Exception {
+  void description_of_should_return_null_when_schema_description_is_blank() throws Exception {
     Parameter param =
         getClass().getDeclaredMethod("schemaWithBlankDescription", String.class).getParameters()[0];
     assertThat(Parameters.descriptionOf(param)).isNull();
   }
 
   @Test
-  void titleOfShouldFallBackToCapitalizedNameWhenSchemaTitleIsBlank() throws Exception {
+  void title_of_should_fall_back_to_capitalized_name_when_schema_title_is_blank() throws Exception {
     Parameter param =
         getClass().getDeclaredMethod("schemaWithBlankTitle", String.class).getParameters()[0];
     // Falls back to Names.capitalizedWords(parameter.getName()) — the parameter name from bytecode
@@ -68,21 +71,22 @@ class ParametersTest {
   }
 
   @Test
-  void titleOfShouldReturnSchemaTitleWhenPresent() throws Exception {
+  void title_of_should_return_schema_title_when_present() throws Exception {
     Parameter param =
         getClass().getDeclaredMethod("schemaWithTitle", String.class).getParameters()[0];
     assertThat(Parameters.titleOf(param)).isEqualTo("Custom Title");
   }
 
   @Test
-  void isRequiredShouldReturnFalseWhenNullableAnnotationPresent() throws Exception {
+  void is_required_should_return_false_when_nullable_annotation_present() throws Exception {
     Parameter param =
         getClass().getDeclaredMethod("nullableParam", String.class).getParameters()[0];
     assertThat(Parameters.isRequired(param)).isFalse();
   }
 
   @Test
-  void isRequiredShouldReturnFalseWhenSchemaRequiredModeIsNotRequired() throws Exception {
+  void is_required_should_return_false_when_schema_required_mode_is_not_required()
+      throws Exception {
     Parameter param =
         getClass().getDeclaredMethod("schemaNotRequired", String.class).getParameters()[0];
     assertThat(Parameters.isRequired(param)).isFalse();

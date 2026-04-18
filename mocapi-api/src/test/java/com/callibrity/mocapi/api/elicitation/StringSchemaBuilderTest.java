@@ -18,12 +18,15 @@ package com.callibrity.mocapi.api.elicitation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.StringSchema;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class StringSchemaBuilderTest {
 
   @Test
-  void minimalStringShouldHaveTypeAndDescription() {
+  void minimal_string_should_have_type_and_description() {
     StringSchema schema = new StringSchemaBuilder().description("Email").build();
 
     assertThat(schema.type()).isEqualTo("string");
@@ -31,7 +34,7 @@ class StringSchemaBuilderTest {
   }
 
   @Test
-  void titleShouldBeIncluded() {
+  void title_should_be_included() {
     StringSchema schema =
         new StringSchemaBuilder().description("Email").title("Your Email").build();
 
@@ -39,7 +42,7 @@ class StringSchemaBuilderTest {
   }
 
   @Test
-  void defaultValueShouldBeIncluded() {
+  void default_value_should_be_included() {
     StringSchema schema =
         new StringSchemaBuilder().description("Name").defaultValue("Alice").build();
 
@@ -47,7 +50,7 @@ class StringSchemaBuilderTest {
   }
 
   @Test
-  void minLengthAndMaxLengthShouldBeIncluded() {
+  void min_length_and_max_length_should_be_included() {
     StringSchema schema =
         new StringSchemaBuilder().description("Code").minLength(3).maxLength(10).build();
 
@@ -56,21 +59,21 @@ class StringSchemaBuilderTest {
   }
 
   @Test
-  void emailShorthandShouldSetFormat() {
+  void email_shorthand_should_set_format() {
     StringSchema schema = new StringSchemaBuilder().description("Email").email().build();
 
     assertThat(schema.format().toJson()).isEqualTo("email");
   }
 
   @Test
-  void uriShorthandShouldSetFormat() {
+  void uri_shorthand_should_set_format() {
     StringSchema schema = new StringSchemaBuilder().description("URL").uri().build();
 
     assertThat(schema.format().toJson()).isEqualTo("uri");
   }
 
   @Test
-  void constraintChainingShouldWork() {
+  void constraint_chaining_should_work() {
     StringSchema schema =
         new StringSchemaBuilder()
             .description("Code")
@@ -87,14 +90,14 @@ class StringSchemaBuilderTest {
   }
 
   @Test
-  void defaultShouldBeRequired() {
+  void default_should_be_required() {
     StringSchemaBuilder builder = new StringSchemaBuilder();
 
     assertThat(builder.isRequired()).isTrue();
   }
 
   @Test
-  void optionalShouldSetRequiredFalse() {
+  void optional_should_set_required_false() {
     StringSchemaBuilder builder = new StringSchemaBuilder().optional();
 
     assertThat(builder.isRequired()).isFalse();

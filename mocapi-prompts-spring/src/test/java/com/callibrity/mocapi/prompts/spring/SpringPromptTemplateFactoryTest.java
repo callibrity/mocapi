@@ -20,19 +20,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.Map;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class SpringPromptTemplateFactoryTest {
 
   private final SpringPromptTemplateFactory factory = new SpringPromptTemplateFactory();
 
   @Test
-  void returnsSpringPromptTemplateInstance() {
+  void returns_spring_prompt_template_instance() {
     assertThat(factory.create(Role.USER, "hello")).isInstanceOf(SpringPromptTemplate.class);
   }
 
   @Test
-  void producesTemplatesThatRenderAgainstArguments() {
+  void produces_templates_that_render_against_arguments() {
     var template = factory.create(Role.USER, "Hello ${name}!");
 
     var result = template.render(Map.of("name", "Mocapi"));
@@ -42,7 +45,7 @@ class SpringPromptTemplateFactoryTest {
   }
 
   @Test
-  void propagatesDescriptionToRenderedResults() {
+  void propagates_description_to_rendered_results() {
     var template = factory.create(Role.USER, "a summary prompt", "${v}");
 
     var result = template.render(Map.of("v", "hi"));
@@ -51,14 +54,14 @@ class SpringPromptTemplateFactoryTest {
   }
 
   @Test
-  void twoArgOverloadOmitsDescription() {
+  void two_arg_overload_omits_description() {
     var template = factory.create(Role.USER, "${v}");
 
     assertThat(template.render(Map.of("v", "hi")).description()).isNull();
   }
 
   @Test
-  void defaultHelperSupportsBackslashEscape() {
+  void default_helper_supports_backslash_escape() {
     var template = factory.create(Role.USER, "literal: \\${name}");
 
     assertThat(
@@ -68,7 +71,7 @@ class SpringPromptTemplateFactoryTest {
   }
 
   @Test
-  void supportsDefaultValueSyntax() {
+  void supports_default_value_syntax() {
     var template = factory.create(Role.USER, "Hi ${name:stranger}");
 
     assertThat(((TextContent) template.render(Map.of()).messages().getFirst().content()).text())

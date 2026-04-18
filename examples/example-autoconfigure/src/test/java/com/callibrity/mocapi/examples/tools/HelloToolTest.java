@@ -17,12 +17,15 @@ package com.callibrity.mocapi.examples.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class HelloToolTest {
 
   @Test
-  void helloShouldReturnMessage() {
+  void hello_should_return_message() {
     var tool = new HelloTool();
     var response = tool.sayHello("Mocapi");
     assertThat(response).isNotNull();

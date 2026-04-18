@@ -18,50 +18,53 @@ package com.callibrity.mocapi.transport.http;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpRequestValidatorTest {
 
   private final McpRequestValidator validator =
       new McpRequestValidator(List.of("localhost", "example.com"));
 
   @Test
-  void nullOriginIsValid() {
+  void null_origin_is_valid() {
     assertThat(validator.isValidOrigin(null)).isTrue();
   }
 
   @Test
-  void allowedOriginIsValid() {
+  void allowed_origin_is_valid() {
     assertThat(validator.isValidOrigin("http://localhost")).isTrue();
   }
 
   @Test
-  void allowedOriginWithPortIsValid() {
+  void allowed_origin_with_port_is_valid() {
     assertThat(validator.isValidOrigin("http://localhost:8080")).isTrue();
   }
 
   @Test
-  void allowedOriginWithHttpsIsValid() {
+  void allowed_origin_with_https_is_valid() {
     assertThat(validator.isValidOrigin("https://example.com")).isTrue();
   }
 
   @Test
-  void disallowedOriginIsInvalid() {
+  void disallowed_origin_is_invalid() {
     assertThat(validator.isValidOrigin("http://evil.com")).isFalse();
   }
 
   @Test
-  void malformedOriginIsInvalid() {
+  void malformed_origin_is_invalid() {
     assertThat(validator.isValidOrigin("not a valid uri!@#$")).isFalse();
   }
 
   @Test
-  void emptyOriginIsInvalid() {
+  void empty_origin_is_invalid() {
     assertThat(validator.isValidOrigin("")).isFalse();
   }
 
   @Test
-  void originWithNoHostIsInvalid() {
+  void origin_with_no_host_is_invalid() {
     assertThat(validator.isValidOrigin("file:///etc/passwd")).isFalse();
   }
 }
