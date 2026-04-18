@@ -15,7 +15,6 @@
  */
 package com.callibrity.mocapi.transport.http.writer;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.ripcurl.core.JsonRpcCall;
@@ -53,10 +52,5 @@ class ClosedMessageWriterTest {
     assertThatThrownBy(() -> ClosedMessageWriter.INSTANCE.write(call))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("closed response");
-  }
-
-  @Test
-  void instanceIsSingleton() {
-    assertThat(ClosedMessageWriter.INSTANCE).isSameAs(ClosedMessageWriter.INSTANCE);
   }
 }

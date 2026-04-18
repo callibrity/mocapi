@@ -97,7 +97,7 @@ class DefaultSseStreamFactoryTest {
 
   @Test
   void sessionStreamCreatesOdysseyStreamNamedBySessionId() {
-    when(odyssey.stream(eq("session-42"), eq(JsonRpcMessage.class))).thenReturn(stream);
+    when(odyssey.stream("session-42", JsonRpcMessage.class)).thenReturn(stream);
 
     factory.sessionStream(new StubContext("session-42"));
 
@@ -122,18 +122,19 @@ class DefaultSseStreamFactoryTest {
   @Test
   void resumeStreamThrowsIfDecryptedEventIdHasNoColon() {
     String sessionId = "session-99";
-    String plaintext = "no-colon-in-this-string";
-    String encrypted = encrypt(sessionId, plaintext);
+    String encrypted = encrypt(sessionId, "no-colon-in-this-string");
+    var context = new StubContext(sessionId);
 
-    assertThatThrownBy(() -> factory.resumeStream(new StubContext(sessionId), encrypted))
+    assertThatThrownBy(() -> factory.resumeStream(context, encrypted))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Invalid encrypted event ID format");
   }
 
   @Test
   void resumeStreamThrowsOnMalformedBase64() {
-    assertThatThrownBy(
-            () -> factory.resumeStream(new StubContext("session-1"), "not!!!valid~base64"))
+    var context = new StubContext("session-1");
+
+    assertThatThrownBy(() -> factory.resumeStream(context, "not!!!valid~base64"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Malformed Base64");
   }
@@ -141,18 +142,18 @@ class DefaultSseStreamFactoryTest {
   @Test
   void resumeStreamThrowsOnTamperedCiphertext() {
     String encrypted = encrypt("session-1", "stream-x:evt-1");
-    // Flip a bit in the base64 ciphertext
     byte[] raw = Base64.getDecoder().decode(encrypted);
     raw[raw.length - 1] ^= 0x01;
     String tampered = Base64.getEncoder().encodeToString(raw);
+    var context = new StubContext("session-1");
 
-    assertThatThrownBy(() -> factory.resumeStream(new StubContext("session-1"), tampered))
+    assertThatThrownBy(() -> factory.resumeStream(context, tampered))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Invalid or tampered");
   }
 
   @Test
-  void encryptingMapperProducesEncryptedEventIdAndSerializedData() throws Exception {
+  void encryptingMapperProducesEncryptedEventIdAndSerializedData() {
     String sessionId = "session-mapper-test";
     when(odyssey.stream(anyString(), eq(JsonRpcMessage.class))).thenReturn(stream);
     when(subscriberConfig.mapper(any())).thenReturn(subscriberConfig);
@@ -203,8 +204,9 @@ class DefaultSseStreamFactoryTest {
   @Test
   void sessionIdActsAsContextSoOtherSessionCannotDecrypt() {
     String encrypted = encrypt("session-A", "stream-x:evt-1");
+    var wrongSessionContext = new StubContext("session-B");
 
-    assertThatThrownBy(() -> factory.resumeStream(new StubContext("session-B"), encrypted))
+    assertThatThrownBy(() -> factory.resumeStream(wrongSessionContext, encrypted))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Invalid or tampered");
   }

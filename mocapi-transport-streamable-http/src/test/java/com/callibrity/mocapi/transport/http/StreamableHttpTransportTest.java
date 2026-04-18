@@ -118,8 +118,9 @@ class StreamableHttpTransportTest {
         new JsonRpcResult(
             JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(1)));
 
-    assertThatThrownBy(
-            () -> transport.send(new JsonRpcNotification("2.0", "notifications/progress", null)))
+    var notification = new JsonRpcNotification("2.0", "notifications/progress", null);
+
+    assertThatThrownBy(() -> transport.send(notification))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("closed response");
   }
@@ -132,9 +133,9 @@ class StreamableHttpTransportTest {
     transport.send(
         new JsonRpcResult(
             JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(1)));
+    var late = new JsonRpcNotification("2.0", "notifications/late", null);
 
-    assertThatThrownBy(
-            () -> transport.send(new JsonRpcNotification("2.0", "notifications/late", null)))
+    assertThatThrownBy(() -> transport.send(late))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("closed response");
   }
