@@ -58,4 +58,26 @@
             </plugin>
         </plugins>
     </build>
+
+    <!--
+        Conformance is an internal test harness, not a consumable library.
+        central-publishing-maven-plugin ignores maven.deploy.skip; use its own
+        skipPublishing toggle so Sonatype doesn't publish us to Maven Central.
+    -->
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <configuration>
+                            <skipPublishing>true</skipPublishing>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

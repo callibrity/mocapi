@@ -38,4 +38,27 @@
         <module>nats</module>
         <module>stdio</module>
     </modules>
+
+    <!--
+        Examples must not be published to Maven Central. The central-publishing-maven-plugin
+        (registered as an extension in the parent's release profile) does NOT honor
+        maven.deploy.skip; it has its own <skipPublishing> toggle. Matching the parent's
+        release profile id ensures this only activates when -P release is set.
+    -->
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <configuration>
+                            <skipPublishing>true</skipPublishing>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
