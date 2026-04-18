@@ -15,7 +15,6 @@
  */
 package com.callibrity.mocapi.oauth2;
 
-import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
@@ -36,8 +35,12 @@ import org.springframework.validation.annotation.Validated;
  * chain to the MCP endpoint path.
  *
  * @param resource the absolute URL of this MCP server — the {@code resource} claim in the
- *     protected-resource metadata document. Required; mocapi has no safe default since it depends
- *     on the deployed host.
+ *     protected-resource metadata document. When omitted, defaults to {@code
+ *     spring.security.oauth2.resourceserver.jwt.audiences[0]} if exactly one audience is
+ *     configured; otherwise the module fails at startup asking for an explicit value. The resolved
+ *     resource must be a member of the configured audiences set — otherwise clients would follow
+ *     the metadata, obtain tokens with a matching {@code aud} claim, and the server would reject
+ *     them during validation. Mocapi enforces this invariant at startup.
  * @param authorizationServers OAuth2 authorization servers trusted to issue tokens for this
  *     resource. When empty (the default), the module falls back to the issuer configured via {@code
  *     spring.security.oauth2.resourceserver.jwt.issuer-uri} so single-IdP setups don't have to
@@ -60,7 +63,7 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties("mocapi.oauth2")
 @Validated
 public record MocapiOAuth2Properties(
-    @NotBlank String resource,
+    String resource,
     @DefaultValue List<String> authorizationServers,
     @DefaultValue List<String> scopes,
     String resourceDocumentation,

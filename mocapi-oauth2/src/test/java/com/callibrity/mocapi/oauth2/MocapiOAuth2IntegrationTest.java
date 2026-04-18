@@ -87,7 +87,9 @@ import org.springframework.web.client.RestClient;
       "mocapi.oauth2.resource=http://localhost:" + MocapiOAuth2IntegrationTest.TEST_PORT + "/mcp",
       "spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:"
           + MocapiOAuth2IntegrationTest.TEST_PORT,
-      "spring.security.oauth2.resourceserver.jwt.audiences=mcp-test",
+      "spring.security.oauth2.resourceserver.jwt.audiences=http://localhost:"
+          + MocapiOAuth2IntegrationTest.TEST_PORT
+          + "/mcp",
       "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
       "mocapi.server-title=Integration Test MCP"
     })
@@ -264,13 +266,15 @@ class MocapiOAuth2IntegrationTest {
     }
 
     /**
-     * Adds {@code aud=mcp-test} to every access token so the mocapi resource server's audience
-     * validator (wired automatically when {@code
-     * spring.security.oauth2.resourceserver.jwt.audiences} is set) accepts them.
+     * Stamps {@code aud=<resource>} onto every access token so the mocapi resource server's
+     * audience validator (wired automatically when {@code
+     * spring.security.oauth2.resourceserver.jwt.audiences} is set) accepts them. Must match both
+     * the {@code audiences} property and {@code mocapi.oauth2.resource} — the new resolver enforces
+     * that those two agree.
      */
     @Bean
     OAuth2TokenCustomizer<JwtEncodingContext> jwtTokenCustomizer() {
-      return ctx -> ctx.getClaims().audience(List.of("mcp-test"));
+      return ctx -> ctx.getClaims().audience(List.of("http://localhost:" + TEST_PORT + "/mcp"));
     }
 
     /**

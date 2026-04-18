@@ -99,12 +99,11 @@ public class MocapiOAuth2AutoConfiguration {
       ObjectProvider<JwtDecoder> jwtDecoder,
       ObjectProvider<OpaqueTokenIntrospector> opaqueTokenIntrospector,
       ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties) {
-    // The MocapiOAuth2Properties parameter is unused inside the body — it's injected so that
-    // Spring binds and validates the record at bean-creation time (@Validated + @NotBlank on
-    // the `resource` component), failing startup with a clear bind error if
-    // mocapi.oauth2.resource is missing before our own compliance checks below would fire.
     java.util.Objects.requireNonNull(properties);
     validateComplianceMode(jwtDecoder, opaqueTokenIntrospector, springResourceServerProperties);
+    // Eagerly resolve the resource identifier so mis-configuration surfaces at startup, not on
+    // the first client request. The resolved value feeds the metadata builder below.
+    resolveResource(properties, springResourceServerProperties);
   }
 
   /**
@@ -139,6 +138,60 @@ public class MocapiOAuth2AutoConfiguration {
           least one expected audience value to prevent confused-deputy token reuse. The property \
           applies to both JWT and opaque-token modes.""");
     }
+  }
+
+  /**
+   * Resolves the {@code resource} identifier mocapi advertises in its RFC 9728 protected-resource
+   * metadata document. Three paths:
+   *
+   * <ul>
+   *   <li>Explicitly set via {@code mocapi.oauth2.resource} — used as-is, but asserted to be a
+   *       member of {@code spring.security.oauth2.resourceserver.jwt.audiences} so clients that
+   *       follow the metadata and request tokens for that resource will produce an {@code aud}
+   *       claim the server actually accepts. A mismatch here would silently break every client.
+   *   <li>Unset, audiences has exactly one element — mocapi defaults the resource to that single
+   *       audience. Common case for simple setups (one Auth0 API, one Okta authorization server,
+   *       one Keycloak client) where duplicating the same string in two properties is pure
+   *       ceremony.
+   *   <li>Unset, audiences has zero or multiple elements — ambiguous. The zero case is already
+   *       rejected by {@link #validateComplianceMode} with a clearer message; the multi-audience
+   *       case fails here asking for an explicit resource value.
+   * </ul>
+   *
+   * <p>Package-private for direct unit testing.
+   */
+  static String resolveResource(
+      MocapiOAuth2Properties properties,
+      ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties) {
+    OAuth2ResourceServerProperties rs = springResourceServerProperties.getIfAvailable();
+    java.util.List<String> audiences =
+        (rs == null) ? java.util.List.of() : rs.getJwt().getAudiences();
+    String explicit = properties.resource();
+    if (StringUtils.isNotBlank(explicit)) {
+      if (!audiences.contains(explicit)) {
+        throw new IllegalStateException(
+            String.format(
+                "mocapi.oauth2.resource (%s) is not a member of "
+                    + "spring.security.oauth2.resourceserver.jwt.audiences (%s). Clients that "
+                    + "follow the protected-resource metadata document would request tokens with "
+                    + "aud=%s, and this server would then reject those tokens during audience "
+                    + "validation. Set mocapi.oauth2.resource to one of the configured audiences, "
+                    + "or add the resource value to the audiences list.",
+                explicit, audiences, explicit));
+      }
+      return explicit;
+    }
+    if (audiences.size() == 1) {
+      return audiences.get(0);
+    }
+    throw new IllegalStateException(
+        String.format(
+            "mocapi.oauth2.resource is not set and cannot be derived: "
+                + "spring.security.oauth2.resourceserver.jwt.audiences has %d entries (%s). "
+                + "Mocapi can default resource to the single audience when there is exactly one; "
+                + "otherwise set mocapi.oauth2.resource explicitly to pick which audience value "
+                + "should be published in the protected-resource metadata document.",
+            audiences.size(), audiences));
   }
 
   /**
@@ -232,8 +285,9 @@ public class MocapiOAuth2AutoConfiguration {
       ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties,
       ObjectProvider<Implementation> mcpServerInfo,
       ObjectProvider<OAuth2ProtectedResourceMetadataCustomizer> userCustomizers) {
+    String resolvedResource = resolveResource(properties, springResourceServerProperties);
     return builder -> {
-      builder.resource(properties.resource());
+      builder.resource(resolvedResource);
       authorizationServersFor(properties, springResourceServerProperties)
           .forEach(builder::authorizationServer);
       properties.scopes().forEach(builder::scope);

@@ -22,21 +22,40 @@ Add the starter to your build — it pulls `mocapi-streamable-http-spring-boot-s
 
 Configure your identity provider and the resource you're protecting:
 
+**Minimum configuration** — for the common single-audience case, two standard Spring Boot properties are enough:
+
 ```yaml
 spring:
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: https://idp.example.com          # standard Spring Boot property
+          issuer-uri: https://idp.example.com
           audiences:
-            - mcp.example.com                          # standard Spring Boot property
+            - https://mcp.example.com
+```
+
+When `spring.security.oauth2.resourceserver.jwt.audiences` has exactly one element and `mocapi.oauth2.resource` is unset, mocapi auto-derives the protected-resource metadata's `resource` field from that single audience. For Auth0, Okta, Keycloak, and most other IdPs this is the normal case — clients get tokens for one logical resource, and there's no need to duplicate the identifier across two properties.
+
+**Full configuration** — set `mocapi.oauth2.*` when you want to enrich the metadata document or work around the auto-derivation:
+
+```yaml
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://idp.example.com
+          audiences:
+            - https://mcp.example.com
 
 mocapi:
   server-title: My MCP Server                          # already used by MCP initialize;
                                                        # reused as OAuth2 resource_name
   oauth2:
-    resource: https://mcp.example.com                  # required — this server's canonical URL
+    resource: https://mcp.example.com                  # optional — defaults to audiences[0]
+                                                       # when audiences has exactly one entry.
+                                                       # Must be a member of audiences.
     scopes:                                            # optional — advertised in metadata
       - mcp.read
       - mcp.write
@@ -48,6 +67,28 @@ mocapi:
 The metadata's `resource_name` field is sourced from `mocapi.server-title` (falling back to `mocapi.server-name`) — the same human-readable label the MCP `initialize` response advertises. Having one property feed both avoids a configuration drift where the OAuth2 metadata names a different server than the MCP handshake.
 
 `spring.security.oauth2.resourceserver.jwt.issuer-uri` and `.audiences` are the standard Spring Boot properties; mocapi does not duplicate them. The `mocapi.oauth2.*` properties cover the MCP-specific metadata document.
+
+### Recommended: set `jwk-set-uri` directly
+
+If you only set `issuer-uri`, Spring Boot performs an HTTP call to the IdP's `/.well-known/openid-configuration` at startup (or on first request, via `SupplierJwtDecoder`) to discover the signing keys URL. Setting `jwk-set-uri` explicitly skips that discovery hop:
+
+```yaml
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://example.auth0.com/
+          jwk-set-uri: https://example.auth0.com/.well-known/jwks.json   # recommended
+          audiences:
+            - https://demo-api.example.com
+```
+
+Cuts one network dependency from the boot path and makes startup more robust in restricted network environments. Most IdPs publish their JWKS at `<issuer>.well-known/jwks.json` — Auth0, Okta, Keycloak, Entra ID all follow that pattern.
+
+### Startup-time invariant
+
+Mocapi validates at startup that `mocapi.oauth2.resource` (whether explicitly set or auto-derived) is a member of `spring.security.oauth2.resourceserver.jwt.audiences`. If they don't agree, the app refuses to start with a descriptive error. The rationale: clients following the RFC 9728 metadata document request tokens bound to the advertised `resource` identifier; if that identifier isn't in the server's accepted audiences, every token the client obtains would be rejected during validation. Catching that at startup is much cheaper than a silently-broken deployment where every MCP request returns 401.
 
 That's the whole setup. Starting your Spring Boot application brings up:
 

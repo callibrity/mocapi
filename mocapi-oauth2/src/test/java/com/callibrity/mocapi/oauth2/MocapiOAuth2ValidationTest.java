@@ -52,7 +52,7 @@ class MocapiOAuth2ValidationTest {
     runner
         .withPropertyValues(
             "mocapi.oauth2.resource=https://mcp.example.com",
-            "spring.security.oauth2.resourceserver.jwt.audiences=mcp-test")
+            "spring.security.oauth2.resourceserver.jwt.audiences=https://mcp.example.com")
         .run(
             context ->
                 assertThat(context)
@@ -74,7 +74,7 @@ class MocapiOAuth2ValidationTest {
         .withUserConfiguration(StubJwtDecoderConfig.class)
         .withPropertyValues(
             "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://idp.example.com",
-            "spring.security.oauth2.resourceserver.jwt.audiences[0]=mcp-test")
+            "spring.security.oauth2.resourceserver.jwt.audiences[0]=https://mcp.example.com")
         .run(
             context ->
                 assertThat(context)

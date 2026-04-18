@@ -60,7 +60,7 @@ import org.springframework.web.bind.annotation.RestController;
       "spring.security.oauth2.resourceserver.opaquetoken.introspection-uri=https://idp.example.com/introspect",
       "spring.security.oauth2.resourceserver.opaquetoken.client-id=mcp-client",
       "spring.security.oauth2.resourceserver.opaquetoken.client-secret=secret",
-      "spring.security.oauth2.resourceserver.jwt.audiences=mcp-test",
+      "spring.security.oauth2.resourceserver.jwt.audiences=https://mcp.example.com",
       "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
     })
 class MocapiOAuth2OpaqueTokenConfigTest {
