@@ -99,6 +99,28 @@ MocapiOAuth2SecurityFilterChainCustomizer requireScope() {
 
 Mocapi's chain already has `.authenticated()` + `oauth2ResourceServer(rs -> rs.jwt(...))` applied. Customizers run last, so you can layer scope checks, `hasAuthority(...)` rules, CORS, etc., without redeclaring the whole chain.
 
+## Opaque tokens
+
+Some IdPs issue opaque (non-JWT) access tokens and validate them via RFC 7662 introspection. Mocapi auto-detects the mode from which Spring Boot resource-server properties are configured: set `spring.security.oauth2.resourceserver.opaquetoken.*` instead of `jwt.*`.
+
+```yaml
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        opaquetoken:
+          introspection-uri: https://idp.example.com/introspect
+          client-id: mcp-client
+          client-secret: ${INTROSPECTION_SECRET}
+        jwt:
+          audiences:
+            - mcp.example.com                          # still required — enforced via introspection response
+```
+
+The `jwt.audiences` property is reused in opaque mode — mocapi wraps Spring's `OpaqueTokenIntrospector` to enforce the `aud` claim on the introspection response, since Spring's opaque path does not include an audience validator out of the box. The MCP spec still requires audience checking, so this wrapper is not optional.
+
+JWT and opaque modes are mutually exclusive; configure one or the other. If both are somehow configured, JWT wins (matching Spring Boot's own precedence).
+
 ## Stdio transport
 
 OAuth2 is transport-bearer-token-specific and applies only to the Streamable HTTP transport. Stdio (subprocess-launched) MCP servers authenticate the subprocess via its launch context; there are no bearer tokens to validate. `mocapi-oauth2-spring-boot-starter` depends on `mocapi-streamable-http-spring-boot-starter` and is not compatible with stdio-only deployments.

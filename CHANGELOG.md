@@ -25,6 +25,14 @@ All notable changes to this project are documented in this file. The format is b
   End-to-end integration test bundles Spring Authorization Server
   in-process to verify the full `client_credentials` → bearer → `/mcp`
   flow. See `docs/authorization.md` for setup.
+- Opaque (non-JWT) access token support in `mocapi-oauth2`. When
+  `spring.security.oauth2.resourceserver.opaquetoken.*` is configured
+  instead of `jwt.*`, the chain switches to RFC 7662 introspection.
+  Mocapi wraps Spring's `OpaqueTokenIntrospector` with an
+  audience-enforcing decorator so the MCP-mandated `aud` check still
+  runs (Spring's opaque path does not include an audience validator
+  by default). JWT and opaque modes are mutually exclusive; JWT wins
+  if both happen to be configured.
 
 ## [0.8.0] - 2026-04-18
 

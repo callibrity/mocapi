@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerProperties;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
 
 /**
  * Direct unit coverage for {@link MocapiOAuth2AutoConfiguration#validateComplianceMode}. The {@code
@@ -37,23 +38,37 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 class MocapiOAuth2ComplianceValidationTest {
 
   @Test
-  void passes_when_decoder_present_and_audiences_configured() {
+  void passes_when_jwt_decoder_present_and_audiences_configured() {
     assertThatCode(
             () ->
                 MocapiOAuth2AutoConfiguration.validateComplianceMode(
                     provider(mock(JwtDecoder.class)),
+                    provider(null),
                     provider(resourceServerProperties(List.of("mcp-test")))))
         .doesNotThrowAnyException();
   }
 
   @Test
-  void fails_when_jwt_decoder_is_missing() {
+  void passes_when_opaque_token_introspector_present_and_audiences_configured() {
+    assertThatCode(
+            () ->
+                MocapiOAuth2AutoConfiguration.validateComplianceMode(
+                    provider(null),
+                    provider(mock(OpaqueTokenIntrospector.class)),
+                    provider(resourceServerProperties(List.of("mcp-test")))))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
+  void fails_when_both_jwt_decoder_and_opaque_introspector_are_missing() {
     assertThatThrownBy(
             () ->
                 MocapiOAuth2AutoConfiguration.validateComplianceMode(
-                    provider(null), provider(resourceServerProperties(List.of("mcp-test")))))
+                    provider(null),
+                    provider(null),
+                    provider(resourceServerProperties(List.of("mcp-test")))))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("no JwtDecoder bean");
+        .hasMessageContaining("neither JwtDecoder nor OpaqueTokenIntrospector");
   }
 
   @Test
@@ -64,7 +79,7 @@ class MocapiOAuth2ComplianceValidationTest {
     assertThatThrownBy(
             () ->
                 MocapiOAuth2AutoConfiguration.validateComplianceMode(
-                    provider(mock(JwtDecoder.class)), provider(null)))
+                    provider(mock(JwtDecoder.class)), provider(null), provider(null)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("audiences");
   }
@@ -75,6 +90,7 @@ class MocapiOAuth2ComplianceValidationTest {
             () ->
                 MocapiOAuth2AutoConfiguration.validateComplianceMode(
                     provider(mock(JwtDecoder.class)),
+                    provider(null),
                     provider(resourceServerProperties(List.of()))))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("audiences");

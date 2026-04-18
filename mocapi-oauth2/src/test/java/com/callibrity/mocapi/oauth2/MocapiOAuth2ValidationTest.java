@@ -45,7 +45,7 @@ class MocapiOAuth2ValidationTest {
                   MocapiOAuth2AutoConfiguration.class));
 
   @Test
-  void startup_fails_when_no_jwt_decoder_is_registered() {
+  void startup_fails_when_neither_jwt_decoder_nor_opaque_introspector_is_registered() {
     // No JwtDecoder-inducing property set, and no @Bean JwtDecoder provided — Spring Boot won't
     // register a decoder, which the MCP spec treats as an unprotected endpoint. The validator
     // must stop the app from starting rather than let it serve /mcp without auth.
@@ -60,7 +60,7 @@ class MocapiOAuth2ValidationTest {
                     .getFailure()
                     .rootCause()
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("no JwtDecoder bean"));
+                    .hasMessageContaining("neither JwtDecoder nor OpaqueTokenIntrospector"));
   }
 
   @Test

@@ -32,6 +32,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.OAuth2ProtectedResourceMetadata;
+import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
 import org.springframework.security.oauth2.server.resource.web.OAuth2ProtectedResourceMetadataFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -81,25 +82,29 @@ public class MocapiOAuth2AutoConfiguration {
    * rejects:
    *
    * <ul>
-   *   <li>No {@code JwtDecoder} on the classpath — means no JWT validation is happening, which
-   *       would leave the MCP endpoint unprotected even with this module present. Triggers when the
-   *       user forgot to set any {@code spring.security.oauth2.resourceserver.jwt.*} property.
+   *   <li>Neither {@code JwtDecoder} nor {@code OpaqueTokenIntrospector} on the classpath — means
+   *       no token validation is happening, which would leave the MCP endpoint unprotected even
+   *       with this module present. Triggers when the user forgot to set any {@code
+   *       spring.security.oauth2.resourceserver.jwt.*} or {@code
+   *       spring.security.oauth2.resourceserver.opaquetoken.*} property.
    *   <li>Empty {@code spring.security.oauth2.resourceserver.jwt.audiences} — the spec mandates
    *       audience validation to prevent confused-deputy token reuse across MCP servers. Spring
    *       Boot auto-wires the {@code aud} validator only when this property is set, so an empty
-   *       list silently skips enforcement.
+   *       list silently skips enforcement. This property is reused for both JWT and opaque-token
+   *       modes (see {@link AudienceCheckingOpaqueTokenIntrospector}).
    * </ul>
    */
   public MocapiOAuth2AutoConfiguration(
       MocapiOAuth2Properties properties,
       ObjectProvider<JwtDecoder> jwtDecoder,
+      ObjectProvider<OpaqueTokenIntrospector> opaqueTokenIntrospector,
       ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties) {
     // The MocapiOAuth2Properties parameter is unused inside the body — it's injected so that
     // Spring binds and validates the record at bean-creation time (@Validated + @NotBlank on
     // the `resource` component), failing startup with a clear bind error if
     // mocapi.oauth2.resource is missing before our own compliance checks below would fire.
     java.util.Objects.requireNonNull(properties);
-    validateComplianceMode(jwtDecoder, springResourceServerProperties);
+    validateComplianceMode(jwtDecoder, opaqueTokenIntrospector, springResourceServerProperties);
   }
 
   /**
@@ -109,16 +114,18 @@ public class MocapiOAuth2AutoConfiguration {
    */
   static void validateComplianceMode(
       ObjectProvider<JwtDecoder> jwtDecoder,
+      ObjectProvider<OpaqueTokenIntrospector> opaqueTokenIntrospector,
       ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties) {
-    if (jwtDecoder.getIfAvailable() == null) {
+    if (jwtDecoder.getIfAvailable() == null && opaqueTokenIntrospector.getIfAvailable() == null) {
       throw new IllegalStateException(
           """
-          mocapi-oauth2 is on the classpath but no JwtDecoder bean is registered — the MCP \
-          endpoint would be exposed without JWT validation, which violates the MCP 2025-11-25 \
-          authorization spec. Configure a JWT decoder via one of the standard Spring Boot \
-          properties: spring.security.oauth2.resourceserver.jwt.issuer-uri, \
-          spring.security.oauth2.resourceserver.jwt.jwk-set-uri, or \
-          spring.security.oauth2.resourceserver.jwt.public-key-location.""");
+          mocapi-oauth2 is on the classpath but neither JwtDecoder nor OpaqueTokenIntrospector \
+          is registered — the MCP endpoint would be exposed without token validation, which \
+          violates the MCP 2025-11-25 authorization spec. Configure token validation via one of: \
+          spring.security.oauth2.resourceserver.jwt.issuer-uri (or .jwk-set-uri / \
+          .public-key-location) for JWT tokens, or \
+          spring.security.oauth2.resourceserver.opaquetoken.introspection-uri for opaque \
+          tokens.""");
     }
     OAuth2ResourceServerProperties rs = springResourceServerProperties.getIfAvailable();
     java.util.List<String> audiences =
@@ -129,7 +136,8 @@ public class MocapiOAuth2AutoConfiguration {
           spring.security.oauth2.resourceserver.jwt.audiences is empty. The MCP 2025-11-25 \
           authorization spec mandates audience validation: MCP servers MUST reject access tokens \
           that were not issued specifically for them (the aud claim must match). Configure at \
-          least one expected audience value to prevent confused-deputy token reuse.""");
+          least one expected audience value to prevent confused-deputy token reuse. The property \
+          applies to both JWT and opaque-token modes.""");
     }
   }
 
@@ -145,6 +153,8 @@ public class MocapiOAuth2AutoConfiguration {
   public SecurityFilterChain mcpOAuth2SecurityFilterChain(
       HttpSecurity http,
       MocapiOAuth2Properties properties,
+      ObjectProvider<JwtDecoder> jwtDecoder,
+      ObjectProvider<OpaqueTokenIntrospector> opaqueTokenIntrospector,
       ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties,
       ObjectProvider<Implementation> mcpServerInfo,
       ObjectProvider<OAuth2ProtectedResourceMetadataCustomizer> metadataCustomizers,
@@ -160,16 +170,54 @@ public class MocapiOAuth2AutoConfiguration {
             auth -> auth.requestMatchers(METADATA_PATH).permitAll().anyRequest().authenticated())
         .csrf(csrf -> csrf.disable())
         .oauth2ResourceServer(
-            rs ->
-                rs.jwt(jwt -> {})
-                    .protectedResourceMetadata(
-                        prm -> prm.protectedResourceMetadataCustomizer(builderCustomizer)));
+            rs -> {
+              configureTokenMode(
+                  rs, jwtDecoder, opaqueTokenIntrospector, springResourceServerProperties);
+              rs.protectedResourceMetadata(
+                  prm -> prm.protectedResourceMetadataCustomizer(builderCustomizer));
+            });
 
     for (MocapiOAuth2SecurityFilterChainCustomizer customizer :
         chainCustomizers.orderedStream().toList()) {
       customizer.customize(http);
     }
     return http.build();
+  }
+
+  /**
+   * Picks the token-validation mode based on which Spring Boot auto-wired bean is on the classpath
+   * — {@code JwtDecoder} for JWT mode, {@code OpaqueTokenIntrospector} for introspection-based
+   * opaque-token mode. JWT wins if both happen to be present (same precedence Spring Boot's own
+   * auto-config applies: JWT is the default when both properties sets are somehow provided).
+   *
+   * <p>In opaque-token mode, the introspector is wrapped with {@link
+   * AudienceCheckingOpaqueTokenIntrospector} to enforce the same {@code aud} validation Spring Boot
+   * auto-wires for JWTs — MCP requires it, and Spring's opaque-token path otherwise skips audience
+   * checks.
+   */
+  private static void configureTokenMode(
+      org.springframework.security.config.annotation.web.configurers.oauth2.server.resource
+                  .OAuth2ResourceServerConfigurer<
+              HttpSecurity>
+          rs,
+      ObjectProvider<JwtDecoder> jwtDecoder,
+      ObjectProvider<OpaqueTokenIntrospector> opaqueTokenIntrospector,
+      ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties) {
+    if (jwtDecoder.getIfAvailable() != null) {
+      rs.jwt(jwt -> {});
+      return;
+    }
+    OpaqueTokenIntrospector delegate = opaqueTokenIntrospector.getIfAvailable();
+    if (delegate == null) {
+      // validateComplianceMode already rejected this case; belt-and-suspenders.
+      throw new IllegalStateException("No JwtDecoder or OpaqueTokenIntrospector available");
+    }
+    OAuth2ResourceServerProperties rsProps = springResourceServerProperties.getIfAvailable();
+    java.util.List<String> audiences =
+        (rsProps == null) ? java.util.List.of() : rsProps.getJwt().getAudiences();
+    OpaqueTokenIntrospector introspector =
+        new AudienceCheckingOpaqueTokenIntrospector(delegate, audiences);
+    rs.opaqueToken(opaque -> opaque.introspector(introspector));
   }
 
   private static Consumer<OAuth2ProtectedResourceMetadata.Builder> metadataBuilderCustomizer(
