@@ -25,7 +25,7 @@
         <version>0.7.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>mocapi-compat</artifactId>
+    <artifactId>mocapi-conformance</artifactId>
     <name>Mocapi - Conformance Server</name>
     <description>MCP conformance server for the npx @modelcontextprotocol/conformance suite</description>
 

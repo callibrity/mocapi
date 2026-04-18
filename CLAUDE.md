@@ -23,8 +23,8 @@ other warning categories.
 
 Follow the global OSS release runbook in `~/CLAUDE.md`. The mocapi-specific bits:
 
-- `mvn verify` covers every module (including `mocapi-compat`, which now has
-  internal IT tests). Before cutting a release also run the release-profile
+- `mvn verify` covers every module (including `mocapi-conformance`, which
+  has internal IT tests). Before cutting a release also run the release-profile
   javadoc build to catch doclint errors that plain `verify` misses:
   ```
   mvn -P release javadoc:jar -DskipTests

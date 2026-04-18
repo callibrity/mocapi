@@ -172,7 +172,7 @@ Mocapi targets the [MCP 2025-11-25](https://modelcontextprotocol.io/specificatio
 
 ```bash
 # Start the conformance server
-cd mocapi-compat
+cd mocapi-conformance
 mvn spring-boot:run
 
 # In another terminal

@@ -1,6 +1,6 @@
-# mocapi-compat
+# mocapi-conformance
 
-MCP protocol conformance and compatibility test suite for Mocapi.
+MCP protocol conformance test suite for Mocapi.
 
 This module verifies that Mocapi correctly implements the
 [MCP 2025-11-25 specification](https://modelcontextprotocol.io/specification/2025-11-25)
@@ -16,7 +16,7 @@ using two complementary approaches:
 ## Running internal IT tests
 
 ```bash
-mvn verify -pl mocapi-compat
+mvn verify -pl mocapi-conformance
 ```
 
 This runs all `*IT.java` integration tests via Maven Failsafe.
@@ -26,7 +26,7 @@ This runs all `*IT.java` integration tests via Maven Failsafe.
 ### 1. Start the conformance server
 
 ```bash
-mvn spring-boot:run -pl mocapi-compat
+mvn spring-boot:run -pl mocapi-conformance
 ```
 
 The server starts on port 8081 with the MCP endpoint at `/mcp`.
@@ -82,4 +82,4 @@ npx @modelcontextprotocol/conformance server --url http://localhost:8081/mcp
     */
    ```
 3. Add a corresponding `*IT.java` integration test in the `conformance` package
-4. Run `mvn verify -pl mocapi-compat` to confirm the test passes
+4. Run `mvn verify -pl mocapi-conformance` to confirm the test passes

@@ -61,7 +61,7 @@
         <module>mocapi-stdio-transport</module>
         <module>mocapi-stdio-spring-boot-starter</module>
         <module>examples</module>
-        <module>mocapi-compat</module>
+        <module>mocapi-conformance</module>
         <module>mocapi-prompts-mustache</module>
         <module>mocapi-prompts-spring</module>
     </modules>
@@ -103,7 +103,7 @@
         <sonar.organization>callibrity</sonar.organization>
         <sonar.projectKey>callibrity_mocapi</sonar.projectKey>
         <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/**/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
-        <sonar.coverage.exclusions>examples/**/*,mocapi-compat/**/*</sonar.coverage.exclusions>
+        <sonar.coverage.exclusions>examples/**/*,mocapi-conformance/**/*</sonar.coverage.exclusions>
 
         <!-- License Header Configuration -->
         <license.email>contactus@callibrity.com</license.email>
