@@ -8,6 +8,22 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- New `mocapi-jakarta-validation-spring-boot-starter` pom-only starter
+  that turns on Jakarta Bean Validation across mocapi's reflective-
+  dispatch surface. Bundles `spring-boot-starter-validation`,
+  `methodical-jakarta-validation`, and `ripcurl-jakarta-validation`.
+  Once on the classpath, `@NotBlank`/`@Size`/`@Pattern`/etc. on user
+  `@ToolMethod` / `@PromptMethod` / `@ResourceTemplateMethod`
+  parameters surface as MCP-spec-idiomatic errors per handler type:
+  `tools/call` violations produce `CallToolResult.isError=true` (the
+  spec's "Input validation errors" path for LLM self-correction),
+  while `prompts/get` and `resources/read` violations produce JSON-RPC
+  `-32602 Invalid params` with per-violation `{field, message}` detail
+  in the response's `data` field. Mocapi's internal protocol handlers
+  deliberately keep their hand-rolled checks so mocapi's own contract
+  is always enforced regardless of consumer classpath — this starter
+  is user-code-only. See `docs/validation.md` for setup and
+  `examples/jakarta-validation` for a runnable app.
 - New `mocapi-oauth2` module and `mocapi-oauth2-spring-boot-starter`
   that wire OAuth2 resource-server protection for the Streamable HTTP
   transport per MCP 2025-11-25 authorization. Adds bearer-token

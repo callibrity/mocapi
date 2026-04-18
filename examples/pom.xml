@@ -37,6 +37,7 @@
         <module>postgresql</module>
         <module>nats</module>
         <module>stdio</module>
+        <module>jakarta-validation</module>
     </modules>
 
     <!--
