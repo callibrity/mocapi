@@ -91,8 +91,14 @@ public class MocapiOAuth2AutoConfiguration {
    * </ul>
    */
   public MocapiOAuth2AutoConfiguration(
+      MocapiOAuth2Properties properties,
       ObjectProvider<JwtDecoder> jwtDecoder,
       ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties) {
+    // The MocapiOAuth2Properties parameter is unused inside the body — it's injected so that
+    // Spring binds and validates the record at bean-creation time (@Validated + @NotBlank on
+    // the `resource` component), failing startup with a clear bind error if
+    // mocapi.oauth2.resource is missing before our own compliance checks below would fire.
+    java.util.Objects.requireNonNull(properties);
     validateComplianceMode(jwtDecoder, springResourceServerProperties);
   }
 

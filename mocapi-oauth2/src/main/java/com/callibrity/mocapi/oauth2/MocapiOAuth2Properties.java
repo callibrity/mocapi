@@ -19,6 +19,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * Configuration for the mocapi OAuth2 resource-server module. The module's auto-configuration fires
@@ -57,6 +58,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  *     human-readable server label.
  */
 @ConfigurationProperties("mocapi.oauth2")
+@Validated
 public record MocapiOAuth2Properties(
     @NotBlank String resource,
     @DefaultValue List<String> authorizationServers,

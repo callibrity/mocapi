@@ -64,6 +64,27 @@ class MocapiOAuth2ValidationTest {
   }
 
   @Test
+  void startup_fails_when_mocapi_oauth2_resource_is_not_configured() {
+    // mocapi.oauth2.resource is @NotBlank per RFC 9728 §2 (the metadata document's 'resource'
+    // field is REQUIRED and has no safe default since it depends on the deployed host).
+    // Spring Boot's property binder runs the validation when MocapiOAuth2Properties is
+    // @Validated, so an unset property fails the bind at startup rather than emitting a
+    // malformed metadata document.
+    runner
+        .withUserConfiguration(StubJwtDecoderConfig.class)
+        .withPropertyValues(
+            "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://idp.example.com",
+            "spring.security.oauth2.resourceserver.jwt.audiences[0]=mcp-test")
+        .run(
+            context ->
+                assertThat(context)
+                    .hasFailed()
+                    .getFailure()
+                    .rootCause()
+                    .hasMessageContaining("resource"));
+  }
+
+  @Test
   void startup_fails_when_audiences_is_empty() {
     // JwtDecoder is present via a stub bean, but no audiences property is set — Spring's audience
     // validator won't be wired, which the MCP spec treats as a confused-deputy hole.
