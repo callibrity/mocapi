@@ -104,7 +104,7 @@ public class DocResources {
 }
 ```
 
-Run your Spring Boot application. Mocapi exposes a Streamable HTTP endpoint at `/mcp` by default.
+Run your Spring Boot application. With the default starter, Mocapi exposes a Streamable HTTP endpoint at `/mcp`. For clients that launch the server as a subprocess (Claude Desktop, Cursor, and other IDE integrations), depend on `mocapi-transport-stdio` instead and set `mocapi.stdio.enabled=true` — same tools, same code, different pipe.
 
 ## Documentation
 
@@ -124,7 +124,8 @@ Run your Spring Boot application. Mocapi exposes a Streamable HTTP endpoint at `
 | `mocapi-model` | MCP protocol types (Tool, CallToolResult, ElicitResult, etc.) |
 | `mocapi-server` | Stateful MCP server: session management, JSON-RPC dispatch, tool invocation |
 | `mocapi-transport-streamable-http` | Streamable HTTP transport with SSE, encrypted event IDs |
-| `mocapi-spring-boot-starter` | All-in-one starter for Spring Boot applications |
+| `mocapi-transport-stdio` | Stdio transport: newline-delimited JSON-RPC on stdin/stdout, for subprocess-launched MCP clients |
+| `mocapi-spring-boot-starter` | All-in-one starter for Spring Boot applications (includes streamable-http) |
 | `mocapi-prompts-spring` | `PromptTemplateFactory` using Spring's `${name}` placeholder syntax — no extra dependencies |
 | `mocapi-prompts-mustache` | `PromptTemplateFactory` backed by [JMustache](https://github.com/samskivert/jmustache) for richer `{{name}}` templates with sections |
 
@@ -134,14 +135,15 @@ Working examples are in the [`examples/`](examples/) directory:
 
 | Example | Backend | Description |
 |---------|---------|-------------|
-| [In-Memory](examples/example-in-memory) | In-memory | Simplest setup, no external dependencies |
-| [Redis](examples/redis) | Redis | Clustered sessions via Redis |
-| [PostgreSQL](examples/postgresql) | PostgreSQL | Durable sessions via PostgreSQL |
+| [In-Memory](examples/in-memory) | In-memory, HTTP | Simplest setup, no external dependencies |
+| [Stdio](examples/stdio) | In-memory, stdio | Minimal echo server launchable by Claude Desktop or MCP Inspector over stdio |
+| [Redis](examples/redis) | Redis, HTTP | Clustered sessions via Redis |
+| [PostgreSQL](examples/postgresql) | PostgreSQL, HTTP | Durable sessions via PostgreSQL |
 
-To run the in-memory example:
+To run the in-memory HTTP example:
 
 ```bash
-cd examples/example-in-memory
+cd examples/in-memory
 mvn spring-boot:run
 ```
 
@@ -152,6 +154,16 @@ npx @modelcontextprotocol/inspector
 ```
 
 Enter `http://localhost:8080/mcp` and select "Streamable HTTP" transport.
+
+To run the stdio example (no HTTP server — MCP client launches it as a subprocess):
+
+```bash
+mvn -pl examples/stdio -am package
+npx @modelcontextprotocol/inspector \
+    java -jar examples/stdio/target/mocapi-example-stdio-*.jar
+```
+
+See [`examples/stdio/README.md`](examples/stdio/README.md) for Claude Desktop configuration.
 
 ## MCP Conformance
 

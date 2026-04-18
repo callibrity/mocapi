@@ -6,6 +6,29 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- New `mocapi-transport-stdio` module — MCP transport over newline-delimited
+  JSON-RPC on stdin/stdout, for clients that launch the server as a
+  subprocess (Claude Desktop, Cursor, MCP Inspector). Enabled by
+  `mocapi.stdio.enabled=true`; transport is off by default so non-stdio
+  apps can't accidentally corrupt stdout.
+- New `examples/stdio` example — minimal echo-tool server launchable by any
+  MCP stdio client. Ships with a `logback-spring.xml` that routes all
+  logging to stderr (stdout is reserved for protocol traffic) and a README
+  covering Claude Desktop setup, native-image builds, and a curl-style
+  smoke test.
+- Project-wide test readability: every test class now uses
+  `@DisplayNameGeneration(ReplaceUnderscores.class)` with snake_case method
+  names and `Capitalized_with_underscores` `@Nested` groupings. IDE test
+  output and CI reports read as natural sentences.
+
+### Documentation
+
+- Root README and `docs/architecture.md` rewritten to describe both
+  transports (HTTP + stdio) rather than just HTTP. New "Transports"
+  section in architecture.md compares when to use each.
+
 ## [0.5.0] - 2026-04-17
 
 ### Breaking changes

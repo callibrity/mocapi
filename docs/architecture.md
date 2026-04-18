@@ -8,8 +8,9 @@ Mocapi separates protocol concerns from transport concerns:
 - **mocapi-model** -- MCP protocol types (Tool, CallToolResult, ElicitResult, etc.)
 - **mocapi-server** -- stateful MCP server: session management, JSON-RPC dispatch, tool invocation, initialization lifecycle
 - **mocapi-transport-streamable-http** -- Streamable HTTP transport: HTTP endpoints, SSE streaming, encrypted event IDs
+- **mocapi-transport-stdio** -- Stdio transport: newline-delimited JSON-RPC on stdin/stdout, for subprocess-launched MCP clients
 
-The server knows nothing about HTTP. The transport knows nothing about sessions or tools. The `McpServer` interface is the contract between them.
+The server knows nothing about HTTP or stdio. Transports know nothing about sessions or tools. The `McpServer` + `McpTransport` interface pair is the contract between them — the server calls `transport.send(message)` / `transport.emit(event)`, and the transport calls back into `server.handleCall` / `handleNotification` / `handleResponse`. Two transports ship today; any future transport (Unix socket, WebSocket, named pipe, etc.) drops into the same contract.
 
 ## Request Flow
 
@@ -64,7 +65,7 @@ The transport maps each variant to its native error format. For Streamable HTTP:
 | `SessionNotFound` | 404 | -32001 |
 | `ProtocolVersionMismatch` | 400 | -32000 |
 
-A stdio transport would handle these differently (e.g., log and close the pipe).
+For stdio, the transport writes a `JsonRpcError` line to stdout with the same JSON-RPC code; there is no status code.
 
 The `McpContext` carries the resolved session:
 
@@ -89,7 +90,18 @@ For `initialize` requests (which have no session), the transport uses `McpContex
 
 Sessions are stored in a pluggable `McpSessionStore` backed by Substrate's Atom SPI. Each session has a configurable TTL that is refreshed on access.
 
-## Transport
+## Transports
+
+Mocapi ships two transport implementations. Choose based on how your MCP client connects:
+
+| Transport | When to use | Module |
+|-----------|-------------|--------|
+| Streamable HTTP | Web-accessible servers, long-running deployments, multiple concurrent clients, sessions that survive restarts (with a Substrate backend like Redis/Postgres) | `mocapi-transport-streamable-http` |
+| Stdio | Desktop MCP clients that spawn the server as a subprocess (Claude Desktop, Cursor, MCP Inspector), single-session per process, no network exposure | `mocapi-transport-stdio` |
+
+Both use the same `McpServer` + `McpTransport` contract, so tool/prompt/resource code is identical between them.
+
+### Streamable HTTP
 
 Every `JsonRpcCall` POST runs on a virtual thread through `StreamableHttpTransport`, which chooses JSON vs SSE based on the first outbound message:
 
@@ -110,6 +122,20 @@ SSE event IDs are encrypted using AES-256-GCM with the session ID as context. Th
 ### GET SSE Streams
 
 Clients can open a GET connection to receive server-initiated messages on a session-scoped stream (`SseStreamFactory.sessionStream(context)`, named by session ID). A `Last-Event-ID` header on reconnect routes through `SseStreamFactory.resumeStream(context, lastEventId)`, which decodes the stream name and event ID from the encrypted token.
+
+### Stdio
+
+The MCP client launches the server as a subprocess and communicates via newline-delimited JSON on stdin/stdout; stderr carries logs. When the client closes stdin the server exits.
+
+1. `StdioServer` reads lines from stdin in a single blocking loop.
+2. Each line is dispatched on its own virtual thread via a try-with-resources `ExecutorService`. Per-message threads are required because handlers may block awaiting a client response (elicitation, sampling) — serial dispatch would deadlock on stdin.
+3. `StdioTransport.send(message)` serializes to a single JSON line on stdout. `PrintStream` is internally synchronized, so concurrent dispatch threads can't interleave partial lines.
+4. `StdioTransport.emit(SessionInitialized)` stashes the session ID in a shared `AtomicReference` that the reader loop consults on subsequent dispatches — stdio has exactly one implicit session per process.
+5. On EOF, the try-with-resources block closes the executor (shutdown + awaitTermination) so in-flight handlers finish before the JVM exits.
+
+Session storage uses the same `McpSessionStore` as HTTP — the in-memory Substrate backend is the default, but nothing prevents using Redis or Postgres for a stdio server that persists state across restarts.
+
+Stdout is reserved for MCP protocol traffic — **all logging must go to stderr**. The stdio example ships a `logback-spring.xml` that wires the root logger to `System.err` and sets `spring.main.banner-mode=off` so nothing else touches stdout. A stray `System.out.println` anywhere in your code (or a logger pointed at stdout) will corrupt the JSON stream.
 
 ## Server Capabilities
 
