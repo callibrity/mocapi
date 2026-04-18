@@ -19,6 +19,7 @@ import com.callibrity.mocapi.model.CompleteRequestParams;
 import com.callibrity.mocapi.model.CompleteResult;
 import com.callibrity.mocapi.model.Completion;
 import com.callibrity.mocapi.model.CompletionArgument;
+import com.callibrity.mocapi.model.CompletionRef;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.PromptReference;
 import com.callibrity.mocapi.model.ResourceTemplateReference;
@@ -76,29 +77,34 @@ public class McpCompletionsService {
 
   @JsonRpcMethod(McpMethods.COMPLETION_COMPLETE)
   public CompleteResult complete(@JsonRpcParams CompleteRequestParams params) {
-    List<String> candidates = candidatesFor(params);
-    List<String> filtered = filterAndCap(candidates, params.argument());
+    CompletionArgument argument = params.argument();
+    if (argument == null) {
+      // argument is required by the MCP spec; a null here means a malformed request. Return
+      // an empty-but-well-formed response rather than NPE so clients get a graceful result.
+      return emptyResult();
+    }
+    List<String> candidates = candidatesFor(params.ref(), argument.name());
+    String prefix = argument.value() == null ? "" : argument.value();
+    List<String> filtered =
+        candidates.stream()
+            .filter(s -> Strings.CI.startsWith(s, prefix))
+            .limit(MAX_VALUES)
+            .toList();
     return new CompleteResult(new Completion(filtered, filtered.size(), false));
   }
 
-  private List<String> candidatesFor(CompleteRequestParams params) {
-    return switch (params.ref()) {
+  private List<String> candidatesFor(CompletionRef ref, String argumentName) {
+    return switch (ref) {
       case PromptReference pr ->
-          promptArguments
-              .getOrDefault(pr.name(), Map.of())
-              .getOrDefault(params.argument().name(), List.of());
+          promptArguments.getOrDefault(pr.name(), Map.of()).getOrDefault(argumentName, List.of());
       case ResourceTemplateReference rtr ->
           resourceTemplateVariables
               .getOrDefault(rtr.uri(), Map.of())
-              .getOrDefault(params.argument().name(), List.of());
+              .getOrDefault(argumentName, List.of());
     };
   }
 
-  private static List<String> filterAndCap(List<String> candidates, CompletionArgument argument) {
-    String prefix = argument == null || argument.value() == null ? "" : argument.value();
-    return candidates.stream()
-        .filter(s -> Strings.CI.startsWith(s, prefix))
-        .limit(MAX_VALUES)
-        .toList();
+  private static CompleteResult emptyResult() {
+    return new CompleteResult(new Completion(List.of(), 0, false));
   }
 }

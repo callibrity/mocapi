@@ -33,14 +33,25 @@ class CompletionCandidatesTest {
     DETAILED
   }
 
+  // Reflection-only fixture: each method exists so the test can grab its Parameter via
+  // getDeclaredMethod(...).getParameters()[0] and feed it to CompletionCandidates.valuesFor.
+  // The methods are never invoked, so their bodies are intentionally empty.
   static class Fixture {
-    void enumParam(Detail detail) {}
+    void enumParam(Detail detail) {
+      // intentionally empty — reflection probe only
+    }
 
-    void schemaParam(@Schema(allowableValues = {"a", "b", "c"}) String value) {}
+    void schemaParam(@Schema(allowableValues = {"a", "b", "c"}) String value) {
+      // intentionally empty — reflection probe only
+    }
 
-    void enumAndSchema(@Schema(allowableValues = {"x", "y"}) Detail both) {}
+    void enumAndSchema(@Schema(allowableValues = {"x", "y"}) Detail both) {
+      // intentionally empty — reflection probe only
+    }
 
-    void plainString(String free) {}
+    void plainString(String free) {
+      // intentionally empty — reflection probe only
+    }
   }
 
   @Test

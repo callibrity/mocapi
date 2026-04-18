@@ -102,6 +102,19 @@ class McpCompletionsServiceTest {
 
       assertThat(result.completion().values()).hasSize(3);
     }
+
+    @Test
+    void null_argument_record_returns_empty_values() {
+      // argument is required by the MCP spec but our filter is defensive — a null argument
+      // yields an empty prefix and also short-circuits the argument-name lookup that would
+      // otherwise NPE, resulting in empty values rather than a thrown exception.
+      var result =
+          service.complete(
+              new CompleteRequestParams(
+                  new PromptReference("ref/prompt", "summarize"), null, null, null));
+
+      assertThat(result.completion().values()).isEmpty();
+    }
   }
 
   @Nested
