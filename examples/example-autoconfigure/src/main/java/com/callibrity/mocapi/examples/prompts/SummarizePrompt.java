@@ -47,15 +47,15 @@ public class SummarizePrompt {
   private static final String TEMPLATE =
       "Please summarize the following text at ${detail} detail:\n\n${text}";
 
-  private final PromptTemplate template;
+  private final PromptTemplate compiledTemplate;
 
   public SummarizePrompt(PromptTemplateFactory factory) {
-    this.template = factory.create(Role.USER, "Summarization instruction", TEMPLATE);
+    this.compiledTemplate = factory.create(Role.USER, "Summarization instruction", TEMPLATE);
   }
 
   @PromptMethod(name = "summarize", description = "Summarize text at a specified detail level")
   public GetPromptResult summarize(String text, Detail detail) {
     Detail level = detail == null ? Detail.STANDARD : detail;
-    return template.render(Map.of("text", text, "detail", level.name()));
+    return compiledTemplate.render(Map.of("text", text, "detail", level.name()));
   }
 }
