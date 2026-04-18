@@ -132,6 +132,10 @@ public GetPromptResult dynamic(Map<String, String> args) {
 
 This is useful when argument names are determined dynamically or when you want to sidestep type conversion entirely.
 
+## Externalizing Metadata
+
+Every string attribute on `@PromptMethod` (`name`, `title`, `description`) supports Spring's `${...}` property placeholder syntax, so long descriptions don't have to live inline on the annotation. See [Externalizing Annotation Metadata](externalizing-metadata.md).
+
 ## Return Values
 
 Prompts must return `GetPromptResult`:

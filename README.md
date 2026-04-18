@@ -111,6 +111,7 @@ Run your Spring Boot application. With `mocapi-streamable-http-spring-boot-start
 - [Writing Tools](docs/tools-guide.md) -- defining tools, parameters, return values, and error handling
 - [Writing Prompts](docs/prompts-guide.md) -- defining prompts, argument binding, and return messages
 - [Writing Resources](docs/resources-guide.md) -- fixed resources, templated resources, and path-variable binding
+- [Externalizing Annotation Metadata](docs/externalizing-metadata.md) -- `${...}` property placeholders for tool/prompt/resource descriptions, URIs, and names
 - [Interactive Features](docs/interactive-guide.md) -- progress notifications, logging, elicitation, and sampling
 - [Configuration Reference](docs/configuration.md) -- all `mocapi.*` properties
 - [Architecture](docs/architecture.md) -- server/transport separation, session lifecycle, module structure

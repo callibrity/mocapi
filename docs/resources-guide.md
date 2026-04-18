@@ -140,6 +140,10 @@ public ReadResourceResult file(Map<String, String> vars) {
 | `description` | no | Description. Defaults to `name` |
 | `mimeType` | no | The content MIME type |
 
+## Externalizing Metadata
+
+Every string attribute on `@ResourceMethod` (`uri`, `name`, `title`, `description`, `mimeType`) and `@ResourceTemplateMethod` (`uriTemplate`, `name`, `title`, `description`, `mimeType`) supports Spring's `${...}` property placeholder syntax, so URIs, long descriptions, and mime types can live in `application.yml` instead of inline on the annotation. See [Externalizing Annotation Metadata](externalizing-metadata.md).
+
 ## Return Values
 
 Both kinds of resource methods must return `ReadResourceResult`:

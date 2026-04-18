@@ -163,6 +163,10 @@ public CallToolResult getStatus() {
 }
 ```
 
+## Externalizing Metadata
+
+Every string attribute on `@ToolMethod` (`name`, `title`, `description`) supports Spring's `${...}` property placeholder syntax, so long descriptions don't have to live inline on the annotation. See [Externalizing Annotation Metadata](externalizing-metadata.md).
+
 ## Error Handling
 
 ### Automatic Error Wrapping
