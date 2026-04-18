@@ -21,7 +21,7 @@ Add the starter dependency:
 <dependency>
     <groupId>com.callibrity.mocapi</groupId>
     <artifactId>mocapi-streamable-http-spring-boot-starter</artifactId>
-    <version>0.6.0</version>
+    <version>0.7.0</version>
 </dependency>
 ```
 
@@ -118,17 +118,26 @@ Run your Spring Boot application. With `mocapi-streamable-http-spring-boot-start
 
 ## Modules
 
-| Module | Description |
-|--------|-------------|
-| `mocapi-api` | User-facing API: `@ToolService`/`@ToolMethod`, `@PromptService`/`@PromptMethod`, `@ResourceService`/`@ResourceMethod`/`@ResourceTemplateMethod`, `PromptTemplate`/`PromptTemplateFactory`, `McpToolContext`, provider interfaces |
-| `mocapi-model` | MCP protocol types (Tool, CallToolResult, ElicitResult, etc.) |
-| `mocapi-server` | Stateful MCP server: session management, JSON-RPC dispatch, tool invocation |
-| `mocapi-streamable-http-transport` | Streamable HTTP transport with SSE, encrypted event IDs |
-| `mocapi-streamable-http-spring-boot-starter` | Spring Boot starter bundling `mocapi-server` + Streamable HTTP transport |
-| `mocapi-stdio-transport` | Stdio transport: newline-delimited JSON-RPC on stdin/stdout, for subprocess-launched MCP clients |
-| `mocapi-stdio-spring-boot-starter` | Spring Boot starter bundling `mocapi-server` + stdio transport |
-| `mocapi-prompts-spring` | `PromptTemplateFactory` using Spring's `${name}` placeholder syntax — no extra dependencies |
-| `mocapi-prompts-mustache` | `PromptTemplateFactory` backed by [JMustache](https://github.com/samskivert/jmustache) for richer `{{name}}` templates with sections |
+### Core
+
+- **`mocapi-api`** — user-facing API: `@ToolService`/`@ToolMethod`, `@PromptService`/`@PromptMethod`, `@ResourceService`/`@ResourceMethod`/`@ResourceTemplateMethod`, `PromptTemplate`/`PromptTemplateFactory`, `McpToolContext`, provider interfaces
+- **`mocapi-model`** — MCP protocol types (Tool, CallToolResult, ElicitResult, etc.) — mechanical mapping from the MCP spec
+- **`mocapi-server`** — stateful MCP server: session management, JSON-RPC dispatch, tool/prompt/resource invocation
+
+### Transports
+
+- **`mocapi-streamable-http-transport`** — HTTP + SSE, encrypted event IDs
+- **`mocapi-stdio-transport`** — newline-delimited JSON-RPC on stdin/stdout, for subprocess-launched MCP clients
+
+### Spring Boot starters
+
+- **`mocapi-streamable-http-spring-boot-starter`** — bundles `mocapi-server` + streamable-http transport
+- **`mocapi-stdio-spring-boot-starter`** — bundles `mocapi-server` + stdio transport
+
+### Prompt templating (optional)
+
+- **`mocapi-prompts-spring`** — `PromptTemplateFactory` using Spring's `${name}` placeholder syntax; no extra dependencies
+- **`mocapi-prompts-mustache`** — `PromptTemplateFactory` backed by [JMustache](https://github.com/samskivert/jmustache) for richer `{{name}}` templates with sections
 
 ## Examples
 
