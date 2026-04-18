@@ -40,7 +40,9 @@ mocapi:
     scopes:                                            # optional — advertised in metadata
       - mcp.read
       - mcp.write
-    resource-documentation: https://docs.example.com   # optional
+    resource-documentation: https://docs.example.com   # optional — developer docs URL
+    resource-policy-uri: https://example.com/policy    # optional — policy doc (token handling)
+    resource-tos-uri: https://example.com/tos          # optional — terms of service
 ```
 
 The metadata's `resource_name` field is sourced from `mocapi.server-title` (falling back to `mocapi.server-name`) — the same human-readable label the MCP `initialize` response advertises. Having one property feed both avoids a configuration drift where the OAuth2 metadata names a different server than the MCP handshake.

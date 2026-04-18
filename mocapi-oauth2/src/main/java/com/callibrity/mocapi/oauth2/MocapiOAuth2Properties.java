@@ -43,16 +43,24 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  *     restate the value. Set explicitly to federate across multiple authorization servers.
  * @param scopes scopes the resource server advertises as supported. Informational; enforcement is
  *     the caller's responsibility via {@link MocapiOAuth2SecurityFilterChainCustomizer}.
- * @param resourceDocumentation URL of human-readable documentation for this resource. Optional. The
- *     metadata document's {@code resource_name} field is automatically populated from the MCP
- *     {@link com.callibrity.mocapi.model.Implementation Implementation} server-info bean ({@code
- *     mocapi.server-title}, falling back to {@code mocapi.server-name}), so there is no separate
- *     property for it — mocapi avoids maintaining two sources of truth for the same human-readable
- *     server label.
+ * @param resourceDocumentation URL of human-readable developer documentation for the resource (RFC
+ *     9728 §2 {@code resource_documentation}). Optional.
+ * @param resourcePolicyUri URL of a policy document describing how access tokens and data are
+ *     handled by this resource — privacy, retention, rate limiting, etc. (RFC 9728 {@code
+ *     resource_policy_uri}). Optional.
+ * @param resourceTosUri URL of the terms-of-service document clients must accept to use this
+ *     resource (RFC 9728 {@code resource_tos_uri}). Optional.
+ *     <p>The metadata document's {@code resource_name} field is automatically populated from the
+ *     MCP {@link com.callibrity.mocapi.model.Implementation Implementation} server-info bean
+ *     ({@code mocapi.server-title}, falling back to {@code mocapi.server-name}), so there is no
+ *     separate property for it — mocapi avoids maintaining two sources of truth for the same
+ *     human-readable server label.
  */
 @ConfigurationProperties("mocapi.oauth2")
 public record MocapiOAuth2Properties(
     @NotBlank String resource,
     @DefaultValue List<String> authorizationServers,
     @DefaultValue List<String> scopes,
-    String resourceDocumentation) {}
+    String resourceDocumentation,
+    String resourcePolicyUri,
+    String resourceTosUri) {}

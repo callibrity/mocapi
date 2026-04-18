@@ -88,7 +88,8 @@ import org.springframework.web.client.RestClient;
       "spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:"
           + MocapiOAuth2IntegrationTest.TEST_PORT,
       "spring.security.oauth2.resourceserver.jwt.audiences=mcp-test",
-      "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "mocapi.server-title=Integration Test MCP"
     })
 class MocapiOAuth2IntegrationTest {
 
@@ -149,6 +150,27 @@ class MocapiOAuth2IntegrationTest {
             .body(String.class);
 
     assertThat(body).contains("\"ok\":true");
+  }
+
+  @Test
+  void metadata_advertises_bearer_methods_as_header() {
+    Map<String, Object> body =
+        client().get().uri("/.well-known/oauth-protected-resource").retrieve().body(MAP_OF_OBJECT);
+
+    assertThat(body)
+        .extractingByKey(
+            "bearer_methods_supported", org.assertj.core.api.InstanceOfAssertFactories.LIST)
+        .contains("header");
+  }
+
+  @Test
+  void metadata_advertises_resource_name_from_mcp_server_title() {
+    // mocapi.server-title is set in @TestPropertySource; mocapi pulls resource_name from the
+    // Implementation bean so the OAuth2 metadata doesn't need its own duplicate property.
+    Map<String, Object> body =
+        client().get().uri("/.well-known/oauth-protected-resource").retrieve().body(MAP_OF_OBJECT);
+
+    assertThat(body).containsEntry("resource_name", "Integration Test MCP");
   }
 
   private String grantClientCredentialsToken() {

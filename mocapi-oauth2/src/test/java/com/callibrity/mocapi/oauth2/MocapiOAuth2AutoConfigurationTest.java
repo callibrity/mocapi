@@ -61,6 +61,7 @@ class MocapiOAuth2AutoConfigurationTest {
       properties = {
         "mocapi.oauth2.resource=https://mcp.example.com",
         "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://idp.example.com",
+        "spring.security.oauth2.resourceserver.jwt.audiences=mcp-test",
         "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
       })
   class With_implicit_authorization_server {
@@ -110,6 +111,15 @@ class MocapiOAuth2AutoConfigurationTest {
                       "WWW-Authenticate",
                       org.hamcrest.Matchers.containsString("resource_metadata=")));
     }
+
+    @Test
+    void metadata_advertises_bearer_methods_supported_as_header_only() throws Exception {
+      // RFC 9728 §2 bearer_methods_supported; MCP always sends the token via the Authorization
+      // header, so this is fixed at ["header"] for every mocapi deployment.
+      mockMvc
+          .perform(get("/.well-known/oauth-protected-resource"))
+          .andExpect(jsonPath("$.bearer_methods_supported[0]").value("header"));
+    }
   }
 
   @Nested
@@ -124,7 +134,10 @@ class MocapiOAuth2AutoConfigurationTest {
         "mocapi.oauth2.scopes[1]=mcp.write",
         "mocapi.server-title=Test MCP",
         "mocapi.oauth2.resource-documentation=https://docs.example.com/mcp",
+        "mocapi.oauth2.resource-policy-uri=https://example.com/policy",
+        "mocapi.oauth2.resource-tos-uri=https://example.com/tos",
         "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://ignored.example.com",
+        "spring.security.oauth2.resourceserver.jwt.audiences=mcp-test",
         "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
       })
   class With_explicit_metadata_configuration {
@@ -163,6 +176,20 @@ class MocapiOAuth2AutoConfigurationTest {
           .perform(get("/.well-known/oauth-protected-resource"))
           .andExpect(jsonPath("$.resource_documentation").value("https://docs.example.com/mcp"));
     }
+
+    @Test
+    void resource_policy_uri_is_advertised_in_metadata() throws Exception {
+      mockMvc
+          .perform(get("/.well-known/oauth-protected-resource"))
+          .andExpect(jsonPath("$.resource_policy_uri").value("https://example.com/policy"));
+    }
+
+    @Test
+    void resource_tos_uri_is_advertised_in_metadata() throws Exception {
+      mockMvc
+          .perform(get("/.well-known/oauth-protected-resource"))
+          .andExpect(jsonPath("$.resource_tos_uri").value("https://example.com/tos"));
+    }
   }
 
   @Nested
@@ -176,6 +203,7 @@ class MocapiOAuth2AutoConfigurationTest {
       properties = {
         "mocapi.oauth2.resource=https://mcp.example.com",
         "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://idp.example.com",
+        "spring.security.oauth2.resourceserver.jwt.audiences=mcp-test",
         "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
       })
   class Customizers {
@@ -187,6 +215,38 @@ class MocapiOAuth2AutoConfigurationTest {
       mockMvc
           .perform(get("/.well-known/oauth-protected-resource"))
           .andExpect(jsonPath("$.custom_claim").value("custom_value"));
+    }
+
+    @Test
+    void chain_customizer_bean_is_applied_to_security_chain() throws Exception {
+      // The chain customizer we registered adds a header on every response to prove it ran.
+      mockMvc
+          .perform(get("/.well-known/oauth-protected-resource"))
+          .andExpect(header().string("X-Mocapi-Chain-Customizer", "applied"));
+    }
+  }
+
+  @Nested
+  @SpringBootTest(classes = MocapiOAuth2AutoConfigurationTest.TestApp.class)
+  @AutoConfigureMockMvc
+  @TestPropertySource(
+      properties = {
+        "mocapi.oauth2.resource=https://mcp.example.com",
+        "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://idp.example.com",
+        "spring.security.oauth2.resourceserver.jwt.audiences=mcp-test",
+        "mocapi.server-name=fallback-named-server",
+        "mocapi.server-title=", // empty override forces resourceName fallback to server-name
+        "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      })
+  class Resource_name_fallback {
+
+    @Autowired MockMvc mockMvc;
+
+    @Test
+    void resource_name_falls_back_to_mcp_server_name_when_title_is_unset() throws Exception {
+      mockMvc
+          .perform(get("/.well-known/oauth-protected-resource"))
+          .andExpect(jsonPath("$.resource_name").value("fallback-named-server"));
     }
   }
 
@@ -217,6 +277,23 @@ class MocapiOAuth2AutoConfigurationTest {
     @Bean
     OAuth2ProtectedResourceMetadataCustomizer customClaimCustomizer() {
       return builder -> builder.claim("custom_claim", "custom_value");
+    }
+
+    @Bean
+    MocapiOAuth2SecurityFilterChainCustomizer headerStampingCustomizer() {
+      // Layer an extra filter onto the chain that tags every response. Cheap proof the
+      // customizer actually reaches HttpSecurity during chain construction. Placed before
+      // HeaderWriterFilter so it runs at the very top of the chain — ahead of both the
+      // OAuth2ProtectedResourceMetadataFilter (which short-circuits the well-known response)
+      // and the bearer-token authentication filters (which short-circuit on 401).
+      return http ->
+          http.addFilterBefore(
+              (request, response, chain) -> {
+                ((jakarta.servlet.http.HttpServletResponse) response)
+                    .setHeader("X-Mocapi-Chain-Customizer", "applied");
+                chain.doFilter(request, response);
+              },
+              org.springframework.security.web.header.HeaderWriterFilter.class);
     }
   }
 }

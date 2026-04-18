@@ -17,10 +17,10 @@ package com.callibrity.mocapi.oauth2;
 
 import com.callibrity.mocapi.model.Implementation;
 import java.util.function.Consumer;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerProperties;
@@ -65,10 +65,62 @@ import org.springframework.security.web.SecurityFilterChain;
  * </ul>
  */
 @AutoConfiguration(after = OAuth2ResourceServerAutoConfiguration.class)
-@ConditionalOnBean(JwtDecoder.class)
 @EnableConfigurationProperties(MocapiOAuth2Properties.class)
 @PropertySource("classpath:mocapi-oauth2-defaults.properties")
 public class MocapiOAuth2AutoConfiguration {
+
+  /**
+   * Path at which the protected-resource metadata document is served. Fixed by RFC 9728 §3; Spring
+   * Security's {@link OAuth2ProtectedResourceMetadataFilter} hardcodes the same value but keeps its
+   * constant package-private, so we restate the literal here rather than reflect it in.
+   */
+  public static final String METADATA_PATH = "/.well-known/oauth-protected-resource";
+
+  /**
+   * Fails fast at bean-init time on misconfigurations the MCP 2025-11-25 authorization spec
+   * rejects:
+   *
+   * <ul>
+   *   <li>No {@code JwtDecoder} on the classpath — means no JWT validation is happening, which
+   *       would leave the MCP endpoint unprotected even with this module present. Triggers when the
+   *       user forgot to set any {@code spring.security.oauth2.resourceserver.jwt.*} property.
+   *   <li>Empty {@code spring.security.oauth2.resourceserver.jwt.audiences} — the spec mandates
+   *       audience validation to prevent confused-deputy token reuse across MCP servers. Spring
+   *       Boot auto-wires the {@code aud} validator only when this property is set, so an empty
+   *       list silently skips enforcement.
+   * </ul>
+   */
+  public MocapiOAuth2AutoConfiguration(
+      ObjectProvider<JwtDecoder> jwtDecoder,
+      ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties) {
+    validateComplianceMode(jwtDecoder, springResourceServerProperties);
+  }
+
+  private static void validateComplianceMode(
+      ObjectProvider<JwtDecoder> jwtDecoder,
+      ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties) {
+    if (jwtDecoder.getIfAvailable() == null) {
+      throw new IllegalStateException(
+          """
+          mocapi-oauth2 is on the classpath but no JwtDecoder bean is registered — the MCP \
+          endpoint would be exposed without JWT validation, which violates the MCP 2025-11-25 \
+          authorization spec. Configure a JWT decoder via one of the standard Spring Boot \
+          properties: spring.security.oauth2.resourceserver.jwt.issuer-uri, \
+          spring.security.oauth2.resourceserver.jwt.jwk-set-uri, or \
+          spring.security.oauth2.resourceserver.jwt.public-key-location.""");
+    }
+    OAuth2ResourceServerProperties rs = springResourceServerProperties.getIfAvailable();
+    java.util.List<String> audiences =
+        (rs == null) ? java.util.List.of() : rs.getJwt().getAudiences();
+    if (audiences == null || audiences.isEmpty()) {
+      throw new IllegalStateException(
+          """
+          spring.security.oauth2.resourceserver.jwt.audiences is empty. The MCP 2025-11-25 \
+          authorization spec mandates audience validation: MCP servers MUST reject access tokens \
+          that were not issued specifically for them (the aud claim must match). Configure at \
+          least one expected audience value to prevent confused-deputy token reuse.""");
+    }
+  }
 
   /**
    * The single {@link SecurityFilterChain} mocapi owns. Scoped to the configured MCP endpoint path
@@ -88,17 +140,13 @@ public class MocapiOAuth2AutoConfiguration {
       ObjectProvider<MocapiOAuth2SecurityFilterChainCustomizer> chainCustomizers,
       @Value("${mocapi.endpoint:/mcp}") String mcpEndpoint)
       throws Exception {
-    // RFC 9728 §5 fixes this path; Spring Security's filter hardcodes it too but keeps the
-    // constant package-private, so we restate the literal here rather than reflect it in.
-    String metadataPath = "/.well-known/oauth-protected-resource";
-
     var builderCustomizer =
         metadataBuilderCustomizer(
             properties, springResourceServerProperties, mcpServerInfo, metadataCustomizers);
 
-    http.securityMatcher(mcpEndpoint + "/**", metadataPath)
+    http.securityMatcher(mcpEndpoint + "/**", METADATA_PATH)
         .authorizeHttpRequests(
-            auth -> auth.requestMatchers(metadataPath).permitAll().anyRequest().authenticated())
+            auth -> auth.requestMatchers(METADATA_PATH).permitAll().anyRequest().authenticated())
         .csrf(csrf -> csrf.disable())
         .oauth2ResourceServer(
             rs ->
@@ -123,9 +171,17 @@ public class MocapiOAuth2AutoConfiguration {
       authorizationServersFor(properties, springResourceServerProperties)
           .forEach(builder::authorizationServer);
       properties.scopes().forEach(builder::scope);
+      // bearer_methods_supported is defaulted to ["header"] by Spring Security's own default
+      // customizer, so we don't add it here — doing so would duplicate the entry.
       resourceNameFor(mcpServerInfo).ifPresent(builder::resourceName);
       if (properties.resourceDocumentation() != null) {
         builder.claim("resource_documentation", properties.resourceDocumentation());
+      }
+      if (properties.resourcePolicyUri() != null) {
+        builder.claim("resource_policy_uri", properties.resourcePolicyUri());
+      }
+      if (properties.resourceTosUri() != null) {
+        builder.claim("resource_tos_uri", properties.resourceTosUri());
       }
       userCustomizers.orderedStream().forEach(c -> c.customize(builder));
     };
@@ -143,10 +199,10 @@ public class MocapiOAuth2AutoConfiguration {
     if (impl == null) {
       return java.util.Optional.empty();
     }
-    if (impl.title() != null && !impl.title().isBlank()) {
+    if (StringUtils.isNotBlank(impl.title())) {
       return java.util.Optional.of(impl.title());
     }
-    if (impl.name() != null && !impl.name().isBlank()) {
+    if (StringUtils.isNotBlank(impl.name())) {
       return java.util.Optional.of(impl.name());
     }
     return java.util.Optional.empty();
