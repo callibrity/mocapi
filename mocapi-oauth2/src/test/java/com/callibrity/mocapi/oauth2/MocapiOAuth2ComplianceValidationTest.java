@@ -28,17 +28,10 @@ import org.springframework.boot.security.oauth2.server.resource.autoconfigure.OA
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 /**
- * Direct unit coverage for {@link MocapiOAuth2AutoConfiguration#validateComplianceMode}. Two
- * branches aren't reachable from the Spring-context validation tests:
- *
- * <ul>
- *   <li>{@code rs == null} ternary — {@code OAuth2ResourceServerProperties} is always on the
- *       classpath when this module is being tested.
- *   <li>{@code audiences == null} left-hand {@code ||} — Spring Boot's property binder initializes
- *       the list rather than leaving it null.
- * </ul>
- *
- * A direct call with a stubbed {@link ObjectProvider} drives both paths.
+ * Direct unit coverage for {@link MocapiOAuth2AutoConfiguration#validateComplianceMode}. The {@code
+ * rs == null} ternary branch isn't reachable from Spring-context validation tests because {@link
+ * OAuth2ResourceServerProperties} is always on the classpath. A direct call with a stubbed {@link
+ * ObjectProvider} drives that branch.
  */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MocapiOAuth2ComplianceValidationTest {
@@ -72,20 +65,6 @@ class MocapiOAuth2ComplianceValidationTest {
             () ->
                 MocapiOAuth2AutoConfiguration.validateComplianceMode(
                     provider(mock(JwtDecoder.class)), provider(null)))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("audiences");
-  }
-
-  @Test
-  void fails_when_audiences_list_is_null() {
-    // Another defensive branch: Spring Boot's binder normally initializes the list, but if a
-    // custom OAuth2ResourceServerProperties ever leaves it null the check still catches it.
-    OAuth2ResourceServerProperties rs = new OAuth2ResourceServerProperties();
-    rs.getJwt().setAudiences(null);
-    assertThatThrownBy(
-            () ->
-                MocapiOAuth2AutoConfiguration.validateComplianceMode(
-                    provider(mock(JwtDecoder.class)), provider(rs)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("audiences");
   }

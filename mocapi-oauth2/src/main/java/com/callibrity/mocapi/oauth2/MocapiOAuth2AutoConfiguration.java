@@ -97,10 +97,9 @@ public class MocapiOAuth2AutoConfiguration {
   }
 
   /**
-   * Package-private for direct unit testing. The {@code rs == null} ternary branch and {@code
-   * audiences == null} left-hand {@code ||} branch aren't reachable from Spring-context tests:
-   * {@link OAuth2ResourceServerProperties} is always on the classpath, and Spring Boot's binder
-   * initializes the audiences list rather than leaving it null.
+   * Package-private for direct unit testing. The {@code rs == null} ternary branch isn't reachable
+   * from Spring-context tests because {@link OAuth2ResourceServerProperties} is always on the
+   * classpath in this module.
    */
   static void validateComplianceMode(
       ObjectProvider<JwtDecoder> jwtDecoder,
@@ -118,7 +117,7 @@ public class MocapiOAuth2AutoConfiguration {
     OAuth2ResourceServerProperties rs = springResourceServerProperties.getIfAvailable();
     java.util.List<String> audiences =
         (rs == null) ? java.util.List.of() : rs.getJwt().getAudiences();
-    if (audiences == null || audiences.isEmpty()) {
+    if (audiences.isEmpty()) {
       throw new IllegalStateException(
           """
           spring.security.oauth2.resourceserver.jwt.audiences is empty. The MCP 2025-11-25 \
