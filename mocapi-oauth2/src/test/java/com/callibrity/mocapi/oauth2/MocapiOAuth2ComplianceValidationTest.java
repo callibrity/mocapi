@@ -61,12 +61,12 @@ class MocapiOAuth2ComplianceValidationTest {
 
   @Test
   void fails_when_both_jwt_decoder_and_opaque_introspector_are_missing() {
+    ObjectProvider<JwtDecoder> noJwt = provider(null);
+    ObjectProvider<OpaqueTokenIntrospector> noOpaque = provider(null);
+    ObjectProvider<OAuth2ResourceServerProperties> rs =
+        provider(resourceServerProperties(List.of("mcp-test")));
     assertThatThrownBy(
-            () ->
-                MocapiOAuth2AutoConfiguration.validateComplianceMode(
-                    provider(null),
-                    provider(null),
-                    provider(resourceServerProperties(List.of("mcp-test")))))
+            () -> MocapiOAuth2AutoConfiguration.validateComplianceMode(noJwt, noOpaque, rs))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("neither JwtDecoder nor OpaqueTokenIntrospector");
   }
@@ -76,22 +76,23 @@ class MocapiOAuth2ComplianceValidationTest {
     // Defensive branch: OAuth2ResourceServerProperties would normally be on the classpath, but
     // the method explicitly handles the case. The null ObjectProvider short-circuits to an
     // empty audiences list, which trips the audience-required check.
+    ObjectProvider<JwtDecoder> jwt = provider(mock(JwtDecoder.class));
+    ObjectProvider<OpaqueTokenIntrospector> noOpaque = provider(null);
+    ObjectProvider<OAuth2ResourceServerProperties> noRs = provider(null);
     assertThatThrownBy(
-            () ->
-                MocapiOAuth2AutoConfiguration.validateComplianceMode(
-                    provider(mock(JwtDecoder.class)), provider(null), provider(null)))
+            () -> MocapiOAuth2AutoConfiguration.validateComplianceMode(jwt, noOpaque, noRs))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("audiences");
   }
 
   @Test
   void fails_when_audiences_list_is_empty() {
+    ObjectProvider<JwtDecoder> jwt = provider(mock(JwtDecoder.class));
+    ObjectProvider<OpaqueTokenIntrospector> noOpaque = provider(null);
+    ObjectProvider<OAuth2ResourceServerProperties> rs =
+        provider(resourceServerProperties(List.of()));
     assertThatThrownBy(
-            () ->
-                MocapiOAuth2AutoConfiguration.validateComplianceMode(
-                    provider(mock(JwtDecoder.class)),
-                    provider(null),
-                    provider(resourceServerProperties(List.of()))))
+            () -> MocapiOAuth2AutoConfiguration.validateComplianceMode(jwt, noOpaque, rs))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("audiences");
   }

@@ -109,9 +109,9 @@ class MocapiOAuth2IntegrationTest {
     Map<String, Object> body =
         client().get().uri("/.well-known/oauth-protected-resource").retrieve().body(MAP_OF_OBJECT);
 
-    assertThat(body).isNotNull();
-    assertThat(body).containsEntry("resource", BASE_URL + "/mcp");
     assertThat(body)
+        .isNotNull()
+        .containsEntry("resource", BASE_URL + "/mcp")
         .extractingByKey(
             "authorization_servers", org.assertj.core.api.InstanceOfAssertFactories.LIST)
         .containsExactly(BASE_URL);
@@ -213,6 +213,10 @@ class MocapiOAuth2IntegrationTest {
      */
     @Bean
     @Order(1)
+    // Sonar S1130: HttpSecurity.build() actually declares `throws Exception` (see
+    // AbstractConfiguredSecurityBuilder#build). Sonar's reachability analysis can't see
+    // through the generic return type, so the throws is required but flagged as redundant.
+    @SuppressWarnings("java:S1130")
     SecurityFilterChain authServerChain(HttpSecurity http) throws Exception {
       OAuth2AuthorizationServerConfigurer configurer = new OAuth2AuthorizationServerConfigurer();
       http.securityMatcher(configurer.getEndpointsMatcher())

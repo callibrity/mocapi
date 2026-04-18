@@ -37,5 +37,10 @@ public interface MocapiOAuth2SecurityFilterChainCustomizer {
    * @throws Exception if the customization itself fails (matches the signature of every {@code
    *     HttpSecurity} configurer so users can call those freely)
    */
+  // Sonar S112: the checked `throws Exception` intentionally mirrors Spring's own HttpSecurity
+  // configurer methods (e.g. addFilter, apply, build) so implementers can invoke them without
+  // having to wrap every call in a try/catch. Narrowing this to a specific exception type would
+  // force every user to rethrow or wrap.
+  @SuppressWarnings("java:S112")
   void customize(HttpSecurity http) throws Exception;
 }

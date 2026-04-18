@@ -150,6 +150,13 @@ public class MocapiOAuth2AutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(name = "mcpOAuth2SecurityFilterChain")
   @Order(Ordered.HIGHEST_PRECEDENCE)
+  // Sonar S4502: CSRF protection is disabled here intentionally. The MCP endpoint is a
+  // stateless, bearer-token-authenticated JSON-RPC API — RFC 6750 tokens are only attached by
+  // JS that explicitly sets the Authorization header, so there is no ambient-credential attack
+  // vector for CSRF to defend against. Spring Security's own guidance for stateless OAuth2
+  // resource servers is to disable CSRF; enabling it here would require MCP clients to fetch
+  // and echo a CSRF token, which the MCP protocol has no mechanism for.
+  @SuppressWarnings("java:S4502")
   public SecurityFilterChain mcpOAuth2SecurityFilterChain(
       HttpSecurity http,
       MocapiOAuth2Properties properties,
