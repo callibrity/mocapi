@@ -25,17 +25,29 @@
         <version>0.6.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>mocapi-examples</artifactId>
-    <name>Mocapi - Examples</name>
-    <description>Example applications demonstrating mocapi on various backends</description>
-    <packaging>pom</packaging>
+    <artifactId>mocapi-transport-stdio</artifactId>
+    <name>Mocapi - Transport - Stdio</name>
+    <description>Stdio transport for MCP: newline-delimited JSON over stdin/stdout.</description>
 
-    <modules>
-        <module>example-autoconfigure</module>
-        <module>in-memory</module>
-        <module>redis</module>
-        <module>postgresql</module>
-        <module>nats</module>
-        <module>stdio</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-server</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
 </project>

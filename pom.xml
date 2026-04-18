@@ -60,6 +60,7 @@
         <module>examples</module>
         <module>mocapi-compat</module>
         <module>mocapi-transport-streamable-http</module>
+        <module>mocapi-transport-stdio</module>
         <module>mocapi-prompts-mustache</module>
         <module>mocapi-prompts-spring</module>
     </modules>
