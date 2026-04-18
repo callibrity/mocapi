@@ -25,6 +25,24 @@ Add the starter dependency:
 </dependency>
 ```
 
+If you depend on multiple mocapi artifacts (e.g., a starter plus one of the `mocapi-prompts-*` modules), import the BOM to keep versions aligned (available from 0.8.0 onward):
+
+```xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-bom</artifactId>
+            <version>0.8.0</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+Then declare individual mocapi artifacts without a `<version>` — the BOM pins them.
+
 Define a tool:
 
 ```java
@@ -139,6 +157,10 @@ Run your Spring Boot application. With `mocapi-streamable-http-spring-boot-start
 
 - **`mocapi-prompts-spring`** — `PromptTemplateFactory` using Spring's `${name}` placeholder syntax; no extra dependencies
 - **`mocapi-prompts-mustache`** — `PromptTemplateFactory` backed by [JMustache](https://github.com/samskivert/jmustache) for richer `{{name}}` templates with sections
+
+### Bill of Materials (optional)
+
+- **`mocapi-bom`** — imports into your `<dependencyManagement>` to align versions across multiple mocapi artifacts without hard-coding each one
 
 ## Examples
 

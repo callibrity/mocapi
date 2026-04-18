@@ -1,27 +1,15 @@
 # mocapi-conformance
 
-MCP protocol conformance test suite for Mocapi.
+MCP protocol conformance server for Mocapi.
 
-This module verifies that Mocapi correctly implements the
-[MCP 2025-11-25 specification](https://modelcontextprotocol.io/specification/2025-11-25)
-using two complementary approaches:
+This module is a runnable Spring Boot application wired up with a set
+of tools, prompts, and resources that cover every scenario in the
+official [`@modelcontextprotocol/conformance`](https://www.npmjs.com/package/@modelcontextprotocol/conformance)
+npx tool. It is not published to Maven Central — its only purpose is to
+serve as a target for conformance runs against a known-good set of
+annotated beans.
 
-1. **Internal integration tests** — Spring Boot MockMvc tests that validate protocol
-   behavior (initialization, ping, tool discovery, tool invocation, SSE streaming,
-   session management, content negotiation, etc.)
-2. **External conformance suite** — the official
-   [`@modelcontextprotocol/conformance`](https://www.npmjs.com/package/@modelcontextprotocol/conformance)
-   npx tool, run against a live Mocapi server
-
-## Running internal IT tests
-
-```bash
-mvn verify -pl mocapi-conformance
-```
-
-This runs all `*IT.java` integration tests via Maven Failsafe.
-
-## Running the npx conformance suite
+## Running the conformance suite
 
 ### 1. Start the conformance server
 
@@ -62,17 +50,21 @@ npx @modelcontextprotocol/conformance server --url http://localhost:8081/mcp
 | `dns-rebinding-protection` | — (protocol-level) |
 | `elicitation-sep1034-defaults` | `test_elicitation_sep1034_defaults` |
 | `elicitation-sep1330-enums` | `test_elicitation_sep1330_enums` |
+| `resources-list` | — (protocol-level) |
+| `resources-read-text` | `Static Text Resource` |
+| `resources-read-binary` | `Static Binary Resource` |
+| `resources-templates-list` | — (protocol-level) |
+| `resources-read-template` | `Template Resource` |
+| `resources-subscribe` | `Watched Resource` |
+| `prompts-list` | — (protocol-level) |
+| `prompts-get-simple` | `test_simple_prompt` |
+| `prompts-get-with-arguments` | `test_prompt_with_arguments` |
+| `prompts-get-with-embedded-resource` | `test_prompt_with_embedded_resource` |
+| `prompts-get-with-image` | `test_prompt_with_image` |
 
-### Pending scenarios
+## Adding new conformance scenarios
 
-| Capability | Status |
-|---|---|
-| Resources (`resources/list`, `resources/read`) | Not yet implemented |
-| Prompts (`prompts/list`, `prompts/get`) | Not yet implemented |
-
-## Adding new conformance tools
-
-1. Add a method to `ConformanceTools.java` annotated with `@Tool(name = "test_*", ...)`
+1. Add a method to the appropriate `Compatibility*.java` bean (tool, prompt, or resource) with the right annotation.
 2. Add Javadoc referencing the npx scenario name and linking to the relevant MCP spec section:
    ```java
    /**
@@ -81,5 +73,4 @@ npx @modelcontextprotocol/conformance server --url http://localhost:8081/mcp
     * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools Specification</a>
     */
    ```
-3. Add a corresponding `*IT.java` integration test in the `conformance` package
-4. Run `mvn verify -pl mocapi-conformance` to confirm the test passes
+3. Re-run the npx conformance suite locally to confirm it passes and add the scenario to the table above.

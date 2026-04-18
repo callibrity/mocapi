@@ -6,6 +6,33 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- New `mocapi-bom` module — a Bill of Materials that pins every
+  mocapi artifact version in one place. Import it into your own
+  `dependencyManagement` with `<scope>import</scope>` and then omit
+  `<version>` on individual mocapi dependencies. Useful once you depend
+  on more than one coordinate (e.g., a starter plus `mocapi-prompts-mustache`).
+
+### Fixed
+
+- `central-publishing-maven-plugin` ignores the standard
+  `maven.deploy.skip` property, which meant the 0.7.0 release
+  accidentally pushed every example module and `mocapi-conformance`
+  to Maven Central. Added release-profile `<skipPublishing>true</skipPublishing>`
+  overrides in `examples/pom.xml` (cascades to every example) and in
+  `mocapi-conformance/pom.xml`. From 0.8.0 forward only the 11 real
+  library artifacts (plus the new `mocapi-bom`) will publish.
+  0.7.0's example coordinates on Central are immutable and will
+  remain but should be ignored — there are no consumers.
+
+### Documentation
+
+- `mocapi-conformance/README.md`: the pending-scenarios table
+  referenced resources and prompts as "not yet implemented" — both
+  are fully wired up in the harness. Rewrote to list the actual
+  scenarios being exercised.
+
 ## [0.7.0] - 2026-04-17
 
 ### Breaking changes
