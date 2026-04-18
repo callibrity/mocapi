@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.compat;
+package com.callibrity.mocapi.conformance;
 
 import com.callibrity.mocapi.api.prompts.PromptMethod;
 import com.callibrity.mocapi.api.prompts.PromptService;
@@ -31,7 +31,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @PromptService
-public class CompatibilityPrompts {
+public class ConformancePrompts {
 
   // 1x1 red pixel PNG
   private static final String TINY_PNG =

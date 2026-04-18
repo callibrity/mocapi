@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.compat;
+package com.callibrity.mocapi.conformance;
 
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.ToolMethod;
@@ -57,7 +57,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ToolService
-public class CompatibilityTools {
+public class ConformanceTools {
 
   private static final String VALUE_1 = "value1";
   private static final String VALUE_2 = "value2";

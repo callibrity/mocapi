@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.compat;
+package com.callibrity.mocapi.conformance;
 
 import com.callibrity.mocapi.api.resources.ResourceMethod;
 import com.callibrity.mocapi.api.resources.ResourceService;
@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @ResourceService
-public class CompatibilityResources {
+public class ConformanceResources {
 
   // 1x1 red pixel PNG
   private static final byte[] TINY_PNG = {
