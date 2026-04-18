@@ -27,12 +27,17 @@ npx @modelcontextprotocol/conformance server --url http://localhost:8081/mcp
 
 ## Current conformance status
 
+Last full run (`npx @modelcontextprotocol/conformance`): **36 passed, 3 failed**.
+
 ### Passing scenarios
 
-| Scenario | Tool |
+| Scenario | Driven by |
 |---|---|
 | `server-initialize` | — (protocol-level) |
 | `ping` | — (protocol-level) |
+| `logging-set-level` | — (protocol-level) |
+| `server-sse-multiple-streams` | — (protocol-level) |
+| `dns-rebinding-protection` | — (protocol-level) |
 | `tools-list` | — (protocol-level) |
 | `tools-call-simple-text` | `test_simple_text` |
 | `tools-call-image` | `test_image_content` |
@@ -44,23 +49,25 @@ npx @modelcontextprotocol/conformance server --url http://localhost:8081/mcp
 | `tools-call-with-progress` | `test_tool_with_progress` |
 | `tools-call-sampling` | `test_sampling` |
 | `tools-call-elicitation` | `test_elicitation` |
-| `logging-set-level` | — (protocol-level) |
-| `completion-complete` | — (protocol-level) |
-| `server-sse-multiple-streams` | — (protocol-level) |
-| `dns-rebinding-protection` | — (protocol-level) |
 | `elicitation-sep1034-defaults` | `test_elicitation_sep1034_defaults` |
 | `elicitation-sep1330-enums` | `test_elicitation_sep1330_enums` |
 | `resources-list` | — (protocol-level) |
 | `resources-read-text` | `Static Text Resource` |
 | `resources-read-binary` | `Static Binary Resource` |
-| `resources-templates-list` | — (protocol-level) |
-| `resources-read-template` | `Template Resource` |
-| `resources-subscribe` | `Watched Resource` |
+| `resources-templates-read` | `Template Resource` |
 | `prompts-list` | — (protocol-level) |
 | `prompts-get-simple` | `test_simple_prompt` |
-| `prompts-get-with-arguments` | `test_prompt_with_arguments` |
-| `prompts-get-with-embedded-resource` | `test_prompt_with_embedded_resource` |
+| `prompts-get-with-args` | `test_prompt_with_arguments` |
+| `prompts-get-embedded-resource` | `test_prompt_with_embedded_resource` |
 | `prompts-get-with-image` | `test_prompt_with_image` |
+
+### Known failures
+
+| Scenario | Why |
+|---|---|
+| `completion-complete` | `completion/complete` RPC is not wired in `mocapi-server` yet. |
+| `resources-subscribe` | `resources/subscribe` is not wired — mocapi has no subscription dispatch path yet. |
+| `resources-unsubscribe` | Same as above; without subscribe the counterpart has nothing to unsubscribe from. |
 
 ## Adding new conformance scenarios
 
