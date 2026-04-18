@@ -32,6 +32,7 @@ import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.substrate.atom.AtomFactory;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,7 +45,9 @@ class ToolServiceMcpToolProviderTest {
       new ApplicationContextRunner()
           .withConfiguration(
               AutoConfigurations.of(
-                  MocapiServerToolsAutoConfiguration.class, MocapiServerAutoConfiguration.class))
+                  PropertyPlaceholderAutoConfiguration.class,
+                  MocapiServerToolsAutoConfiguration.class,
+                  MocapiServerAutoConfiguration.class))
           .withUserConfiguration(InfrastructureConfig.class);
 
   @Configuration(proxyBeanMethods = false)
@@ -85,6 +88,15 @@ class ToolServiceMcpToolProviderTest {
     }
   }
 
+  @ToolService
+  static class PlaceholderToolService {
+
+    @ToolMethod(name = "${tool.name}", title = "${tool.title}", description = "${tool.description}")
+    public String hello() {
+      return "Hello!";
+    }
+  }
+
   @Test
   void discovers_tool_service_beans() {
     contextRunner
@@ -106,6 +118,37 @@ class ToolServiceMcpToolProviderTest {
           ToolServiceMcpToolProvider provider = context.getBean(ToolServiceMcpToolProvider.class);
           assertThat(provider.getMcpTools()).isEmpty();
         });
+  }
+
+  @Test
+  void resolves_placeholders_in_tool_metadata() {
+    contextRunner
+        .withBean(PlaceholderToolService.class, PlaceholderToolService::new)
+        .withPropertyValues(
+            "tool.name=resolved-name",
+            "tool.title=Resolved Title",
+            "tool.description=Resolved description")
+        .run(
+            context -> {
+              var provider = context.getBean(ToolServiceMcpToolProvider.class);
+              var tool = provider.getMcpTools().getFirst();
+              assertThat(tool.descriptor().name()).isEqualTo("resolved-name");
+              assertThat(tool.descriptor().title()).isEqualTo("Resolved Title");
+              assertThat(tool.descriptor().description()).isEqualTo("Resolved description");
+            });
+  }
+
+  @Test
+  void fails_fast_when_placeholder_is_missing() {
+    contextRunner
+        .withBean(PlaceholderToolService.class, PlaceholderToolService::new)
+        .run(
+            context ->
+                assertThat(context)
+                    .hasFailed()
+                    .getFailure()
+                    .rootCause()
+                    .hasMessageContaining("tool.name"));
   }
 
   @Test

@@ -44,6 +44,7 @@ import org.jspecify.annotations.Nullable;
 import org.jwcarman.substrate.atom.AtomFactory;
 import org.jwcarman.substrate.core.autoconfigure.SubstrateAutoConfiguration;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.info.ProjectInfoAutoConfiguration;
@@ -51,6 +52,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.util.StringValueResolver;
 import tools.jackson.databind.ObjectMapper;
 
 /** Auto-configuration for MCP protocol beans. */
@@ -61,6 +63,19 @@ import tools.jackson.databind.ObjectMapper;
 public class MocapiServerAutoConfiguration {
 
   private final MocapiServerProperties props;
+
+  /**
+   * Exposes Spring's embedded-value resolver as a {@link StringValueResolver} bean so annotation
+   * processors (tool, prompt, resource, resource-template scanners) can resolve {@code ${...}}
+   * property placeholders and {@code #{...}} SpEL expressions in annotation values. Missing
+   * placeholders fail loudly at startup via Spring's standard {@code
+   * PlaceholderResolutionException}.
+   */
+  @Bean
+  @ConditionalOnMissingBean(name = "mcpAnnotationValueResolver")
+  public StringValueResolver mcpAnnotationValueResolver(ConfigurableBeanFactory beanFactory) {
+    return beanFactory::resolveEmbeddedValue;
+  }
 
   @Bean
   @ConditionalOnMissingBean

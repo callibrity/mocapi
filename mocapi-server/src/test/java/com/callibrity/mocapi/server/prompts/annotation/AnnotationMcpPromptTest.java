@@ -44,7 +44,7 @@ class AnnotationMcpPromptTest {
       List.of(new StringMapArgResolver(DefaultConversionService.getSharedInstance()));
 
   private List<AnnotationMcpPrompt> createPrompts(Object target) {
-    return AnnotationMcpPrompt.createPrompts(invokerFactory, resolvers, target);
+    return AnnotationMcpPrompt.createPrompts(invokerFactory, resolvers, target, s -> s);
   }
 
   enum Detail {

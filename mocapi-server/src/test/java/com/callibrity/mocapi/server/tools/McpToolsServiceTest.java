@@ -74,7 +74,7 @@ class McpToolsServiceTest {
   private McpToolsService service;
 
   private McpToolProvider createProvider(Object target) {
-    var tools = AnnotationMcpTool.createTools(generator, invokerFactory, resolvers, target);
+    var tools = AnnotationMcpTool.createTools(generator, invokerFactory, resolvers, target, s -> s);
     return () -> List.copyOf(tools);
   }
 
@@ -233,7 +233,8 @@ class McpToolsServiceTest {
   @Test
   void call_tool_timeout_returns_error_result_with_descriptive_message() {
     var timeoutTool =
-        AnnotationMcpTool.createTools(generator, invokerFactory, resolvers, new TimeoutTool())
+        AnnotationMcpTool.createTools(
+                generator, invokerFactory, resolvers, new TimeoutTool(), s -> s)
             .stream()
             .findFirst()
             .orElseThrow();

@@ -49,7 +49,7 @@ class AnnotationMcpToolTest {
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
 
   private List<AnnotationMcpTool> createTools(Object target) {
-    return AnnotationMcpTool.createTools(generator, invokerFactory, resolvers, target);
+    return AnnotationMcpTool.createTools(generator, invokerFactory, resolvers, target, s -> s);
   }
 
   @Test

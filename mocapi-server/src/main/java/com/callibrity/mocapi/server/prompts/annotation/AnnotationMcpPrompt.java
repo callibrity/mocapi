@@ -17,7 +17,7 @@ package com.callibrity.mocapi.server.prompts.annotation;
 
 import static com.callibrity.mocapi.server.tools.annotation.Names.humanReadableName;
 import static com.callibrity.mocapi.server.tools.annotation.Names.identifier;
-import static java.util.Optional.ofNullable;
+import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefault;
 
 import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.prompts.PromptMethod;
@@ -30,12 +30,12 @@ import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
+import org.springframework.util.StringValueResolver;
 
 public class AnnotationMcpPrompt implements McpPrompt {
 
@@ -47,10 +47,12 @@ public class AnnotationMcpPrompt implements McpPrompt {
   public static List<AnnotationMcpPrompt> createPrompts(
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
-      Object targetObject) {
+      Object targetObject,
+      StringValueResolver valueResolver) {
     return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), PromptMethod.class)
         .stream()
-        .map(m -> new AnnotationMcpPrompt(invokerFactory, resolvers, targetObject, m))
+        .map(
+            m -> new AnnotationMcpPrompt(invokerFactory, resolvers, targetObject, m, valueResolver))
         .toList();
   }
 
@@ -58,12 +60,18 @@ public class AnnotationMcpPrompt implements McpPrompt {
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
       Object targetObject,
-      Method method) {
+      Method method,
+      StringValueResolver valueResolver) {
     validateReturnType(targetObject, method);
     var annotation = method.getAnnotation(PromptMethod.class);
-    String name = nameOf(targetObject, method, annotation);
-    String title = titleOf(targetObject, method, annotation);
-    String description = descriptionOf(targetObject, method, annotation);
+    String name =
+        resolveOrDefault(valueResolver, annotation.name(), () -> identifier(targetObject, method));
+    String title =
+        resolveOrDefault(
+            valueResolver, annotation.title(), () -> humanReadableName(targetObject, method));
+    String description =
+        resolveOrDefault(
+            valueResolver, annotation.description(), () -> humanReadableName(targetObject, method));
     this.invoker = invokerFactory.create(method, targetObject, ARGS_TYPE, resolvers);
     this.descriptor = new Prompt(name, title, description, null, argumentsOf(method));
   }
@@ -77,21 +85,6 @@ public class AnnotationMcpPrompt implements McpPrompt {
               method.getName(),
               GetPromptResult.class.getName()));
     }
-  }
-
-  private static String nameOf(Object targetObject, Method method, PromptMethod annotation) {
-    return ofNullable(StringUtils.trimToNull(annotation.name()))
-        .orElseGet(() -> identifier(targetObject, method));
-  }
-
-  private static String titleOf(Object targetObject, Method method, PromptMethod annotation) {
-    return ofNullable(StringUtils.trimToNull(annotation.title()))
-        .orElseGet(() -> humanReadableName(targetObject, method));
-  }
-
-  private static String descriptionOf(Object targetObject, Method method, PromptMethod annotation) {
-    return ofNullable(StringUtils.trimToNull(annotation.description()))
-        .orElseGet(() -> humanReadableName(targetObject, method));
   }
 
   private static List<PromptArgument> argumentsOf(Method method) {

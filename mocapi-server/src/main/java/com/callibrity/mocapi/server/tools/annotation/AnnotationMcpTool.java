@@ -17,7 +17,7 @@ package com.callibrity.mocapi.server.tools.annotation;
 
 import static com.callibrity.mocapi.server.tools.annotation.Names.humanReadableName;
 import static com.callibrity.mocapi.server.tools.annotation.Names.identifier;
-import static java.util.Optional.ofNullable;
+import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefault;
 
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
@@ -28,11 +28,11 @@ import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
+import org.springframework.util.StringValueResolver;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -45,10 +45,14 @@ public class AnnotationMcpTool implements McpTool {
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super JsonNode>> resolvers,
-      Object targetObject) {
+      Object targetObject,
+      StringValueResolver valueResolver) {
     return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), ToolMethod.class)
         .stream()
-        .map(m -> new AnnotationMcpTool(generator, invokerFactory, resolvers, targetObject, m))
+        .map(
+            m ->
+                new AnnotationMcpTool(
+                    generator, invokerFactory, resolvers, targetObject, m, valueResolver))
         .toList();
   }
 
@@ -57,32 +61,23 @@ public class AnnotationMcpTool implements McpTool {
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super JsonNode>> resolvers,
       Object targetObject,
-      Method method) {
+      Method method,
+      StringValueResolver valueResolver) {
     validateMcpToolParams(targetObject, method);
     var annotation = method.getAnnotation(ToolMethod.class);
-    String name = nameOf(targetObject, method, annotation);
-    String title = titleOf(targetObject, method, annotation);
-    String description = descriptionOf(targetObject, method, annotation);
+    String name =
+        resolveOrDefault(valueResolver, annotation.name(), () -> identifier(targetObject, method));
+    String title =
+        resolveOrDefault(
+            valueResolver, annotation.title(), () -> humanReadableName(targetObject, method));
+    String description =
+        resolveOrDefault(
+            valueResolver, annotation.description(), () -> humanReadableName(targetObject, method));
     this.invoker = invokerFactory.create(method, targetObject, JsonNode.class, resolvers);
     ObjectNode inputSchema = generator.generateInputSchema(targetObject, method);
     ObjectNode outputSchema =
         isVoid(method) ? null : generator.generateOutputSchema(targetObject, method);
     this.descriptor = new Tool(name, title, description, inputSchema, outputSchema);
-  }
-
-  private static String nameOf(Object targetObject, Method method, ToolMethod annotation) {
-    return ofNullable(StringUtils.trimToNull(annotation.name()))
-        .orElseGet(() -> identifier(targetObject, method));
-  }
-
-  private static String titleOf(Object targetObject, Method method, ToolMethod annotation) {
-    return ofNullable(StringUtils.trimToNull(annotation.title()))
-        .orElseGet(() -> humanReadableName(targetObject, method));
-  }
-
-  private static String descriptionOf(Object targetObject, Method method, ToolMethod annotation) {
-    return ofNullable(StringUtils.trimToNull(annotation.description()))
-        .orElseGet(() -> humanReadableName(targetObject, method));
   }
 
   private static void validateMcpToolParams(Object targetObject, Method method) {

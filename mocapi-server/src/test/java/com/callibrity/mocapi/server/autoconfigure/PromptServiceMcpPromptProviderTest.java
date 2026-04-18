@@ -36,6 +36,7 @@ import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.substrate.atom.AtomFactory;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,7 +49,9 @@ class PromptServiceMcpPromptProviderTest {
       new ApplicationContextRunner()
           .withConfiguration(
               AutoConfigurations.of(
-                  MocapiServerPromptsAutoConfiguration.class, MocapiServerAutoConfiguration.class))
+                  PropertyPlaceholderAutoConfiguration.class,
+                  MocapiServerPromptsAutoConfiguration.class,
+                  MocapiServerAutoConfiguration.class))
           .withUserConfiguration(InfrastructureConfig.class);
 
   @Configuration(proxyBeanMethods = false)
@@ -91,6 +94,20 @@ class PromptServiceMcpPromptProviderTest {
     }
   }
 
+  @PromptService
+  static class PlaceholderPromptService {
+
+    @PromptMethod(
+        name = "${prompt.name}",
+        title = "${prompt.title}",
+        description = "${prompt.description}")
+    public GetPromptResult greet(String name) {
+      return new GetPromptResult(
+          "greeting",
+          List.of(new PromptMessage(Role.USER, new TextContent("Hello, " + name + "!", null))));
+    }
+  }
+
   @Test
   void discovers_prompt_service_beans() {
     contextRunner
@@ -111,6 +128,38 @@ class PromptServiceMcpPromptProviderTest {
           var provider = context.getBean(PromptServiceMcpPromptProvider.class);
           assertThat(provider.getMcpPrompts()).isEmpty();
         });
+  }
+
+  @Test
+  void resolves_placeholders_in_prompt_metadata() {
+    contextRunner
+        .withBean(PlaceholderPromptService.class, PlaceholderPromptService::new)
+        .withPropertyValues(
+            "prompt.name=resolved-prompt",
+            "prompt.title=Resolved Prompt Title",
+            "prompt.description=Resolved prompt description")
+        .run(
+            context -> {
+              var provider = context.getBean(PromptServiceMcpPromptProvider.class);
+              var prompt = provider.getMcpPrompts().getFirst();
+              assertThat(prompt.descriptor().name()).isEqualTo("resolved-prompt");
+              assertThat(prompt.descriptor().title()).isEqualTo("Resolved Prompt Title");
+              assertThat(prompt.descriptor().description())
+                  .isEqualTo("Resolved prompt description");
+            });
+  }
+
+  @Test
+  void fails_fast_when_placeholder_is_missing() {
+    contextRunner
+        .withBean(PlaceholderPromptService.class, PlaceholderPromptService::new)
+        .run(
+            context ->
+                assertThat(context)
+                    .hasFailed()
+                    .getFailure()
+                    .rootCause()
+                    .hasMessageContaining("prompt.name"));
   }
 
   @Test

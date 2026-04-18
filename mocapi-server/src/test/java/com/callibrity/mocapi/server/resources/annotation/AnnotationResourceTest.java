@@ -85,7 +85,8 @@ class AnnotationResourceTest {
 
   @Test
   void fixed_resource_builds_descriptor_and_invokes() {
-    var resource = ResourceServiceScanner.createResources(invokerFactory, new Fixture()).getFirst();
+    var resource =
+        AnnotationMcpResource.createResources(invokerFactory, new Fixture(), s -> s).getFirst();
 
     assertThat(resource.descriptor().uri()).isEqualTo("test://hello");
     assertThat(resource.descriptor().name()).isEqualTo("Hello");
@@ -99,8 +100,8 @@ class AnnotationResourceTest {
   @Test
   void template_builds_descriptor_and_invokes_with_converted_path_variables() {
     var template =
-        ResourceServiceScanner.createResourceTemplates(
-                invokerFactory, templateResolvers, new Fixture())
+        AnnotationMcpResourceTemplate.createTemplates(
+                invokerFactory, templateResolvers, new Fixture(), s -> s)
             .getFirst();
 
     assertThat(template.descriptor().uriTemplate()).isEqualTo("test://items/{id}");
@@ -115,8 +116,8 @@ class AnnotationResourceTest {
   @Test
   void template_read_with_null_path_variables_invokes_with_empty_map() {
     var template =
-        ResourceServiceScanner.createResourceTemplates(
-                invokerFactory, templateResolvers, new StringPathFixture())
+        AnnotationMcpResourceTemplate.createTemplates(
+                invokerFactory, templateResolvers, new StringPathFixture(), s -> s)
             .getFirst();
 
     var result = template.read(null);
@@ -128,7 +129,7 @@ class AnnotationResourceTest {
   @Test
   void resource_method_with_non_result_return_type_is_rejected() {
     var target = new BadResource();
-    assertThatThrownBy(() -> ResourceServiceScanner.createResources(invokerFactory, target))
+    assertThatThrownBy(() -> AnnotationMcpResource.createResources(invokerFactory, target, s -> s))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ReadResourceResult");
   }
@@ -138,8 +139,8 @@ class AnnotationResourceTest {
     var target = new BadTemplate();
     assertThatThrownBy(
             () ->
-                ResourceServiceScanner.createResourceTemplates(
-                    invokerFactory, templateResolvers, target))
+                AnnotationMcpResourceTemplate.createTemplates(
+                    invokerFactory, templateResolvers, target, s -> s))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ReadResourceResult");
   }

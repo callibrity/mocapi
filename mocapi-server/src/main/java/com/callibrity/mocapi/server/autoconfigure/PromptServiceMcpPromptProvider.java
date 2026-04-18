@@ -28,6 +28,7 @@ import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.util.StringValueResolver;
 
 @Slf4j
 class PromptServiceMcpPromptProvider implements McpPromptProvider {
@@ -35,15 +36,18 @@ class PromptServiceMcpPromptProvider implements McpPromptProvider {
   private final ApplicationContext context;
   private final MethodInvokerFactory invokerFactory;
   private final List<ParameterResolver<? super Map<String, String>>> resolvers;
+  private final StringValueResolver valueResolver;
   private List<AnnotationMcpPrompt> prompts;
 
   PromptServiceMcpPromptProvider(
       ApplicationContext context,
       MethodInvokerFactory invokerFactory,
-      ConversionService conversionService) {
+      ConversionService conversionService,
+      StringValueResolver valueResolver) {
     this.context = context;
     this.invokerFactory = invokerFactory;
     this.resolvers = List.of(new StringMapArgResolver(conversionService));
+    this.valueResolver = valueResolver;
   }
 
   @Override
@@ -64,7 +68,9 @@ class PromptServiceMcpPromptProvider implements McpPromptProvider {
                       "Registering MCP prompts for @{} bean \"{}\"...",
                       PromptService.class.getSimpleName(),
                       beanName);
-                  var list = AnnotationMcpPrompt.createPrompts(invokerFactory, resolvers, bean);
+                  var list =
+                      AnnotationMcpPrompt.createPrompts(
+                          invokerFactory, resolvers, bean, valueResolver);
                   list.forEach(
                       p -> log.info("\tRegistered MCP prompt: \"{}\"", p.descriptor().name()));
                   return list.stream();

@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.context.ApplicationContext;
+import org.springframework.util.StringValueResolver;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -37,17 +38,20 @@ class ToolServiceMcpToolProvider implements McpToolProvider {
   private final MethodSchemaGenerator generator;
   private final MethodInvokerFactory invokerFactory;
   private final List<ParameterResolver<? super JsonNode>> resolvers;
+  private final StringValueResolver valueResolver;
   private List<AnnotationMcpTool> tools;
 
   ToolServiceMcpToolProvider(
       ApplicationContext context,
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      StringValueResolver valueResolver) {
     this.context = context;
     this.generator = generator;
     this.invokerFactory = invokerFactory;
     this.resolvers = List.of(new McpToolContextResolver(), new McpToolParamsResolver(objectMapper));
+    this.valueResolver = valueResolver;
   }
 
   @Override
@@ -69,7 +73,8 @@ class ToolServiceMcpToolProvider implements McpToolProvider {
                       ToolService.class.getSimpleName(),
                       beanName);
                   var list =
-                      AnnotationMcpTool.createTools(generator, invokerFactory, resolvers, bean);
+                      AnnotationMcpTool.createTools(
+                          generator, invokerFactory, resolvers, bean, valueResolver);
                   list.forEach(
                       tool -> log.info("\tRegistered MCP tool: \"{}\"", tool.descriptor().name()));
                   return list.stream();

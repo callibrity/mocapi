@@ -23,6 +23,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
+import org.springframework.util.StringValueResolver;
 
 @AutoConfiguration(before = MocapiServerAutoConfiguration.class)
 public class MocapiServerResourcesAutoConfiguration {
@@ -32,10 +33,12 @@ public class MocapiServerResourcesAutoConfiguration {
   public ResourceServiceMcpResourceProvider mcpProtocolResourceServiceMcpResourceProvider(
       ApplicationContext context,
       MethodInvokerFactory invokerFactory,
-      ObjectProvider<ConversionService> conversionService) {
+      ObjectProvider<ConversionService> conversionService,
+      StringValueResolver mcpAnnotationValueResolver) {
     return new ResourceServiceMcpResourceProvider(
         context,
         invokerFactory,
-        conversionService.getIfAvailable(DefaultConversionService::getSharedInstance));
+        conversionService.getIfAvailable(DefaultConversionService::getSharedInstance),
+        mcpAnnotationValueResolver);
   }
 }

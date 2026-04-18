@@ -16,7 +16,8 @@
 package com.callibrity.mocapi.server.resources.annotation;
 
 import static com.callibrity.mocapi.server.tools.annotation.Names.humanReadableName;
-import static java.util.Optional.ofNullable;
+import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefault;
+import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrNull;
 
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
@@ -25,11 +26,12 @@ import com.callibrity.mocapi.model.ResourceTemplate;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
+import org.springframework.util.StringValueResolver;
 
 public class AnnotationMcpResourceTemplate implements McpResourceTemplate {
 
@@ -38,17 +40,35 @@ public class AnnotationMcpResourceTemplate implements McpResourceTemplate {
   private final ResourceTemplate descriptor;
   private final MethodInvoker<Map<String, String>> invoker;
 
+  public static List<AnnotationMcpResourceTemplate> createTemplates(
+      MethodInvokerFactory invokerFactory,
+      List<ParameterResolver<? super Map<String, String>>> resolvers,
+      Object targetObject,
+      StringValueResolver valueResolver) {
+    return MethodUtils.getMethodsListWithAnnotation(
+            targetObject.getClass(), ResourceTemplateMethod.class)
+        .stream()
+        .map(
+            m ->
+                new AnnotationMcpResourceTemplate(
+                    invokerFactory, resolvers, targetObject, m, valueResolver))
+        .toList();
+  }
+
   AnnotationMcpResourceTemplate(
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
       Object targetObject,
-      Method method) {
+      Method method,
+      StringValueResolver valueResolver) {
     validateReturnType(targetObject, method);
     var annotation = method.getAnnotation(ResourceTemplateMethod.class);
-    String uriTemplate = annotation.uriTemplate();
-    String name = nameOf(targetObject, method, annotation);
-    String description = descriptionOf(name, annotation);
-    String mimeType = StringUtils.trimToNull(annotation.mimeType());
+    String uriTemplate = valueResolver.resolveStringValue(annotation.uriTemplate());
+    String name =
+        resolveOrDefault(
+            valueResolver, annotation.name(), () -> humanReadableName(targetObject, method));
+    String description = resolveOrDefault(valueResolver, annotation.description(), () -> name);
+    String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
     this.invoker = invokerFactory.create(method, targetObject, VARS_TYPE, resolvers);
     this.descriptor = new ResourceTemplate(uriTemplate, name, description, mimeType);
   }
@@ -62,16 +82,6 @@ public class AnnotationMcpResourceTemplate implements McpResourceTemplate {
               method.getName(),
               ReadResourceResult.class.getName()));
     }
-  }
-
-  private static String nameOf(
-      Object targetObject, Method method, ResourceTemplateMethod annotation) {
-    return ofNullable(StringUtils.trimToNull(annotation.name()))
-        .orElseGet(() -> humanReadableName(targetObject, method));
-  }
-
-  private static String descriptionOf(String name, ResourceTemplateMethod annotation) {
-    return ofNullable(StringUtils.trimToNull(annotation.description())).orElse(name);
   }
 
   @Override

@@ -34,6 +34,7 @@ import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.substrate.atom.AtomFactory;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,6 +47,7 @@ class ResourceServiceMcpResourceProviderTest {
       new ApplicationContextRunner()
           .withConfiguration(
               AutoConfigurations.of(
+                  PropertyPlaceholderAutoConfiguration.class,
                   MocapiServerResourcesAutoConfiguration.class,
                   MocapiServerAutoConfiguration.class))
           .withUserConfiguration(InfrastructureConfig.class);
@@ -95,6 +97,30 @@ class ResourceServiceMcpResourceProviderTest {
     }
   }
 
+  @ResourceService
+  static class PlaceholderResourceService {
+
+    @ResourceMethod(
+        uri = "${resource.uri}",
+        name = "${resource.name}",
+        description = "${resource.description}",
+        mimeType = "${resource.mimeType}")
+    public ReadResourceResult hello() {
+      return new ReadResourceResult(
+          List.of(new TextResourceContents("test://hello", "text/plain", "hi")));
+    }
+
+    @ResourceTemplateMethod(
+        uriTemplate = "${template.uri}",
+        name = "${template.name}",
+        description = "${template.description}",
+        mimeType = "${template.mimeType}")
+    public ReadResourceResult item(String id) {
+      return new ReadResourceResult(
+          List.of(new TextResourceContents("test://items/" + id, "text/plain", "item " + id)));
+    }
+  }
+
   @Test
   void discovers_resource_service_beans() {
     contextRunner
@@ -119,6 +145,52 @@ class ResourceServiceMcpResourceProviderTest {
           assertThat(provider.getMcpResources()).isEmpty();
           assertThat(provider.getMcpResourceTemplates()).isEmpty();
         });
+  }
+
+  @Test
+  void resolves_placeholders_in_resource_and_template_metadata() {
+    contextRunner
+        .withBean(PlaceholderResourceService.class, PlaceholderResourceService::new)
+        .withPropertyValues(
+            "resource.uri=test://resolved",
+            "resource.name=Resolved Resource",
+            "resource.description=Resolved resource description",
+            "resource.mimeType=application/json",
+            "template.uri=test://resolved/{id}",
+            "template.name=Resolved Template",
+            "template.description=Resolved template description",
+            "template.mimeType=application/xml")
+        .run(
+            context -> {
+              var provider = context.getBean(ResourceServiceMcpResourceProvider.class);
+
+              var resource = provider.getMcpResources().getFirst();
+              assertThat(resource.descriptor().uri()).isEqualTo("test://resolved");
+              assertThat(resource.descriptor().name()).isEqualTo("Resolved Resource");
+              assertThat(resource.descriptor().description())
+                  .isEqualTo("Resolved resource description");
+              assertThat(resource.descriptor().mimeType()).isEqualTo("application/json");
+
+              var template = provider.getMcpResourceTemplates().getFirst();
+              assertThat(template.descriptor().uriTemplate()).isEqualTo("test://resolved/{id}");
+              assertThat(template.descriptor().name()).isEqualTo("Resolved Template");
+              assertThat(template.descriptor().description())
+                  .isEqualTo("Resolved template description");
+              assertThat(template.descriptor().mimeType()).isEqualTo("application/xml");
+            });
+  }
+
+  @Test
+  void fails_fast_when_placeholder_is_missing() {
+    contextRunner
+        .withBean(PlaceholderResourceService.class, PlaceholderResourceService::new)
+        .run(
+            context ->
+                assertThat(context)
+                    .hasFailed()
+                    .getFailure()
+                    .rootCause()
+                    .hasMessageContaining("resource.uri"));
   }
 
   @Test

@@ -29,6 +29,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.util.StringValueResolver;
 import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration(before = MocapiServerAutoConfiguration.class)
@@ -62,7 +63,9 @@ public class MocapiServerToolsAutoConfiguration {
       ApplicationContext context,
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
-      ObjectMapper objectMapper) {
-    return new ToolServiceMcpToolProvider(context, generator, invokerFactory, objectMapper);
+      ObjectMapper objectMapper,
+      StringValueResolver mcpAnnotationValueResolver) {
+    return new ToolServiceMcpToolProvider(
+        context, generator, invokerFactory, objectMapper, mcpAnnotationValueResolver);
   }
 }

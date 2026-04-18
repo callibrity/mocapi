@@ -16,29 +16,46 @@
 package com.callibrity.mocapi.server.resources.annotation;
 
 import static com.callibrity.mocapi.server.tools.annotation.Names.humanReadableName;
-import static java.util.Optional.ofNullable;
+import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefault;
+import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrNull;
 
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.ResourceMethod;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import java.lang.reflect.Method;
-import org.apache.commons.lang3.StringUtils;
+import java.util.List;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.springframework.util.StringValueResolver;
 
 public class AnnotationMcpResource implements McpResource {
 
   private final Resource descriptor;
   private final MethodInvoker<Object> invoker;
 
-  AnnotationMcpResource(MethodInvokerFactory invokerFactory, Object targetObject, Method method) {
+  public static List<AnnotationMcpResource> createResources(
+      MethodInvokerFactory invokerFactory, Object targetObject, StringValueResolver valueResolver) {
+    return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), ResourceMethod.class)
+        .stream()
+        .map(m -> new AnnotationMcpResource(invokerFactory, targetObject, m, valueResolver))
+        .toList();
+  }
+
+  AnnotationMcpResource(
+      MethodInvokerFactory invokerFactory,
+      Object targetObject,
+      Method method,
+      StringValueResolver valueResolver) {
     validateReturnType(targetObject, method);
     var annotation = method.getAnnotation(ResourceMethod.class);
-    String uri = annotation.uri();
-    String name = nameOf(targetObject, method, annotation);
-    String description = descriptionOf(name, annotation);
-    String mimeType = StringUtils.trimToNull(annotation.mimeType());
+    String uri = valueResolver.resolveStringValue(annotation.uri());
+    String name =
+        resolveOrDefault(
+            valueResolver, annotation.name(), () -> humanReadableName(targetObject, method));
+    String description = resolveOrDefault(valueResolver, annotation.description(), () -> name);
+    String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
     this.invoker = invokerFactory.create(method, targetObject, Object.class);
     this.descriptor = new Resource(uri, name, description, mimeType);
   }
@@ -52,15 +69,6 @@ public class AnnotationMcpResource implements McpResource {
               method.getName(),
               ReadResourceResult.class.getName()));
     }
-  }
-
-  private static String nameOf(Object targetObject, Method method, ResourceMethod annotation) {
-    return ofNullable(StringUtils.trimToNull(annotation.name()))
-        .orElseGet(() -> humanReadableName(targetObject, method));
-  }
-
-  private static String descriptionOf(String name, ResourceMethod annotation) {
-    return ofNullable(StringUtils.trimToNull(annotation.description())).orElse(name);
   }
 
   @Override
