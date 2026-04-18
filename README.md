@@ -150,6 +150,7 @@ Working examples are in the [`examples/`](examples/) directory:
 | [Stdio](examples/stdio) | In-memory, stdio | Minimal echo server launchable by Claude Desktop or MCP Inspector over stdio |
 | [Redis](examples/redis) | Redis, HTTP | Clustered sessions via Redis |
 | [PostgreSQL](examples/postgresql) | PostgreSQL, HTTP | Durable sessions via PostgreSQL |
+| [NATS](examples/nats) | NATS JetStream, HTTP | Clustered sessions via NATS JetStream |
 
 To run the in-memory HTTP example:
 

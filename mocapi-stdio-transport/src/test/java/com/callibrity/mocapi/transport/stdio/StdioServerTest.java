@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.transport.stdio;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -35,10 +36,13 @@ import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
@@ -101,8 +105,9 @@ class StdioServerTest {
       runLines("{\"jsonrpc\":\"2.0\",\"method\":\"initialize\",\"id\":1,\"params\":{}}");
 
       verify(server, timeout(2000)).handleCall(any(), any(), any());
-      Thread.sleep(100);
-      assertThat(sessionIdHolder.get()).isEqualTo("new-sess");
+      await()
+          .atMost(Duration.ofSeconds(2))
+          .untilAsserted(() -> assertThat(sessionIdHolder.get()).isEqualTo("new-sess"));
     }
   }
 
@@ -159,11 +164,14 @@ class StdioServerTest {
       runLines("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":42}");
 
       verify(server, timeout(2000)).handleCall(any(), any(JsonRpcCall.class), any());
-      Thread.sleep(200);
-      assertThat(buffer.toString(StandardCharsets.UTF_8))
-          .contains("\"error\"")
-          .contains("Internal error")
-          .contains("boom");
+      await()
+          .atMost(Duration.ofSeconds(2))
+          .untilAsserted(
+              () ->
+                  assertThat(buffer.toString(StandardCharsets.UTF_8))
+                      .contains("\"error\"")
+                      .contains("Internal error")
+                      .contains("boom"));
     }
   }
 
@@ -193,8 +201,12 @@ class StdioServerTest {
       runLines("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":1}");
 
       verify(server, timeout(2000)).createContext(any(), any());
-      Thread.sleep(200);
-      assertThat(buffer.toString(StandardCharsets.UTF_8)).contains("Session not found");
+      await()
+          .atMost(Duration.ofSeconds(2))
+          .untilAsserted(
+              () ->
+                  assertThat(buffer.toString(StandardCharsets.UTF_8))
+                      .contains("Session not found"));
     }
 
     @Test
@@ -206,8 +218,10 @@ class StdioServerTest {
       runLines("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":1}");
 
       verify(server, timeout(2000)).createContext(any(), any());
-      Thread.sleep(200);
-      assertThat(buffer.toString(StandardCharsets.UTF_8)).contains("mismatch");
+      await()
+          .atMost(Duration.ofSeconds(2))
+          .untilAsserted(
+              () -> assertThat(buffer.toString(StandardCharsets.UTF_8)).contains("mismatch"));
     }
 
     @Test
@@ -219,11 +233,15 @@ class StdioServerTest {
       runLines("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":77}");
 
       verify(server, timeout(2000)).createContext(any(), any());
-      Thread.sleep(200);
-      JsonRpcError parsed =
-          objectMapper.readValue(
-              buffer.toString(StandardCharsets.UTF_8).strip(), JsonRpcError.class);
-      assertThat(parsed.id().asInt()).isEqualTo(77);
+      await()
+          .atMost(Duration.ofSeconds(2))
+          .untilAsserted(
+              () -> {
+                JsonRpcError parsed =
+                    objectMapper.readValue(
+                        buffer.toString(StandardCharsets.UTF_8).strip(), JsonRpcError.class);
+                assertThat(parsed.id().asInt()).isEqualTo(77);
+              });
     }
   }
 
@@ -234,18 +252,28 @@ class StdioServerTest {
     void notification_is_dropped_silently() throws Exception {
       runLines("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
 
-      Thread.sleep(200);
-      verify(server, never()).handleNotification(any(), any());
-      verify(server, never()).createContext(any(), any());
+      await()
+          .during(Duration.ofMillis(200))
+          .atMost(Duration.ofMillis(400))
+          .untilAsserted(
+              () -> {
+                verify(server, never()).handleNotification(any(), any());
+                verify(server, never()).createContext(any(), any());
+              });
     }
 
     @Test
     void client_response_is_dropped_silently() throws Exception {
       runLines("{\"jsonrpc\":\"2.0\",\"id\":\"req-1\",\"result\":{}}");
 
-      Thread.sleep(200);
-      verify(server, never()).handleResponse(any(), any());
-      verify(server, never()).createContext(any(), any());
+      await()
+          .during(Duration.ofMillis(200))
+          .atMost(Duration.ofMillis(400))
+          .untilAsserted(
+              () -> {
+                verify(server, never()).handleResponse(any(), any());
+                verify(server, never()).createContext(any(), any());
+              });
     }
   }
 
@@ -274,8 +302,8 @@ class StdioServerTest {
 
   // --- helpers ---
 
-  private void runLines(String input) throws Exception {
-    var reader = new StringReader(input.isEmpty() ? "" : input + "\n");
+  private void runLines(String input) throws IOException {
+    var reader = new BufferedReader(new StringReader(input.isEmpty() ? "" : input + "\n"));
     var stdio = new StdioServer(server, objectMapper, transport, reader, sessionIdHolder::get);
     stdio.run();
   }

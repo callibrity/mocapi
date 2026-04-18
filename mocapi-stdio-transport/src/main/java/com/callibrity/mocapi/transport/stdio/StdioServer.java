@@ -32,8 +32,8 @@ import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
@@ -57,14 +57,14 @@ public final class StdioServer {
   private final McpServer server;
   private final ObjectMapper objectMapper;
   private final StdioTransport transport;
-  private final Reader input;
+  private final BufferedReader input;
   private final Supplier<String> sessionIdSource;
 
   public StdioServer(
       McpServer server,
       ObjectMapper objectMapper,
       StdioTransport transport,
-      Reader input,
+      BufferedReader input,
       Supplier<String> sessionIdSource) {
     this.server = server;
     this.objectMapper = objectMapper;
@@ -73,7 +73,7 @@ public final class StdioServer {
     this.sessionIdSource = sessionIdSource;
   }
 
-  public static Reader stdin() {
+  public static BufferedReader stdin() {
     return new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
   }
 
@@ -83,12 +83,11 @@ public final class StdioServer {
    * before their stdout responses are written. {@link java.util.concurrent.ExecutorService#close}
    * performs shutdown + awaitTermination in one shot.
    */
-  public void run() throws Exception {
+  public void run() throws IOException {
     try (var dispatcher =
             Executors.newThreadPerTaskExecutor(
                 Thread.ofVirtual().name("mocapi-stdio-dispatch-", 0).factory());
-        BufferedReader reader =
-            input instanceof BufferedReader br ? br : new BufferedReader(input)) {
+        BufferedReader reader = input) {
       String line;
       while ((line = reader.readLine()) != null) {
         final String captured = line;

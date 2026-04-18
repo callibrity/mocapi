@@ -53,7 +53,8 @@ public class StdioAutoConfiguration {
   @ConditionalOnMissingBean
   public StdioTransport mcpStdioTransport(
       ObjectMapper objectMapper, AtomicReference<String> mcpStdioSessionIdHolder) {
-    return new StdioTransport(objectMapper, System.out, mcpStdioSessionIdHolder::set);
+    // NOSONAR java:S106 — stdout IS the protocol output channel for this transport.
+    return new StdioTransport(objectMapper, System.out, mcpStdioSessionIdHolder::set); // NOSONAR
   }
 
   @Bean
