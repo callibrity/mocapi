@@ -191,10 +191,13 @@ public class MocapiOAuth2AutoConfiguration {
    * Picks the human-readable resource name from the MCP {@link Implementation} server-info bean —
    * {@code title} when set, otherwise {@code name}. Returns empty when no server-info bean is on
    * the classpath (e.g., in a tightly-scoped test context that doesn't autowire the streamable-http
-   * auto-configuration).
+   * auto-configuration), or when both {@code title} and {@code name} are blank.
+   *
+   * <p>Package-private for direct unit testing — the {@code impl == null} and both-blank branches
+   * aren't reachable from Spring-context tests in this module because the {@code Implementation}
+   * bean is always on the classpath via {@code mocapi-streamable-http-transport}.
    */
-  private static java.util.Optional<String> resourceNameFor(
-      ObjectProvider<Implementation> mcpServerInfo) {
+  static java.util.Optional<String> resourceNameFor(ObjectProvider<Implementation> mcpServerInfo) {
     Implementation impl = mcpServerInfo.getIfAvailable();
     if (impl == null) {
       return java.util.Optional.empty();
