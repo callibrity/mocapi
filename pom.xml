@@ -60,6 +60,8 @@
         <module>mocapi-streamable-http-spring-boot-starter</module>
         <module>mocapi-stdio-transport</module>
         <module>mocapi-stdio-spring-boot-starter</module>
+        <module>mocapi-oauth2</module>
+        <module>mocapi-oauth2-spring-boot-starter</module>
         <module>mocapi-prompts-mustache</module>
         <module>mocapi-prompts-spring</module>
         <module>mocapi-bom</module>

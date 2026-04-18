@@ -130,6 +130,7 @@ Run your Spring Boot application. With `mocapi-streamable-http-spring-boot-start
 - [Writing Prompts](docs/prompts-guide.md) -- defining prompts, argument binding, and return messages
 - [Writing Resources](docs/resources-guide.md) -- fixed resources, templated resources, and path-variable binding
 - [Externalizing Annotation Metadata](docs/externalizing-metadata.md) -- `${...}` property placeholders for tool/prompt/resource descriptions, URIs, and names
+- [Authorization](docs/authorization.md) -- OAuth2 resource-server setup for the Streamable HTTP transport (MCP 2025-11-25)
 - [Interactive Features](docs/interactive-guide.md) -- progress notifications, logging, elicitation, and sampling
 - [Configuration Reference](docs/configuration.md) -- all `mocapi.*` properties
 - [Architecture](docs/architecture.md) -- server/transport separation, session lifecycle, module structure
@@ -152,6 +153,7 @@ Run your Spring Boot application. With `mocapi-streamable-http-spring-boot-start
 
 - **`mocapi-streamable-http-spring-boot-starter`** — bundles `mocapi-server` + streamable-http transport
 - **`mocapi-stdio-spring-boot-starter`** — bundles `mocapi-server` + stdio transport
+- **`mocapi-oauth2-spring-boot-starter`** — OAuth2 resource-server protection on the MCP endpoint (MCP 2025-11-25 authorization); wraps Spring Boot's OAuth2 resource-server starter and adds the RFC 9728 protected-resource metadata document. See [Authorization](docs/authorization.md).
 
 ### Prompt templating (optional)
 

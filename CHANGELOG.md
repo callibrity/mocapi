@@ -6,6 +6,26 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- New `mocapi-oauth2` module and `mocapi-oauth2-spring-boot-starter`
+  that wire OAuth2 resource-server protection for the Streamable HTTP
+  transport per MCP 2025-11-25 authorization. Adds bearer-token
+  validation on the MCP endpoint, a `401 WWW-Authenticate` challenge
+  with `resource_metadata="..."` (RFC 8707), and an RFC 9728
+  protected-resource metadata document served at
+  `/.well-known/oauth-protected-resource`. Token validation (decoder,
+  issuer, audience) uses the standard Spring Boot
+  `spring.security.oauth2.resourceserver.jwt.*` properties; mocapi
+  fills in the metadata document from `mocapi.oauth2.*` with
+  fall-back to the configured `issuer-uri`. Two extension hooks —
+  `OAuth2ProtectedResourceMetadataCustomizer` and
+  `MocapiOAuth2SecurityFilterChainCustomizer` — let apps append
+  claims or layer authorization rules without redeclaring the chain.
+  End-to-end integration test bundles Spring Authorization Server
+  in-process to verify the full `client_credentials` → bearer → `/mcp`
+  flow. See `docs/authorization.md` for setup.
+
 ## [0.8.0] - 2026-04-18
 
 ### Added

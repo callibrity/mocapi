@@ -69,6 +69,16 @@
             </dependency>
             <dependency>
                 <groupId>com.callibrity.mocapi</groupId>
+                <artifactId>mocapi-oauth2</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.callibrity.mocapi</groupId>
+                <artifactId>mocapi-oauth2-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.callibrity.mocapi</groupId>
                 <artifactId>mocapi-prompts-spring</artifactId>
                 <version>${project.version}</version>
             </dependency>
