@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -154,8 +155,8 @@ class StreamableHttpControllerTest {
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_EVENT_STREAM);
       assertThat(response.getBody()).isSameAs(emitter);
-      verify(sseStream).write(any(JsonRpcNotification.class));
-      verify(sseStream).write(any(JsonRpcResult.class));
+      verify(sseStream, timeout(2000)).write(any(JsonRpcNotification.class));
+      verify(sseStream, timeout(2000)).write(any(JsonRpcResult.class));
     }
 
     @Test
