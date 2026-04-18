@@ -21,10 +21,14 @@ import static org.mockito.Mockito.mock;
 import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.prompts.PromptMethod;
 import com.callibrity.mocapi.api.prompts.PromptService;
+import com.callibrity.mocapi.model.CompleteRequestParams;
+import com.callibrity.mocapi.model.CompletionArgument;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
+import com.callibrity.mocapi.model.PromptReference;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
+import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
@@ -94,6 +98,23 @@ class PromptServiceMcpPromptProviderTest {
     }
   }
 
+  enum Detail {
+    BRIEF,
+    STANDARD,
+    DETAILED
+  }
+
+  @PromptService
+  static class EnumPromptService {
+
+    @PromptMethod(name = "summarize", description = "Summarize at a given detail level")
+    public GetPromptResult summarize(String text, Detail detail) {
+      return new GetPromptResult(
+          "summary",
+          List.of(new PromptMessage(Role.USER, new TextContent(detail + ": " + text, null))));
+    }
+  }
+
   @PromptService
   static class PlaceholderPromptService {
 
@@ -160,6 +181,25 @@ class PromptServiceMcpPromptProviderTest {
                     .getFailure()
                     .rootCause()
                     .hasMessageContaining("prompt.name"));
+  }
+
+  @Test
+  void registers_enum_argument_completions_with_completions_service() {
+    contextRunner
+        .withBean(EnumPromptService.class, EnumPromptService::new)
+        .run(
+            context -> {
+              var completions = context.getBean(McpCompletionsService.class);
+              var result =
+                  completions.complete(
+                      new CompleteRequestParams(
+                          new PromptReference("ref/prompt", "summarize"),
+                          new CompletionArgument("detail", ""),
+                          null,
+                          null));
+              assertThat(result.completion().values())
+                  .containsExactly("BRIEF", "STANDARD", "DETAILED");
+            });
   }
 
   @Test

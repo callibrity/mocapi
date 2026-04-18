@@ -21,8 +21,12 @@ import static org.mockito.Mockito.mock;
 import com.callibrity.mocapi.api.resources.ResourceMethod;
 import com.callibrity.mocapi.api.resources.ResourceService;
 import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
+import com.callibrity.mocapi.model.CompleteRequestParams;
+import com.callibrity.mocapi.model.CompletionArgument;
 import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.ResourceTemplateReference;
 import com.callibrity.mocapi.model.TextResourceContents;
+import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
@@ -94,6 +98,22 @@ class ResourceServiceMcpResourceProviderTest {
     public ReadResourceResult item(String id) {
       return new ReadResourceResult(
           List.of(new TextResourceContents("test://items/" + id, "text/plain", "item " + id)));
+    }
+  }
+
+  enum Stage {
+    DEV,
+    STAGE,
+    PROD
+  }
+
+  @ResourceService
+  static class EnumResourceService {
+
+    @ResourceTemplateMethod(uriTemplate = "env://{stage}/config", name = "Env Config")
+    public ReadResourceResult config(Stage stage) {
+      return new ReadResourceResult(
+          List.of(new TextResourceContents("env://" + stage + "/config", "text/plain", "cfg")));
     }
   }
 
@@ -191,6 +211,24 @@ class ResourceServiceMcpResourceProviderTest {
                     .getFailure()
                     .rootCause()
                     .hasMessageContaining("resource.uri"));
+  }
+
+  @Test
+  void registers_enum_template_variable_completions_with_completions_service() {
+    contextRunner
+        .withBean(EnumResourceService.class, EnumResourceService::new)
+        .run(
+            context -> {
+              var completions = context.getBean(McpCompletionsService.class);
+              var result =
+                  completions.complete(
+                      new CompleteRequestParams(
+                          new ResourceTemplateReference("ref/resource", "env://{stage}/config"),
+                          new CompletionArgument("stage", ""),
+                          null,
+                          null));
+              assertThat(result.completion().values()).containsExactly("DEV", "STAGE", "PROD");
+            });
   }
 
   @Test
