@@ -150,6 +150,33 @@ The server declares static capabilities during initialization:
 
 Capabilities are built as a `ServerCapabilities` bean in auto-configuration and passed to `McpSessionService`. They describe what the framework supports, not what is currently registered. A server with no tools still declares `tools` capability.
 
+## Startup Logging
+
+Every tool, prompt, resource, and resource-template bean is discovered during `@PostConstruct` of its provider. Each discovery is logged at `INFO` level so startup output shows exactly what was wired in — useful for confirming that a newly added bean got picked up without having to hit the server.
+
+Log line patterns, by provider:
+
+```
+# Tools
+INFO  c.c.m.s.a.ToolServiceMcpToolProvider -- Registering MCP tools for @ToolService bean "greetingTool"...
+INFO  c.c.m.s.a.ToolServiceMcpToolProvider -- 	Registered MCP tool: "greet"
+
+# Prompts
+INFO  c.c.m.s.a.PromptServiceMcpPromptProvider -- Registering MCP prompts for @PromptService bean "summarizationPrompts"...
+INFO  c.c.m.s.a.PromptServiceMcpPromptProvider -- 	Registered MCP prompt: "summarize"
+INFO  c.c.m.s.a.PromptServiceMcpPromptProvider -- 		Registered completions for argument "detail": [BRIEF, STANDARD, DETAILED]
+
+# Resources
+INFO  c.c.m.s.a.ResourceServiceMcpResourceProvider -- Registering MCP resources for @ResourceService bean "docResources"...
+INFO  c.c.m.s.a.ResourceServiceMcpResourceProvider -- 	Registered MCP resource: "docs://readme"
+INFO  c.c.m.s.a.ResourceServiceMcpResourceProvider -- 	Registered MCP resource template: "env://{stage}/config"
+INFO  c.c.m.s.a.ResourceServiceMcpResourceProvider -- 		Registered completions for variable "stage": [DEV, STAGE, PROD]
+```
+
+The nested "Registered completions for argument/variable" line only appears when the parameter is an enum type or carries `@Schema(allowableValues = {...})` — otherwise there are no candidate values to register. See the [Writing Prompts](prompts-guide.md) and [Writing Resources](resources-guide.md) guides for details on what triggers completion registration.
+
+For the stdio transport, these log lines go to **stderr** (the stdio example's `logback-spring.xml` routes the root logger to `System.err` so they don't corrupt the protocol stream on stdout).
+
 ## ScopedValue Pattern
 
 The server uses Java's `ScopedValue` to bind request-scoped context:
@@ -167,14 +194,6 @@ These are resolved as method parameters via `ScopedValueResolver<T>` subclasses:
 ## What Mocapi Does Not Implement
 
 The MCP specification defines features that Mocapi intentionally does not implement. This section documents each omission and the rationale.
-
-### Completions (completion/complete)
-
-**Spec reference:** [Server / Completions](https://modelcontextprotocol.io/specification/2025-11-25/server/utilities/completion)
-
-The completions feature provides autocomplete suggestions for prompt arguments and resource template URIs. Mocapi does not declare the `completions` capability and does not register a handler. Clients that call `completion/complete` receive a JSON-RPC "method not found" error.
-
-**Rationale:** The client already has the JSON Schema for tool parameters and prompt arguments. Autocomplete can be implemented client-side from the schema. Server-side completions add complexity for marginal value.
 
 ### Resource Subscriptions (resources/subscribe, resources/unsubscribe)
 

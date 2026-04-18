@@ -15,6 +15,9 @@
  */
 package com.callibrity.mocapi.examples;
 
+import com.callibrity.mocapi.api.prompts.template.PromptTemplateFactory;
+import com.callibrity.mocapi.examples.prompts.SummarizePrompt;
+import com.callibrity.mocapi.examples.resources.DocsResources;
 import com.callibrity.mocapi.examples.tools.CountdownTool;
 import com.callibrity.mocapi.examples.tools.HelloTool;
 import com.callibrity.mocapi.examples.tools.Rot13Tool;
@@ -23,12 +26,13 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 
 /**
- * Shared auto-configuration for mocapi example applications. Registers the example tool beans so
- * every backend example (in-memory, redis, hazelcast, postgresql, ...) exposes the same set of
- * tools simply by depending on this module.
+ * Shared auto-configuration for mocapi example applications. Registers example tool, prompt, and
+ * resource beans so every backend example (in-memory, redis, postgresql, nats, stdio) exposes the
+ * same set of capabilities simply by depending on this module.
  *
- * <p>Registered before {@link MocapiServerAutoConfiguration} so that the example tools are present
- * when mocapi's tools registry scans for {@code @ToolService} beans.
+ * <p>Registered before {@link MocapiServerAutoConfiguration} so that the example beans are present
+ * when mocapi's registries scan for {@code @ToolService}, {@code @PromptService}, and
+ * {@code @ResourceService} beans.
  */
 @AutoConfiguration(before = MocapiServerAutoConfiguration.class)
 public class ExampleAutoConfiguration {
@@ -46,5 +50,15 @@ public class ExampleAutoConfiguration {
   @Bean
   public CountdownTool countdownTool() {
     return new CountdownTool();
+  }
+
+  @Bean
+  public SummarizePrompt summarizePrompt(PromptTemplateFactory promptTemplateFactory) {
+    return new SummarizePrompt(promptTemplateFactory);
+  }
+
+  @Bean
+  public DocsResources docsResources() {
+    return new DocsResources();
   }
 }

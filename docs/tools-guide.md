@@ -38,7 +38,7 @@ public class ToolConfig {
 }
 ```
 
-Both approaches work. The framework discovers all beans annotated with `@ToolService` regardless of how they were registered.
+Both approaches work. The framework discovers all beans annotated with `@ToolService` regardless of how they were registered. Each registered tool is logged at `INFO` level during startup (see [Startup Logging](architecture.md#startup-logging) for the full catalog).
 
 ## Tool Method Basics
 

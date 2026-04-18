@@ -34,6 +34,8 @@ public class SummarizationPrompts {
 
 `@PromptService` is a marker -- it does not imply `@Component`. You must also annotate with `@Component`, `@Service`, or register via a `@Bean` method.
 
+Each registered prompt (and any enum-typed argument's completion candidates) is logged at `INFO` level during startup. See [Startup Logging](architecture.md#startup-logging) for the full catalog.
+
 ## Prompt Method Basics
 
 A `@PromptMethod` method always returns `GetPromptResult`. Method parameters bind to the incoming prompt arguments -- each parameter name matches an argument key.

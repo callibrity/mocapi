@@ -52,6 +52,8 @@ public class DocumentResources {
 
 `@ResourceService` is a marker -- it does not imply `@Component`. You must also annotate with `@Component`, `@Service`, or register via a `@Bean` method.
 
+Each registered resource, resource template, and enum-typed URI-variable's completion candidates is logged at `INFO` level during startup. See [Startup Logging](architecture.md#startup-logging) for the full catalog.
+
 ## Fixed Resources (`@ResourceMethod`)
 
 A fixed resource has a concrete URI and no arguments. The method takes no parameters and returns a `ReadResourceResult`:
