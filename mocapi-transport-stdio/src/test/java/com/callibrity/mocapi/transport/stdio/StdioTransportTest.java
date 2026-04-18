@@ -25,10 +25,14 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class StdioTransportTest {
 
   private ByteArrayOutputStream buffer;
@@ -45,54 +49,60 @@ class StdioTransportTest {
     transport = new StdioTransport(objectMapper, out, sessionIdCapture::set);
   }
 
-  @Test
-  void sendResultWritesNewlineDelimitedJsonToStdout() {
-    var result =
-        new JsonRpcResult(
-            JsonNodeFactory.instance.objectNode().put("k", "v"),
-            JsonNodeFactory.instance.numberNode(1));
+  @Nested
+  class Send {
 
-    transport.send(result);
+    @Test
+    void result_writes_newline_delimited_json_to_stdout() {
+      var result =
+          new JsonRpcResult(
+              JsonNodeFactory.instance.objectNode().put("k", "v"),
+              JsonNodeFactory.instance.numberNode(1));
 
-    String output = buffer.toString(StandardCharsets.UTF_8);
-    assertThat(output)
-        .isEqualTo(
-            "{\"jsonrpc\":\"2.0\",\"result\":{\"k\":\"v\"},\"id\":1}" + System.lineSeparator());
+      transport.send(result);
+
+      assertThat(buffer.toString(StandardCharsets.UTF_8))
+          .isEqualTo(
+              "{\"jsonrpc\":\"2.0\",\"result\":{\"k\":\"v\"},\"id\":1}" + System.lineSeparator());
+    }
+
+    @Test
+    void notification_writes_newline_delimited_json_to_stdout() {
+      var notification = new JsonRpcNotification("2.0", "notifications/progress", null);
+
+      transport.send(notification);
+
+      assertThat(buffer.toString(StandardCharsets.UTF_8))
+          .startsWith("{")
+          .contains("\"jsonrpc\":\"2.0\"")
+          .contains("\"method\":\"notifications/progress\"")
+          .endsWith(System.lineSeparator());
+    }
+
+    @Test
+    void multiple_messages_produce_one_line_per_message() {
+      transport.send(
+          new JsonRpcResult(
+              JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(1)));
+      transport.send(
+          new JsonRpcResult(
+              JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(2)));
+
+      String[] lines = buffer.toString(StandardCharsets.UTF_8).split(System.lineSeparator());
+      assertThat(lines).hasSize(2);
+      assertThat(lines[0]).contains("\"id\":1");
+      assertThat(lines[1]).contains("\"id\":2");
+    }
   }
 
-  @Test
-  void sendNotificationWritesNewlineDelimitedJsonToStdout() {
-    var notification = new JsonRpcNotification("2.0", "notifications/progress", null);
+  @Nested
+  class Emit {
 
-    transport.send(notification);
+    @Test
+    void session_initialized_delivers_session_id_to_sink() {
+      transport.emit(new McpEvent.SessionInitialized("session-abc", "2025-11-25"));
 
-    String output = buffer.toString(StandardCharsets.UTF_8);
-    assertThat(output)
-        .startsWith("{")
-        .contains("\"jsonrpc\":\"2.0\"")
-        .contains("\"method\":\"notifications/progress\"")
-        .endsWith(System.lineSeparator());
-  }
-
-  @Test
-  void sendMultipleMessagesProducesOneLinePerMessage() {
-    transport.send(
-        new JsonRpcResult(
-            JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(1)));
-    transport.send(
-        new JsonRpcResult(
-            JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(2)));
-
-    String[] lines = buffer.toString(StandardCharsets.UTF_8).split(System.lineSeparator());
-    assertThat(lines).hasSize(2);
-    assertThat(lines[0]).contains("\"id\":1");
-    assertThat(lines[1]).contains("\"id\":2");
-  }
-
-  @Test
-  void emitSessionInitializedDeliversSessionIdToSink() {
-    transport.emit(new McpEvent.SessionInitialized("session-abc", "2025-11-25"));
-
-    assertThat(sessionIdCapture.get()).isEqualTo("session-abc");
+      assertThat(sessionIdCapture.get()).isEqualTo("session-abc");
+    }
   }
 }

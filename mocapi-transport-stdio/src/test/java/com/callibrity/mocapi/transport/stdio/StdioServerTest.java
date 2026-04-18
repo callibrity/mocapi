@@ -42,6 +42,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,6 +53,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class StdioServerTest {
 
   @Mock McpServer server;
@@ -70,10 +73,10 @@ class StdioServerTest {
   }
 
   @Nested
-  class InitializeCall {
+  class Initialize_call {
 
     @Test
-    void dispatchesWithEmptyContext() throws Exception {
+    void dispatches_with_empty_context() throws Exception {
       runLines("{\"jsonrpc\":\"2.0\",\"method\":\"initialize\",\"id\":1,\"params\":{}}");
 
       verify(server, timeout(2000))
@@ -81,7 +84,7 @@ class StdioServerTest {
     }
 
     @Test
-    void handlerCanSetSessionIdViaTransportEmit() throws Exception {
+    void handler_can_set_session_id_via_transport_emit() throws Exception {
       doAnswer(
               inv -> {
                 McpTransport t = inv.getArgument(2);
@@ -104,15 +107,15 @@ class StdioServerTest {
   }
 
   @Nested
-  class PostInitializeCalls {
+  class Post_initialize_calls {
 
     @BeforeEach
-    void sessionAlreadyInitialized() {
+    void session_already_initialized() {
       sessionIdHolder.set("session-1");
     }
 
     @Test
-    void dispatchesWithValidContext() throws Exception {
+    void call_dispatches_with_valid_context() throws Exception {
       McpContext ctx = validContext("session-1");
       when(server.createContext("session-1", null))
           .thenReturn(new McpContextResult.ValidContext(ctx));
@@ -123,7 +126,7 @@ class StdioServerTest {
     }
 
     @Test
-    void notificationDispatchesWithValidContext() throws Exception {
+    void notification_dispatches_with_valid_context() throws Exception {
       when(server.createContext("session-1", null))
           .thenReturn(new McpContextResult.ValidContext(validContext("session-1")));
 
@@ -133,7 +136,7 @@ class StdioServerTest {
     }
 
     @Test
-    void clientResponseRoutesToCorrelation() throws Exception {
+    void client_response_routes_to_correlation() throws Exception {
       when(server.createContext("session-1", null))
           .thenReturn(new McpContextResult.ValidContext(validContext("session-1")));
 
@@ -143,7 +146,7 @@ class StdioServerTest {
     }
 
     @Test
-    void handlerExceptionProducesJsonRpcError() throws Exception {
+    void handler_exception_produces_json_rpc_error() throws Exception {
       when(server.createContext("session-1", null))
           .thenReturn(new McpContextResult.ValidContext(validContext("session-1")));
       doAnswer(
@@ -165,10 +168,10 @@ class StdioServerTest {
   }
 
   @Nested
-  class ContextFailures {
+  class Context_failures {
 
     @Test
-    void sessionIdRequiredProducesJsonRpcError() throws Exception {
+    void session_id_required_produces_json_rpc_error() throws Exception {
       when(server.createContext(any(), any()))
           .thenReturn(new McpContextResult.SessionIdRequired(-32000, "session required"));
 
@@ -182,7 +185,7 @@ class StdioServerTest {
     }
 
     @Test
-    void sessionNotFoundProducesJsonRpcError() throws Exception {
+    void session_not_found_produces_json_rpc_error() throws Exception {
       sessionIdHolder.set("gone");
       when(server.createContext(anyString(), any()))
           .thenReturn(new McpContextResult.SessionNotFound(-32001, "Session not found"));
@@ -195,7 +198,7 @@ class StdioServerTest {
     }
 
     @Test
-    void protocolVersionMismatchProducesJsonRpcError() throws Exception {
+    void protocol_version_mismatch_produces_json_rpc_error() throws Exception {
       sessionIdHolder.set("session-1");
       when(server.createContext(anyString(), any()))
           .thenReturn(new McpContextResult.ProtocolVersionMismatch(-32002, "mismatch"));
@@ -208,7 +211,7 @@ class StdioServerTest {
     }
 
     @Test
-    void errorResponseEchoesCallId() throws Exception {
+    void error_response_echoes_call_id() throws Exception {
       sessionIdHolder.set("gone");
       when(server.createContext(anyString(), any()))
           .thenReturn(new McpContextResult.SessionNotFound(-32001, "Session not found"));
@@ -225,10 +228,10 @@ class StdioServerTest {
   }
 
   @Nested
-  class PreInitialize {
+  class Pre_initialize {
 
     @Test
-    void notificationIsDroppedSilently() throws Exception {
+    void notification_is_dropped_silently() throws Exception {
       runLines("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
 
       Thread.sleep(200);
@@ -237,7 +240,7 @@ class StdioServerTest {
     }
 
     @Test
-    void clientResponseIsDroppedSilently() throws Exception {
+    void client_response_is_dropped_silently() throws Exception {
       runLines("{\"jsonrpc\":\"2.0\",\"id\":\"req-1\",\"result\":{}}");
 
       Thread.sleep(200);
@@ -247,10 +250,10 @@ class StdioServerTest {
   }
 
   @Nested
-  class Lifecycle {
+  class Reader_lifecycle {
 
     @Test
-    void malformedJsonLineIsDroppedAndReaderContinues() throws Exception {
+    void malformed_json_line_is_dropped_and_reader_continues() throws Exception {
       sessionIdHolder.set("session-1");
       when(server.createContext("session-1", null))
           .thenReturn(new McpContextResult.ValidContext(validContext("session-1")));
@@ -261,7 +264,7 @@ class StdioServerTest {
     }
 
     @Test
-    void eofCausesRunToReturn() throws Exception {
+    void eof_causes_run_to_return_cleanly() throws Exception {
       runLines("");
 
       verify(server, never()).handleCall(any(), any(), any());

@@ -22,6 +22,8 @@ import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.transport.stdio.StdioServer;
 import com.callibrity.mocapi.transport.stdio.StdioTransport;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -30,6 +32,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class StdioAutoConfigurationTest {
 
   private final ApplicationContextRunner contextRunner =
@@ -52,7 +55,18 @@ class StdioAutoConfigurationTest {
   }
 
   @Test
-  void beansAreNotRegisteredWhenStdioEnabledIsFalse() {
+  void beans_are_not_registered_when_stdio_enabled_is_false() {
+    contextRunner
+        .withPropertyValues("mocapi.stdio.enabled=false")
+        .run(
+            context -> {
+              assertThat(context).doesNotHaveBean(StdioTransport.class);
+              assertThat(context).doesNotHaveBean(StdioServer.class);
+            });
+  }
+
+  @Test
+  void beans_are_not_registered_when_stdio_enabled_is_missing() {
     contextRunner.run(
         context -> {
           assertThat(context).doesNotHaveBean(StdioTransport.class);
@@ -61,18 +75,7 @@ class StdioAutoConfigurationTest {
   }
 
   @Test
-  void beansAreNotRegisteredWhenStdioEnabledIsMissing() {
-    contextRunner.run(
-        context -> {
-          assertThat(context).doesNotHaveBean(StdioTransport.class);
-          assertThat(context).doesNotHaveBean(StdioServer.class);
-        });
-  }
-
-  @Test
-  void beansAreRegisteredWhenStdioEnabledIsTrue() {
-    // The ApplicationContextRunner only refreshes the context; it does not fire
-    // ApplicationRunner beans, so the stdin reader loop never runs during the test.
+  void beans_are_registered_when_stdio_enabled_is_true() {
     contextRunner
         .withPropertyValues("mocapi.stdio.enabled=true")
         .run(
@@ -85,7 +88,7 @@ class StdioAutoConfigurationTest {
   }
 
   @Test
-  void beansAreNotRegisteredWithoutMcpServer() {
+  void beans_are_not_registered_without_mcp_server() {
     new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(StdioAutoConfiguration.class))
         .withPropertyValues("mocapi.stdio.enabled=true")
