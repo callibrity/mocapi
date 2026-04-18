@@ -17,6 +17,11 @@
 server:
   port: 8080
 
+mocapi:
+  # Example-only ephemeral key — DO NOT use in production. Generate per-deployment with:
+  #   dd if=/dev/urandom bs=32 count=1 2>/dev/null | base64
+  session-encryption-master-key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+
 logging:
   level:
     com.callibrity.mocapi: INFO
