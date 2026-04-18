@@ -136,6 +136,31 @@ This is useful when argument names are determined dynamically or when you want t
 
 Every string attribute on `@PromptMethod` (`name`, `title`, `description`) supports Spring's `${...}` property placeholder syntax, so long descriptions don't have to live inline on the annotation. See [Externalizing Annotation Metadata](externalizing-metadata.md).
 
+## Argument Completions (autocomplete)
+
+MCP clients can call `completion/complete` to fetch suggested values while a user types a prompt argument. Mocapi surfaces completions automatically when an argument's value space is statically knowable:
+
+- **Java `enum` type** — the enum constants become the completion candidates (in declaration order).
+  ```java
+  public enum Detail { BRIEF, STANDARD, DETAILED }
+
+  @PromptMethod(name = "summarize")
+  public GetPromptResult summarize(String text, Detail detail) { ... }
+  ```
+  The client asking for completions on the `detail` argument gets `["BRIEF", "STANDARD", "DETAILED"]`, prefix-filtered by whatever the user has typed.
+
+- **`@Schema(allowableValues = { ... })`** on a non-enum parameter — useful when you want to keep the Java signature as `String` but still constrain the accepted values.
+  ```java
+  @PromptMethod(name = "summarize")
+  public GetPromptResult summarize(
+      String text,
+      @Schema(allowableValues = {"BRIEF", "STANDARD", "DETAILED"}) String detail) { ... }
+  ```
+
+Parameters that are plain strings, numbers, or any type without an enum or `@Schema.allowableValues` contribute no completions. The `completion/complete` response is empty in that case; nothing breaks. Prompts that accept a whole `Map<String, String>` also contribute nothing — they have no declared arguments.
+
+Prefix matching is case-insensitive (so a user typing `br` still sees `BRIEF`), but the value returned is always the canonical declared form — matching what Spring's default `ConversionService` will accept when the prompt is later invoked.
+
 ## Return Values
 
 Prompts must return `GetPromptResult`:

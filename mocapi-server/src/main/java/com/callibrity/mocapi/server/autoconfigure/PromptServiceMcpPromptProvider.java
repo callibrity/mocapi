@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server.autoconfigure;
 import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.prompts.McpPromptProvider;
 import com.callibrity.mocapi.api.prompts.PromptService;
+import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.prompts.annotation.AnnotationMcpPrompt;
 import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import jakarta.annotation.PostConstruct;
@@ -37,17 +38,20 @@ class PromptServiceMcpPromptProvider implements McpPromptProvider {
   private final MethodInvokerFactory invokerFactory;
   private final List<ParameterResolver<? super Map<String, String>>> resolvers;
   private final StringValueResolver valueResolver;
+  private final McpCompletionsService completions;
   private List<AnnotationMcpPrompt> prompts;
 
   PromptServiceMcpPromptProvider(
       ApplicationContext context,
       MethodInvokerFactory invokerFactory,
       ConversionService conversionService,
-      StringValueResolver valueResolver) {
+      StringValueResolver valueResolver,
+      McpCompletionsService completions) {
     this.context = context;
     this.invokerFactory = invokerFactory;
     this.resolvers = List.of(new StringMapArgResolver(conversionService));
     this.valueResolver = valueResolver;
+    this.completions = completions;
   }
 
   @Override
@@ -72,7 +76,19 @@ class PromptServiceMcpPromptProvider implements McpPromptProvider {
                       AnnotationMcpPrompt.createPrompts(
                           invokerFactory, resolvers, bean, valueResolver);
                   list.forEach(
-                      p -> log.info("\tRegistered MCP prompt: \"{}\"", p.descriptor().name()));
+                      p -> {
+                        log.info("\tRegistered MCP prompt: \"{}\"", p.descriptor().name());
+                        p.completionCandidates()
+                            .forEach(
+                                c -> {
+                                  completions.registerPromptArgument(
+                                      p.descriptor().name(), c.argumentName(), c.values());
+                                  log.info(
+                                      "\t\tRegistered completions for argument \"{}\": {}",
+                                      c.argumentName(),
+                                      c.values());
+                                });
+                      });
                   return list.stream();
                 })
             .toList();

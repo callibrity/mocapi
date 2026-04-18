@@ -144,6 +144,19 @@ public ReadResourceResult file(Map<String, String> vars) {
 
 Every string attribute on `@ResourceMethod` (`uri`, `name`, `title`, `description`, `mimeType`) and `@ResourceTemplateMethod` (`uriTemplate`, `name`, `title`, `description`, `mimeType`) supports Spring's `${...}` property placeholder syntax, so URIs, long descriptions, and mime types can live in `application.yml` instead of inline on the annotation. See [Externalizing Annotation Metadata](externalizing-metadata.md).
 
+## Path Variable Completions (autocomplete)
+
+When a `@ResourceTemplateMethod`'s URI template has a variable typed as a Java `enum` (or marked with `@Schema(allowableValues = {...})` on a `String`), mocapi registers those values as completion candidates for the MCP `completion/complete` RPC:
+
+```java
+public enum Environment { DEV, STAGE, PROD }
+
+@ResourceTemplateMethod(uriTemplate = "env://{stage}/config")
+public ReadResourceResult config(Environment stage) { ... }
+```
+
+An MCP client asking for completions on the `{stage}` variable gets `["DEV", "STAGE", "PROD"]`, prefix-filtered. At read time the same enum values bind through Spring's `ConversionService`, so the completions and the actual binding can't drift.
+
 ## Return Values
 
 Both kinds of resource methods must return `ReadResourceResult`:

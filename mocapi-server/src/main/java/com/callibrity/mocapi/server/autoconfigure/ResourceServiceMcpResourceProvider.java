@@ -20,6 +20,7 @@ import com.callibrity.mocapi.api.resources.McpResourceProvider;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.api.resources.ResourceService;
+import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.resources.annotation.AnnotationMcpResource;
 import com.callibrity.mocapi.server.resources.annotation.AnnotationMcpResourceTemplate;
 import com.callibrity.mocapi.server.util.StringMapArgResolver;
@@ -42,6 +43,7 @@ class ResourceServiceMcpResourceProvider
   private final MethodInvokerFactory invokerFactory;
   private final List<ParameterResolver<? super Map<String, String>>> templateResolvers;
   private final StringValueResolver valueResolver;
+  private final McpCompletionsService completions;
   private List<AnnotationMcpResource> resources;
   private List<AnnotationMcpResourceTemplate> templates;
 
@@ -49,11 +51,13 @@ class ResourceServiceMcpResourceProvider
       ApplicationContext context,
       MethodInvokerFactory invokerFactory,
       ConversionService conversionService,
-      StringValueResolver valueResolver) {
+      StringValueResolver valueResolver,
+      McpCompletionsService completions) {
     this.context = context;
     this.invokerFactory = invokerFactory;
     this.templateResolvers = List.of(new StringMapArgResolver(conversionService));
     this.valueResolver = valueResolver;
+    this.completions = completions;
   }
 
   @Override
@@ -84,9 +88,20 @@ class ResourceServiceMcpResourceProvider
               AnnotationMcpResourceTemplate.createTemplates(
                   invokerFactory, templateResolvers, bean, valueResolver);
           ts.forEach(
-              t ->
-                  log.info(
-                      "\tRegistered MCP resource template: \"{}\"", t.descriptor().uriTemplate()));
+              t -> {
+                log.info(
+                    "\tRegistered MCP resource template: \"{}\"", t.descriptor().uriTemplate());
+                t.completionCandidates()
+                    .forEach(
+                        c -> {
+                          completions.registerResourceTemplateVariable(
+                              t.descriptor().uriTemplate(), c.argumentName(), c.values());
+                          log.info(
+                              "\t\tRegistered completions for variable \"{}\": {}",
+                              c.argumentName(),
+                              c.values());
+                        });
+              });
           templateList.addAll(ts);
         });
     this.resources = List.copyOf(resourceList);

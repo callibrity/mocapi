@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
+import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -34,11 +35,13 @@ public class MocapiServerPromptsAutoConfiguration {
       ApplicationContext context,
       MethodInvokerFactory invokerFactory,
       ObjectProvider<ConversionService> conversionService,
-      StringValueResolver mcpAnnotationValueResolver) {
+      StringValueResolver mcpAnnotationValueResolver,
+      McpCompletionsService completions) {
     return new PromptServiceMcpPromptProvider(
         context,
         invokerFactory,
         conversionService.getIfAvailable(DefaultConversionService::getSharedInstance),
-        mcpAnnotationValueResolver);
+        mcpAnnotationValueResolver,
+        completions);
   }
 }

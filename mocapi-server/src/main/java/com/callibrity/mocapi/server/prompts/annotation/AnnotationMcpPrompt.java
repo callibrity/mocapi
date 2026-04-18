@@ -24,6 +24,8 @@ import com.callibrity.mocapi.api.prompts.PromptMethod;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptArgument;
+import com.callibrity.mocapi.server.completions.CompletionCandidate;
+import com.callibrity.mocapi.server.completions.CompletionCandidates;
 import com.callibrity.mocapi.server.tools.schema.Parameters;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -43,6 +45,7 @@ public class AnnotationMcpPrompt implements McpPrompt {
 
   private final Prompt descriptor;
   private final MethodInvoker<Map<String, String>> invoker;
+  private final List<CompletionCandidate> candidates;
 
   public static List<AnnotationMcpPrompt> createPrompts(
       MethodInvokerFactory invokerFactory,
@@ -74,6 +77,19 @@ public class AnnotationMcpPrompt implements McpPrompt {
             valueResolver, annotation.description(), () -> humanReadableName(targetObject, method));
     this.invoker = invokerFactory.create(method, targetObject, ARGS_TYPE, resolvers);
     this.descriptor = new Prompt(name, title, description, null, argumentsOf(method));
+    this.candidates = candidatesOf(method);
+  }
+
+  private static List<CompletionCandidate> candidatesOf(Method method) {
+    return Arrays.stream(method.getParameters())
+        .filter(p -> !isWholeArgsMap(p))
+        .map(
+            p -> {
+              var values = CompletionCandidates.valuesFor(p);
+              return values.isEmpty() ? null : new CompletionCandidate(p.getName(), values);
+            })
+        .filter(java.util.Objects::nonNull)
+        .toList();
   }
 
   private static void validateReturnType(Object targetObject, Method method) {
@@ -101,6 +117,15 @@ public class AnnotationMcpPrompt implements McpPrompt {
   private static PromptArgument toArgument(Parameter parameter) {
     return new PromptArgument(
         parameter.getName(), Parameters.descriptionOf(parameter), Parameters.isRequired(parameter));
+  }
+
+  /**
+   * Completion candidates derived from annotated method parameters — one entry per parameter that
+   * has an enum type or a {@code @Schema(allowableValues=...)} attribute. Whole-map parameters are
+   * skipped, consistent with how declared {@link PromptArgument}s are built.
+   */
+  public List<CompletionCandidate> completionCandidates() {
+    return candidates;
   }
 
   @Override

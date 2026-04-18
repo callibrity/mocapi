@@ -8,6 +8,22 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- MCP `completion/complete` support. Mocapi now advertises the
+  `completions` server capability and responds to
+  `completion/complete` with prefix-filtered suggestions drawn from
+  the argument metadata it already has. A `@PromptMethod` parameter
+  typed as a Java `enum`, or a `String` parameter annotated with
+  `@Schema(allowableValues = {...})`, automatically surfaces its
+  candidate values as completions. The same applies to
+  `@ResourceTemplateMethod` URI-template variables. Prompts that
+  take a whole `Map<String, String>` and plain `String`/number
+  arguments contribute no candidates — the response is simply empty,
+  matching the MCP spec's "best effort" wording. Up to 100 values
+  per response. No new user-facing API: existing enum-typed
+  parameters get completion for free. Covers the `completion-complete`
+  conformance scenario that previously failed; conformance is now
+  37/39 (the remaining failures are `resources-subscribe` and
+  `resources-unsubscribe`).
 - New `mocapi-bom` module — a Bill of Materials that pins every
   mocapi artifact version in one place. Import it into your own
   `dependencyManagement` with `<scope>import</scope>` and then omit

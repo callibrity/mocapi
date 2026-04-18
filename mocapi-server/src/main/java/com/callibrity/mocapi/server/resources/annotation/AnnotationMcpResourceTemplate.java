@@ -23,9 +23,13 @@ import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.ResourceTemplate;
+import com.callibrity.mocapi.server.completions.CompletionCandidate;
+import com.callibrity.mocapi.server.completions.CompletionCandidates;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
@@ -39,6 +43,7 @@ public class AnnotationMcpResourceTemplate implements McpResourceTemplate {
 
   private final ResourceTemplate descriptor;
   private final MethodInvoker<Map<String, String>> invoker;
+  private final List<CompletionCandidate> candidates;
 
   public static List<AnnotationMcpResourceTemplate> createTemplates(
       MethodInvokerFactory invokerFactory,
@@ -71,6 +76,31 @@ public class AnnotationMcpResourceTemplate implements McpResourceTemplate {
     String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
     this.invoker = invokerFactory.create(method, targetObject, VARS_TYPE, resolvers);
     this.descriptor = new ResourceTemplate(uriTemplate, name, description, mimeType);
+    this.candidates = candidatesOf(method);
+  }
+
+  private static List<CompletionCandidate> candidatesOf(Method method) {
+    return Arrays.stream(method.getParameters())
+        .filter(p -> !isWholeVarsMap(p))
+        .map(
+            p -> {
+              var values = CompletionCandidates.valuesFor(p);
+              return values.isEmpty() ? null : new CompletionCandidate(p.getName(), values);
+            })
+        .filter(Objects::nonNull)
+        .toList();
+  }
+
+  private static boolean isWholeVarsMap(java.lang.reflect.Parameter parameter) {
+    return TypeRef.parameterType(parameter).isAssignableFrom(VARS_TYPE);
+  }
+
+  /**
+   * Completion candidates derived from annotated method parameters — one entry per URI template
+   * variable that has an enum type or a {@code @Schema(allowableValues=...)} attribute.
+   */
+  public List<CompletionCandidate> completionCandidates() {
+    return candidates;
   }
 
   private static void validateReturnType(Object targetObject, Method method) {
