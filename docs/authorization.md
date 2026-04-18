@@ -33,14 +33,17 @@ spring:
             - mcp.example.com                          # standard Spring Boot property
 
 mocapi:
+  server-title: My MCP Server                          # already used by MCP initialize;
+                                                       # reused as OAuth2 resource_name
   oauth2:
     resource: https://mcp.example.com                  # required — this server's canonical URL
     scopes:                                            # optional — advertised in metadata
       - mcp.read
       - mcp.write
-    resource-name: My MCP Server                       # optional
     resource-documentation: https://docs.example.com   # optional
 ```
+
+The metadata's `resource_name` field is sourced from `mocapi.server-title` (falling back to `mocapi.server-name`) — the same human-readable label the MCP `initialize` response advertises. Having one property feed both avoids a configuration drift where the OAuth2 metadata names a different server than the MCP handshake.
 
 `spring.security.oauth2.resourceserver.jwt.issuer-uri` and `.audiences` are the standard Spring Boot properties; mocapi does not duplicate them. The `mocapi.oauth2.*` properties cover the MCP-specific metadata document.
 

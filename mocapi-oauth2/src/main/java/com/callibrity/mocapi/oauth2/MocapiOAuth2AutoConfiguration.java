@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.oauth2;
 
+import com.callibrity.mocapi.model.Implementation;
 import java.util.function.Consumer;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.OAuth2ProtectedResourceMetadata;
+import org.springframework.security.oauth2.server.resource.web.OAuth2ProtectedResourceMetadataFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
@@ -81,6 +83,7 @@ public class MocapiOAuth2AutoConfiguration {
       HttpSecurity http,
       MocapiOAuth2Properties properties,
       ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties,
+      ObjectProvider<Implementation> mcpServerInfo,
       ObjectProvider<OAuth2ProtectedResourceMetadataCustomizer> metadataCustomizers,
       ObjectProvider<MocapiOAuth2SecurityFilterChainCustomizer> chainCustomizers,
       @Value("${mocapi.endpoint:/mcp}") String mcpEndpoint)
@@ -90,7 +93,8 @@ public class MocapiOAuth2AutoConfiguration {
     String metadataPath = "/.well-known/oauth-protected-resource";
 
     var builderCustomizer =
-        metadataBuilderCustomizer(properties, springResourceServerProperties, metadataCustomizers);
+        metadataBuilderCustomizer(
+            properties, springResourceServerProperties, mcpServerInfo, metadataCustomizers);
 
     http.securityMatcher(mcpEndpoint + "/**", metadataPath)
         .authorizeHttpRequests(
@@ -112,20 +116,40 @@ public class MocapiOAuth2AutoConfiguration {
   private static Consumer<OAuth2ProtectedResourceMetadata.Builder> metadataBuilderCustomizer(
       MocapiOAuth2Properties properties,
       ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties,
+      ObjectProvider<Implementation> mcpServerInfo,
       ObjectProvider<OAuth2ProtectedResourceMetadataCustomizer> userCustomizers) {
     return builder -> {
       builder.resource(properties.resource());
       authorizationServersFor(properties, springResourceServerProperties)
           .forEach(builder::authorizationServer);
       properties.scopes().forEach(builder::scope);
-      if (properties.resourceName() != null) {
-        builder.resourceName(properties.resourceName());
-      }
+      resourceNameFor(mcpServerInfo).ifPresent(builder::resourceName);
       if (properties.resourceDocumentation() != null) {
         builder.claim("resource_documentation", properties.resourceDocumentation());
       }
       userCustomizers.orderedStream().forEach(c -> c.customize(builder));
     };
+  }
+
+  /**
+   * Picks the human-readable resource name from the MCP {@link Implementation} server-info bean —
+   * {@code title} when set, otherwise {@code name}. Returns empty when no server-info bean is on
+   * the classpath (e.g., in a tightly-scoped test context that doesn't autowire the streamable-http
+   * auto-configuration).
+   */
+  private static java.util.Optional<String> resourceNameFor(
+      ObjectProvider<Implementation> mcpServerInfo) {
+    Implementation impl = mcpServerInfo.getIfAvailable();
+    if (impl == null) {
+      return java.util.Optional.empty();
+    }
+    if (impl.title() != null && !impl.title().isBlank()) {
+      return java.util.Optional.of(impl.title());
+    }
+    if (impl.name() != null && !impl.name().isBlank()) {
+      return java.util.Optional.of(impl.name());
+    }
+    return java.util.Optional.empty();
   }
 
   /**

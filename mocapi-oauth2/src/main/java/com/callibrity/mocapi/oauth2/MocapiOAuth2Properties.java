@@ -43,13 +43,16 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  *     restate the value. Set explicitly to federate across multiple authorization servers.
  * @param scopes scopes the resource server advertises as supported. Informational; enforcement is
  *     the caller's responsibility via {@link MocapiOAuth2SecurityFilterChainCustomizer}.
- * @param resourceName human-readable name surfaced in the metadata document. Optional.
- * @param resourceDocumentation URL of human-readable documentation for this resource. Optional.
+ * @param resourceDocumentation URL of human-readable documentation for this resource. Optional. The
+ *     metadata document's {@code resource_name} field is automatically populated from the MCP
+ *     {@link com.callibrity.mocapi.model.Implementation Implementation} server-info bean ({@code
+ *     mocapi.server-title}, falling back to {@code mocapi.server-name}), so there is no separate
+ *     property for it — mocapi avoids maintaining two sources of truth for the same human-readable
+ *     server label.
  */
 @ConfigurationProperties("mocapi.oauth2")
 public record MocapiOAuth2Properties(
     @NotBlank String resource,
     @DefaultValue List<String> authorizationServers,
     @DefaultValue List<String> scopes,
-    String resourceName,
     String resourceDocumentation) {}

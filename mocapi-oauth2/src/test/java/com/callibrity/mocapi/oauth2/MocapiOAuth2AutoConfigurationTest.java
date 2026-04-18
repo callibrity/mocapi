@@ -122,7 +122,7 @@ class MocapiOAuth2AutoConfigurationTest {
         "mocapi.oauth2.authorization-servers[1]=https://idp-b.example.com",
         "mocapi.oauth2.scopes[0]=mcp.read",
         "mocapi.oauth2.scopes[1]=mcp.write",
-        "mocapi.oauth2.resource-name=Test MCP",
+        "mocapi.server-title=Test MCP",
         "mocapi.oauth2.resource-documentation=https://docs.example.com/mcp",
         "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://ignored.example.com",
         "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
@@ -148,7 +148,10 @@ class MocapiOAuth2AutoConfigurationTest {
     }
 
     @Test
-    void resource_name_is_advertised_in_metadata() throws Exception {
+    void resource_name_comes_from_mcp_server_title() throws Exception {
+      // mocapi.oauth2 has no resource-name property; resource_name is derived from the MCP
+      // Implementation bean (mocapi.server-title in the @TestPropertySource above) so the OAuth2
+      // metadata stays aligned with what clients see in the MCP initialize response.
       mockMvc
           .perform(get("/.well-known/oauth-protected-resource"))
           .andExpect(jsonPath("$.resource_name").value("Test MCP"));
