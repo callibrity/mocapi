@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-17
+
 ### Added
 
 - New `mocapi-transport-stdio` module — MCP transport over newline-delimited
@@ -215,7 +217,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/callibrity/mocapi/releases/tag/0.6.0
 [0.5.0]: https://github.com/callibrity/mocapi/releases/tag/0.5.0
 [0.4.1]: https://github.com/callibrity/mocapi/releases/tag/0.4.1
 [0.4.0]: https://github.com/callibrity/mocapi/releases/tag/0.4.0
