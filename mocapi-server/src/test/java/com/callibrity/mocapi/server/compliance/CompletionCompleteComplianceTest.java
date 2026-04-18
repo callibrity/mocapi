@@ -20,6 +20,8 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.call
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.captureResult;
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.inMemorySessionStore;
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.initializeAndGetSessionId;
+import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.initializeCall;
+import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.noSession;
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.withSession;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -121,5 +123,45 @@ class CompletionCompleteComplianceTest {
     var values = result.result().path("completion").path("values");
     assertThat(values.isArray()).isTrue();
     assertThat(values.size()).isZero();
+  }
+
+  @Test
+  void response_shape_is_always_compliant() {
+    // Mirrors the three assertions the @modelcontextprotocol/conformance npx tool makes on
+    // completion-complete: completion field present, values field present, values is an array.
+    // We hit this with an unregistered ref to prove shape compliance even on the cold path.
+    var sessionId = initializeAndGetSessionId(server);
+    var transport = mock(McpTransport.class);
+
+    server.handleCall(
+        withSession(sessionId, server),
+        call(
+            "completion/complete",
+            Map.of(
+                "ref", Map.of("type", "ref/prompt", "name", "test_prompt_with_arguments"),
+                "argument", Map.of("name", "arg1", "value", "test"))),
+        transport);
+
+    var payload = captureResult(transport).result();
+    assertThat(payload.has("completion")).as("completion field is present").isTrue();
+    var completion = payload.path("completion");
+    assertThat(completion.has("values")).as("completion.values field is present").isTrue();
+    assertThat(completion.path("values").isArray()).as("completion.values is an array").isTrue();
+  }
+
+  @Test
+  void initialize_advertises_completions_capability() {
+    // MCP spec: servers supporting completion/complete must advertise capabilities.completions.
+    // Anchors the end-to-end conformance story — the client picks the npx scenario list partly
+    // from the initialize response, so failing to advertise would mean completion-complete gets
+    // skipped even though the RPC works.
+    var transport = mock(McpTransport.class);
+
+    server.handleCall(noSession(), initializeCall(), transport);
+
+    var payload = captureResult(transport).result();
+    assertThat(payload.path("capabilities").has("completions"))
+        .as("capabilities.completions is advertised")
+        .isTrue();
   }
 }

@@ -27,7 +27,7 @@ npx @modelcontextprotocol/conformance server --url http://localhost:8081/mcp
 
 ## Current conformance status
 
-Last full run (`npx @modelcontextprotocol/conformance`): **36 passed, 3 failed**.
+Last full run (`npx @modelcontextprotocol/conformance`): **37 passed, 2 failed**.
 
 ### Passing scenarios
 
@@ -38,6 +38,7 @@ Last full run (`npx @modelcontextprotocol/conformance`): **36 passed, 3 failed**
 | `logging-set-level` | — (protocol-level) |
 | `server-sse-multiple-streams` | — (protocol-level) |
 | `dns-rebinding-protection` | — (protocol-level) |
+| `completion-complete` | — (protocol-level) |
 | `tools-list` | — (protocol-level) |
 | `tools-call-simple-text` | `test_simple_text` |
 | `tools-call-image` | `test_image_content` |
@@ -65,7 +66,6 @@ Last full run (`npx @modelcontextprotocol/conformance`): **36 passed, 3 failed**
 
 | Scenario | Why |
 |---|---|
-| `completion-complete` | `completion/complete` RPC is not wired in `mocapi-server` yet. |
 | `resources-subscribe` | `resources/subscribe` is not wired — mocapi has no subscription dispatch path yet. |
 | `resources-unsubscribe` | Same as above; without subscribe the counterpart has nothing to unsubscribe from. |
 
