@@ -39,7 +39,7 @@ Please follow idiomatic Java practices and keep your code clean and well-documen
 
 ## 🧱 Project Structure
 
-- `mocapi-spring-boot-starter`: Core Spring Boot auto-configuration and endpoint registration
+- `mocapi-streamable-http-spring-boot-starter` / `mocapi-stdio-spring-boot-starter`: Spring Boot starters bundling `mocapi-server` with a specific transport
 - `mocapi-tools`: Tool support for building MCP tools via `@ToolService`
 - `mocapi-prompts`: Prompt support for building structured prompt handlers via `@PromptService`
 - `examples/`: Sample applications and usage demonstrations

@@ -36,25 +36,8 @@
     <dependencies>
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-server</artifactId>
+            <artifactId>mocapi-stdio-spring-boot-starter</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-transport-stdio</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jwcarman.methodical</groupId>
-            <artifactId>methodical-jackson3</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-jackson</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-core</artifactId>
         </dependency>
     </dependencies>
 

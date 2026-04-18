@@ -1,4 +1,4 @@
-# mocapi-transport-stdio
+# mocapi-stdio-transport
 
 MCP stdio transport for Mocapi: newline-delimited JSON-RPC on stdin/stdout, for
 clients that launch the server as a subprocess (Claude Desktop, Cursor, MCP
@@ -6,12 +6,12 @@ Inspector, etc.).
 
 ## Enabling
 
-Add the dependency and set one property:
+Add the starter (or this transport module directly) and set one property:
 
 ```xml
 <dependency>
     <groupId>com.callibrity.mocapi</groupId>
-    <artifactId>mocapi-transport-stdio</artifactId>
+    <artifactId>mocapi-stdio-spring-boot-starter</artifactId>
 </dependency>
 ```
 

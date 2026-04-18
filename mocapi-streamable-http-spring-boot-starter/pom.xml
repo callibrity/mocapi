@@ -24,10 +24,10 @@
         <artifactId>mocapi-parent</artifactId>
         <version>0.7.0-SNAPSHOT</version>
     </parent>
-
-    <artifactId>mocapi-transport-stdio</artifactId>
-    <name>Mocapi - Transport - Stdio</name>
-    <description>Stdio transport for MCP: newline-delimited JSON over stdin/stdout.</description>
+    <artifactId>mocapi-streamable-http-spring-boot-starter</artifactId>
+    <version>0.7.0-SNAPSHOT</version>
+    <name>Mocapi - Streamable HTTP Spring Boot Starter</name>
+    <description>Spring Boot starter bundling mocapi-server with the Streamable HTTP transport.</description>
 
     <dependencies>
         <dependency>
@@ -36,29 +36,13 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-streamable-http-transport</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>tools.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <!--
-            codec-jackson provides CodecFactory, which Substrate's auto-configured
-            MailboxFactory depends on via @ConditionalOnBean. The HTTP transport gets
-            this transitively through Odyssey; the stdio transport declares it
-            directly so stdio-only apps work without extra wiring.
-        -->
-        <dependency>
-            <groupId>org.jwcarman.codec</groupId>
-            <artifactId>codec-jackson</artifactId>
-            <version>${codec.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
+            <groupId>org.jwcarman.methodical</groupId>
+            <artifactId>methodical-jackson3</artifactId>
         </dependency>
     </dependencies>
-
 </project>

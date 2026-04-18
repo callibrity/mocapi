@@ -20,7 +20,7 @@ Add the starter dependency:
 ```xml
 <dependency>
     <groupId>com.callibrity.mocapi</groupId>
-    <artifactId>mocapi-spring-boot-starter</artifactId>
+    <artifactId>mocapi-streamable-http-spring-boot-starter</artifactId>
     <version>0.6.0</version>
 </dependency>
 ```
@@ -104,7 +104,7 @@ public class DocResources {
 }
 ```
 
-Run your Spring Boot application. With the default starter, Mocapi exposes a Streamable HTTP endpoint at `/mcp`. For clients that launch the server as a subprocess (Claude Desktop, Cursor, and other IDE integrations), depend on `mocapi-transport-stdio` instead and set `mocapi.stdio.enabled=true` — same tools, same code, different pipe.
+Run your Spring Boot application. With `mocapi-streamable-http-spring-boot-starter`, Mocapi exposes a Streamable HTTP endpoint at `/mcp`. For clients that launch the server as a subprocess (Claude Desktop, Cursor, and other IDE integrations), depend on `mocapi-stdio-spring-boot-starter` instead and set `mocapi.stdio.enabled=true` — same tools, same code, different pipe.
 
 ## Documentation
 
@@ -123,9 +123,10 @@ Run your Spring Boot application. With the default starter, Mocapi exposes a Str
 | `mocapi-api` | User-facing API: `@ToolService`/`@ToolMethod`, `@PromptService`/`@PromptMethod`, `@ResourceService`/`@ResourceMethod`/`@ResourceTemplateMethod`, `PromptTemplate`/`PromptTemplateFactory`, `McpToolContext`, provider interfaces |
 | `mocapi-model` | MCP protocol types (Tool, CallToolResult, ElicitResult, etc.) |
 | `mocapi-server` | Stateful MCP server: session management, JSON-RPC dispatch, tool invocation |
-| `mocapi-transport-streamable-http` | Streamable HTTP transport with SSE, encrypted event IDs |
-| `mocapi-transport-stdio` | Stdio transport: newline-delimited JSON-RPC on stdin/stdout, for subprocess-launched MCP clients |
-| `mocapi-spring-boot-starter` | All-in-one starter for Spring Boot applications (includes streamable-http) |
+| `mocapi-streamable-http-transport` | Streamable HTTP transport with SSE, encrypted event IDs |
+| `mocapi-streamable-http-spring-boot-starter` | Spring Boot starter bundling `mocapi-server` + Streamable HTTP transport |
+| `mocapi-stdio-transport` | Stdio transport: newline-delimited JSON-RPC on stdin/stdout, for subprocess-launched MCP clients |
+| `mocapi-stdio-spring-boot-starter` | Spring Boot starter bundling `mocapi-server` + stdio transport |
 | `mocapi-prompts-spring` | `PromptTemplateFactory` using Spring's `${name}` placeholder syntax — no extra dependencies |
 | `mocapi-prompts-mustache` | `PromptTemplateFactory` backed by [JMustache](https://github.com/samskivert/jmustache) for richer `{{name}}` templates with sections |
 

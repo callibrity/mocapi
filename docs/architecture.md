@@ -7,8 +7,10 @@ Mocapi separates protocol concerns from transport concerns:
 - **mocapi-api** -- user-facing annotations and interfaces. Tool authors depend on this.
 - **mocapi-model** -- MCP protocol types (Tool, CallToolResult, ElicitResult, etc.)
 - **mocapi-server** -- stateful MCP server: session management, JSON-RPC dispatch, tool invocation, initialization lifecycle
-- **mocapi-transport-streamable-http** -- Streamable HTTP transport: HTTP endpoints, SSE streaming, encrypted event IDs
-- **mocapi-transport-stdio** -- Stdio transport: newline-delimited JSON-RPC on stdin/stdout, for subprocess-launched MCP clients
+- **mocapi-streamable-http-transport** -- Streamable HTTP transport: HTTP endpoints, SSE streaming, encrypted event IDs
+- **mocapi-stdio-transport** -- Stdio transport: newline-delimited JSON-RPC on stdin/stdout, for subprocess-launched MCP clients
+- **mocapi-streamable-http-spring-boot-starter** -- Spring Boot starter bundling `mocapi-server` + Streamable HTTP transport
+- **mocapi-stdio-spring-boot-starter** -- Spring Boot starter bundling `mocapi-server` + stdio transport
 
 The server knows nothing about HTTP or stdio. Transports know nothing about sessions or tools. The `McpServer` + `McpTransport` interface pair is the contract between them — the server calls `transport.send(message)` / `transport.emit(event)`, and the transport calls back into `server.handleCall` / `handleNotification` / `handleResponse`. Two transports ship today; any future transport (Unix socket, WebSocket, named pipe, etc.) drops into the same contract.
 
@@ -96,8 +98,8 @@ Mocapi ships two transport implementations. Choose based on how your MCP client 
 
 | Transport | When to use | Module |
 |-----------|-------------|--------|
-| Streamable HTTP | Web-accessible servers, long-running deployments, multiple concurrent clients, sessions that survive restarts (with a Substrate backend like Redis/Postgres) | `mocapi-transport-streamable-http` |
-| Stdio | Desktop MCP clients that spawn the server as a subprocess (Claude Desktop, Cursor, MCP Inspector), single-session per process, no network exposure | `mocapi-transport-stdio` |
+| Streamable HTTP | Web-accessible servers, long-running deployments, multiple concurrent clients, sessions that survive restarts (with a Substrate backend like Redis/Postgres) | `mocapi-streamable-http-transport` (or `mocapi-streamable-http-spring-boot-starter`) |
+| Stdio | Desktop MCP clients that spawn the server as a subprocess (Claude Desktop, Cursor, MCP Inspector), single-session per process, no network exposure | `mocapi-stdio-transport` (or `mocapi-stdio-spring-boot-starter`) |
 
 Both use the same `McpServer` + `McpTransport` contract, so tool/prompt/resource code is identical between them.
 

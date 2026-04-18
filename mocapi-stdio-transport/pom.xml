@@ -25,9 +25,9 @@
         <version>0.7.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>mocapi-transport-streamable-http</artifactId>
-    <name>Mocapi - Transport - Streamable HTTP</name>
-    <description>Streamable HTTP transport for MCP: controller, transports, and encrypted SSE event IDs.</description>
+    <artifactId>mocapi-stdio-transport</artifactId>
+    <name>Mocapi - Stdio Transport</name>
+    <description>Stdio transport for MCP: newline-delimited JSON over stdin/stdout.</description>
 
     <dependencies>
         <dependency>
@@ -37,16 +37,22 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webmvc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jwcarman.odyssey</groupId>
-            <artifactId>odyssey</artifactId>
-            <version>${odyssey.version}</version>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <!--
+            codec-jackson provides CodecFactory, which Substrate's auto-configured
+            MailboxFactory depends on via @ConditionalOnBean. The HTTP transport gets
+            this transitively through Odyssey; the stdio transport declares it
+            directly so stdio-only apps work without extra wiring.
+        -->
+        <dependency>
+            <groupId>org.jwcarman.codec</groupId>
+            <artifactId>codec-jackson</artifactId>
+            <version>${codec.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

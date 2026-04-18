@@ -26,8 +26,8 @@
     </parent>
 
     <artifactId>mocapi-server</artifactId>
-    <name>Mocapi - Protocol</name>
-    <description>Transport-agnostic MCP protocol interfaces and implementation.</description>
+    <name>Mocapi - Server</name>
+    <description>Transport-agnostic MCP server runtime: protocol interfaces, session handling, and implementation.</description>
 
     <dependencies>
         <dependency>

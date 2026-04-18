@@ -6,6 +6,39 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Breaking changes
+
+- Starter and transport artifacts renamed for symmetry. Update your
+  `pom.xml` coordinates:
+  - `mocapi-spring-boot-starter` → `mocapi-streamable-http-spring-boot-starter`
+  - `mocapi-transport-streamable-http` → `mocapi-streamable-http-transport`
+  - `mocapi-transport-stdio` → `mocapi-stdio-transport`
+  The new names put each starter and its transport adjacent in Maven
+  Central listings and `mvn dependency:tree` output, and make the
+  transport an explicit part of every starter coordinate.
+
+### Added
+
+- New `mocapi-stdio-spring-boot-starter` — mirrors
+  `mocapi-streamable-http-spring-boot-starter` for stdio deployments.
+  Pulls in `mocapi-server` + `mocapi-stdio-transport` +
+  `methodical-jackson3`. Stdio apps can now depend on one coordinate
+  instead of wiring the transport and supporting libraries by hand.
+- Spring property placeholder (`${...}`) resolution in annotation
+  strings. Any `name`, `title`, `description`, `uri`, `uriTemplate`, or
+  `mimeType` on `@ToolMethod`, `@PromptMethod`, `@ResourceMethod`, or
+  `@ResourceTemplateMethod` now flows through the Spring environment at
+  registration time, so long descriptions and URIs can live in
+  `application.yml` instead of inline on the annotation. Missing
+  placeholders fail fast at startup with a
+  `PlaceholderResolutionException` rather than leaking the literal
+  `${...}` text into MCP responses.
+
+### Documentation
+
+- README, `docs/architecture.md`, `CONTRIBUTING.md`, and `PRD.md`
+  updated for the new starter/transport coordinates.
+
 ## [0.6.0] - 2026-04-17
 
 ### Added

@@ -117,7 +117,8 @@ mocapi-parent (pom.xml)          Multi-module Maven parent
 │       ├── sse/                 McpStreamingController, McpSessionManager, McpStreamEmitter
 │       ├── tools/               MocapiToolsAutoConfiguration
 │       └── prompts/             MocapiPromptsAutoConfiguration
-├── mocapi-spring-boot-starter/  Convenience starter (bundles core + autoconfigure)
+├── mocapi-streamable-http-spring-boot-starter/  Convenience starter (bundles server + streamable-http transport)
+├── mocapi-stdio-spring-boot-starter/            Convenience starter (bundles server + stdio transport)
 ├── mocapi-example/              Example app with HelloTool, Rot13Tool, CodeReviewPrompts
 ├── mocapi-resources/            Shared resources
 └── mocapi-coverage/             JaCoCo aggregate coverage

@@ -56,11 +56,12 @@
         <module>mocapi-model</module>
         <module>mocapi-api</module>
         <module>mocapi-server</module>
-        <module>mocapi-spring-boot-starter</module>
+        <module>mocapi-streamable-http-transport</module>
+        <module>mocapi-streamable-http-spring-boot-starter</module>
+        <module>mocapi-stdio-transport</module>
+        <module>mocapi-stdio-spring-boot-starter</module>
         <module>examples</module>
         <module>mocapi-compat</module>
-        <module>mocapi-transport-streamable-http</module>
-        <module>mocapi-transport-stdio</module>
         <module>mocapi-prompts-mustache</module>
         <module>mocapi-prompts-spring</module>
     </modules>
