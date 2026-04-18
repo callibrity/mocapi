@@ -69,6 +69,14 @@ class AnnotationResourceTest {
     }
   }
 
+  public static class WholeVarsMapFixture {
+    @ResourceTemplateMethod(uriTemplate = "test://raw/{a}/{b}", name = "Raw")
+    public ReadResourceResult raw(Map<String, String> vars) {
+      return new ReadResourceResult(
+          List.of(new TextResourceContents("test://raw", "text/plain", vars.toString())));
+    }
+  }
+
   public static class BadResource {
     @ResourceMethod(uri = "test://bad")
     public String oops() {
@@ -124,6 +132,20 @@ class AnnotationResourceTest {
 
     var content = (TextResourceContents) result.contents().getFirst();
     assertThat(content.text()).isEqualTo("hi null");
+  }
+
+  @Test
+  void whole_vars_map_parameter_receives_all_path_variables_and_registers_no_completions() {
+    var template =
+        AnnotationMcpResourceTemplate.createTemplates(
+                invokerFactory, templateResolvers, new WholeVarsMapFixture(), s -> s)
+            .getFirst();
+
+    var result = template.read(Map.of("a", "1", "b", "2"));
+
+    var content = (TextResourceContents) result.contents().getFirst();
+    assertThat(content.text()).contains("a=1").contains("b=2");
+    assertThat(template.completionCandidates()).isEmpty();
   }
 
   @Test
