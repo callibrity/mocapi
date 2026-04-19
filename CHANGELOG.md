@@ -6,6 +6,27 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- SLF4J MDC correlation keys are now set for the duration of every
+  tool, prompt, resource, and resource-template invocation and
+  removed on exit, so any log lines emitted during the invocation —
+  including log lines from user-written handler code — carry
+  correlation context automatically. The keys:
+    - `mcp.session` — the current MCP session id (only set when a
+      session is bound)
+    - `mcp.request` — the JSON-RPC request id (reserved; not yet
+      populated)
+    - `mcp.handler.kind` — one of `tool`, `prompt`, `resource`,
+      `resource-template`
+    - `mcp.handler.name` — the tool/prompt name or the resource URI
+      (or URI template)
+
+  The scope removes exactly the keys it added, so pre-existing MDC
+  state from upstream filters is preserved. Handlers that hand work
+  off to their own executor are responsible for propagating MDC
+  themselves — see `docs/interactive-guide.md`.
+
 ### Breaking changes
 
 - `McpToolContext` no longer exposes the eight per-level log convenience

@@ -61,6 +61,21 @@ Log messages are filtered by the session's log level. The client sets this via `
 
 Available levels (in ascending order): `DEBUG`, `INFO`, `NOTICE`, `WARNING`, `ERROR`, `CRITICAL`, `ALERT`, `EMERGENCY`.
 
+### MDC correlation keys
+
+Mocapi sets four SLF4J MDC keys for the duration of every handler invocation (tool, prompt, resource, or resource template) and removes them on exit. Any log line emitted during the invocation — including from your tool code or any library you call — carries these keys automatically.
+
+| Key | Value |
+| --- | --- |
+| `mcp.session` | Current MCP session id (only set when a session is bound) |
+| `mcp.request` | JSON-RPC request id (reserved; not yet populated) |
+| `mcp.handler.kind` | `tool`, `prompt`, `resource`, or `resource-template` |
+| `mcp.handler.name` | Tool/prompt name or resource URI (or URI template) |
+
+Point a log-pattern or structured appender at these keys to grep server-side logs by session or handler without plumbing context through every call site.
+
+**Caveat — executors and virtual threads.** MDC is read on the thread that actually emits the log line. If your handler hands work off to its own executor, the work runs on a different thread with empty MDC. In that case, snapshot `MDC.getCopyOfContextMap()` before dispatching and restore it on the worker thread with `MDC.setContextMap(...)` (and clear it in a `finally`). Mocapi's per-invocation setup is sufficient for the main handler thread and anything that runs synchronously underneath it.
+
 ## Elicitation
 
 Tools can prompt the user for input during execution. The server sends an `elicitation/create` request to the client, which presents a form to the user and returns their response.

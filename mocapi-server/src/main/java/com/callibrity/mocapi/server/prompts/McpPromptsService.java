@@ -23,6 +23,8 @@ import com.callibrity.mocapi.model.ListPromptsResult;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Prompt;
+import com.callibrity.mocapi.server.observability.McpMdcKeys;
+import com.callibrity.mocapi.server.observability.McpMdcScope;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
@@ -61,6 +63,8 @@ public class McpPromptsService extends PaginatedService<McpPrompt, Prompt> {
     log.debug("Received request to get prompt \"{}\"", name);
     McpPrompt prompt = lookup(name);
     Map<String, String> arguments = params.arguments() != null ? params.arguments() : Map.of();
-    return prompt.get(arguments);
+    try (var ignored = McpMdcScope.push(McpMdcKeys.KIND_PROMPT, name, null)) {
+      return prompt.get(arguments);
+    }
   }
 }

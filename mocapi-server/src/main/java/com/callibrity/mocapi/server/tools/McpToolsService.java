@@ -29,6 +29,8 @@ import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.observability.McpMdcKeys;
+import com.callibrity.mocapi.server.observability.McpMdcScope;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -115,7 +117,7 @@ public class McpToolsService extends PaginatedService<McpTool, Tool> {
         new DefaultMcpToolContext(
             transport, objectMapper, progressToken, correlationService, this, name);
 
-    try {
+    try (var ignored = McpMdcScope.push(McpMdcKeys.KIND_TOOL, name, null)) {
       Object result = ScopedValue.where(McpToolContext.CURRENT, ctx).call(() -> tool.call(args));
       return toCallToolResult(result);
     } catch (Exception e) {

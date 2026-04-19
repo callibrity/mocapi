@@ -27,6 +27,8 @@ import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplate;
+import com.callibrity.mocapi.server.observability.McpMdcKeys;
+import com.callibrity.mocapi.server.observability.McpMdcScope;
 import com.callibrity.mocapi.server.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -121,12 +123,20 @@ public class McpResourcesService {
 
     McpResource exact = resources.get(uri);
     if (exact != null) {
-      return exact.read();
+      try (var ignored = McpMdcScope.push(McpMdcKeys.KIND_RESOURCE, uri, null)) {
+        return exact.read();
+      }
     }
 
     for (var entry : templates.entrySet()) {
       if (entry.getKey().matches(uri)) {
-        return entry.getValue().read(entry.getKey().match(uri));
+        try (var ignored =
+            McpMdcScope.push(
+                McpMdcKeys.KIND_RESOURCE_TEMPLATE,
+                entry.getValue().descriptor().uriTemplate(),
+                null)) {
+          return entry.getValue().read(entry.getKey().match(uri));
+        }
       }
     }
 
