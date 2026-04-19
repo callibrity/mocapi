@@ -40,9 +40,9 @@ Methodical 0.6 delivers:
   `resolvedParameters()`, `proceed()`.
 - First-added-is-outermost ordering.
 
-Ripcurl 2.7.0 (or a locally-installed 2.7.0-SNAPSHOT in the interim)
-adjusts `DefaultAnnotationJsonRpcMethodProviderFactory`'s constructor
-to match the new Methodical API.
+Ripcurl 2.7.0 (on Central) adjusts
+`DefaultAnnotationJsonRpcMethodProviderFactory`'s constructor to
+match the new Methodical API.
 
 ---
 
@@ -57,9 +57,7 @@ to match the new Methodical API.
 <ripcurl.version>2.7.0</ripcurl.version>
 ```
 
-(If 2.7.0 isn't on Central yet at implementation time, use
-`2.7.0-SNAPSHOT` with a local `mvn install`-ed build and flip to the
-release in a follow-up commit.)
+Both on Central.
 
 ### 2. Input schema validation becomes a per-handler interceptor
 
@@ -237,8 +235,7 @@ actual validation behavior (Jakarta constraint violations surface as
 
 ## Acceptance criteria
 
-- [ ] Methodical bumped to `0.6.0`; ripcurl to `2.7.0` (or
-      `2.7.0-SNAPSHOT` with a locally-installed build).
+- [ ] Methodical bumped to `0.6.0`; ripcurl bumped to `2.7.0`.
 - [ ] `InputSchemaValidatingInterceptor` added and attached as the
       innermost interceptor per `CallToolHandler` in
       `CallToolHandlers.discover(...)`. `McpToolsService.validateInput`,
