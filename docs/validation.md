@@ -1,6 +1,6 @@
 # Validation
 
-Mocapi ships an optional Spring Boot starter, `mocapi-jakarta-validation-spring-boot-starter`, that turns on Jakarta Bean Validation across mocapi's reflective-dispatch surface. Once the starter is on the classpath, `@NotBlank`/`@Size`/`@Pattern`/etc. annotations on user `@McpTool`, `@McpPrompt`, and `@McpResourceTemplate` parameters are enforced at runtime, and violations surface in the MCP-spec-idiomatic shape for each handler type.
+Mocapi ships an optional Spring Boot starter, `mocapi-jakarta-validation`, that turns on Jakarta Bean Validation across mocapi's reflective-dispatch surface. Once the starter is on the classpath, `@NotBlank`/`@Size`/`@Pattern`/etc. annotations on user `@McpTool`, `@McpPrompt`, and `@McpResourceTemplate` parameters are enforced at runtime, and violations surface in the MCP-spec-idiomatic shape for each handler type.
 
 Mocapi's internal protocol handlers deliberately do *not* use jakarta validation — they rely on hand-rolled checks so mocapi's own contract is enforced regardless of whether the consumer has opted into validation. This starter is user-code-only.
 
@@ -16,7 +16,7 @@ Add the starter alongside whatever transport starter you're already using:
 </dependency>
 <dependency>
     <groupId>com.callibrity.mocapi</groupId>
-    <artifactId>mocapi-jakarta-validation-spring-boot-starter</artifactId>
+    <artifactId>mocapi-jakarta-validation</artifactId>
     <version>${mocapi.version}</version>
 </dependency>
 ```
@@ -135,4 +135,4 @@ See [`examples/jakarta-validation`](../examples/jakarta-validation) for a minima
 ## Not covered
 
 - **Mocapi's own protocol records.** Mocapi-server uses hand-rolled validation on its internal JSON-RPC request/response types (`CallToolRequestParams`, `InitializeRequest`, etc.) so mocapi's contract is always enforced, whether or not the consumer adds this starter.
-- **Tools where `@NotBlank`/`@Size` apply to fields of a typed parameter record.** In that case mocapi's existing JSON-schema pipeline (via `jsonschema-module-jakarta-validation`, a compile dep of `mocapi-server`) may surface violations as `-32602` before the runtime validator runs. Behavior depends on whether your parameter is a raw primitive/String or a record field. Run the integration tests in `mocapi-jakarta-validation-spring-boot-starter` for the authoritative behavior map.
+- **Tools where `@NotBlank`/`@Size` apply to fields of a typed parameter record.** In that case mocapi's existing JSON-schema pipeline (via `jsonschema-module-jakarta-validation`, a compile dep of `mocapi-server`) may surface violations as `-32602` before the runtime validator runs. Behavior depends on whether your parameter is a raw primitive/String or a record field. Run the integration tests in `mocapi-jakarta-validation` for the authoritative behavior map.

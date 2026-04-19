@@ -13,14 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.transport.stdio.autoconfigure;
+package com.callibrity.mocapi.transport.stdio;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.server.McpServer;
-import com.callibrity.mocapi.transport.stdio.StdioServer;
-import com.callibrity.mocapi.transport.stdio.StdioTransport;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;

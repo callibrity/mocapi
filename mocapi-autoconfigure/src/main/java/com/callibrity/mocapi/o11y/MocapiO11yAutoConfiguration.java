@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.o11y.autoconfigure;
+package com.callibrity.mocapi.o11y;
 
-import com.callibrity.mocapi.o11y.McpObservationInterceptor;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
@@ -35,7 +34,7 @@ import org.springframework.context.annotation.Bean;
  * automatically when paired with a metrics or tracing stack.
  */
 @AutoConfiguration
-@ConditionalOnClass(ObservationRegistry.class)
+@ConditionalOnClass({McpObservationInterceptor.class, ObservationRegistry.class})
 @ConditionalOnBean(ObservationRegistry.class)
 public class MocapiO11yAutoConfiguration {
 

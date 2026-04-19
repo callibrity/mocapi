@@ -267,7 +267,8 @@ class JakartaValidationIntegrationTest {
   // --- Test application --------------------------------------------------
 
   @SpringBootConfiguration
-  @EnableAutoConfiguration
+  @EnableAutoConfiguration(
+      exclude = com.callibrity.mocapi.oauth2.MocapiOAuth2AutoConfiguration.class)
   static class TestApp {
 
     @org.springframework.context.annotation.Bean

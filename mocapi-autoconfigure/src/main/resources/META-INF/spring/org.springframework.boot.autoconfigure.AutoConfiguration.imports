@@ -3,3 +3,9 @@ com.callibrity.mocapi.server.autoconfigure.MocapiServerToolsAutoConfiguration
 com.callibrity.mocapi.server.autoconfigure.MocapiServerPromptsAutoConfiguration
 com.callibrity.mocapi.server.autoconfigure.MocapiServerResourcesAutoConfiguration
 com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration
+com.callibrity.mocapi.transport.http.StreamableHttpAutoConfiguration
+com.callibrity.mocapi.transport.stdio.StdioAutoConfiguration
+com.callibrity.mocapi.oauth2.MocapiOAuth2AutoConfiguration
+com.callibrity.mocapi.logging.MocapiLoggingAutoConfiguration
+com.callibrity.mocapi.o11y.MocapiO11yAutoConfiguration
+com.callibrity.mocapi.actuator.MocapiActuatorAutoConfiguration

@@ -41,7 +41,7 @@
         </dependency>
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-jakarta-validation-spring-boot-starter</artifactId>
+            <artifactId>mocapi-jakarta-validation</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

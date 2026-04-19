@@ -23,6 +23,7 @@ import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.oauth2.MocapiOAuth2AutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerPromptsAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerResourcesAutoConfiguration;
@@ -31,7 +32,10 @@ import com.callibrity.mocapi.server.autoconfigure.SubstrateOrderingAutoConfigura
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.tools.McpToolsService;
+import com.callibrity.mocapi.transport.http.StreamableHttpAutoConfiguration;
+import com.callibrity.mocapi.transport.stdio.StdioAutoConfiguration;
 import java.util.List;
+import org.jwcarman.odyssey.autoconfigure.OdysseyAutoConfiguration;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -48,7 +52,11 @@ import org.springframework.context.annotation.Bean;
       MocapiServerToolsAutoConfiguration.class,
       MocapiServerPromptsAutoConfiguration.class,
       MocapiServerResourcesAutoConfiguration.class,
-      MocapiServerAutoConfiguration.class
+      MocapiServerAutoConfiguration.class,
+      MocapiOAuth2AutoConfiguration.class,
+      StreamableHttpAutoConfiguration.class,
+      StdioAutoConfiguration.class,
+      OdysseyAutoConfiguration.class
     })
 public class ActuatorMockMvcTestApp {
 

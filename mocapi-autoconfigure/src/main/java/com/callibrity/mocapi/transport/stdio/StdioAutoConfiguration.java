@@ -13,16 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.transport.stdio.autoconfigure;
+package com.callibrity.mocapi.transport.stdio;
 
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
-import com.callibrity.mocapi.transport.stdio.StdioServer;
-import com.callibrity.mocapi.transport.stdio.StdioTransport;
 import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -34,6 +33,7 @@ import tools.jackson.databind.ObjectMapper;
  * application.properties} or as a command-line override.
  */
 @AutoConfiguration(after = MocapiServerAutoConfiguration.class)
+@ConditionalOnClass(StdioTransport.class)
 @ConditionalOnBean(McpServer.class)
 @ConditionalOnProperty(prefix = "mocapi.stdio", name = "enabled", havingValue = "true")
 public class StdioAutoConfiguration {

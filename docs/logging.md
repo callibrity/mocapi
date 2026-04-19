@@ -1,7 +1,7 @@
 # Logging
 
 Mocapi ships an optional SLF4J MDC (Mapped Diagnostic Context) correlation
-layer. Add `mocapi-logging-spring-boot-starter` to your application and every
+layer. Add `mocapi-logging` to your application and every
 log line emitted during an MCP handler invocation — including lines from
 user handler code — carries correlation keys automatically. Remove the
 starter and the keys stop appearing. No mocapi API calls required either way.
@@ -26,7 +26,7 @@ Add the starter:
 ```xml
 <dependency>
   <groupId>com.callibrity.mocapi</groupId>
-  <artifactId>mocapi-logging-spring-boot-starter</artifactId>
+  <artifactId>mocapi-logging</artifactId>
 </dependency>
 ```
 

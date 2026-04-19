@@ -25,20 +25,23 @@
         <version>0.11.0-SNAPSHOT</version>
     </parent>
     <artifactId>mocapi-streamable-http-spring-boot-starter</artifactId>
-    <version>0.11.0-SNAPSHOT</version>
     <name>Mocapi - Streamable HTTP Spring Boot Starter</name>
-    <description>Spring Boot starter bundling mocapi-server with the Streamable HTTP transport.</description>
+    <description>Spring Boot starter bundling mocapi-autoconfigure with the Streamable HTTP transport. Users who want MCP over Streamable HTTP add only this starter; the matching autoconfig in mocapi-autoconfigure activates on classpath presence of the transport module.</description>
 
     <dependencies>
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-server</artifactId>
+            <artifactId>mocapi-autoconfigure</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
             <artifactId>mocapi-streamable-http-transport</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.jwcarman.methodical</groupId>

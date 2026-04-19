@@ -13,13 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.transport.http.autoconfigure;
+package com.callibrity.mocapi.transport.http;
 
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerProperties;
-import com.callibrity.mocapi.transport.http.McpRequestValidator;
-import com.callibrity.mocapi.transport.http.StreamableHttpController;
 import com.callibrity.mocapi.transport.http.sse.Ciphers;
 import com.callibrity.mocapi.transport.http.sse.DefaultSseStreamFactory;
 import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
@@ -29,12 +27,14 @@ import lombok.RequiredArgsConstructor;
 import org.jwcarman.odyssey.core.Odyssey;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration(after = MocapiServerAutoConfiguration.class)
+@ConditionalOnClass(StreamableHttpController.class)
 @ConditionalOnBean(McpServer.class)
 @EnableConfigurationProperties(MocapiServerProperties.class)
 @RequiredArgsConstructor

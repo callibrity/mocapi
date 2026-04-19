@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerProperties;
@@ -66,6 +67,7 @@ import org.springframework.security.web.SecurityFilterChain;
  * </ul>
  */
 @AutoConfiguration(after = OAuth2ResourceServerAutoConfiguration.class)
+@ConditionalOnClass({OAuth2ProtectedResourceMetadataCustomizer.class, HttpSecurity.class})
 @EnableConfigurationProperties(MocapiOAuth2Properties.class)
 @PropertySource("classpath:mocapi-oauth2-defaults.properties")
 public class MocapiOAuth2AutoConfiguration {

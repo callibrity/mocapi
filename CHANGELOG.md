@@ -6,6 +6,36 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Breaking changes
+
+- **Artifact layout consolidated around `mocapi-autoconfigure`.**
+  All feature-level `-spring-boot-starter` modules have been
+  collapsed into a single `mocapi-autoconfigure` module containing
+  every autoconfig (server, transports, OAuth2, logging,
+  observability, Jakarta Validation, and the `/actuator/mcp`
+  endpoint). Each autoconfig is `@ConditionalOnClass`-gated on a
+  class from its feature code module, so users light up a feature
+  by adding the feature module to their classpath — no
+  mocapi-specific starter name to remember. Old-to-new artifact
+  mapping:
+
+  | Old artifact | New artifact |
+  |---|---|
+  | `mocapi-oauth2-spring-boot-starter` | `mocapi-oauth2` |
+  | `mocapi-jakarta-validation-spring-boot-starter` | `mocapi-jakarta-validation` |
+  | `mocapi-logging-spring-boot-starter` | `mocapi-logging` |
+  | `mocapi-o11y-spring-boot-starter` | `mocapi-o11y` |
+  | `mocapi-actuator-spring-boot-starter` | `spring-boot-starter-actuator` (triggers `MocapiActuatorAutoConfiguration` in `mocapi-autoconfigure`) |
+
+  The two transport starters
+  (`mocapi-streamable-http-spring-boot-starter`,
+  `mocapi-stdio-spring-boot-starter`) remain user-facing and now
+  pull in `mocapi-autoconfigure` + their transport module.
+  `mocapi-jakarta-validation` is a new code module bundling the
+  same runtime deps the old starter packaged (no source of its own).
+  This is pre-1.0 — no compat shims. Migration is a one-line
+  artifactId rename in each consumer pom.
+
 ### Added
 
 - New module `mocapi-actuator-spring-boot-starter`: a Spring Boot

@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.actuator.autoconfigure;
+package com.callibrity.mocapi.actuator;
 
-import com.callibrity.mocapi.actuator.McpActuatorEndpoint;
 import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;

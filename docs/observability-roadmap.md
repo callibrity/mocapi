@@ -19,7 +19,7 @@ handler code — carries correlation context:
 - `mcp.handler.kind` — `tool` / `prompt` / `resource` / `resource_template`
 - `mcp.handler.name` — handler name (tool/prompt name or resource URI / URI template)
 
-Shipped as `mocapi-logging` + `mocapi-logging-spring-boot-starter`. See
+Shipped as `mocapi-logging` + `mocapi-logging`. See
 [`docs/logging.md`](logging.md) for the Logback pattern snippet and the
 virtual-threads caveat. Wiring: the autoconfig exposes one
 `*HandlerCustomizer` bean per handler kind (spec 180 SPI); each
@@ -55,7 +55,7 @@ prompt name, or resource URI / URI template). The standard Micrometer
 `outcome` tag (`SUCCESS` / `ERROR`) is added automatically by
 `DefaultMeterObservationHandler` on exception.
 
-Shipped as `mocapi-o11y` + `mocapi-o11y-spring-boot-starter`. Only
+Shipped as `mocapi-o11y` + `mocapi-o11y`. Only
 activates when an `ObservationRegistry` bean is present — Spring Boot
 3+ auto-creates one whenever `spring-boot-starter-actuator` or any
 Micrometer Observation autoconfiguration is on the classpath, so the
@@ -81,7 +81,7 @@ node) and does not fold in a metrics snapshot — metrics already have
 `/actuator/metrics` + `/actuator/prometheus`, and duplicating them
 into a mocapi-specific endpoint would create two sources of truth.
 
-Shipped as `mocapi-actuator-spring-boot-starter`. Activation follows
+Shipped as `spring-boot-starter-actuator`. Activation follows
 standard actuator rules: `@ConditionalOnAvailableEndpoint` means
 users opt in via
 `management.endpoints.web.exposure.include=mcp`.

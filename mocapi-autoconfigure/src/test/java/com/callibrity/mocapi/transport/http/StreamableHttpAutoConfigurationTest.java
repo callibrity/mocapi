@@ -13,15 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.transport.http.autoconfigure;
+package com.callibrity.mocapi.transport.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerProperties;
-import com.callibrity.mocapi.transport.http.McpRequestValidator;
-import com.callibrity.mocapi.transport.http.StreamableHttpController;
 import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
 import io.micrometer.context.ContextSnapshotFactory;
 import java.util.Base64;

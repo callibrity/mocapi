@@ -56,18 +56,15 @@
         <module>mocapi-model</module>
         <module>mocapi-api</module>
         <module>mocapi-server</module>
+        <module>mocapi-autoconfigure</module>
         <module>mocapi-streamable-http-transport</module>
         <module>mocapi-streamable-http-spring-boot-starter</module>
         <module>mocapi-stdio-transport</module>
         <module>mocapi-stdio-spring-boot-starter</module>
         <module>mocapi-oauth2</module>
-        <module>mocapi-oauth2-spring-boot-starter</module>
-        <module>mocapi-jakarta-validation-spring-boot-starter</module>
+        <module>mocapi-jakarta-validation</module>
         <module>mocapi-logging</module>
-        <module>mocapi-logging-spring-boot-starter</module>
         <module>mocapi-o11y</module>
-        <module>mocapi-o11y-spring-boot-starter</module>
-        <module>mocapi-actuator-spring-boot-starter</module>
         <module>mocapi-prompts-mustache</module>
         <module>mocapi-prompts-spring</module>
         <module>mocapi-bom</module>

@@ -32,7 +32,7 @@ import org.springframework.context.annotation.Bean;
  * name/uri/uriTemplate into the interceptor at build time, so the hot path does no reflection.
  */
 @AutoConfiguration
-@ConditionalOnClass({MDC.class, MethodInterceptor.class, McpSession.class})
+@ConditionalOnClass({McpMdcInterceptor.class, MDC.class, MethodInterceptor.class, McpSession.class})
 public class MocapiLoggingAutoConfiguration {
 
   @Bean

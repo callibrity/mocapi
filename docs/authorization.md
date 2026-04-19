@@ -6,7 +6,7 @@ Mocapi ships an OAuth2 resource-server module for the Streamable HTTP transport.
 2. Respond with `401 WWW-Authenticate: Bearer ... resource_metadata="..."` when a token is missing or invalid.
 3. Publish an RFC 9728 protected-resource metadata document at `/.well-known/oauth-protected-resource` advertising the accepted authorization servers.
 
-`mocapi-oauth2-spring-boot-starter` wires all three, leaning on Spring Boot's `oauth2-resource-server` starter for the heavy lifting and filling in the MCP-specific gaps Spring doesn't address.
+`mocapi-oauth2` wires all three, leaning on Spring Boot's `oauth2-resource-server` starter for the heavy lifting and filling in the MCP-specific gaps Spring doesn't address.
 
 ## Getting Started
 
@@ -15,7 +15,7 @@ Add the starter to your build — it pulls `mocapi-streamable-http-spring-boot-s
 ```xml
 <dependency>
     <groupId>com.callibrity.mocapi</groupId>
-    <artifactId>mocapi-oauth2-spring-boot-starter</artifactId>
+    <artifactId>mocapi-oauth2</artifactId>
     <version>${mocapi.version}</version>
 </dependency>
 ```
@@ -164,7 +164,7 @@ JWT and opaque modes are mutually exclusive; configure one or the other. If both
 
 ## Stdio transport
 
-OAuth2 is transport-bearer-token-specific and applies only to the Streamable HTTP transport. Stdio (subprocess-launched) MCP servers authenticate the subprocess via its launch context; there are no bearer tokens to validate. `mocapi-oauth2-spring-boot-starter` depends on `mocapi-streamable-http-spring-boot-starter` and is not compatible with stdio-only deployments.
+OAuth2 is transport-bearer-token-specific and applies only to the Streamable HTTP transport. Stdio (subprocess-launched) MCP servers authenticate the subprocess via its launch context; there are no bearer tokens to validate. `mocapi-oauth2` depends on `mocapi-streamable-http-spring-boot-starter` and is not compatible with stdio-only deployments.
 
 ## What's not yet supported
 
