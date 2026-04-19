@@ -162,6 +162,53 @@ The `jwt.audiences` property is reused in opaque mode — mocapi wraps Spring's 
 
 JWT and opaque modes are mutually exclusive; configure one or the other. If both are somehow configured, JWT wins (matching Spring Boot's own precedence).
 
+## Per-handler authorization
+
+`mocapi-oauth2` validates tokens on the way in. Gating individual handlers
+on the resulting `Authentication` is a second concern, covered by the
+`mocapi-spring-security-guards` module. Add it alongside `mocapi-oauth2`:
+
+```xml
+<dependency>
+    <groupId>com.callibrity.mocapi</groupId>
+    <artifactId>mocapi-spring-security-guards</artifactId>
+    <version>${mocapi.version}</version>
+</dependency>
+```
+
+Then annotate handler methods:
+
+```java
+@McpTool(name = "tenant_admin_op")
+@RequiresScope("admin:write")           // AND — all listed scopes required
+@RequiresRole({"TENANT_ADMIN", "OPS"})  // OR — any listed role grants access
+public void tenantAdminOp(...) { ... }
+```
+
+`@RequiresScope` values match granted authorities with the `SCOPE_` prefix
+Spring Security's JWT / opaque-token converters produce (so `admin:write`
+matches `SCOPE_admin:write`). `@RequiresRole` accepts bare (`ADMIN`) or
+prefixed (`ROLE_ADMIN`) values; both normalize to the same granted
+authority. Both annotations may coexist on the same method — the Guard
+SPI's AND evaluation means every attached guard must allow.
+
+Denied calls do not reach the handler: `tools/list` (and the matching
+`prompts/list`, `resources/list`, `resources/templates/list`) hides the
+handler entirely, and `tools/call` returns JSON-RPC `-32003` with
+`Forbidden: <reason>` where the reason comes from the first denying
+guard (`unauthenticated`, `missing scope(s): ...`, or
+`insufficient role`). Deny reasons are only returned at call time —
+list time simply omits the handler so the decision doesn't leak.
+
+Unlike Spring Security's `@PreAuthorize`, guards gate list operations as
+well as call operations — clients doing `tools/list` never see handlers
+they aren't entitled to invoke. And guard denials surface as the
+protocol-right `-32003 Forbidden` shape instead of the generic
+`-32603 Internal error` an AOP-thrown `AccessDeniedException` would
+produce. See [docs/guards.md](guards.md) for the underlying Guard SPI,
+and the `mocapi-spring-security-guards` module for the annotation
+sources if you want to write your own Guard implementation.
+
 ## Stdio transport
 
 OAuth2 is transport-bearer-token-specific and applies only to the Streamable HTTP transport. Stdio (subprocess-launched) MCP servers authenticate the subprocess via its launch context; there are no bearer tokens to validate. `mocapi-oauth2` depends on `mocapi-streamable-http-spring-boot-starter` and is not compatible with stdio-only deployments.

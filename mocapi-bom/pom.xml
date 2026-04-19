@@ -99,6 +99,11 @@
             </dependency>
             <dependency>
                 <groupId>com.callibrity.mocapi</groupId>
+                <artifactId>mocapi-spring-security-guards</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.callibrity.mocapi</groupId>
                 <artifactId>mocapi-prompts-spring</artifactId>
                 <version>${project.version}</version>
             </dependency>

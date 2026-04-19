@@ -10,3 +10,4 @@ com.callibrity.mocapi.logging.MocapiLoggingAutoConfiguration
 com.callibrity.mocapi.o11y.MocapiO11yAutoConfiguration
 com.callibrity.mocapi.jakarta.MocapiJakartaValidationAutoConfiguration
 com.callibrity.mocapi.actuator.MocapiActuatorAutoConfiguration
+com.callibrity.mocapi.security.spring.autoconfigure.MocapiSpringSecurityGuardsAutoConfiguration

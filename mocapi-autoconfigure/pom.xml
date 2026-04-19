@@ -81,6 +81,12 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-spring-security-guards</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>org.jwcarman.methodical</groupId>
             <artifactId>methodical-jakarta-validation</artifactId>
             <version>${methodical.version}</version>

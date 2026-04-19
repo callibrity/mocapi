@@ -65,6 +65,26 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- **New module `mocapi-spring-security-guards`.** First real `Guard`
+  implementation mocapi ships. Two method-level annotations —
+  `@RequiresScope(String[])` (all scopes required, AND semantics) and
+  `@RequiresRole(String[])` (any role grants access, OR semantics) —
+  placed on user `@McpTool` / `@McpPrompt` / `@McpResource` /
+  `@McpResourceTemplate` methods cause the module's autoconfig
+  (`MocapiSpringSecurityGuardsAutoConfiguration`, in
+  `mocapi-autoconfigure`) to attach a `ScopeGuard` / `RoleGuard` to
+  that handler via the customizer SPI. Both guards read
+  `SecurityContextHolder.getContext().getAuthentication()` at check
+  time; denial hides the handler from list operations and returns
+  JSON-RPC `-32003` with a descriptive reason
+  (`unauthenticated` / `missing scope(s): ...` / `insufficient role`).
+  Role values may be bare (`ADMIN`) or prefixed (`ROLE_ADMIN`). The
+  autoconfig is doubly `@ConditionalOnClass`-gated: on the feature
+  module's `ScopeGuard` class and on Spring Security's
+  `Authentication` class, so it stays dormant when either is absent.
+  See [docs/guards.md](docs/guards.md) and
+  [docs/authorization.md](docs/authorization.md) ("Per-handler
+  authorization" section).
 - **Guard SPI** (`com.callibrity.mocapi.server.guards`). Plugins attach
   per-handler `Guard`s via the existing `*HandlerCustomizer` beans; a
   guard's `check()` returns `Allow` or `Deny(reason)`. Evaluation is AND

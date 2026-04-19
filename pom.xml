@@ -66,6 +66,7 @@
         <module>mocapi-logging</module>
         <module>mocapi-o11y</module>
         <module>mocapi-actuator</module>
+        <module>mocapi-spring-security-guards</module>
         <module>mocapi-prompts-mustache</module>
         <module>mocapi-prompts-spring</module>
         <module>mocapi-bom</module>

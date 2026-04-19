@@ -90,8 +90,25 @@ handler, so guards don't apply to it.
 
 ## Reference implementation
 
-The `mocapi-spring-security-guards` module (spec 188) is the first guard
-implementation mocapi ships. It maps the caller's `Authentication` against
-handler-level scope / role / SpEL annotations. Other packages (tenant
-checks, rate limits, custom auth schemes) are user or third-party
-concerns.
+The `mocapi-spring-security-guards` module is the first real Guard
+implementation mocapi ships. It reads two method-level annotations off
+user handler methods at startup and attaches the matching guards via the
+customizer SPI:
+
+```java
+@McpTool(name = "tenant_admin_op")
+@RequiresScope("admin:write")          // all listed scopes required (AND)
+@RequiresRole({"TENANT_ADMIN", "OPS"}) // any listed role grants access (OR)
+public void tenantAdminOp(...) { ... }
+```
+
+Both guards (`ScopeGuard`, `RoleGuard`) read
+`SecurityContextHolder.getContext().getAuthentication()` at call time —
+no reflection on the hot path. Deny reasons include which scope(s) are
+missing for the scope case, or `"insufficient role"` for the role case.
+Denial of either hides the handler at list time and returns JSON-RPC
+`-32003` with that reason at call time. See
+[docs/authorization.md](authorization.md) for the enterprise deployment
+shape (`mocapi-oauth2` + `mocapi-spring-security-guards` + a transport
+starter). Other guard packages (tenant checks, rate limits, custom auth
+schemes) are user or third-party concerns.
