@@ -35,7 +35,7 @@ import org.springframework.core.convert.support.DefaultConversionService;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ReadResourceTemplateHandlerTest {
 
-  private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory(List.of());
+  private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
   private final List<ParameterResolver<? super Map<String, String>>> templateResolvers =
       List.of(new StringMapArgResolver(DefaultConversionService.getSharedInstance()));
 
@@ -85,7 +85,7 @@ class ReadResourceTemplateHandlerTest {
   void discover_builds_handler_from_annotated_method() {
     var handler =
         ReadResourceTemplateHandlers.discover(
-                new Fixture(), invokerFactory, templateResolvers, s -> s)
+                new Fixture(), invokerFactory, templateResolvers, List.of(), s -> s)
             .getFirst();
 
     assertThat(handler.uriTemplate()).isEqualTo("test://items/{id}");
@@ -99,7 +99,7 @@ class ReadResourceTemplateHandlerTest {
   void read_invokes_underlying_method_with_converted_path_variables() {
     var handler =
         ReadResourceTemplateHandlers.discover(
-                new Fixture(), invokerFactory, templateResolvers, s -> s)
+                new Fixture(), invokerFactory, templateResolvers, List.of(), s -> s)
             .getFirst();
 
     var result = handler.read(Map.of("id", "42"));
@@ -113,7 +113,7 @@ class ReadResourceTemplateHandlerTest {
   void read_with_null_path_variables_invokes_with_empty_map() {
     var handler =
         ReadResourceTemplateHandlers.discover(
-                new StringPathFixture(), invokerFactory, templateResolvers, s -> s)
+                new StringPathFixture(), invokerFactory, templateResolvers, List.of(), s -> s)
             .getFirst();
 
     var result = handler.read(null);
@@ -126,7 +126,7 @@ class ReadResourceTemplateHandlerTest {
   void whole_vars_map_parameter_receives_all_path_variables_and_registers_no_completions() {
     var handler =
         ReadResourceTemplateHandlers.discover(
-                new WholeVarsMapFixture(), invokerFactory, templateResolvers, s -> s)
+                new WholeVarsMapFixture(), invokerFactory, templateResolvers, List.of(), s -> s)
             .getFirst();
 
     var result = handler.read(Map.of("a", "1", "b", "2"));
@@ -140,7 +140,7 @@ class ReadResourceTemplateHandlerTest {
   void name_and_description_default_when_annotation_values_are_blank() {
     var handler =
         ReadResourceTemplateHandlers.discover(
-                new DefaultedFixture(), invokerFactory, templateResolvers, s -> s)
+                new DefaultedFixture(), invokerFactory, templateResolvers, List.of(), s -> s)
             .getFirst();
 
     assertThat(handler.descriptor().name()).isNotBlank();
@@ -154,7 +154,7 @@ class ReadResourceTemplateHandlerTest {
     assertThatThrownBy(
             () ->
                 ReadResourceTemplateHandlers.discover(
-                    target, invokerFactory, templateResolvers, s -> s))
+                    target, invokerFactory, templateResolvers, List.of(), s -> s))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ReadResourceResult");
   }

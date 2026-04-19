@@ -37,6 +37,7 @@ import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.intercept.MethodInterceptor;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
 
@@ -58,18 +59,28 @@ public final class GetPromptHandlers {
       Object promptServiceBean,
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
+      List<MethodInterceptor<? super Map<String, String>>> interceptors,
       UnaryOperator<String> valueResolver) {
     return MethodUtils.getMethodsListWithAnnotation(
             promptServiceBean.getClass(), PromptMethod.class)
         .stream()
         .sorted(Comparator.comparing(Method::getName))
-        .map(method -> build(invokerFactory, resolvers, promptServiceBean, method, valueResolver))
+        .map(
+            method ->
+                build(
+                    invokerFactory,
+                    resolvers,
+                    interceptors,
+                    promptServiceBean,
+                    method,
+                    valueResolver))
         .toList();
   }
 
   private static GetPromptHandler build(
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
+      List<MethodInterceptor<? super Map<String, String>>> interceptors,
       Object targetObject,
       Method method,
       UnaryOperator<String> valueResolver) {
@@ -85,7 +96,14 @@ public final class GetPromptHandlers {
             valueResolver, annotation.description(), () -> humanReadableName(targetObject, method));
     Prompt descriptor = new Prompt(name, title, description, null, argumentsOf(method));
     MethodInvoker<Map<String, String>> invoker =
-        invokerFactory.create(method, targetObject, ARGS_TYPE, resolvers);
+        invokerFactory.create(
+            method,
+            targetObject,
+            ARGS_TYPE,
+            cfg -> {
+              resolvers.forEach(cfg::resolver);
+              interceptors.forEach(cfg::interceptor);
+            });
     return new GetPromptHandler(descriptor, method, targetObject, invoker, candidatesOf(method));
   }
 

@@ -35,6 +35,7 @@ import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.intercept.MethodInterceptor;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
 
@@ -56,18 +57,28 @@ public final class ReadResourceTemplateHandlers {
       Object resourceServiceBean,
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
+      List<MethodInterceptor<? super Map<String, String>>> interceptors,
       UnaryOperator<String> valueResolver) {
     return MethodUtils.getMethodsListWithAnnotation(
             resourceServiceBean.getClass(), ResourceTemplateMethod.class)
         .stream()
         .sorted(Comparator.comparing(Method::getName))
-        .map(method -> build(invokerFactory, resolvers, resourceServiceBean, method, valueResolver))
+        .map(
+            method ->
+                build(
+                    invokerFactory,
+                    resolvers,
+                    interceptors,
+                    resourceServiceBean,
+                    method,
+                    valueResolver))
         .toList();
   }
 
   private static ReadResourceTemplateHandler build(
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
+      List<MethodInterceptor<? super Map<String, String>>> interceptors,
       Object targetObject,
       Method method,
       UnaryOperator<String> valueResolver) {
@@ -81,7 +92,14 @@ public final class ReadResourceTemplateHandlers {
     String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
     ResourceTemplate descriptor = new ResourceTemplate(uriTemplate, name, description, mimeType);
     MethodInvoker<Map<String, String>> invoker =
-        invokerFactory.create(method, targetObject, VARS_TYPE, resolvers);
+        invokerFactory.create(
+            method,
+            targetObject,
+            VARS_TYPE,
+            cfg -> {
+              resolvers.forEach(cfg::resolver);
+              interceptors.forEach(cfg::interceptor);
+            });
     return new ReadResourceTemplateHandler(
         descriptor, method, targetObject, invoker, candidatesOf(method));
   }

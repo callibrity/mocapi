@@ -29,6 +29,7 @@ import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.intercept.MethodInterceptor;
 
 /**
  * Pure-Java factory that builds a {@link ReadResourceHandler} for every {@code @ResourceMethod}-
@@ -45,17 +46,21 @@ public final class ReadResourceHandlers {
   public static List<ReadResourceHandler> discover(
       Object resourceServiceBean,
       MethodInvokerFactory invokerFactory,
+      List<MethodInterceptor<? super Object>> interceptors,
       UnaryOperator<String> valueResolver) {
     return MethodUtils.getMethodsListWithAnnotation(
             resourceServiceBean.getClass(), ResourceMethod.class)
         .stream()
         .sorted(Comparator.comparing(Method::getName))
-        .map(method -> build(invokerFactory, resourceServiceBean, method, valueResolver))
+        .map(
+            method ->
+                build(invokerFactory, interceptors, resourceServiceBean, method, valueResolver))
         .toList();
   }
 
   private static ReadResourceHandler build(
       MethodInvokerFactory invokerFactory,
+      List<MethodInterceptor<? super Object>> interceptors,
       Object targetObject,
       Method method,
       UnaryOperator<String> valueResolver) {
@@ -68,7 +73,9 @@ public final class ReadResourceHandlers {
     String description = resolveOrDefault(valueResolver, annotation.description(), () -> name);
     String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
     Resource descriptor = new Resource(uri, name, description, mimeType);
-    MethodInvoker<Object> invoker = invokerFactory.create(method, targetObject, Object.class);
+    MethodInvoker<Object> invoker =
+        invokerFactory.create(
+            method, targetObject, Object.class, cfg -> interceptors.forEach(cfg::interceptor));
     return new ReadResourceHandler(descriptor, method, targetObject, invoker);
   }
 

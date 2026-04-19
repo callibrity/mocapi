@@ -51,7 +51,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
+import org.jwcarman.methodical.param.ParameterResolver;
 import org.mockito.ArgumentCaptor;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
@@ -68,13 +70,14 @@ final class ComplianceTestSupport {
   // --- Dispatcher ---
 
   static JsonRpcDispatcher buildDispatcher(Object... services) {
-    var invokerFactory =
-        new DefaultMethodInvokerFactory(
-            List.of(
-                new McpSessionResolver(),
-                new McpTransportResolver(),
-                new JsonRpcParamsResolver(MAPPER)));
-    var factory = new DefaultAnnotationJsonRpcMethodProviderFactory(MAPPER, invokerFactory);
+    var invokerFactory = new DefaultMethodInvokerFactory();
+    List<ParameterResolver<? super JsonNode>> resolvers =
+        List.of(
+            new McpSessionResolver(),
+            new McpTransportResolver(),
+            new JsonRpcParamsResolver(MAPPER));
+    var factory =
+        new DefaultAnnotationJsonRpcMethodProviderFactory(MAPPER, invokerFactory, resolvers);
     var providers = Arrays.stream(services).map(factory::create).toList();
     return new DefaultJsonRpcDispatcher(providers);
   }
@@ -226,7 +229,7 @@ final class ComplianceTestSupport {
 
   // --- ID generation ---
 
-  private static tools.jackson.databind.JsonNode nextId() {
+  private static JsonNode nextId() {
     return JsonNodeFactory.instance.numberNode(ID_COUNTER.getAndIncrement());
   }
 }

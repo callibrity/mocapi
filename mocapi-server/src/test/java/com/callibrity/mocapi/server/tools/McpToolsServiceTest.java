@@ -49,9 +49,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
+import org.jwcarman.methodical.param.ParameterResolver;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
@@ -62,18 +64,17 @@ class McpToolsServiceTest {
   private final ObjectMapper mapper = new ObjectMapper();
   private final DefaultMethodSchemaGenerator generator =
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
-  private final MethodInvokerFactory invokerFactory =
-      new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(mapper)));
-  private final List<
-          org.jwcarman.methodical.param.ParameterResolver<? super tools.jackson.databind.JsonNode>>
-      resolvers = List.of(new McpToolContextResolver());
+  private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
+  private final List<ParameterResolver<? super JsonNode>> resolvers =
+      List.of(new McpToolContextResolver(), new Jackson3ParameterResolver(mapper));
 
   @Mock private McpResponseCorrelationService correlationService;
 
   private McpToolsService service;
 
   private List<CallToolHandler> createHandlers(Object target) {
-    return CallToolHandlers.discover(target, generator, invokerFactory, resolvers, s -> s);
+    return CallToolHandlers.discover(
+        target, generator, invokerFactory, resolvers, List.of(), s -> s);
   }
 
   @BeforeEach
@@ -186,11 +187,20 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void call_tool_with_invalid_input_throws_exception() {
+  void call_tool_with_invalid_input_returns_error_result() {
+    // Input-schema validation now runs as an innermost MethodInterceptor per handler; the
+    // JsonRpcException it throws is caught by invokeTool and surfaced as
+    // CallToolResult.isError=true
+    // so the calling LLM can self-correct, matching the MCP spec's "input validation errors belong
+    // in the result body" guidance.
     var params =
         new CallToolRequestParams("hello-tool.say-hello", mapper.createObjectNode(), null, null);
 
-    assertThatThrownBy(() -> service.callTool(params)).isInstanceOf(JsonRpcException.class);
+    var result = service.callTool(params);
+
+    assertThat(result.isError()).isTrue();
+    assertThat(result.content()).hasSize(1);
+    assertThat(((TextContent) result.content().getFirst()).text()).isNotBlank();
   }
 
   @Test
@@ -287,10 +297,12 @@ class McpToolsServiceTest {
     var params = new CallToolRequestParams("fire-and-forget", null, null, null);
 
     // Null arguments are replaced with an empty ObjectNode, which then fails schema validation
-    // because the tool requires a "message" property — proving the null-to-empty fallback executed.
-    assertThatThrownBy(() -> service.callTool(params))
-        .isInstanceOf(JsonRpcException.class)
-        .hasMessageContaining("required");
+    // in the input-schema interceptor because the tool requires a "message" property — proving the
+    // null-to-empty fallback executed.
+    var result = service.callTool(params);
+
+    assertThat(result.isError()).isTrue();
+    assertThat(((TextContent) result.content().getFirst()).text()).containsIgnoringCase("required");
   }
 
   @Test

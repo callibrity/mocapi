@@ -24,6 +24,9 @@ import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.callibrity.mocapi.api.tools.ToolMethod;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
+import com.github.erosb.jsonsKema.JsonParser;
+import com.github.erosb.jsonsKema.Schema;
+import com.github.erosb.jsonsKema.SchemaLoader;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Comparator;
@@ -32,6 +35,7 @@ import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.intercept.MethodInterceptor;
 import org.jwcarman.methodical.param.ParameterResolver;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -46,20 +50,31 @@ public final class CallToolHandlers {
 
   /**
    * Walks {@code @ToolMethod} methods on {@code toolServiceBean} and returns one {@link
-   * CallToolHandler} per method.
+   * CallToolHandler} per method. Each handler's invoker is wired with the supplied parameter
+   * resolvers plus the supplied interceptor list; an {@link InputSchemaValidatingInterceptor} for
+   * that tool's compiled input schema is appended last (innermost) so schema validation runs
+   * closest to the reflective call.
    */
   public static List<CallToolHandler> discover(
       Object toolServiceBean,
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super JsonNode>> resolvers,
+      List<MethodInterceptor<? super JsonNode>> interceptors,
       UnaryOperator<String> valueResolver) {
     return MethodUtils.getMethodsListWithAnnotation(toolServiceBean.getClass(), ToolMethod.class)
         .stream()
         .sorted(Comparator.comparing(Method::getName))
         .map(
             method ->
-                build(generator, invokerFactory, resolvers, toolServiceBean, method, valueResolver))
+                build(
+                    generator,
+                    invokerFactory,
+                    resolvers,
+                    interceptors,
+                    toolServiceBean,
+                    method,
+                    valueResolver))
         .toList();
   }
 
@@ -67,6 +82,7 @@ public final class CallToolHandlers {
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super JsonNode>> resolvers,
+      List<MethodInterceptor<? super JsonNode>> interceptors,
       Object targetObject,
       Method method,
       UnaryOperator<String> valueResolver) {
@@ -84,9 +100,22 @@ public final class CallToolHandlers {
     ObjectNode outputSchema =
         isVoid(method) ? null : generator.generateOutputSchema(targetObject, method);
     Tool descriptor = new Tool(name, title, description, inputSchema, outputSchema);
+    Schema compiledInputSchema = compile(inputSchema);
     MethodInvoker<JsonNode> invoker =
-        invokerFactory.create(method, targetObject, JsonNode.class, resolvers);
+        invokerFactory.create(
+            method,
+            targetObject,
+            JsonNode.class,
+            cfg -> {
+              resolvers.forEach(cfg::resolver);
+              interceptors.forEach(cfg::interceptor);
+              cfg.interceptor(new InputSchemaValidatingInterceptor(compiledInputSchema));
+            });
     return new CallToolHandler(descriptor, method, targetObject, invoker);
+  }
+
+  private static Schema compile(ObjectNode inputSchema) {
+    return new SchemaLoader(new JsonParser(inputSchema.toString()).parse()).load();
   }
 
   private static void validateMcpToolParams(Object targetObject, Method method) {

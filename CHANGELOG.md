@@ -6,6 +6,43 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped Methodical to `0.6.0` and ripcurl to `2.7.0`. Methodical 0.6
+  replaces the old stateful `MethodInvokerFactory` (which carried a
+  per-factory resolver list) with a stateless factory plus a
+  `Consumer<MethodInvokerConfig<A>>` customizer passed on each
+  `create(...)` call; resolvers and interceptors are supplied per
+  invoker. Every handler-discovery helper
+  (`CallToolHandlers#discover`, `GetPromptHandlers#discover`,
+  `ReadResourceHandlers#discover`,
+  `ReadResourceTemplateHandlers#discover`) now threads the new
+  customizer API and accepts a typed
+  `List<MethodInterceptor<? super T>>` that each handler's invoker
+  wraps around the reflective call. The four handler autoconfigs
+  autowire that list from the Spring context
+  (`@Autowired(required = false)`), so a downstream starter can ship
+  cross-cutting behavior (MDC, tracing, metrics, rate limiting,
+  entitlements) as a plain `MethodInterceptor` bean with no addition
+  to any mocapi API — drop the starter on the classpath and it
+  auto-wires into every handler of the matching kind. Tool
+  input-schema validation moved out of `McpToolsService` into a
+  per-handler `InputSchemaValidatingInterceptor` appended innermost
+  per `CallToolHandler`; the service's `validateInput`,
+  `getInputSchema`, and `inputSchemas` cache are gone. Output
+  schemas are still not validated — they remain descriptive metadata
+  clients read from `tools/list`. Jackson's `Jackson3ParameterResolver`
+  moved from Methodical's retired factory-level wiring into the
+  per-invoker tool resolver list (first-match-wins ordering:
+  `McpToolContextResolver` and `McpToolParamsResolver` run before
+  the greedy Jackson fallback). Jakarta validation wiring now goes
+  through Methodical's new `JakartaValidationInterceptor` bean
+  instead of the retired `MethodValidatorFactory` /
+  `JakartaMethodValidatorFactory` SPI; it rides in on the same
+  per-kind interceptor autowiring. No end-to-end behavior change —
+  constraint violations still surface as `-32602` for prompts and
+  resources and as `CallToolResult { isError: true }` for tools.
+
 ### Breaking changes
 
 - Removed the `McpResourceTemplate` and `McpResourceTemplateProvider`

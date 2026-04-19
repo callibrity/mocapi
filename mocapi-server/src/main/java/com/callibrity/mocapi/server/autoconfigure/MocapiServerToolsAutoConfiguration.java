@@ -27,7 +27,10 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.intercept.MethodInterceptor;
+import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import org.jwcarman.methodical.param.ParameterResolver;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -56,9 +59,15 @@ public class MocapiServerToolsAutoConfiguration {
       MethodInvokerFactory invokerFactory,
       ObjectMapper objectMapper,
       McpResponseCorrelationService correlationService,
+      @Autowired(required = false) List<MethodInterceptor<? super JsonNode>> toolInterceptors,
       StringValueResolver mcpAnnotationValueResolver) {
     List<ParameterResolver<? super JsonNode>> resolvers =
-        List.of(new McpToolContextResolver(), new McpToolParamsResolver(objectMapper));
+        List.of(
+            new McpToolContextResolver(),
+            new McpToolParamsResolver(objectMapper),
+            new Jackson3ParameterResolver(objectMapper));
+    List<MethodInterceptor<? super JsonNode>> interceptors =
+        toolInterceptors == null ? List.of() : toolInterceptors;
     List<CallToolHandler> handlers =
         context.getBeansWithAnnotation(ToolService.class).entrySet().stream()
             .flatMap(
@@ -75,6 +84,7 @@ public class MocapiServerToolsAutoConfiguration {
                           generator,
                           invokerFactory,
                           resolvers,
+                          interceptors,
                           mcpAnnotationValueResolver::resolveStringValue);
                   perBean.forEach(
                       h -> log.info("\tRegistered MCP tool: \"{}\"", h.descriptor().name()));

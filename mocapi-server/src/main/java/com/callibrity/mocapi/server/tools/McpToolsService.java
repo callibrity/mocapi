@@ -28,31 +28,26 @@ import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.util.PaginatedService;
-import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
-import com.callibrity.ripcurl.core.exception.JsonRpcException;
-import com.github.erosb.jsonsKema.JsonParser;
-import com.github.erosb.jsonsKema.Schema;
-import com.github.erosb.jsonsKema.SchemaLoader;
-import com.github.erosb.jsonsKema.ValidationFailure;
-import com.github.erosb.jsonsKema.Validator;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 import tools.jackson.databind.node.ValueNode;
 
-/** Manages tool registration, input validation, and JSON-RPC dispatch. */
+/**
+ * Manages tool registration and JSON-RPC dispatch. Input validation runs as a per-handler
+ * interceptor wired into each {@link CallToolHandler}'s invoker; see {@link
+ * InputSchemaValidatingInterceptor}.
+ */
 @Slf4j
 @JsonRpcService
 public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
 
-  private final ConcurrentHashMap<String, Schema> inputSchemas = new ConcurrentHashMap<>();
   private final ObjectMapper objectMapper;
   private final McpResponseCorrelationService correlationService;
 
@@ -101,7 +96,6 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
     JsonNode args =
         params.arguments() != null ? params.arguments() : objectMapper.createObjectNode();
     CallToolHandler handler = lookup(name);
-    validateInput(name, args, handler);
     return invokeTool(name, handler, args, params);
   }
 
@@ -137,22 +131,5 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
   static CallToolResult toErrorCallToolResult(Throwable throwable) {
     String message = throwable.getMessage() != null ? throwable.getMessage() : throwable.toString();
     return new CallToolResult(List.of(new TextContent(message, null)), true, null);
-  }
-
-  private void validateInput(String name, JsonNode arguments, CallToolHandler handler) {
-    Schema schema = getInputSchema(name, handler);
-    Validator validator = Validator.forSchema(schema);
-    ValidationFailure failure = validator.validate(new JsonParser(arguments.toString()).parse());
-    if (failure != null) {
-      throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, failure.getMessage());
-    }
-  }
-
-  private Schema getInputSchema(String name, CallToolHandler handler) {
-    return inputSchemas.computeIfAbsent(
-        name,
-        _ ->
-            new SchemaLoader(new JsonParser(handler.descriptor().inputSchema().toString()).parse())
-                .load());
   }
 }

@@ -33,7 +33,6 @@ import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
-import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -84,7 +83,7 @@ class MocapiServerAutoConfigurationTest {
 
     @Bean
     MethodInvokerFactory methodInvokerFactory() {
-      return new DefaultMethodInvokerFactory(List.of());
+      return new DefaultMethodInvokerFactory();
     }
   }
 

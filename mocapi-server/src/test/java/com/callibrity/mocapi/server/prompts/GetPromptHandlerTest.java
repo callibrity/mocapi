@@ -39,12 +39,12 @@ import org.springframework.core.convert.support.DefaultConversionService;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class GetPromptHandlerTest {
 
-  private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory(List.of());
+  private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
   private final List<ParameterResolver<? super Map<String, String>>> resolvers =
       List.of(new StringMapArgResolver(DefaultConversionService.getSharedInstance()));
 
   private List<GetPromptHandler> createHandlers(Object target) {
-    return GetPromptHandlers.discover(target, invokerFactory, resolvers, s -> s);
+    return GetPromptHandlers.discover(target, invokerFactory, resolvers, List.of(), s -> s);
   }
 
   enum Detail {

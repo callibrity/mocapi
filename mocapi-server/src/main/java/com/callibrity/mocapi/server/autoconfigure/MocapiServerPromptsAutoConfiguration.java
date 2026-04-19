@@ -26,8 +26,10 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.intercept.MethodInterceptor;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -52,11 +54,15 @@ public class MocapiServerPromptsAutoConfiguration {
       MethodInvokerFactory invokerFactory,
       ObjectProvider<ConversionService> conversionService,
       StringValueResolver mcpAnnotationValueResolver,
-      McpCompletionsService completions) {
+      McpCompletionsService completions,
+      @Autowired(required = false)
+          List<MethodInterceptor<? super Map<String, String>>> promptInterceptors) {
     List<ParameterResolver<? super Map<String, String>>> resolvers =
         List.of(
             new StringMapArgResolver(
                 conversionService.getIfAvailable(DefaultConversionService::getSharedInstance)));
+    List<MethodInterceptor<? super Map<String, String>>> interceptors =
+        promptInterceptors == null ? List.of() : promptInterceptors;
     List<GetPromptHandler> handlers =
         context.getBeansWithAnnotation(PromptService.class).entrySet().stream()
             .flatMap(
@@ -72,6 +78,7 @@ public class MocapiServerPromptsAutoConfiguration {
                           bean,
                           invokerFactory,
                           resolvers,
+                          interceptors,
                           mcpAnnotationValueResolver::resolveStringValue);
                   perBean.forEach(
                       h -> log.info("\tRegistered MCP prompt: \"{}\"", h.descriptor().name()));

@@ -40,15 +40,15 @@ import tools.jackson.databind.ObjectMapper;
 class CallToolHandlerTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
-  private final MethodInvokerFactory invokerFactory =
-      new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(mapper)));
+  private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
   private final List<ParameterResolver<? super JsonNode>> resolvers =
-      List.of(new McpToolContextResolver());
+      List.of(new McpToolContextResolver(), new Jackson3ParameterResolver(mapper));
   private final DefaultMethodSchemaGenerator generator =
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
 
   private List<CallToolHandler> createHandlers(Object target) {
-    return CallToolHandlers.discover(target, generator, invokerFactory, resolvers, s -> s);
+    return CallToolHandlers.discover(
+        target, generator, invokerFactory, resolvers, List.of(), s -> s);
   }
 
   @Test

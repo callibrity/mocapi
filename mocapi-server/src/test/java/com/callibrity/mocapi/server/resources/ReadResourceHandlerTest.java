@@ -31,7 +31,7 @@ import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ReadResourceHandlerTest {
 
-  private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory(List.of());
+  private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
 
   public static class Fixture {
     @ResourceMethod(
@@ -62,7 +62,8 @@ class ReadResourceHandlerTest {
 
   @Test
   void discover_builds_handler_from_annotated_method() {
-    var handler = ReadResourceHandlers.discover(new Fixture(), invokerFactory, s -> s).getFirst();
+    var handler =
+        ReadResourceHandlers.discover(new Fixture(), invokerFactory, List.of(), s -> s).getFirst();
 
     assertThat(handler.uri()).isEqualTo("test://hello");
     assertThat(handler.descriptor().name()).isEqualTo("Hello");
@@ -74,7 +75,8 @@ class ReadResourceHandlerTest {
 
   @Test
   void read_invokes_underlying_method() {
-    var handler = ReadResourceHandlers.discover(new Fixture(), invokerFactory, s -> s).getFirst();
+    var handler =
+        ReadResourceHandlers.discover(new Fixture(), invokerFactory, List.of(), s -> s).getFirst();
 
     var result = handler.read();
 
@@ -86,7 +88,8 @@ class ReadResourceHandlerTest {
   @Test
   void name_and_description_default_when_annotation_values_are_blank() {
     var handler =
-        ReadResourceHandlers.discover(new DefaultedFixture(), invokerFactory, s -> s).getFirst();
+        ReadResourceHandlers.discover(new DefaultedFixture(), invokerFactory, List.of(), s -> s)
+            .getFirst();
 
     assertThat(handler.descriptor().name()).isNotBlank();
     assertThat(handler.descriptor().description()).isEqualTo(handler.descriptor().name());
@@ -96,7 +99,8 @@ class ReadResourceHandlerTest {
   @Test
   void resource_method_with_non_result_return_type_is_rejected() {
     var target = new BadResource();
-    assertThatThrownBy(() -> ReadResourceHandlers.discover(target, invokerFactory, s -> s))
+    assertThatThrownBy(
+            () -> ReadResourceHandlers.discover(target, invokerFactory, List.of(), s -> s))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ReadResourceResult");
   }

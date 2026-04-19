@@ -1,12 +1,10 @@
 # Observability roadmap
 
-Once mocapi's handler layer lands on Methodical 0.6 interceptors
-(specs 170–174), every cross-cutting concern below collapses into
-"ship a `MethodInterceptor` bean + a thin autoconfig + a Spring Boot
-starter." Pop the starter onto the classpath, it auto-wires.
-
-These aren't specced yet — they'll be specced **after** the handler
-rewrite so their APIs can assume the interceptor model.
+Now that mocapi's handler layer runs on Methodical 0.6 interceptors
+(spec 175, on top of the 170–174 cleanup), every cross-cutting
+concern below collapses into "ship a `MethodInterceptor` bean + a
+thin autoconfig + a Spring Boot starter." Pop the starter onto the
+classpath, it auto-wires into every handler of the matching kind.
 
 ---
 

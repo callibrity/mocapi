@@ -80,3 +80,48 @@ interfaces at all. Tools, prompts, resources, and resource templates
 are all annotation-driven; each internal representation is a single
 concrete class built once at startup. There is no SPI users
 implement — only annotations.
+
+## Interceptor chain
+
+Since spec 175 (Methodical 0.6), every handler's reflective invocation
+runs through a `MethodInterceptor` chain. Each of the four handler
+autoconfigs autowires an optional `List<MethodInterceptor<? super T>>`
+for its kind (`JsonNode` for tools, `Map<String, String>` for prompts
+and resource templates, `Object` for fixed-URI resources) and threads
+it through the `discover(...)` helper. Interceptors are applied in
+list order — first-added is outermost — so a downstream starter can
+ship an interceptor as a plain `@Bean` and it will wrap every
+matching handler automatically without any mocapi API additions.
+
+Tools get one built-in interceptor: `InputSchemaValidatingInterceptor`
+is appended innermost per `CallToolHandler`, validating the incoming
+`JsonNode` against the compiled input schema and throwing
+`JsonRpcException(-32602)` on a mismatch. Because that exception
+propagates out of the invoker and into `McpToolsService.invokeTool`'s
+generic `catch (Exception)`, it surfaces to the client as
+`CallToolResult { isError: true }` — matching the MCP spec's "input
+validation errors belong in the result body so the LLM can
+self-correct" guidance.
+
+A minimal timing interceptor looks like:
+
+```java
+@Component
+public class ToolTimingInterceptor implements MethodInterceptor<JsonNode> {
+  @Override
+  public Object intercept(MethodInvocation<? extends JsonNode> invocation) {
+    long start = System.nanoTime();
+    try {
+      return invocation.proceed();
+    } finally {
+      long elapsedMicros = (System.nanoTime() - start) / 1_000;
+      log.info("tool {} took {}µs", invocation.method().getName(), elapsedMicros);
+    }
+  }
+}
+```
+
+Returning such a bean from anywhere on the classpath is enough to
+have it wrap every `CallToolHandler`. Output-schema validation is
+*not* wired in — the output schema is descriptive metadata only, and
+mocapi trusts handlers to produce conformant results.

@@ -28,8 +28,10 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.intercept.MethodInterceptor;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -54,11 +56,18 @@ public class MocapiServerResourcesAutoConfiguration {
       MethodInvokerFactory invokerFactory,
       ObjectProvider<ConversionService> conversionService,
       StringValueResolver mcpAnnotationValueResolver,
-      McpCompletionsService completions) {
+      McpCompletionsService completions,
+      @Autowired(required = false) List<MethodInterceptor<? super Object>> resourceInterceptors,
+      @Autowired(required = false)
+          List<MethodInterceptor<? super Map<String, String>>> resourceTemplateInterceptors) {
     List<ParameterResolver<? super Map<String, String>>> templateResolvers =
         List.of(
             new StringMapArgResolver(
                 conversionService.getIfAvailable(DefaultConversionService::getSharedInstance)));
+    List<MethodInterceptor<? super Object>> resourceInts =
+        resourceInterceptors == null ? List.of() : resourceInterceptors;
+    List<MethodInterceptor<? super Map<String, String>>> templateInts =
+        resourceTemplateInterceptors == null ? List.of() : resourceTemplateInterceptors;
     var beans = context.getBeansWithAnnotation(ResourceService.class);
     List<ReadResourceHandler> handlers =
         beans.entrySet().stream()
@@ -72,7 +81,10 @@ public class MocapiServerResourcesAutoConfiguration {
                       beanName);
                   List<ReadResourceHandler> perBean =
                       ReadResourceHandlers.discover(
-                          bean, invokerFactory, mcpAnnotationValueResolver::resolveStringValue);
+                          bean,
+                          invokerFactory,
+                          resourceInts,
+                          mcpAnnotationValueResolver::resolveStringValue);
                   perBean.forEach(
                       h -> log.info("\tRegistered MCP resource: \"{}\"", h.descriptor().uri()));
                   return perBean.stream();
@@ -93,6 +105,7 @@ public class MocapiServerResourcesAutoConfiguration {
                           bean,
                           invokerFactory,
                           templateResolvers,
+                          templateInts,
                           mcpAnnotationValueResolver::resolveStringValue);
                   perBean.forEach(
                       h ->

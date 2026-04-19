@@ -84,7 +84,7 @@ class GetPromptHandlersTest {
 
     @Bean
     MethodInvokerFactory methodInvokerFactory() {
-      return new DefaultMethodInvokerFactory(List.of());
+      return new DefaultMethodInvokerFactory();
     }
   }
 

@@ -71,7 +71,7 @@ class MocapiServerToolsAutoConfigurationTest {
 
     @Bean
     MethodInvokerFactory methodInvokerFactory() {
-      return new DefaultMethodInvokerFactory(java.util.List.of());
+      return new DefaultMethodInvokerFactory();
     }
   }
 
