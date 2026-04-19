@@ -22,7 +22,7 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * Server-side handler for a single {@code tools/call} target. Built by {@link CallToolHandlers}
- * from a Spring bean's {@code @ToolMethod}-annotated method and dispatched to by {@link
+ * from a Spring bean's {@code @McpTool}-annotated method and dispatched to by {@link
  * McpToolsService}.
  */
 public final class CallToolHandler {

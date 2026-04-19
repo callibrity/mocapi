@@ -15,15 +15,15 @@
  */
 package com.callibrity.mocapi.server.tools.util;
 
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
-import com.callibrity.mocapi.api.tools.ToolMethod;
 import com.callibrity.mocapi.model.LoggingLevel;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.stereotype.Component;
 
 @Component
 public class InteractiveTool {
-  @ToolMethod(name = "interactive-greet", description = "Greets with progress")
+  @McpTool(name = "interactive-greet", description = "Greets with progress")
   public HelloResponse greet(
       @Schema(description = "The name to greet") String name, McpToolContext ctx) {
     ctx.sendProgress(1, 2);

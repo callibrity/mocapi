@@ -15,8 +15,8 @@
  */
 package com.callibrity.mocapi.jakarta.fixture;
 
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.resources.ResourceService;
-import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
 import jakarta.validation.constraints.Pattern;
@@ -31,7 +31,7 @@ import java.util.List;
 @ResourceService
 public class ValidatedResources {
 
-  @ResourceTemplateMethod(
+  @McpResourceTemplate(
       uriTemplate = "val://{code}",
       name = "Validated",
       description = "Returns a stub config; template variable must be all-uppercase letters",

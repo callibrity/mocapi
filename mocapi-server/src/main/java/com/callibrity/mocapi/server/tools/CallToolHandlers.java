@@ -19,9 +19,9 @@ import static com.callibrity.mocapi.server.tools.annotation.Names.humanReadableN
 import static com.callibrity.mocapi.server.tools.annotation.Names.identifier;
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefault;
 
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
-import com.callibrity.mocapi.api.tools.ToolMethod;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import com.github.erosb.jsonsKema.JsonParser;
@@ -41,7 +41,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Pure-Java factory that builds a {@link CallToolHandler} for every {@code @ToolMethod}-annotated
+ * Pure-Java factory that builds a {@link CallToolHandler} for every {@code @McpTool}-annotated
  * method on a single {@code @ToolService} bean.
  */
 public final class CallToolHandlers {
@@ -49,7 +49,7 @@ public final class CallToolHandlers {
   private CallToolHandlers() {}
 
   /**
-   * Walks {@code @ToolMethod} methods on {@code toolServiceBean} and returns one {@link
+   * Walks {@code @McpTool} methods on {@code toolServiceBean} and returns one {@link
    * CallToolHandler} per method. Each handler's invoker is wired with the supplied parameter
    * resolvers plus the supplied interceptor list; an {@link InputSchemaValidatingInterceptor} for
    * that tool's compiled input schema is appended last (innermost) so schema validation runs
@@ -62,7 +62,7 @@ public final class CallToolHandlers {
       List<ParameterResolver<? super JsonNode>> resolvers,
       List<MethodInterceptor<? super JsonNode>> interceptors,
       UnaryOperator<String> valueResolver) {
-    return MethodUtils.getMethodsListWithAnnotation(toolServiceBean.getClass(), ToolMethod.class)
+    return MethodUtils.getMethodsListWithAnnotation(toolServiceBean.getClass(), McpTool.class)
         .stream()
         .sorted(Comparator.comparing(Method::getName))
         .map(
@@ -87,7 +87,7 @@ public final class CallToolHandlers {
       Method method,
       UnaryOperator<String> valueResolver) {
     validateMcpToolParams(targetObject, method);
-    ToolMethod annotation = method.getAnnotation(ToolMethod.class);
+    McpTool annotation = method.getAnnotation(McpTool.class);
     String name =
         resolveOrDefault(valueResolver, annotation.name(), () -> identifier(targetObject, method));
     String title =

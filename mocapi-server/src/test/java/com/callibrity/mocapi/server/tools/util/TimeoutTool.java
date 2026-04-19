@@ -15,13 +15,13 @@
  */
 package com.callibrity.mocapi.server.tools.util;
 
-import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.server.McpClientResponseTimeoutException;
 import org.springframework.stereotype.Component;
 
 @Component
 public class TimeoutTool {
-  @ToolMethod
+  @McpTool
   public String simulateTimeout(String input) {
     throw new McpClientResponseTimeoutException(
         "Timed out waiting for client response to elicitation/create (id=test-123)");

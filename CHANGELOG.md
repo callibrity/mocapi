@@ -45,6 +45,17 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Breaking changes
 
+- Renamed the four method-level handler annotations to drop the
+  `Method` suffix and adopt the `Mcp` domain prefix:
+  `@ToolMethod` → `@McpTool`, `@PromptMethod` → `@McpPrompt`,
+  `@ResourceMethod` → `@McpResource`,
+  `@ResourceTemplateMethod` → `@McpResourceTemplate`. Packages are
+  unchanged. The class-level `@ToolService` / `@PromptService` /
+  `@ResourceService` annotations stay as-is. Purely cosmetic — no
+  behavior change. Migration is a find-and-replace of four tokens:
+  `sed -i '' -e 's/@ToolMethod/@McpTool/g' -e 's/@PromptMethod/@McpPrompt/g' -e 's/@ResourceTemplateMethod/@McpResourceTemplate/g' -e 's/@ResourceMethod/@McpResource/g'`
+  (run the `ResourceTemplateMethod` replacement before
+  `ResourceMethod` since the latter is a substring of the former).
 - Removed the `McpResourceTemplate` and `McpResourceTemplateProvider`
   interfaces from `mocapi-api`. Resource-template discovery is purely
   annotation-driven: every `@ResourceTemplateMethod` on a

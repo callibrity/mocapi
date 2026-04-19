@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.conformance;
 
-import com.callibrity.mocapi.api.prompts.PromptMethod;
+import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.EmbeddedResource;
 import com.callibrity.mocapi.model.GetPromptResult;
@@ -109,7 +109,7 @@ public class ConformancePrompts {
                 (byte) 0x82
               });
 
-  @PromptMethod(name = "test_simple_prompt", description = "A simple test prompt")
+  @McpPrompt(name = "test_simple_prompt", description = "A simple test prompt")
   public GetPromptResult simplePrompt() {
     return new GetPromptResult(
         "A simple test prompt",
@@ -118,7 +118,7 @@ public class ConformancePrompts {
                 Role.USER, new TextContent("This is a simple prompt for testing.", null))));
   }
 
-  @PromptMethod(name = "test_prompt_with_arguments", description = "A test prompt with arguments")
+  @McpPrompt(name = "test_prompt_with_arguments", description = "A test prompt with arguments")
   public GetPromptResult promptWithArguments(
       @Schema(description = "First argument") String arg1,
       @Schema(description = "Second argument") String arg2) {
@@ -132,7 +132,7 @@ public class ConformancePrompts {
                     null))));
   }
 
-  @PromptMethod(
+  @McpPrompt(
       name = "test_prompt_with_embedded_resource",
       description = "A test prompt with an embedded resource")
   public GetPromptResult promptWithEmbeddedResource(
@@ -150,7 +150,7 @@ public class ConformancePrompts {
                 Role.USER, new TextContent("Please process the embedded resource above.", null))));
   }
 
-  @PromptMethod(name = "test_prompt_with_image", description = "A test prompt with an image")
+  @McpPrompt(name = "test_prompt_with_image", description = "A test prompt with an image")
   public GetPromptResult promptWithImage() {
     return new GetPromptResult(
         "A test prompt with an image",

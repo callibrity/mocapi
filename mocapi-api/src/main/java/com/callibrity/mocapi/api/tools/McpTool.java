@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.api.prompts;
+package com.callibrity.mocapi.api.tools;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -24,17 +24,17 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 @Documented
-public @interface PromptMethod {
+public @interface McpTool {
 
   /**
-   * The name of the prompt. If not specified, a dot-separated, kebab-case class name and method
-   * name will be used.
+   * The name of the tool. If not specified, a dot-separated, kebab-case class name and method name
+   * will be used.
    */
   String name() default "";
 
-  /** The title of the prompt. If not specified, a human-readable version will be generated. */
+  /** The title of the tool. If not specified, a human-readable version will be generated. */
   String title() default "";
 
-  /** A description of the prompt. If not specified, the title will be used as the description. */
+  /** A description of the tool. If not specified, the title will be used as the description. */
   String description() default "";
 }

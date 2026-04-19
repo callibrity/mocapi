@@ -15,12 +15,12 @@
  */
 package com.callibrity.mocapi.server.autoconfigure.aot;
 
-import com.callibrity.mocapi.api.prompts.PromptMethod;
+import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.prompts.PromptService;
-import com.callibrity.mocapi.api.resources.ResourceMethod;
+import com.callibrity.mocapi.api.resources.McpResource;
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.resources.ResourceService;
-import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
-import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.ToolService;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -36,14 +36,14 @@ import org.springframework.beans.factory.support.RegisteredBean;
  * Registers AOT reflection hints for every Mocapi annotation-driven service bean:
  *
  * <ul>
- *   <li>{@link ToolService} beans — {@link ToolMethod}-annotated methods get {@link
+ *   <li>{@link ToolService} beans — {@link McpTool}-annotated methods get {@link
  *       ExecutableMode#INVOKE} hints and binding hints on every parameter type and non-void return
  *       type.
- *   <li>{@link PromptService} beans — {@link PromptMethod}-annotated methods get the same
- *       treatment. Enum and record parameters picked up by Spring's {@code ConversionService} are
- *       covered via the binding registrar.
- *   <li>{@link ResourceService} beans — both {@link ResourceMethod} and {@link
- *       ResourceTemplateMethod}-annotated methods are processed.
+ *   <li>{@link PromptService} beans — {@link McpPrompt}-annotated methods get the same treatment.
+ *       Enum and record parameters picked up by Spring's {@code ConversionService} are covered via
+ *       the binding registrar.
+ *   <li>{@link ResourceService} beans — both {@link McpResource} and {@link
+ *       McpResourceTemplate}-annotated methods are processed.
  * </ul>
  *
  * <p>Non-matching beans are ignored. No-op for non-native (JIT) builds.
@@ -65,14 +65,14 @@ public class MocapiServicesAotProcessor implements BeanRegistrationAotProcessor 
     return (generationContext, beanRegistrationCode) -> {
       RuntimeHints hints = generationContext.getRuntimeHints();
       if (isToolService) {
-        registerAnnotatedMethods(hints, beanClass, ToolMethod.class);
+        registerAnnotatedMethods(hints, beanClass, McpTool.class);
       }
       if (isPromptService) {
-        registerAnnotatedMethods(hints, beanClass, PromptMethod.class);
+        registerAnnotatedMethods(hints, beanClass, McpPrompt.class);
       }
       if (isResourceService) {
-        registerAnnotatedMethods(hints, beanClass, ResourceMethod.class);
-        registerAnnotatedMethods(hints, beanClass, ResourceTemplateMethod.class);
+        registerAnnotatedMethods(hints, beanClass, McpResource.class);
+        registerAnnotatedMethods(hints, beanClass, McpResourceTemplate.class);
       }
     };
   }

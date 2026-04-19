@@ -7,7 +7,7 @@ see them directly.
 
 ## CallToolHandler — `tools/call`
 
-Every `@ToolMethod`-annotated method on a `@ToolService` bean produces
+Every `@McpTool`-annotated method on a `@ToolService` bean produces
 one `CallToolHandler`. The handler bundles the generated `Tool`
 descriptor (name, title, description, input/output schemas) with a
 `MethodInvoker<JsonNode>` that adapts `tools/call` arguments to the
@@ -22,7 +22,7 @@ supported path.
 
 ## GetPromptHandler — `prompts/get`
 
-Every `@PromptMethod`-annotated method on a `@PromptService` bean
+Every `@McpPrompt`-annotated method on a `@PromptService` bean
 produces one `GetPromptHandler`. The handler bundles the generated
 `Prompt` descriptor (name, title, description, argument list) with a
 `MethodInvoker<Map<String, String>>` that converts the client-supplied
@@ -41,7 +41,7 @@ prompt arguments.
 
 ## ReadResourceHandler — `resources/read` (fixed URIs)
 
-Every `@ResourceMethod`-annotated method on a `@ResourceService` bean
+Every `@McpResource`-annotated method on a `@ResourceService` bean
 produces one `ReadResourceHandler`. The handler bundles the generated
 `Resource` descriptor (URI, name, description, MIME type) with a
 `MethodInvoker<Object>` that produces the `ReadResourceResult` returned
@@ -55,7 +55,7 @@ Discovery lives in `ReadResourceHandlers#discover`, invoked once during
 
 ## ReadResourceTemplateHandler — `resources/read` (templated URIs)
 
-Every `@ResourceTemplateMethod`-annotated method on a `@ResourceService`
+Every `@McpResourceTemplate`-annotated method on a `@ResourceService`
 bean produces one `ReadResourceTemplateHandler`. The handler bundles
 the generated `ResourceTemplate` descriptor (URI template, name,
 description, MIME type) with a `MethodInvoker<Map<String, String>>`

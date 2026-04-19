@@ -19,7 +19,7 @@ import static com.callibrity.mocapi.server.tools.annotation.Names.humanReadableN
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefault;
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrNull;
 
-import com.callibrity.mocapi.api.resources.ResourceMethod;
+import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import java.lang.reflect.Method;
@@ -32,7 +32,7 @@ import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
 
 /**
- * Pure-Java factory that builds a {@link ReadResourceHandler} for every {@code @ResourceMethod}-
+ * Pure-Java factory that builds a {@link ReadResourceHandler} for every {@code @McpResource}-
  * annotated method on a single {@code @ResourceService} bean.
  */
 public final class ReadResourceHandlers {
@@ -40,7 +40,7 @@ public final class ReadResourceHandlers {
   private ReadResourceHandlers() {}
 
   /**
-   * Walks {@code @ResourceMethod} methods on {@code resourceServiceBean} and returns one {@link
+   * Walks {@code @McpResource} methods on {@code resourceServiceBean} and returns one {@link
    * ReadResourceHandler} per method.
    */
   public static List<ReadResourceHandler> discover(
@@ -49,7 +49,7 @@ public final class ReadResourceHandlers {
       List<MethodInterceptor<? super Object>> interceptors,
       UnaryOperator<String> valueResolver) {
     return MethodUtils.getMethodsListWithAnnotation(
-            resourceServiceBean.getClass(), ResourceMethod.class)
+            resourceServiceBean.getClass(), McpResource.class)
         .stream()
         .sorted(Comparator.comparing(Method::getName))
         .map(
@@ -65,7 +65,7 @@ public final class ReadResourceHandlers {
       Method method,
       UnaryOperator<String> valueResolver) {
     validateReturnType(targetObject, method);
-    ResourceMethod annotation = method.getAnnotation(ResourceMethod.class);
+    McpResource annotation = method.getAnnotation(McpResource.class);
     String uri = valueResolver.apply(annotation.uri());
     String name =
         resolveOrDefault(
@@ -83,7 +83,7 @@ public final class ReadResourceHandlers {
     if (!ReadResourceResult.class.isAssignableFrom(method.getReturnType())) {
       throw new IllegalArgumentException(
           String.format(
-              "@ResourceMethod %s.%s must return %s",
+              "@McpResource %s.%s must return %s",
               targetObject.getClass().getName(),
               method.getName(),
               ReadResourceResult.class.getName()));

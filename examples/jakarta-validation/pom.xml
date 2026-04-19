@@ -27,7 +27,7 @@
 
     <artifactId>mocapi-example-jakarta-validation</artifactId>
     <name>Mocapi - Example (Jakarta Validation)</name>
-    <description>Minimal streamable-http mocapi example showing Jakarta Bean Validation on a @ToolMethod parameter. Two deps — streamable-http starter + jakarta-validation starter — turn on @NotBlank/@Size/@Pattern enforcement across tools, prompts, and resources with the MCP-spec-idiomatic error shape per handler type.</description>
+    <description>Minimal streamable-http mocapi example showing Jakarta Bean Validation on a @McpTool parameter. Two deps — streamable-http starter + jakarta-validation starter — turn on @NotBlank/@Size/@Pattern enforcement across tools, prompts, and resources with the MCP-spec-idiomatic error shape per handler type.</description>
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>

@@ -22,8 +22,8 @@ import org.jwcarman.methodical.MethodInvoker;
 
 /**
  * Server-side handler for a single {@code resources/read} target with a fixed URI. Built by {@link
- * ReadResourceHandlers} from a Spring bean's {@code @ResourceMethod}-annotated method and
- * dispatched to by {@link McpResourcesService}.
+ * ReadResourceHandlers} from a Spring bean's {@code @McpResource}-annotated method and dispatched
+ * to by {@link McpResourcesService}.
  */
 public final class ReadResourceHandler {
 

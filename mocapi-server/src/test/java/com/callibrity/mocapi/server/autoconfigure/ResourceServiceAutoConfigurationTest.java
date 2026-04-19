@@ -18,9 +18,9 @@ package com.callibrity.mocapi.server.autoconfigure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.callibrity.mocapi.api.resources.ResourceMethod;
+import com.callibrity.mocapi.api.resources.McpResource;
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.resources.ResourceService;
-import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
 import com.callibrity.mocapi.model.CompleteRequestParams;
 import com.callibrity.mocapi.model.CompletionArgument;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
@@ -91,13 +91,13 @@ class ResourceServiceAutoConfigurationTest {
   @ResourceService
   static class SampleResourceService {
 
-    @ResourceMethod(uri = "test://hello", name = "Hello", mimeType = "text/plain")
+    @McpResource(uri = "test://hello", name = "Hello", mimeType = "text/plain")
     public ReadResourceResult hello() {
       return new ReadResourceResult(
           List.of(new TextResourceContents("test://hello", "text/plain", "hi")));
     }
 
-    @ResourceTemplateMethod(uriTemplate = "test://items/{id}", name = "Item")
+    @McpResourceTemplate(uriTemplate = "test://items/{id}", name = "Item")
     public ReadResourceResult item(String id) {
       return new ReadResourceResult(
           List.of(new TextResourceContents("test://items/" + id, "text/plain", "item " + id)));
@@ -113,7 +113,7 @@ class ResourceServiceAutoConfigurationTest {
   @ResourceService
   static class EnumResourceService {
 
-    @ResourceTemplateMethod(uriTemplate = "env://{stage}/config", name = "Env Config")
+    @McpResourceTemplate(uriTemplate = "env://{stage}/config", name = "Env Config")
     public ReadResourceResult config(Stage stage) {
       return new ReadResourceResult(
           List.of(new TextResourceContents("env://" + stage + "/config", "text/plain", "cfg")));
@@ -123,7 +123,7 @@ class ResourceServiceAutoConfigurationTest {
   @ResourceService
   static class PlaceholderResourceService {
 
-    @ResourceMethod(
+    @McpResource(
         uri = "${resource.uri}",
         name = "${resource.name}",
         description = "${resource.description}",
@@ -133,7 +133,7 @@ class ResourceServiceAutoConfigurationTest {
           List.of(new TextResourceContents("test://hello", "text/plain", "hi")));
     }
 
-    @ResourceTemplateMethod(
+    @McpResourceTemplate(
         uriTemplate = "${template.uri}",
         name = "${template.name}",
         description = "${template.description}",

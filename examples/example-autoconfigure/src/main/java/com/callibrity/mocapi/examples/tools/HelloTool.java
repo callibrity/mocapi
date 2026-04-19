@@ -15,8 +15,8 @@
  */
 package com.callibrity.mocapi.examples.tools;
 
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
-import com.callibrity.mocapi.api.tools.ToolMethod;
 import com.callibrity.mocapi.api.tools.ToolService;
 import org.springframework.stereotype.Component;
 
@@ -24,14 +24,12 @@ import org.springframework.stereotype.Component;
 @ToolService
 public class HelloTool {
 
-  @ToolMethod(name = "hello", description = "Returns a greeting message")
+  @McpTool(name = "hello", description = "Returns a greeting message")
   public HelloResponse sayHello(String name) {
     return new HelloResponse(String.format("Hello, %s!", name));
   }
 
-  @ToolMethod(
-      name = "hello-elicitation",
-      description = "Returns a greeting message after elicitation")
+  @McpTool(name = "hello-elicitation", description = "Returns a greeting message after elicitation")
   public HelloResponse sayHelloElicitation(McpToolContext ctx) {
     var result =
         ctx.elicit(

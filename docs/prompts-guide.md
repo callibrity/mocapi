@@ -1,13 +1,13 @@
 # Writing Prompts
 
-Prompts are reusable message templates that clients can invoke by name, optionally supplying arguments. Define a prompt as a Java method annotated with `@PromptMethod` inside a class annotated with `@PromptService`.
+Prompts are reusable message templates that clients can invoke by name, optionally supplying arguments. Define a prompt as a Java method annotated with `@McpPrompt` inside a class annotated with `@PromptService`.
 
 ## Defining a Prompt Service
 
 Mark a class with `@PromptService` and register it as a Spring bean:
 
 ```java
-import com.callibrity.mocapi.api.prompts.PromptMethod;
+import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
@@ -21,7 +21,7 @@ import java.util.List;
 @PromptService
 public class SummarizationPrompts {
 
-    @PromptMethod(name = "summarize", description = "Summarize the provided text")
+    @McpPrompt(name = "summarize", description = "Summarize the provided text")
     public GetPromptResult summarize(String text) {
         return new GetPromptResult(
             "Text summarization prompt",
@@ -38,10 +38,10 @@ Each registered prompt (and any enum-typed argument's completion candidates) is 
 
 ## Prompt Method Basics
 
-A `@PromptMethod` method always returns `GetPromptResult`. Method parameters bind to the incoming prompt arguments -- each parameter name matches an argument key.
+A `@McpPrompt` method always returns `GetPromptResult`. Method parameters bind to the incoming prompt arguments -- each parameter name matches an argument key.
 
 ```java
-@PromptMethod(name = "translate", description = "Translate text to a target language")
+@McpPrompt(name = "translate", description = "Translate text to a target language")
 public GetPromptResult translate(String text, String targetLanguage) {
     return new GetPromptResult(
         "Translation prompt",
@@ -59,7 +59,7 @@ If you omit `name`, the framework generates one from the class and method names.
 You can also set a `title` and `description`:
 
 ```java
-@PromptMethod(
+@McpPrompt(
     name = "code-review",
     title = "Code Review",
     description = "Review a code snippet for bugs and style issues")
@@ -73,7 +73,7 @@ Use Swagger's `@Schema` annotation to document arguments (surfaced in the prompt
 ```java
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@PromptMethod(name = "summarize", description = "Summarize text at a specified detail level")
+@McpPrompt(name = "summarize", description = "Summarize text at a specified detail level")
 public GetPromptResult summarize(
     @Schema(description = "The text to summarize") String text,
     @Schema(description = "brief, standard, or detailed") @jakarta.annotation.Nullable Detail detail) {
@@ -88,7 +88,7 @@ public enum Detail { BRIEF, STANDARD, DETAILED }
 By default every parameter is required. Mark a parameter optional with either `@Nullable` or `@Schema(requiredMode = NOT_REQUIRED)`:
 
 ```java
-@PromptMethod(name = "summarize", description = "Summarize text")
+@McpPrompt(name = "summarize", description = "Summarize text")
 public GetPromptResult summarize(
     String text,
     @Nullable Detail detail) {
@@ -110,7 +110,7 @@ Prompt arguments arrive on the wire as strings. Mocapi converts each argument to
 - Anything you register a custom `Converter<String, T>` for
 
 ```java
-@PromptMethod(name = "schedule", description = "Generate a scheduling prompt")
+@McpPrompt(name = "schedule", description = "Generate a scheduling prompt")
 public GetPromptResult schedule(
     String event,
     LocalDate date,
@@ -126,7 +126,7 @@ If a conversion fails, the client receives a JSON-RPC error describing which arg
 If your method declares a single `Map<String, String>` parameter, it receives the entire untyped argument map:
 
 ```java
-@PromptMethod(name = "dynamic", description = "Pass all arguments through")
+@McpPrompt(name = "dynamic", description = "Pass all arguments through")
 public GetPromptResult dynamic(Map<String, String> args) {
     return buildPrompt(args);
 }
@@ -136,7 +136,7 @@ This is useful when argument names are determined dynamically or when you want t
 
 ## Externalizing Metadata
 
-Every string attribute on `@PromptMethod` (`name`, `title`, `description`) supports Spring's `${...}` property placeholder syntax, so long descriptions don't have to live inline on the annotation. See [Externalizing Annotation Metadata](externalizing-metadata.md).
+Every string attribute on `@McpPrompt` (`name`, `title`, `description`) supports Spring's `${...}` property placeholder syntax, so long descriptions don't have to live inline on the annotation. See [Externalizing Annotation Metadata](externalizing-metadata.md).
 
 ## Argument Completions (autocomplete)
 
@@ -146,14 +146,14 @@ MCP clients can call `completion/complete` to fetch suggested values while a use
   ```java
   public enum Detail { BRIEF, STANDARD, DETAILED }
 
-  @PromptMethod(name = "summarize")
+  @McpPrompt(name = "summarize")
   public GetPromptResult summarize(String text, Detail detail) { ... }
   ```
   The client asking for completions on the `detail` argument gets `["BRIEF", "STANDARD", "DETAILED"]`, prefix-filtered by whatever the user has typed.
 
 - **`@Schema(allowableValues = { ... })`** on a non-enum parameter — useful when you want to keep the Java signature as `String` but still constrain the accepted values.
   ```java
-  @PromptMethod(name = "summarize")
+  @McpPrompt(name = "summarize")
   public GetPromptResult summarize(
       String text,
       @Schema(allowableValues = {"BRIEF", "STANDARD", "DETAILED"}) String detail) { ... }
@@ -178,7 +178,7 @@ Each `PromptMessage` has a `Role` (`USER` or `ASSISTANT`) and `Content`. Content
 A prompt can emit a conversation, not just a single message:
 
 ```java
-@PromptMethod(name = "few-shot", description = "Few-shot classification prompt")
+@McpPrompt(name = "few-shot", description = "Few-shot classification prompt")
 public GetPromptResult fewShot(String input) {
     return new GetPromptResult(
         "Few-shot classification",
@@ -199,7 +199,7 @@ Reference a resource inline:
 import com.callibrity.mocapi.model.EmbeddedResource;
 import com.callibrity.mocapi.model.TextResourceContents;
 
-@PromptMethod(name = "analyze-doc", description = "Analyze an embedded document")
+@McpPrompt(name = "analyze-doc", description = "Analyze an embedded document")
 public GetPromptResult analyzeDoc(String uri) {
     return new GetPromptResult(
         "Document analysis",
@@ -255,7 +255,7 @@ Add one to your build:
 
 Its auto-configuration registers a default `PromptTemplateFactory` bean. If both modules are on the classpath, only the first one seen wins — most apps should pick one. Users with their own bean override both by declaring `@Bean PromptTemplateFactory` (our auto-configs use `@ConditionalOnMissingBean`).
 
-### Using a template from a `@PromptMethod`
+### Using a template from a `@McpPrompt`
 
 Compile templates once at construction. Render them inside the method:
 
@@ -283,7 +283,7 @@ public class SummarizationPrompts {
         this.summarize = factory.create(Role.USER, "Summarize the provided text", source);
     }
 
-    @PromptMethod(name = "summarize", description = "Summarize text")
+    @McpPrompt(name = "summarize", description = "Summarize text")
     public GetPromptResult summarize(String text, @Nullable Detail detail) {
         return summarize.render(Map.of(
             "text", text,
@@ -311,7 +311,7 @@ public FewShotPrompts(PromptTemplateFactory factory) {
     this.assistantTurn = factory.create(Role.ASSISTANT, load("assistant-turn.mustache"));
 }
 
-@PromptMethod(name = "few-shot")
+@McpPrompt(name = "few-shot")
 public GetPromptResult fewShot(String input) {
     var messages = new ArrayList<PromptMessage>();
     messages.addAll(intro.render(Map.of()).messages());

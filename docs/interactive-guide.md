@@ -5,7 +5,7 @@ Tools can communicate with the client mid-execution using `McpToolContext`. Add 
 ```java
 import com.callibrity.mocapi.api.tools.McpToolContext;
 
-@ToolMethod(name = "process", description = "Processes data with progress")
+@McpTool(name = "process", description = "Processes data with progress")
 public ProcessResult process(String data, McpToolContext ctx) {
     ctx.sendProgress(1, 3);
     // ... step 1 ...
@@ -42,7 +42,7 @@ log.warn("Rate limit approaching ({} req/s)", rate);
 ```
 
 `ctx.logger()` (no argument) returns a logger named after the currently
-executing handler — the tool's `@ToolMethod` name — so you rarely need to pass
+executing handler — the tool's `@McpTool` name — so you rarely need to pass
 a name explicitly:
 
 ```java
@@ -66,7 +66,7 @@ Available levels (in ascending order): `DEBUG`, `INFO`, `NOTICE`, `WARNING`, `ER
 Tools can prompt the user for input during execution. The server sends an `elicitation/create` request to the client, which presents a form to the user and returns their response.
 
 ```java
-@ToolMethod(name = "onboard", description = "Onboards a new user")
+@McpTool(name = "onboard", description = "Onboards a new user")
 public OnboardResult onboard(McpToolContext ctx) {
     ElicitResult result = ctx.elicit("Please enter your details", schema -> schema
         .string("name", "Your name")
@@ -101,7 +101,7 @@ Tools can request LLM completions from the client:
 import com.callibrity.mocapi.model.CreateMessageRequestParams;
 import com.callibrity.mocapi.model.CreateMessageResult;
 
-@ToolMethod(name = "summarize", description = "Summarizes text using an LLM")
+@McpTool(name = "summarize", description = "Summarizes text using an LLM")
 public SummaryResult summarize(String text, McpToolContext ctx) {
     var params = new CreateMessageRequestParams(
         List.of(new SamplingMessage(Role.USER, new TextContent("Summarize: " + text, null))),
@@ -134,7 +134,7 @@ Mocapi supports three patterns for tool methods. All are invoked identically -- 
 The tool takes parameters, does work, returns a result:
 
 ```java
-@ToolMethod(name = "hello", description = "Greets someone")
+@McpTool(name = "hello", description = "Greets someone")
 public HelloResponse hello(String name) {
     return new HelloResponse("Hello, " + name + "!");
 }
@@ -145,7 +145,7 @@ public HelloResponse hello(String name) {
 The tool performs a side effect and returns nothing:
 
 ```java
-@ToolMethod(name = "notify", description = "Sends a push notification")
+@McpTool(name = "notify", description = "Sends a push notification")
 public void notify(String message) {
     pushService.send(message);
 }
@@ -156,7 +156,7 @@ public void notify(String message) {
 The tool declares `McpToolContext` and uses it for mid-execution communication:
 
 ```java
-@ToolMethod(name = "wizard", description = "Multi-step wizard")
+@McpTool(name = "wizard", description = "Multi-step wizard")
 public WizardResult wizard(McpToolContext ctx) {
     ctx.sendProgress(1, 3);
     ElicitResult step1 = ctx.elicit(step1Params);

@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.server.tools.util;
 
-import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.McpTool;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -23,7 +23,7 @@ public class VoidTool {
 
   private String lastMessage;
 
-  @ToolMethod(name = "fire-and-forget", description = "Accepts input but returns nothing")
+  @McpTool(name = "fire-and-forget", description = "Accepts input but returns nothing")
   public void fireAndForget(String message) {
     this.lastMessage = message;
   }

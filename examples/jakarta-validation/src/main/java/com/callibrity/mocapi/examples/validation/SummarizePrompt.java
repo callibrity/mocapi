@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.examples.validation;
 
-import com.callibrity.mocapi.api.prompts.PromptMethod;
+import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
@@ -27,7 +27,7 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 /**
- * Prompt demonstrating Jakarta Bean Validation. Violations on a {@code @PromptMethod} parameter
+ * Prompt demonstrating Jakarta Bean Validation. Violations on a {@code @McpPrompt} parameter
  * surface as JSON-RPC {@code -32602 Invalid params} with per-violation detail in the response's
  * {@code data} field — spec-idiomatic for prompts (the MCP spec explicitly endorses {@code -32602}
  * for "Missing required arguments").
@@ -52,7 +52,7 @@ import org.springframework.stereotype.Component;
 @PromptService
 public class SummarizePrompt {
 
-  @PromptMethod(name = "summarize", description = "Summarizes the provided text (10-2000 chars)")
+  @McpPrompt(name = "summarize", description = "Summarizes the provided text (10-2000 chars)")
   public GetPromptResult summarize(@NotBlank @Size(min = 10, max = 2000) String text) {
     return new GetPromptResult(
         "summarize",

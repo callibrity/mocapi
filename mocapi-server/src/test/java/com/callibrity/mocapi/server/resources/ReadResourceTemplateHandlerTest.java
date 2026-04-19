@@ -18,7 +18,7 @@ package com.callibrity.mocapi.server.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.util.StringMapArgResolver;
@@ -40,10 +40,7 @@ class ReadResourceTemplateHandlerTest {
       List.of(new StringMapArgResolver(DefaultConversionService.getSharedInstance()));
 
   public static class Fixture {
-    @ResourceTemplateMethod(
-        uriTemplate = "test://items/{id}",
-        name = "Item",
-        mimeType = "text/plain")
+    @McpResourceTemplate(uriTemplate = "test://items/{id}", name = "Item", mimeType = "text/plain")
     public ReadResourceResult item(int id) {
       return new ReadResourceResult(
           List.of(new TextResourceContents("test://items/" + id, "text/plain", "item " + id)));
@@ -51,7 +48,7 @@ class ReadResourceTemplateHandlerTest {
   }
 
   public static class StringPathFixture {
-    @ResourceTemplateMethod(uriTemplate = "test://greet/{name}", name = "Greet")
+    @McpResourceTemplate(uriTemplate = "test://greet/{name}", name = "Greet")
     public ReadResourceResult greet(String name) {
       return new ReadResourceResult(
           List.of(new TextResourceContents("test://greet/" + name, "text/plain", "hi " + name)));
@@ -59,7 +56,7 @@ class ReadResourceTemplateHandlerTest {
   }
 
   public static class WholeVarsMapFixture {
-    @ResourceTemplateMethod(uriTemplate = "test://raw/{a}/{b}", name = "Raw")
+    @McpResourceTemplate(uriTemplate = "test://raw/{a}/{b}", name = "Raw")
     public ReadResourceResult raw(Map<String, String> vars) {
       return new ReadResourceResult(
           List.of(new TextResourceContents("test://raw", "text/plain", vars.toString())));
@@ -67,7 +64,7 @@ class ReadResourceTemplateHandlerTest {
   }
 
   public static class DefaultedFixture {
-    @ResourceTemplateMethod(uriTemplate = "test://defaulted/{x}")
+    @McpResourceTemplate(uriTemplate = "test://defaulted/{x}")
     public ReadResourceResult defaulted(String x) {
       return new ReadResourceResult(
           List.of(new TextResourceContents("test://defaulted/" + x, "text/plain", x)));
@@ -75,7 +72,7 @@ class ReadResourceTemplateHandlerTest {
   }
 
   public static class BadTemplate {
-    @ResourceTemplateMethod(uriTemplate = "test://bad/{x}")
+    @McpResourceTemplate(uriTemplate = "test://bad/{x}")
     public String oops(String x) {
       return x;
     }

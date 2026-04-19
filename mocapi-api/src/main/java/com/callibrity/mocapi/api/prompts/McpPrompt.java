@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.api.resources;
+package com.callibrity.mocapi.api.prompts;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -21,21 +21,20 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** Marks a method as a fixed-URI MCP resource. Method must return a {@code ReadResourceResult}. */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 @Documented
-public @interface ResourceMethod {
+public @interface McpPrompt {
 
-  /** The resource URI (required). */
-  String uri();
-
-  /** The resource name. If not specified, a human-readable version will be generated. */
+  /**
+   * The name of the prompt. If not specified, a dot-separated, kebab-case class name and method
+   * name will be used.
+   */
   String name() default "";
 
-  /** A description of the resource. If not specified, the name will be used. */
-  String description() default "";
+  /** The title of the prompt. If not specified, a human-readable version will be generated. */
+  String title() default "";
 
-  /** The MIME type of the resource content. Optional. */
-  String mimeType() default "";
+  /** A description of the prompt. If not specified, the title will be used as the description. */
+  String description() default "";
 }

@@ -65,9 +65,9 @@ public interface McpToolContext {
   }
 
   /**
-   * Returns the name of the handler currently executing (the {@code @ToolMethod} name, or the
-   * prompt / resource name). Implementations that don't know (test doubles, programmatic callers)
-   * return {@code "mcp"}.
+   * Returns the name of the handler currently executing (the {@code @McpTool} name, or the prompt /
+   * resource name). Implementations that don't know (test doubles, programmatic callers) return
+   * {@code "mcp"}.
    *
    * @return the current handler name
    */

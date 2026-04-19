@@ -19,7 +19,7 @@ import static com.callibrity.mocapi.server.tools.annotation.Names.humanReadableN
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefault;
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrNull;
 
-import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.server.completions.CompletionCandidate;
@@ -41,7 +41,7 @@ import org.jwcarman.specular.TypeRef;
 
 /**
  * Pure-Java factory that builds a {@link ReadResourceTemplateHandler} for every
- * {@code @ResourceTemplateMethod}-annotated method on a single {@code @ResourceService} bean.
+ * {@code @McpResourceTemplate}-annotated method on a single {@code @ResourceService} bean.
  */
 public final class ReadResourceTemplateHandlers {
 
@@ -50,7 +50,7 @@ public final class ReadResourceTemplateHandlers {
   private ReadResourceTemplateHandlers() {}
 
   /**
-   * Walks {@code @ResourceTemplateMethod} methods on {@code resourceServiceBean} and returns one
+   * Walks {@code @McpResourceTemplate} methods on {@code resourceServiceBean} and returns one
    * {@link ReadResourceTemplateHandler} per method.
    */
   public static List<ReadResourceTemplateHandler> discover(
@@ -60,7 +60,7 @@ public final class ReadResourceTemplateHandlers {
       List<MethodInterceptor<? super Map<String, String>>> interceptors,
       UnaryOperator<String> valueResolver) {
     return MethodUtils.getMethodsListWithAnnotation(
-            resourceServiceBean.getClass(), ResourceTemplateMethod.class)
+            resourceServiceBean.getClass(), McpResourceTemplate.class)
         .stream()
         .sorted(Comparator.comparing(Method::getName))
         .map(
@@ -83,7 +83,7 @@ public final class ReadResourceTemplateHandlers {
       Method method,
       UnaryOperator<String> valueResolver) {
     validateReturnType(targetObject, method);
-    ResourceTemplateMethod annotation = method.getAnnotation(ResourceTemplateMethod.class);
+    McpResourceTemplate annotation = method.getAnnotation(McpResourceTemplate.class);
     String uriTemplate = valueResolver.apply(annotation.uriTemplate());
     String name =
         resolveOrDefault(
@@ -124,7 +124,7 @@ public final class ReadResourceTemplateHandlers {
     if (!ReadResourceResult.class.isAssignableFrom(method.getReturnType())) {
       throw new IllegalArgumentException(
           String.format(
-              "@ResourceTemplateMethod %s.%s must return %s",
+              "@McpResourceTemplate %s.%s must return %s",
               targetObject.getClass().getName(),
               method.getName(),
               ReadResourceResult.class.getName()));

@@ -15,8 +15,8 @@
  */
 package com.callibrity.mocapi.conformance;
 
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
-import com.callibrity.mocapi.api.tools.ToolMethod;
 import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.model.AudioContent;
 import com.callibrity.mocapi.model.BooleanSchema;
@@ -212,7 +212,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @ToolMethod(
+  @McpTool(
       name = "test_simple_text",
       description = "Returns simple text content for conformance testing")
   public CallToolResult simpleText() {
@@ -227,7 +227,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @ToolMethod(
+  @McpTool(
       name = "test_image_content",
       description = "Returns image content for conformance testing")
   public CallToolResult imageContent() {
@@ -241,7 +241,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @ToolMethod(
+  @McpTool(
       name = "test_audio_content",
       description = "Returns audio content for conformance testing")
   public CallToolResult audioContent() {
@@ -255,7 +255,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @ToolMethod(
+  @McpTool(
       name = "test_embedded_resource",
       description = "Returns embedded resource content for conformance testing")
   public CallToolResult embeddedResource() {
@@ -278,7 +278,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @ToolMethod(
+  @McpTool(
       name = "test_multiple_content_types",
       description = "Returns multiple content types for conformance testing")
   public CallToolResult mixedContent() {
@@ -304,7 +304,7 @@ public class ConformanceTools {
    *     href="https://modelcontextprotocol.io/specification/2025-11-25/server/utilities/logging">MCP
    *     Logging Specification</a>
    */
-  @ToolMethod(
+  @McpTool(
       name = TEST_TOOL_WITH_LOGGING,
       description = "Sends log messages during execution for conformance testing")
   public CallToolResult withLogging(McpToolContext ctx) throws InterruptedException {
@@ -333,7 +333,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @ToolMethod(
+  @McpTool(
       name = "test_error_handling",
       description = "Always returns an error for conformance testing")
   public CallToolResult errorHandling() {
@@ -350,7 +350,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools
    *     Specification</a>
    */
-  @ToolMethod(
+  @McpTool(
       name = "test_tool_with_progress",
       description = "Reports progress notifications for conformance testing")
   public CallToolResult withProgress(McpToolContext ctx) throws InterruptedException {
@@ -370,7 +370,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/sampling">MCP
    *     Sampling Specification</a>
    */
-  @ToolMethod(name = "test_sampling", description = "Tests sampling/createMessage for conformance")
+  @McpTool(name = "test_sampling", description = "Tests sampling/createMessage for conformance")
   public CallToolResult testSampling(String prompt, McpToolContext ctx) {
     var params =
         new CreateMessageRequestParams(
@@ -398,7 +398,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation">MCP
    *     Elicitation Specification</a>
    */
-  @ToolMethod(name = "test_elicitation", description = "Tests elicitation/create for conformance")
+  @McpTool(name = "test_elicitation", description = "Tests elicitation/create for conformance")
   public CallToolResult testElicitation(String message, McpToolContext ctx) {
     var properties = new LinkedHashMap<String, PrimitiveSchemaDefinition>();
     properties.put(
@@ -425,7 +425,7 @@ public class ConformanceTools {
    * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation">MCP
    *     Elicitation Specification</a>
    */
-  @ToolMethod(
+  @McpTool(
       name = "test_elicitation_sep1034_defaults",
       description = "Tests elicitation with default values for conformance")
   public CallToolResult testElicitationDefaults(McpToolContext ctx) {
@@ -455,7 +455,7 @@ public class ConformanceTools {
   @SuppressWarnings(
       "deprecation") // Conformance test exercises deprecated LegacyTitledEnumSchema per MCP spec
   // backward compatibility
-  @ToolMethod(
+  @McpTool(
       name = "test_elicitation_sep1330_enums",
       description = "Tests elicitation with enum variants for conformance")
   public CallToolResult testElicitationEnums(McpToolContext ctx) {

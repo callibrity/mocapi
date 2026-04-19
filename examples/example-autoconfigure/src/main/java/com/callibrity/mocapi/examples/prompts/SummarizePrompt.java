@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.examples.prompts;
 
-import com.callibrity.mocapi.api.prompts.PromptMethod;
+import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.api.prompts.template.PromptTemplate;
 import com.callibrity.mocapi.api.prompts.template.PromptTemplateFactory;
@@ -53,7 +53,7 @@ public class SummarizePrompt {
     this.compiledTemplate = factory.create(Role.USER, "Summarization instruction", TEMPLATE);
   }
 
-  @PromptMethod(name = "summarize", description = "Summarize text at a specified detail level")
+  @McpPrompt(name = "summarize", description = "Summarize text at a specified detail level")
   public GetPromptResult summarize(String text, Detail detail) {
     Detail level = detail == null ? Detail.STANDARD : detail;
     return compiledTemplate.render(Map.of("text", text, "detail", level.name()));

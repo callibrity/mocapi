@@ -25,7 +25,7 @@ import org.jwcarman.methodical.MethodInvoker;
 
 /**
  * Server-side handler for a single {@code prompts/get} target. Built by {@link GetPromptHandlers}
- * from a Spring bean's {@code @PromptMethod}-annotated method and dispatched to by {@link
+ * from a Spring bean's {@code @McpPrompt}-annotated method and dispatched to by {@link
  * McpPromptsService}.
  */
 public final class GetPromptHandler {

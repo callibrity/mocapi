@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.examples.tools;
 
-import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.ToolService;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.stereotype.Component;
@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
 @ToolService
 public class Rot13Tool {
 
-  @ToolMethod(description = "A ROT-13 encoding utility.")
+  @McpTool(description = "A ROT-13 encoding utility.")
   public Rot13Response encode(@Schema(description = "The text to be ROT-13 encoded.") String text) {
     StringBuilder result = new StringBuilder();
 

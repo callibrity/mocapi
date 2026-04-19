@@ -19,7 +19,7 @@ import static com.callibrity.mocapi.server.tools.annotation.Names.humanReadableN
 import static com.callibrity.mocapi.server.tools.annotation.Names.identifier;
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefault;
 
-import com.callibrity.mocapi.api.prompts.PromptMethod;
+import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptArgument;
@@ -42,8 +42,8 @@ import org.jwcarman.methodical.param.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
 
 /**
- * Pure-Java factory that builds a {@link GetPromptHandler} for every {@code @PromptMethod}-
- * annotated method on a single {@code @PromptService} bean.
+ * Pure-Java factory that builds a {@link GetPromptHandler} for every {@code @McpPrompt}- annotated
+ * method on a single {@code @PromptService} bean.
  */
 public final class GetPromptHandlers {
 
@@ -52,7 +52,7 @@ public final class GetPromptHandlers {
   private GetPromptHandlers() {}
 
   /**
-   * Walks {@code @PromptMethod} methods on {@code promptServiceBean} and returns one {@link
+   * Walks {@code @McpPrompt} methods on {@code promptServiceBean} and returns one {@link
    * GetPromptHandler} per method.
    */
   public static List<GetPromptHandler> discover(
@@ -61,8 +61,7 @@ public final class GetPromptHandlers {
       List<ParameterResolver<? super Map<String, String>>> resolvers,
       List<MethodInterceptor<? super Map<String, String>>> interceptors,
       UnaryOperator<String> valueResolver) {
-    return MethodUtils.getMethodsListWithAnnotation(
-            promptServiceBean.getClass(), PromptMethod.class)
+    return MethodUtils.getMethodsListWithAnnotation(promptServiceBean.getClass(), McpPrompt.class)
         .stream()
         .sorted(Comparator.comparing(Method::getName))
         .map(
@@ -85,7 +84,7 @@ public final class GetPromptHandlers {
       Method method,
       UnaryOperator<String> valueResolver) {
     validateReturnType(targetObject, method);
-    PromptMethod annotation = method.getAnnotation(PromptMethod.class);
+    McpPrompt annotation = method.getAnnotation(McpPrompt.class);
     String name =
         resolveOrDefault(valueResolver, annotation.name(), () -> identifier(targetObject, method));
     String title =
@@ -111,7 +110,7 @@ public final class GetPromptHandlers {
     if (!GetPromptResult.class.isAssignableFrom(method.getReturnType())) {
       throw new IllegalArgumentException(
           String.format(
-              "@PromptMethod %s.%s must return %s",
+              "@McpPrompt %s.%s must return %s",
               targetObject.getClass().getName(),
               method.getName(),
               GetPromptResult.class.getName()));

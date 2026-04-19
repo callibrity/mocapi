@@ -21,24 +21,19 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * Marks a method as a templated MCP resource. Method parameters named to match placeholders in the
- * {@link #uriTemplate()} receive the extracted values (converted via a Spring {@code
- * ConversionService}). A {@code Map<String, String>} parameter receives the entire path-variable
- * map. Method must return a {@code ReadResourceResult}.
- */
+/** Marks a method as a fixed-URI MCP resource. Method must return a {@code ReadResourceResult}. */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 @Documented
-public @interface ResourceTemplateMethod {
+public @interface McpResource {
 
-  /** The RFC 6570 URI template (required). */
-  String uriTemplate();
+  /** The resource URI (required). */
+  String uri();
 
-  /** The resource template name. If not specified, a human-readable version will be generated. */
+  /** The resource name. If not specified, a human-readable version will be generated. */
   String name() default "";
 
-  /** A description of the resource template. If not specified, the name will be used. */
+  /** A description of the resource. If not specified, the name will be used. */
   String description() default "";
 
   /** The MIME type of the resource content. Optional. */

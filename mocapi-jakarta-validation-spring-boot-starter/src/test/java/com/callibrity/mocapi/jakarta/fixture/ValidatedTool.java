@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.jakarta.fixture;
 
-import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.ToolService;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -31,7 +31,7 @@ import jakarta.validation.constraints.Size;
 @ToolService
 public class ValidatedTool {
 
-  @ToolMethod(name = "shout", description = "Uppercase the input; validated")
+  @McpTool(name = "shout", description = "Uppercase the input; validated")
   public ShoutResponse shout(@NotBlank @Size(min = 3, max = 40) String message) {
     return new ShoutResponse(message.toUpperCase());
   }

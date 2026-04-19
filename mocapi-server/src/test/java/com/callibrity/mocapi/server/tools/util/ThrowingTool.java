@@ -15,12 +15,12 @@
  */
 package com.callibrity.mocapi.server.tools.util;
 
-import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.McpTool;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ThrowingTool {
-  @ToolMethod
+  @McpTool
   public String explode(String input) {
     throw new RuntimeException("tool went boom");
   }

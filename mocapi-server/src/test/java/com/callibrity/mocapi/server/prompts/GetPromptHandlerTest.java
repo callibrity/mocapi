@@ -18,7 +18,7 @@ package com.callibrity.mocapi.server.prompts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.api.prompts.PromptMethod;
+import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.Role;
@@ -54,7 +54,7 @@ class GetPromptHandlerTest {
   }
 
   public static class SummarizePrompt {
-    @PromptMethod(
+    @McpPrompt(
         name = "summarize",
         title = "Summarize",
         description = "Summarize text at a specified detail level")
@@ -69,7 +69,7 @@ class GetPromptHandlerTest {
   }
 
   public static class WholeMapPrompt {
-    @PromptMethod(name = "raw")
+    @McpPrompt(name = "raw")
     public GetPromptResult raw(Map<String, String> args) {
       return new GetPromptResult(
           "raw", List.of(new PromptMessage(Role.USER, new TextContent(args.toString(), null))));
@@ -77,7 +77,7 @@ class GetPromptHandlerTest {
   }
 
   public static class BadReturnPrompt {
-    @PromptMethod(name = "oops")
+    @McpPrompt(name = "oops")
     public String oops() {
       return "nope";
     }

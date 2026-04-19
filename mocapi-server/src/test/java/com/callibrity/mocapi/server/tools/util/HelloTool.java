@@ -15,13 +15,13 @@
  */
 package com.callibrity.mocapi.server.tools.util;
 
-import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.McpTool;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.stereotype.Component;
 
 @Component
 public class HelloTool {
-  @ToolMethod
+  @McpTool
   public HelloResponse sayHello(
       @Schema(name = "Name", description = "The person's name") String name) {
     return new HelloResponse(String.format("Hello, %s!", name));

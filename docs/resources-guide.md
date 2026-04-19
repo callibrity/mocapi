@@ -2,8 +2,8 @@
 
 Resources let MCP clients fetch content by URI. Mocapi supports two flavors:
 
-- **Fixed resources** -- a specific URI maps to a specific method (`@ResourceMethod`).
-- **Templated resources** -- a URI template captures variables from the request and passes them to the method (`@ResourceTemplateMethod`).
+- **Fixed resources** -- a specific URI maps to a specific method (`@McpResource`).
+- **Templated resources** -- a URI template captures variables from the request and passes them to the method (`@McpResourceTemplate`).
 
 Both live in a class annotated with `@ResourceService`.
 
@@ -12,9 +12,9 @@ Both live in a class annotated with `@ResourceService`.
 Mark a class with `@ResourceService` and register it as a Spring bean. The same class can mix fixed and templated resource methods:
 
 ```java
-import com.callibrity.mocapi.api.resources.ResourceMethod;
+import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.ResourceService;
-import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
 import org.springframework.stereotype.Component;
@@ -25,7 +25,7 @@ import java.util.List;
 @ResourceService
 public class DocumentResources {
 
-    @ResourceMethod(
+    @McpResource(
         uri = "docs://readme",
         name = "README",
         description = "Project README",
@@ -36,7 +36,7 @@ public class DocumentResources {
                 "docs://readme", "text/markdown", loadReadme())));
     }
 
-    @ResourceTemplateMethod(
+    @McpResourceTemplate(
         uriTemplate = "docs://pages/{slug}",
         name = "Documentation Page",
         description = "Individual documentation page",
@@ -54,12 +54,12 @@ public class DocumentResources {
 
 Each registered resource, resource template, and enum-typed URI-variable's completion candidates is logged at `INFO` level during startup. See [Startup Logging](architecture.md#startup-logging) for the full catalog.
 
-## Fixed Resources (`@ResourceMethod`)
+## Fixed Resources (`@McpResource`)
 
 A fixed resource has a concrete URI and no arguments. The method takes no parameters and returns a `ReadResourceResult`:
 
 ```java
-@ResourceMethod(
+@McpResource(
     uri = "config://app/version",
     name = "App Version",
     description = "Current application version",
@@ -82,12 +82,12 @@ Fixed resources appear in the client's `resources/list` response and can be read
 | `description` | no | Description shown in the resource list. Defaults to `name` |
 | `mimeType` | no | The content MIME type |
 
-## Templated Resources (`@ResourceTemplateMethod`)
+## Templated Resources (`@McpResourceTemplate`)
 
 A templated resource declares an RFC 6570 URI template with `{placeholders}`. Method parameters named to match the placeholders receive the extracted values:
 
 ```java
-@ResourceTemplateMethod(
+@McpResourceTemplate(
     uriTemplate = "users://{userId}/profile",
     name = "User Profile",
     mimeType = "application/json")
@@ -114,7 +114,7 @@ Path variables arrive as strings. Mocapi converts each variable to the parameter
 - Anything you register a custom `Converter<String, T>` for
 
 ```java
-@ResourceTemplateMethod(uriTemplate = "users://{userId}/posts/{postId}")
+@McpResourceTemplate(uriTemplate = "users://{userId}/posts/{postId}")
 public ReadResourceResult userPost(long userId, UUID postId) {
     ...
 }
@@ -127,7 +127,7 @@ If a conversion fails (for example, the client reads `users://abc/posts/xyz` but
 If the method declares a single `Map<String, String>` parameter, it receives all extracted path variables untyped:
 
 ```java
-@ResourceTemplateMethod(uriTemplate = "files://{bucket}/{+path}")
+@McpResourceTemplate(uriTemplate = "files://{bucket}/{+path}")
 public ReadResourceResult file(Map<String, String> vars) {
     return readFile(vars.get("bucket"), vars.get("path"));
 }
@@ -144,16 +144,16 @@ public ReadResourceResult file(Map<String, String> vars) {
 
 ## Externalizing Metadata
 
-Every string attribute on `@ResourceMethod` (`uri`, `name`, `title`, `description`, `mimeType`) and `@ResourceTemplateMethod` (`uriTemplate`, `name`, `title`, `description`, `mimeType`) supports Spring's `${...}` property placeholder syntax, so URIs, long descriptions, and mime types can live in `application.yml` instead of inline on the annotation. See [Externalizing Annotation Metadata](externalizing-metadata.md).
+Every string attribute on `@McpResource` (`uri`, `name`, `title`, `description`, `mimeType`) and `@McpResourceTemplate` (`uriTemplate`, `name`, `title`, `description`, `mimeType`) supports Spring's `${...}` property placeholder syntax, so URIs, long descriptions, and mime types can live in `application.yml` instead of inline on the annotation. See [Externalizing Annotation Metadata](externalizing-metadata.md).
 
 ## Path Variable Completions (autocomplete)
 
-When a `@ResourceTemplateMethod`'s URI template has a variable typed as a Java `enum` (or marked with `@Schema(allowableValues = {...})` on a `String`), mocapi registers those values as completion candidates for the MCP `completion/complete` RPC:
+When a `@McpResourceTemplate`'s URI template has a variable typed as a Java `enum` (or marked with `@Schema(allowableValues = {...})` on a `String`), mocapi registers those values as completion candidates for the MCP `completion/complete` RPC:
 
 ```java
 public enum Environment { DEV, STAGE, PROD }
 
-@ResourceTemplateMethod(uriTemplate = "env://{stage}/config")
+@McpResourceTemplate(uriTemplate = "env://{stage}/config")
 public ReadResourceResult config(Environment stage) { ... }
 ```
 
@@ -187,7 +187,7 @@ ReadResourceResult.ofBlob(uri, mimeType, String base64);  // if already encoded
 So the typical text resource becomes a one-liner:
 
 ```java
-@ResourceMethod(uri = "docs://readme", mimeType = "text/markdown")
+@McpResource(uri = "docs://readme", mimeType = "text/markdown")
 public ReadResourceResult readme() {
     return ReadResourceResult.ofText("docs://readme", "text/markdown", loadReadme());
 }
@@ -196,7 +196,7 @@ public ReadResourceResult readme() {
 And binary resources no longer need manual `Base64` encoding:
 
 ```java
-@ResourceMethod(uri = "report://latest", mimeType = "application/pdf")
+@McpResource(uri = "report://latest", mimeType = "application/pdf")
 public ReadResourceResult latestReport() {
     return ReadResourceResult.ofBlob(
         "report://latest", "application/pdf", reportService.generate());

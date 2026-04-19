@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.api.tools;
+package com.callibrity.mocapi.api.resources;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -21,20 +21,26 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Marks a method as a templated MCP resource. Method parameters named to match placeholders in the
+ * {@link #uriTemplate()} receive the extracted values (converted via a Spring {@code
+ * ConversionService}). A {@code Map<String, String>} parameter receives the entire path-variable
+ * map. Method must return a {@code ReadResourceResult}.
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 @Documented
-public @interface ToolMethod {
+public @interface McpResourceTemplate {
 
-  /**
-   * The name of the tool. If not specified, a dot-separated, kebab-case class name and method name
-   * will be used.
-   */
+  /** The RFC 6570 URI template (required). */
+  String uriTemplate();
+
+  /** The resource template name. If not specified, a human-readable version will be generated. */
   String name() default "";
 
-  /** The title of the tool. If not specified, a human-readable version will be generated. */
-  String title() default "";
-
-  /** A description of the tool. If not specified, the title will be used as the description. */
+  /** A description of the resource template. If not specified, the name will be used. */
   String description() default "";
+
+  /** The MIME type of the resource content. Optional. */
+  String mimeType() default "";
 }

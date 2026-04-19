@@ -47,14 +47,14 @@ Define a tool:
 
 ```java
 import com.callibrity.mocapi.api.tools.ToolService;
-import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.McpTool;
 import org.springframework.stereotype.Component;
 
 @Component
 @ToolService
 public class GreetingTool {
 
-    @ToolMethod(name = "greet", description = "Returns a greeting message")
+    @McpTool(name = "greet", description = "Returns a greeting message")
     public GreetingResponse greet(String name) {
         return new GreetingResponse("Hello, " + name + "!");
     }
@@ -66,7 +66,7 @@ public class GreetingTool {
 Define a prompt:
 
 ```java
-import com.callibrity.mocapi.api.prompts.PromptMethod;
+import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
@@ -80,7 +80,7 @@ import java.util.List;
 @PromptService
 public class SummarizationPrompts {
 
-    @PromptMethod(name = "summarize", description = "Summarize the provided text")
+    @McpPrompt(name = "summarize", description = "Summarize the provided text")
     public GetPromptResult summarize(String text) {
         return new GetPromptResult(
             "Summarization prompt",
@@ -94,9 +94,9 @@ public class SummarizationPrompts {
 Define a resource (fixed URI) and a resource template (pattern-matched URI):
 
 ```java
-import com.callibrity.mocapi.api.resources.ResourceMethod;
+import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.ResourceService;
-import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
 import org.springframework.stereotype.Component;
@@ -107,13 +107,13 @@ import java.util.List;
 @ResourceService
 public class DocResources {
 
-    @ResourceMethod(uri = "docs://readme", mimeType = "text/markdown")
+    @McpResource(uri = "docs://readme", mimeType = "text/markdown")
     public ReadResourceResult readme() {
         return new ReadResourceResult(
             List.of(new TextResourceContents("docs://readme", "text/markdown", "# Hello")));
     }
 
-    @ResourceTemplateMethod(uriTemplate = "docs://pages/{slug}", mimeType = "text/markdown")
+    @McpResourceTemplate(uriTemplate = "docs://pages/{slug}", mimeType = "text/markdown")
     public ReadResourceResult page(String slug) {
         return new ReadResourceResult(
             List.of(new TextResourceContents(
@@ -131,7 +131,7 @@ Run your Spring Boot application. With `mocapi-streamable-http-spring-boot-start
 - [Writing Resources](docs/resources-guide.md) -- fixed resources, templated resources, and path-variable binding
 - [Externalizing Annotation Metadata](docs/externalizing-metadata.md) -- `${...}` property placeholders for tool/prompt/resource descriptions, URIs, and names
 - [Authorization](docs/authorization.md) -- OAuth2 resource-server setup for the Streamable HTTP transport (MCP 2025-11-25)
-- [Validation](docs/validation.md) -- Jakarta Bean Validation on user `@ToolMethod` / `@PromptMethod` / `@ResourceTemplateMethod` parameters via the optional `mocapi-jakarta-validation-spring-boot-starter`
+- [Validation](docs/validation.md) -- Jakarta Bean Validation on user `@McpTool` / `@McpPrompt` / `@McpResourceTemplate` parameters via the optional `mocapi-jakarta-validation-spring-boot-starter`
 - [Interactive Features](docs/interactive-guide.md) -- progress notifications, logging, elicitation, and sampling
 - [Configuration Reference](docs/configuration.md) -- all `mocapi.*` properties
 - [Architecture](docs/architecture.md) -- server/transport separation, session lifecycle, module structure
@@ -141,7 +141,7 @@ Run your Spring Boot application. With `mocapi-streamable-http-spring-boot-start
 
 ### Core
 
-- **`mocapi-api`** — user-facing API: `@ToolService`/`@ToolMethod`, `@PromptService`/`@PromptMethod`, `@ResourceService`/`@ResourceMethod`/`@ResourceTemplateMethod`, `PromptTemplate`/`PromptTemplateFactory`, `McpToolContext`, provider interfaces
+- **`mocapi-api`** — user-facing API: `@ToolService`/`@McpTool`, `@PromptService`/`@McpPrompt`, `@ResourceService`/`@McpResource`/`@McpResourceTemplate`, `PromptTemplate`/`PromptTemplateFactory`, `McpToolContext`, provider interfaces
 - **`mocapi-model`** — MCP protocol types (Tool, CallToolResult, ElicitResult, etc.) — mechanical mapping from the MCP spec
 - **`mocapi-server`** — stateful MCP server: session management, JSON-RPC dispatch, tool/prompt/resource invocation
 
@@ -155,7 +155,7 @@ Run your Spring Boot application. With `mocapi-streamable-http-spring-boot-start
 - **`mocapi-streamable-http-spring-boot-starter`** — bundles `mocapi-server` + streamable-http transport
 - **`mocapi-stdio-spring-boot-starter`** — bundles `mocapi-server` + stdio transport
 - **`mocapi-oauth2-spring-boot-starter`** — OAuth2 resource-server protection on the MCP endpoint (MCP 2025-11-25 authorization); wraps Spring Boot's OAuth2 resource-server starter and adds the RFC 9728 protected-resource metadata document. See [Authorization](docs/authorization.md).
-- **`mocapi-jakarta-validation-spring-boot-starter`** — Jakarta Bean Validation on user `@ToolMethod` / `@PromptMethod` / `@ResourceTemplateMethod` parameters. Annotations like `@NotBlank`/`@Size`/`@Pattern` surface as `CallToolResult.isError=true` for tools (MCP-spec-idiomatic for LLM self-correction) and JSON-RPC `-32602 Invalid params` with per-violation detail for prompts and resources. See [Validation](docs/validation.md).
+- **`mocapi-jakarta-validation-spring-boot-starter`** — Jakarta Bean Validation on user `@McpTool` / `@McpPrompt` / `@McpResourceTemplate` parameters. Annotations like `@NotBlank`/`@Size`/`@Pattern` surface as `CallToolResult.isError=true` for tools (MCP-spec-idiomatic for LLM self-correction) and JSON-RPC `-32602 Invalid params` with per-violation detail for prompts and resources. See [Validation](docs/validation.md).
 
 ### Prompt templating (optional)
 

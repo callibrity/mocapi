@@ -19,13 +19,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.api.prompts.PromptMethod;
+import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.prompts.PromptService;
-import com.callibrity.mocapi.api.resources.ResourceMethod;
+import com.callibrity.mocapi.api.resources.McpResource;
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.resources.ResourceService;
-import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolParams;
-import com.callibrity.mocapi.api.tools.ToolMethod;
 import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
@@ -54,18 +54,18 @@ class MocapiServicesAotProcessorTest {
 
   @ToolService
   public static class SampleTool {
-    @ToolMethod(name = "greet")
+    @McpTool(name = "greet")
     public GreetResult greet(@McpToolParams GreetArgs args) {
       return new GreetResult("hi " + args.name());
     }
 
-    @ToolMethod(name = "noop")
+    @McpTool(name = "noop")
     public void noop() {
       // Fixture for the void-return-type branch of the AOT processor; tests assert no void.class
       // hint is emitted. The body never runs — only the declared signature matters.
     }
 
-    @ToolMethod(name = "noop-boxed")
+    @McpTool(name = "noop-boxed")
     public Void noopBoxed() {
       // Fixture for the boxed-Void-return-type branch; tests assert no Void.class hint is emitted.
       return null;
@@ -80,12 +80,12 @@ class MocapiServicesAotProcessorTest {
   @ToolService
   @PromptService
   public static class SampleCombined {
-    @ToolMethod(name = "tool-side")
+    @McpTool(name = "tool-side")
     public GreetResult asTool(@McpToolParams GreetArgs args) {
       return new GreetResult(args.name());
     }
 
-    @PromptMethod(name = "prompt-side")
+    @McpPrompt(name = "prompt-side")
     public GetPromptResult asPrompt(String who) {
       return new GetPromptResult(
           null, List.of(new PromptMessage(Role.USER, new TextContent(who, null))));
@@ -94,7 +94,7 @@ class MocapiServicesAotProcessorTest {
 
   @PromptService
   public static class SamplePrompt {
-    @PromptMethod(name = "say-hi")
+    @McpPrompt(name = "say-hi")
     public GetPromptResult sayHi(String name) {
       return new GetPromptResult(
           null, List.of(new PromptMessage(Role.USER, new TextContent("hi " + name, null))));
@@ -103,12 +103,12 @@ class MocapiServicesAotProcessorTest {
 
   @ResourceService
   public static class SampleResource {
-    @ResourceMethod(uri = "test://x")
+    @McpResource(uri = "test://x")
     public ReadResourceResult fixed() {
       return ReadResourceResult.ofText("test://x", "text/plain", "x");
     }
 
-    @ResourceTemplateMethod(uriTemplate = "test://items/{id}")
+    @McpResourceTemplate(uriTemplate = "test://items/{id}")
     public ReadResourceResult templated(String id) {
       return ReadResourceResult.ofText("test://items/" + id, "text/plain", id);
     }

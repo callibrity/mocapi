@@ -15,14 +15,14 @@
  */
 package com.callibrity.mocapi.examples.validation;
 
-import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.ToolService;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.stereotype.Component;
 
 /**
- * Tool demonstrating Jakarta Bean Validation on a {@code @ToolMethod} parameter. With the {@code
+ * Tool demonstrating Jakarta Bean Validation on a {@code @McpTool} parameter. With the {@code
  * mocapi-jakarta-validation-spring-boot-starter} on the classpath, methodical's invoker runs the
  * validator before the method body executes; violations surface as {@code CallToolResult { isError:
  * true, content: [text] }} — the MCP-spec-idiomatic shape for tool execution errors, so the calling
@@ -46,7 +46,7 @@ import org.springframework.stereotype.Component;
 @ToolService
 public class GreetTool {
 
-  @ToolMethod(name = "greet", description = "Returns a greeting; name must be 2-60 non-blank chars")
+  @McpTool(name = "greet", description = "Returns a greeting; name must be 2-60 non-blank chars")
   public GreetResponse greet(@NotBlank @Size(min = 2, max = 60) String name) {
     return new GreetResponse("Hello, " + name + "!");
   }

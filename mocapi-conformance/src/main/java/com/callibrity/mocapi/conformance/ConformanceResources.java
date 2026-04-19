@@ -15,9 +15,9 @@
  */
 package com.callibrity.mocapi.conformance;
 
-import com.callibrity.mocapi.api.resources.ResourceMethod;
+import com.callibrity.mocapi.api.resources.McpResource;
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.resources.ResourceService;
-import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import org.springframework.stereotype.Component;
 
@@ -98,7 +98,7 @@ public class ConformanceResources {
     (byte) 0x82
   };
 
-  @ResourceMethod(
+  @McpResource(
       uri = "test://static-text",
       name = "Static Text Resource",
       description = "A static text resource for conformance testing",
@@ -108,7 +108,7 @@ public class ConformanceResources {
         "test://static-text", "text/plain", "This is the content of the static text resource.");
   }
 
-  @ResourceMethod(
+  @McpResource(
       uri = "test://static-binary",
       name = "Static Binary Resource",
       description = "A static binary resource for conformance testing",
@@ -117,7 +117,7 @@ public class ConformanceResources {
     return ReadResourceResult.ofBlob("test://static-binary", "image/png", TINY_PNG);
   }
 
-  @ResourceMethod(
+  @McpResource(
       uri = "test://watched-resource",
       name = "Watched Resource",
       description = "A resource that supports subscriptions for conformance testing",
@@ -127,7 +127,7 @@ public class ConformanceResources {
         "test://watched-resource", "text/plain", "This is the content of the watched resource.");
   }
 
-  @ResourceTemplateMethod(
+  @McpResourceTemplate(
       uriTemplate = "test://template/{id}/data",
       name = "Template Resource",
       description = "A resource template for conformance testing",

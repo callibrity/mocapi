@@ -15,8 +15,8 @@
  */
 package com.callibrity.mocapi.examples.validation;
 
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.resources.ResourceService;
-import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
 import jakarta.validation.constraints.Pattern;
@@ -51,7 +51,7 @@ import org.springframework.stereotype.Component;
 @ResourceService
 public class ConfigResources {
 
-  @ResourceTemplateMethod(
+  @McpResourceTemplate(
       uriTemplate = "config://{env}/app",
       name = "Per-environment config",
       description = "Returns stub config; env must be lowercase letters only",

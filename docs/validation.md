@@ -1,6 +1,6 @@
 # Validation
 
-Mocapi ships an optional Spring Boot starter, `mocapi-jakarta-validation-spring-boot-starter`, that turns on Jakarta Bean Validation across mocapi's reflective-dispatch surface. Once the starter is on the classpath, `@NotBlank`/`@Size`/`@Pattern`/etc. annotations on user `@ToolMethod`, `@PromptMethod`, and `@ResourceTemplateMethod` parameters are enforced at runtime, and violations surface in the MCP-spec-idiomatic shape for each handler type.
+Mocapi ships an optional Spring Boot starter, `mocapi-jakarta-validation-spring-boot-starter`, that turns on Jakarta Bean Validation across mocapi's reflective-dispatch surface. Once the starter is on the classpath, `@NotBlank`/`@Size`/`@Pattern`/etc. annotations on user `@McpTool`, `@McpPrompt`, and `@McpResourceTemplate` parameters are enforced at runtime, and violations surface in the MCP-spec-idiomatic shape for each handler type.
 
 Mocapi's internal protocol handlers deliberately do *not* use jakarta validation — they rely on hand-rolled checks so mocapi's own contract is enforced regardless of whether the consumer has opted into validation. This starter is user-code-only.
 
@@ -35,7 +35,7 @@ No Spring configuration is needed beyond adding the dependency. All wiring is au
 @Component
 @ToolService
 public class GreetTool {
-    @ToolMethod(name = "greet", description = "Returns a greeting")
+    @McpTool(name = "greet", description = "Returns a greeting")
     public GreetResponse greet(@NotBlank @Size(min = 2, max = 60) String name) {
         return new GreetResponse("Hello, " + name + "!");
     }
@@ -45,7 +45,7 @@ public class GreetTool {
 @Component
 @PromptService
 public class SummarizePrompt {
-    @PromptMethod(name = "summarize", description = "Summarizes text")
+    @McpPrompt(name = "summarize", description = "Summarizes text")
     public GetPromptResult summarize(@NotBlank @Size(min = 10, max = 2000) String text) {
         return new GetPromptResult("summarize", List.of(new PromptMessage(Role.USER,
             new TextContent("Please summarize:\n\n" + text, null))));
@@ -55,7 +55,7 @@ public class SummarizePrompt {
 @Component
 @ResourceService
 public class ConfigResources {
-    @ResourceTemplateMethod(uriTemplate = "config://{env}/app", name = "Per-env config", mimeType = "text/plain")
+    @McpResourceTemplate(uriTemplate = "config://{env}/app", name = "Per-env config", mimeType = "text/plain")
     public ReadResourceResult config(@Pattern(regexp = "^[a-z]+$") String env) {
         return new ReadResourceResult(List.of(
             new TextResourceContents("config://" + env + "/app", "text/plain", "env=" + env)));

@@ -18,7 +18,7 @@ package com.callibrity.mocapi.server.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.api.resources.ResourceMethod;
+import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
 import java.util.List;
@@ -34,7 +34,7 @@ class ReadResourceHandlerTest {
   private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
 
   public static class Fixture {
-    @ResourceMethod(
+    @McpResource(
         uri = "test://hello",
         name = "Hello",
         description = "hello",
@@ -46,7 +46,7 @@ class ReadResourceHandlerTest {
   }
 
   public static class DefaultedFixture {
-    @ResourceMethod(uri = "test://defaulted")
+    @McpResource(uri = "test://defaulted")
     public ReadResourceResult defaulted() {
       return new ReadResourceResult(
           List.of(new TextResourceContents("test://defaulted", "text/plain", "ok")));
@@ -54,7 +54,7 @@ class ReadResourceHandlerTest {
   }
 
   public static class BadResource {
-    @ResourceMethod(uri = "test://bad")
+    @McpResource(uri = "test://bad")
     public String oops() {
       return "nope";
     }

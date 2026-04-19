@@ -14,14 +14,14 @@ Keep the annotation value literal when the string is short and stable (e.g. `nam
 
 ## Which fields support it
 
-Every string attribute on `@ToolMethod`, `@PromptMethod`, `@ResourceMethod`, and `@ResourceTemplateMethod` flows through the Spring environment:
+Every string attribute on `@McpTool`, `@McpPrompt`, `@McpResource`, and `@McpResourceTemplate` flows through the Spring environment:
 
 | Annotation | Fields |
 |---|---|
-| `@ToolMethod` | `name`, `title`, `description` |
-| `@PromptMethod` | `name`, `title`, `description` |
-| `@ResourceMethod` | `uri`, `name`, `title`, `description`, `mimeType` |
-| `@ResourceTemplateMethod` | `uriTemplate`, `name`, `title`, `description`, `mimeType` |
+| `@McpTool` | `name`, `title`, `description` |
+| `@McpPrompt` | `name`, `title`, `description` |
+| `@McpResource` | `uri`, `name`, `title`, `description`, `mimeType` |
+| `@McpResourceTemplate` | `uriTemplate`, `name`, `title`, `description`, `mimeType` |
 
 ## Example
 
@@ -30,7 +30,7 @@ Every string attribute on `@ToolMethod`, `@PromptMethod`, `@ResourceMethod`, and
 @Component
 public class SearchTool {
 
-    @ToolMethod(
+    @McpTool(
         name = "${tools.search.name}",
         description = "${tools.search.description}")
     public SearchResult search(String query) {

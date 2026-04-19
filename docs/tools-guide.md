@@ -1,6 +1,6 @@
 # Writing Tools
 
-Tools are the primary way to expose functionality to MCP clients. A tool is a Java method annotated with `@ToolMethod` inside a class annotated with `@ToolService`.
+Tools are the primary way to expose functionality to MCP clients. A tool is a Java method annotated with `@McpTool` inside a class annotated with `@ToolService`.
 
 ## Defining a Tool Service
 
@@ -8,14 +8,14 @@ Mark a class with `@ToolService` and register it as a Spring bean:
 
 ```java
 import com.callibrity.mocapi.api.tools.ToolService;
-import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.McpTool;
 import org.springframework.stereotype.Component;
 
 @Component
 @ToolService
 public class WeatherTool {
 
-    @ToolMethod(name = "get-weather", description = "Gets the current weather for a city")
+    @McpTool(name = "get-weather", description = "Gets the current weather for a city")
     public WeatherResponse getWeather(String city) {
         // your logic here
         return new WeatherResponse(city, 72.0, "sunny");
@@ -42,10 +42,10 @@ Both approaches work. The framework discovers all beans annotated with `@ToolSer
 
 ## Tool Method Basics
 
-A `@ToolMethod` method receives its arguments as method parameters and returns a result. The framework handles JSON serialization in both directions.
+A `@McpTool` method receives its arguments as method parameters and returns a result. The framework handles JSON serialization in both directions.
 
 ```java
-@ToolMethod(name = "add", description = "Adds two numbers")
+@McpTool(name = "add", description = "Adds two numbers")
 public AddResult add(int a, int b) {
     return new AddResult(a + b);
 }
@@ -62,7 +62,7 @@ If you omit the `name` attribute, the framework generates a name from the class 
 You can also set a `title` and `description`:
 
 ```java
-@ToolMethod(
+@McpTool(
     name = "calculate",
     title = "Calculator",
     description = "Performs basic arithmetic operations")
@@ -74,7 +74,7 @@ public double calculate(String operation, double a, double b) { ... }
 Method parameters map directly to the tool's input schema. The framework generates a JSON Schema from the method signature:
 
 ```java
-@ToolMethod(name = "search", description = "Searches for documents")
+@McpTool(name = "search", description = "Searches for documents")
 public SearchResult search(String query, int maxResults) { ... }
 ```
 
@@ -96,7 +96,7 @@ Use Swagger/OpenAPI annotations for richer schemas:
 ```java
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@ToolMethod(name = "search", description = "Searches for documents")
+@McpTool(name = "search", description = "Searches for documents")
 public SearchResult search(
     @Schema(description = "The search query") String query,
     @Schema(description = "Maximum results to return", minimum = "1", maximum = "100") int maxResults) {
@@ -111,7 +111,7 @@ For tools with many parameters, use a record annotated with `@McpToolParams`:
 ```java
 import com.callibrity.mocapi.api.tools.McpToolParams;
 
-@ToolMethod(name = "create-user", description = "Creates a new user")
+@McpTool(name = "create-user", description = "Creates a new user")
 public UserResponse createUser(@McpToolParams CreateUserRequest request) {
     return new UserResponse(request.name(), request.email());
 }
@@ -127,7 +127,7 @@ Tools return their result directly. The framework serializes it to JSON and wrap
 
 ```java
 // Returns {"message": "Hello!"} as structuredContent
-@ToolMethod(name = "greet", description = "Greets someone")
+@McpTool(name = "greet", description = "Greets someone")
 public GreetResponse greet(String name) {
     return new GreetResponse("Hello, " + name + "!");
 }
@@ -140,7 +140,7 @@ public record GreetResponse(String message) {}
 A tool that returns `void` produces an empty `CallToolResult`:
 
 ```java
-@ToolMethod(name = "notify", description = "Sends a notification")
+@McpTool(name = "notify", description = "Sends a notification")
 public void sendNotification(String message) {
     notificationService.send(message);
 }
@@ -154,7 +154,7 @@ For full control over the response, return a `CallToolResult`:
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.TextContent;
 
-@ToolMethod(name = "status", description = "Returns system status")
+@McpTool(name = "status", description = "Returns system status")
 public CallToolResult getStatus() {
     return new CallToolResult(
         List.of(new TextContent("System is healthy", null)),
@@ -165,7 +165,7 @@ public CallToolResult getStatus() {
 
 ## Externalizing Metadata
 
-Every string attribute on `@ToolMethod` (`name`, `title`, `description`) supports Spring's `${...}` property placeholder syntax, so long descriptions don't have to live inline on the annotation. See [Externalizing Annotation Metadata](externalizing-metadata.md).
+Every string attribute on `@McpTool` (`name`, `title`, `description`) supports Spring's `${...}` property placeholder syntax, so long descriptions don't have to live inline on the annotation. See [Externalizing Annotation Metadata](externalizing-metadata.md).
 
 ## Error Handling
 
@@ -174,7 +174,7 @@ Every string attribute on `@ToolMethod` (`name`, `title`, `description`) support
 Any exception thrown from a tool method is caught by the framework and returned as a `CallToolResult` with `isError=true`. The exception message is sent to the LLM as text content:
 
 ```java
-@ToolMethod(name = "divide", description = "Divides two numbers")
+@McpTool(name = "divide", description = "Divides two numbers")
 public double divide(double a, double b) {
     if (b == 0) {
         throw new IllegalArgumentException("Cannot divide by zero");
@@ -201,7 +201,7 @@ This follows the MCP specification's distinction:
 You can also return an error result explicitly:
 
 ```java
-@ToolMethod(name = "validate", description = "Validates input")
+@McpTool(name = "validate", description = "Validates input")
 public CallToolResult validate(String input) {
     if (input.isBlank()) {
         return new CallToolResult(

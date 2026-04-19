@@ -15,9 +15,9 @@
  */
 package com.callibrity.mocapi.examples.resources;
 
-import com.callibrity.mocapi.api.resources.ResourceMethod;
+import com.callibrity.mocapi.api.resources.McpResource;
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.resources.ResourceService;
-import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
 import java.util.List;
@@ -36,7 +36,7 @@ public class DocsResources {
     PROD
   }
 
-  @ResourceMethod(
+  @McpResource(
       uri = "docs://readme",
       name = "README",
       description = "The top-level README for this example server",
@@ -50,7 +50,7 @@ public class DocsResources {
                 "# Mocapi Example\n\nThis server demonstrates tools, prompts, and resources.")));
   }
 
-  @ResourceTemplateMethod(
+  @McpResourceTemplate(
       uriTemplate = "env://{stage}/config",
       name = "Environment Config",
       description = "Returns a stub environment config document",

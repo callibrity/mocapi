@@ -15,8 +15,8 @@
  */
 package com.callibrity.mocapi.examples.tools;
 
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
-import com.callibrity.mocapi.api.tools.ToolMethod;
 import com.callibrity.mocapi.api.tools.ToolService;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
 @ToolService
 public class CountdownTool {
 
-  @ToolMethod(
+  @McpTool(
       name = "countdown",
       description = "Counts down from the given number, sending progress updates via SSE")
   public CountdownResponse countdown(long from, McpToolContext ctx) {

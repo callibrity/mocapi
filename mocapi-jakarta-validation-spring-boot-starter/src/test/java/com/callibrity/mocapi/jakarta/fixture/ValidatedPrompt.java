@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.jakarta.fixture;
 
-import com.callibrity.mocapi.api.prompts.PromptMethod;
+import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
@@ -34,7 +34,7 @@ import java.util.List;
 @PromptService
 public class ValidatedPrompt {
 
-  @PromptMethod(name = "echo", description = "Validated echo prompt for integration testing")
+  @McpPrompt(name = "echo", description = "Validated echo prompt for integration testing")
   public GetPromptResult echo(@NotBlank @Size(min = 3, max = 80) String text) {
     return new GetPromptResult(
         "echo", List.of(new PromptMessage(Role.USER, new TextContent(text, null))));

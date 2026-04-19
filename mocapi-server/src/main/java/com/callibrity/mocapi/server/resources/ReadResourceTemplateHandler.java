@@ -25,9 +25,9 @@ import org.jwcarman.methodical.MethodInvoker;
 
 /**
  * Server-side handler for a single {@code resources/read} target with a parameterized URI. Built by
- * {@link ReadResourceTemplateHandlers} from a Spring bean's {@code @ResourceTemplateMethod}-
- * annotated method and dispatched to by {@link McpResourcesService} after the requested URI is
- * matched against the template.
+ * {@link ReadResourceTemplateHandlers} from a Spring bean's {@code @McpResourceTemplate}- annotated
+ * method and dispatched to by {@link McpResourcesService} after the requested URI is matched
+ * against the template.
  */
 public final class ReadResourceTemplateHandler {
 
