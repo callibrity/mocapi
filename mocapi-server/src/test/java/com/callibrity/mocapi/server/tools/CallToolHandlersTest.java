@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.autoconfigure;
+package com.callibrity.mocapi.server.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.ToolMethod;
 import com.callibrity.mocapi.api.tools.ToolService;
+import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
+import com.callibrity.mocapi.server.autoconfigure.MocapiServerToolsAutoConfiguration;
 import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
@@ -39,7 +41,7 @@ import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class ToolServiceMcpToolProviderTest {
+class CallToolHandlersTest {
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
@@ -75,7 +77,7 @@ class ToolServiceMcpToolProviderTest {
 
     @Bean
     MethodInvokerFactory methodInvokerFactory() {
-      return new DefaultMethodInvokerFactory(java.util.List.of());
+      return new DefaultMethodInvokerFactory(List.of());
     }
   }
 
@@ -103,11 +105,10 @@ class ToolServiceMcpToolProviderTest {
         .withBean(SampleToolService.class, SampleToolService::new)
         .run(
             context -> {
-              ToolServiceMcpToolProvider provider =
-                  context.getBean(ToolServiceMcpToolProvider.class);
-              List<McpTool> tools = provider.getMcpTools();
+              McpToolsService service = context.getBean(McpToolsService.class);
+              List<Tool> tools = service.allToolDescriptors();
               assertThat(tools).hasSize(1);
-              assertThat(tools.getFirst().descriptor().name()).endsWith("hello");
+              assertThat(tools.getFirst().name()).endsWith("hello");
             });
   }
 
@@ -115,8 +116,9 @@ class ToolServiceMcpToolProviderTest {
   void returns_empty_list_when_no_tool_service_beans() {
     contextRunner.run(
         context -> {
-          ToolServiceMcpToolProvider provider = context.getBean(ToolServiceMcpToolProvider.class);
-          assertThat(provider.getMcpTools()).isEmpty();
+          McpToolsService service = context.getBean(McpToolsService.class);
+          assertThat(service.allToolDescriptors()).isEmpty();
+          assertThat(service.isEmpty()).isTrue();
         });
   }
 
@@ -130,11 +132,11 @@ class ToolServiceMcpToolProviderTest {
             "tool.description=Resolved description")
         .run(
             context -> {
-              var provider = context.getBean(ToolServiceMcpToolProvider.class);
-              var tool = provider.getMcpTools().getFirst();
-              assertThat(tool.descriptor().name()).isEqualTo("resolved-name");
-              assertThat(tool.descriptor().title()).isEqualTo("Resolved Title");
-              assertThat(tool.descriptor().description()).isEqualTo("Resolved description");
+              var service = context.getBean(McpToolsService.class);
+              var tool = service.allToolDescriptors().getFirst();
+              assertThat(tool.name()).isEqualTo("resolved-name");
+              assertThat(tool.title()).isEqualTo("Resolved Title");
+              assertThat(tool.description()).isEqualTo("Resolved description");
             });
   }
 
@@ -149,18 +151,5 @@ class ToolServiceMcpToolProviderTest {
                     .getFailure()
                     .rootCause()
                     .hasMessageContaining("tool.name"));
-  }
-
-  @Test
-  void returns_unmodifiable_list() {
-    contextRunner
-        .withBean(SampleToolService.class, SampleToolService::new)
-        .run(
-            context -> {
-              ToolServiceMcpToolProvider provider =
-                  context.getBean(ToolServiceMcpToolProvider.class);
-              List<McpTool> tools = provider.getMcpTools();
-              assertThat(tools).isUnmodifiable();
-            });
   }
 }

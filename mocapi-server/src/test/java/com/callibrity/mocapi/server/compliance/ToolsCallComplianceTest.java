@@ -19,7 +19,6 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.TextContent;
@@ -28,6 +27,7 @@ import com.callibrity.mocapi.model.ToolsCapability;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -56,9 +56,9 @@ class ToolsCallComplianceTest {
     var inputSchema = MAPPER.createObjectNode().put("type", "object");
     inputSchema.putObject("properties").putObject("input").put("type", "string");
 
-    McpTool simpleTool = makeTool("simple", inputSchema, args -> Map.of("value", "hello"));
+    CallToolHandler simpleTool = makeTool("simple", inputSchema, args -> Map.of("value", "hello"));
 
-    McpTool voidTool =
+    CallToolHandler voidTool =
         makeTool(
             "void-tool",
             inputSchema,
@@ -66,13 +66,13 @@ class ToolsCallComplianceTest {
               return null;
             });
 
-    McpTool directResultTool =
+    CallToolHandler directResultTool =
         makeTool(
             "direct-result",
             inputSchema,
             args -> new CallToolResult(List.of(new TextContent("direct", null)), null, null));
 
-    McpTool throwingJsonRpcTool =
+    CallToolHandler throwingJsonRpcTool =
         makeTool(
             "throws-jsonrpc",
             inputSchema,
@@ -80,7 +80,7 @@ class ToolsCallComplianceTest {
               throw new JsonRpcException(JsonRpcProtocol.INTERNAL_ERROR, "protocol failure");
             });
 
-    McpTool throwingOtherTool =
+    CallToolHandler throwingOtherTool =
         makeTool(
             "throws-other",
             inputSchema,
@@ -88,20 +88,18 @@ class ToolsCallComplianceTest {
               throw new RuntimeException("tool went boom");
             });
 
-    McpTool structuredTool =
+    CallToolHandler structuredTool =
         makeTool("structured", inputSchema, args -> Map.of("key", "structured-value"));
 
     var toolsService =
         new McpToolsService(
             List.of(
-                () ->
-                    List.of(
-                        simpleTool,
-                        voidTool,
-                        directResultTool,
-                        throwingJsonRpcTool,
-                        throwingOtherTool,
-                        structuredTool)),
+                simpleTool,
+                voidTool,
+                directResultTool,
+                throwingJsonRpcTool,
+                throwingOtherTool,
+                structuredTool),
             MAPPER,
             mock(McpResponseCorrelationService.class));
 
@@ -239,18 +237,9 @@ class ToolsCallComplianceTest {
 
   // --- helpers ---
 
-  private static McpTool makeTool(
+  private static CallToolHandler makeTool(
       String name, ObjectNode inputSchema, java.util.function.Function<JsonNode, Object> fn) {
-    return new McpTool() {
-      @Override
-      public Tool descriptor() {
-        return new Tool(name, null, name, inputSchema, null);
-      }
-
-      @Override
-      public Object call(JsonNode arguments) {
-        return fn.apply(arguments);
-      }
-    };
+    var descriptor = new Tool(name, null, name, inputSchema, null);
+    return new CallToolHandler(descriptor, null, null, fn::apply);
   }
 }

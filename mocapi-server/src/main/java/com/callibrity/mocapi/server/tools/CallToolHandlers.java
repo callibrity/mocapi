@@ -13,36 +13,73 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.tools.annotation;
+package com.callibrity.mocapi.server.tools;
 
 import static com.callibrity.mocapi.server.tools.annotation.Names.humanReadableName;
 import static com.callibrity.mocapi.server.tools.annotation.Names.identifier;
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefault;
 
-import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.callibrity.mocapi.api.tools.ToolMethod;
+import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
+import org.springframework.context.ApplicationContext;
 import org.springframework.util.StringValueResolver;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
-public class AnnotationMcpTool implements McpTool {
+/**
+ * Static factory that discovers {@code @ToolService} beans in an application context and builds a
+ * {@link CallToolHandler} for every {@code @ToolMethod}-annotated method on them.
+ */
+@Slf4j
+public final class CallToolHandlers {
 
-  private final Tool descriptor;
-  private final MethodInvoker<JsonNode> invoker;
+  private CallToolHandlers() {}
 
-  public static List<AnnotationMcpTool> createTools(
+  /**
+   * Scans every {@link ToolService} bean in the context and returns the concatenated list of
+   * handlers. Called once during {@link com.callibrity.mocapi.server.tools.McpToolsService} bean
+   * creation.
+   */
+  public static List<CallToolHandler> discover(
+      ApplicationContext context,
+      MethodSchemaGenerator generator,
+      MethodInvokerFactory invokerFactory,
+      List<ParameterResolver<? super JsonNode>> resolvers,
+      StringValueResolver valueResolver) {
+    Map<String, Object> beans = context.getBeansWithAnnotation(ToolService.class);
+    return beans.entrySet().stream()
+        .flatMap(
+            entry -> {
+              String beanName = entry.getKey();
+              Object bean = entry.getValue();
+              log.info(
+                  "Registering MCP tools for @{} bean \"{}\"...",
+                  ToolService.class.getSimpleName(),
+                  beanName);
+              List<CallToolHandler> handlers =
+                  create(generator, invokerFactory, resolvers, bean, valueResolver);
+              handlers.forEach(
+                  h -> log.info("\tRegistered MCP tool: \"{}\"", h.descriptor().name()));
+              return handlers.stream();
+            })
+        .toList();
+  }
+
+  static List<CallToolHandler> create(
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super JsonNode>> resolvers,
@@ -52,13 +89,12 @@ public class AnnotationMcpTool implements McpTool {
         .stream()
         .sorted(Comparator.comparing(Method::getName))
         .map(
-            m ->
-                new AnnotationMcpTool(
-                    generator, invokerFactory, resolvers, targetObject, m, valueResolver))
+            method ->
+                build(generator, invokerFactory, resolvers, targetObject, method, valueResolver))
         .toList();
   }
 
-  AnnotationMcpTool(
+  private static CallToolHandler build(
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super JsonNode>> resolvers,
@@ -66,7 +102,7 @@ public class AnnotationMcpTool implements McpTool {
       Method method,
       StringValueResolver valueResolver) {
     validateMcpToolParams(targetObject, method);
-    var annotation = method.getAnnotation(ToolMethod.class);
+    ToolMethod annotation = method.getAnnotation(ToolMethod.class);
     String name =
         resolveOrDefault(valueResolver, annotation.name(), () -> identifier(targetObject, method));
     String title =
@@ -75,11 +111,13 @@ public class AnnotationMcpTool implements McpTool {
     String description =
         resolveOrDefault(
             valueResolver, annotation.description(), () -> humanReadableName(targetObject, method));
-    this.invoker = invokerFactory.create(method, targetObject, JsonNode.class, resolvers);
     ObjectNode inputSchema = generator.generateInputSchema(targetObject, method);
     ObjectNode outputSchema =
         isVoid(method) ? null : generator.generateOutputSchema(targetObject, method);
-    this.descriptor = new Tool(name, title, description, inputSchema, outputSchema);
+    Tool descriptor = new Tool(name, title, description, inputSchema, outputSchema);
+    MethodInvoker<JsonNode> invoker =
+        invokerFactory.create(method, targetObject, JsonNode.class, resolvers);
+    return new CallToolHandler(descriptor, method, targetObject, invoker);
   }
 
   private static void validateMcpToolParams(Object targetObject, Method method) {
@@ -103,15 +141,5 @@ public class AnnotationMcpTool implements McpTool {
 
   private static boolean isVoid(Method method) {
     return method.getReturnType() == void.class || method.getReturnType() == Void.class;
-  }
-
-  @Override
-  public Tool descriptor() {
-    return descriptor;
-  }
-
-  @Override
-  public Object call(JsonNode arguments) {
-    return invoker.invoke(arguments);
   }
 }

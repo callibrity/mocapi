@@ -158,8 +158,8 @@ Log line patterns, by provider:
 
 ```
 # Tools
-INFO  c.c.m.s.a.ToolServiceMcpToolProvider -- Registering MCP tools for @ToolService bean "greetingTool"...
-INFO  c.c.m.s.a.ToolServiceMcpToolProvider -- 	Registered MCP tool: "greet"
+INFO  c.c.m.s.t.CallToolHandlers -- Registering MCP tools for @ToolService bean "greetingTool"...
+INFO  c.c.m.s.t.CallToolHandlers -- 	Registered MCP tool: "greet"
 
 # Prompts
 INFO  c.c.m.s.a.PromptServiceMcpPromptProvider -- Registering MCP prompts for @PromptService bean "summarizationPrompts"...

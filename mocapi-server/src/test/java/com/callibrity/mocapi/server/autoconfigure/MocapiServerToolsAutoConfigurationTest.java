@@ -80,7 +80,7 @@ class MocapiServerToolsAutoConfigurationTest {
     contextRunner.run(
         context -> {
           assertThat(context).hasSingleBean(MethodSchemaGenerator.class);
-          assertThat(context).hasSingleBean(ToolServiceMcpToolProvider.class);
+          assertThat(context).hasSingleBean(McpToolsService.class);
         });
   }
 

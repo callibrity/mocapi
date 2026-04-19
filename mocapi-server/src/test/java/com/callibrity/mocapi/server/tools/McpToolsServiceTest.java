@@ -21,7 +21,6 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import com.callibrity.mocapi.api.tools.McpToolProvider;
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.RequestMeta;
@@ -30,7 +29,6 @@ import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.session.McpSession;
-import com.callibrity.mocapi.server.tools.annotation.AnnotationMcpTool;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.util.HelloTool;
 import com.callibrity.mocapi.server.tools.util.InteractiveTool;
@@ -41,6 +39,7 @@ import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaVersion;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -73,22 +72,18 @@ class McpToolsServiceTest {
 
   private McpToolsService service;
 
-  private McpToolProvider createProvider(Object target) {
-    var tools = AnnotationMcpTool.createTools(generator, invokerFactory, resolvers, target, s -> s);
-    return () -> List.copyOf(tools);
+  private List<CallToolHandler> createHandlers(Object target) {
+    return CallToolHandlers.create(generator, invokerFactory, resolvers, target, s -> s);
   }
 
   @BeforeEach
   void setUp() {
-    var helloProvider = createProvider(new HelloTool());
-    var interactiveProvider = createProvider(new InteractiveTool());
-    var throwingProvider = createProvider(new ThrowingTool());
-    var voidProvider = createProvider(new VoidTool());
-    service =
-        new McpToolsService(
-            List.of(helloProvider, interactiveProvider, throwingProvider, voidProvider),
-            mapper,
-            correlationService);
+    var handlers = new ArrayList<CallToolHandler>();
+    handlers.addAll(createHandlers(new HelloTool()));
+    handlers.addAll(createHandlers(new InteractiveTool()));
+    handlers.addAll(createHandlers(new ThrowingTool()));
+    handlers.addAll(createHandlers(new VoidTool()));
+    service = new McpToolsService(List.copyOf(handlers), mapper, correlationService);
   }
 
   @Test
@@ -232,14 +227,8 @@ class McpToolsServiceTest {
 
   @Test
   void call_tool_timeout_returns_error_result_with_descriptive_message() {
-    var timeoutTool =
-        AnnotationMcpTool.createTools(
-                generator, invokerFactory, resolvers, new TimeoutTool(), s -> s)
-            .stream()
-            .findFirst()
-            .orElseThrow();
-    var timeoutService =
-        new McpToolsService(List.of(() -> List.of(timeoutTool)), mapper, correlationService);
+    var timeoutHandlers = createHandlers(new TimeoutTool());
+    var timeoutService = new McpToolsService(timeoutHandlers, mapper, correlationService);
     var params =
         new CallToolRequestParams(
             "timeout-tool.simulate-timeout",

@@ -19,12 +19,12 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.model.ToolsCapability;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import java.util.List;
 import java.util.Map;
@@ -53,12 +53,12 @@ class ToolsListComplianceTest {
 
     var outputSchema = MAPPER.createObjectNode().put("type", "object");
 
-    McpTool echoTool = simpleTool("echo", "Echoes input", inputSchema, null);
-    McpTool greetTool = simpleTool("greet", "Greets user", inputSchema, outputSchema);
+    CallToolHandler echoTool = simpleTool("echo", "Echoes input", inputSchema, null);
+    CallToolHandler greetTool = simpleTool("greet", "Greets user", inputSchema, outputSchema);
 
     var toolsService =
         new McpToolsService(
-            List.of(() -> List.of(echoTool, greetTool)),
+            List.of(echoTool, greetTool),
             MAPPER,
             mock(com.callibrity.mocapi.server.McpResponseCorrelationService.class));
 
@@ -124,14 +124,14 @@ class ToolsListComplianceTest {
   @Test
   void pagination_with_cursor_returns_next_page() {
     var inputSchema = MAPPER.createObjectNode().put("type", "object");
-    var tools = new java.util.ArrayList<McpTool>();
+    var tools = new java.util.ArrayList<CallToolHandler>();
     for (int i = 0; i < 3; i++) {
       tools.add(simpleTool("tool-" + i, "Tool " + i, inputSchema, null));
     }
 
     var toolsService =
         new McpToolsService(
-            List.of(() -> List.copyOf(tools)),
+            List.copyOf(tools),
             MAPPER,
             mock(com.callibrity.mocapi.server.McpResponseCorrelationService.class),
             2);
@@ -175,19 +175,10 @@ class ToolsListComplianceTest {
 
   // --- helpers ---
 
-  private static McpTool simpleTool(
+  private static CallToolHandler simpleTool(
       String name, String description, ObjectNode inputSchema, ObjectNode outputSchema) {
-    return new McpTool() {
-      @Override
-      public Tool descriptor() {
-        return new Tool(name, null, description, inputSchema, outputSchema);
-      }
-
-      @Override
-      public Object call(JsonNode arguments) {
-        return Map.of("echo", "ok");
-      }
-    };
+    var descriptor = new Tool(name, null, description, inputSchema, outputSchema);
+    return new CallToolHandler(descriptor, null, null, args -> Map.of("echo", "ok"));
   }
 
   private static JsonNode findToolByName(JsonNode tools, String name) {

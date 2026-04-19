@@ -18,9 +18,7 @@ package com.callibrity.mocapi.server.tools;
 import static com.callibrity.mocapi.model.McpMethods.TOOLS_CALL;
 import static com.callibrity.mocapi.model.McpMethods.TOOLS_LIST;
 
-import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
-import com.callibrity.mocapi.api.tools.McpToolProvider;
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ListToolsResult;
@@ -52,28 +50,28 @@ import tools.jackson.databind.node.ValueNode;
 /** Manages tool registration, input validation, and JSON-RPC dispatch. */
 @Slf4j
 @JsonRpcService
-public class McpToolsService extends PaginatedService<McpTool, Tool> {
+public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
 
   private final ConcurrentHashMap<String, Schema> inputSchemas = new ConcurrentHashMap<>();
   private final ObjectMapper objectMapper;
   private final McpResponseCorrelationService correlationService;
 
   public McpToolsService(
-      List<McpToolProvider> toolProviders,
+      List<CallToolHandler> handlers,
       ObjectMapper objectMapper,
       McpResponseCorrelationService correlationService) {
-    this(toolProviders, objectMapper, correlationService, DEFAULT_PAGE_SIZE);
+    this(handlers, objectMapper, correlationService, DEFAULT_PAGE_SIZE);
   }
 
   public McpToolsService(
-      List<McpToolProvider> toolProviders,
+      List<CallToolHandler> handlers,
       ObjectMapper objectMapper,
       McpResponseCorrelationService correlationService,
       int pageSize) {
     super(
-        toolProviders.stream().flatMap(p -> p.getMcpTools().stream()).toList(),
-        t -> t.descriptor().name(),
-        McpTool::descriptor,
+        handlers,
+        CallToolHandler::name,
+        CallToolHandler::descriptor,
         Comparator.comparing(Tool::name),
         "Tool",
         pageSize);
@@ -88,7 +86,7 @@ public class McpToolsService extends PaginatedService<McpTool, Tool> {
 
   /** Returns the full {@link Tool} descriptor for a registered tool, or {@code null} if none. */
   public Tool findToolDescriptor(String name) {
-    return findByName(name).map(McpTool::descriptor).orElse(null);
+    return findByName(name).map(CallToolHandler::descriptor).orElse(null);
   }
 
   /** Returns every registered tool descriptor, sorted by name. */
@@ -102,13 +100,13 @@ public class McpToolsService extends PaginatedService<McpTool, Tool> {
     log.debug("Received request to call tool \"{}\"", name);
     JsonNode args =
         params.arguments() != null ? params.arguments() : objectMapper.createObjectNode();
-    McpTool tool = lookup(name);
-    validateInput(name, args, tool);
-    return invokeTool(name, tool, args, params);
+    CallToolHandler handler = lookup(name);
+    validateInput(name, args, handler);
+    return invokeTool(name, handler, args, params);
   }
 
   private CallToolResult invokeTool(
-      String name, McpTool tool, JsonNode args, CallToolRequestParams params) {
+      String name, CallToolHandler handler, JsonNode args, CallToolRequestParams params) {
     McpTransport transport = McpTransport.CURRENT.isBound() ? McpTransport.CURRENT.get() : null;
     ValueNode progressToken = params.meta() != null ? params.meta().progressToken() : null;
     DefaultMcpToolContext ctx =
@@ -116,7 +114,7 @@ public class McpToolsService extends PaginatedService<McpTool, Tool> {
             transport, objectMapper, progressToken, correlationService, this, name);
 
     try {
-      Object result = ScopedValue.where(McpToolContext.CURRENT, ctx).call(() -> tool.call(args));
+      Object result = ScopedValue.where(McpToolContext.CURRENT, ctx).call(() -> handler.call(args));
       return toCallToolResult(result);
     } catch (Exception e) {
       log.warn("Tool {} threw an unhandled exception", name, e);
@@ -141,8 +139,8 @@ public class McpToolsService extends PaginatedService<McpTool, Tool> {
     return new CallToolResult(List.of(new TextContent(message, null)), true, null);
   }
 
-  private void validateInput(String name, JsonNode arguments, McpTool tool) {
-    Schema schema = getInputSchema(name, tool);
+  private void validateInput(String name, JsonNode arguments, CallToolHandler handler) {
+    Schema schema = getInputSchema(name, handler);
     Validator validator = Validator.forSchema(schema);
     ValidationFailure failure = validator.validate(new JsonParser(arguments.toString()).parse());
     if (failure != null) {
@@ -150,11 +148,11 @@ public class McpToolsService extends PaginatedService<McpTool, Tool> {
     }
   }
 
-  private Schema getInputSchema(String name, McpTool tool) {
+  private Schema getInputSchema(String name, CallToolHandler handler) {
     return inputSchemas.computeIfAbsent(
         name,
         _ ->
-            new SchemaLoader(new JsonParser(tool.descriptor().inputSchema().toString()).parse())
+            new SchemaLoader(new JsonParser(handler.descriptor().inputSchema().toString()).parse())
                 .load());
   }
 }

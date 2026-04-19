@@ -8,6 +8,17 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Breaking changes
 
+- Removed the `McpTool` and `McpToolProvider` interfaces from
+  `mocapi-api`. Tool discovery is purely annotation-driven: every
+  `@ToolMethod` on a `@ToolService` bean produces a
+  `CallToolHandler` (server-internal) that `McpToolsService`
+  dispatches to directly. No user code implemented these SPI types
+  in practice — tools are declared with annotations, not by hand —
+  so this change is source-invisible for typical applications. The
+  internal `AnnotationMcpTool` / `ToolServiceMcpToolProvider`
+  classes are gone; their logic moved to
+  `com.callibrity.mocapi.server.tools.CallToolHandlers#discover`.
+
 - `McpToolContext` no longer exposes the eight per-level log convenience
   methods (`debug`, `info`, `notice`, `warning`, `error`, `critical`,
   `alert`, `emergency`). Tools now obtain an SLF4J-shaped `McpLogger`

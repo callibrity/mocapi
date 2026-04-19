@@ -15,14 +15,16 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
-import com.callibrity.mocapi.api.tools.McpToolProvider;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
+import com.callibrity.mocapi.server.tools.CallToolHandlers;
+import com.callibrity.mocapi.server.tools.McpToolContextResolver;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -30,6 +32,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.util.StringValueResolver;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration(before = MocapiServerAutoConfiguration.class)
@@ -44,28 +47,24 @@ public class MocapiServerToolsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(McpToolsService.class)
   public McpToolsService mcpProtocolToolsService(
-      List<McpToolProvider> toolProviders,
+      ApplicationContext context,
+      MethodSchemaGenerator generator,
+      MethodInvokerFactory invokerFactory,
       ObjectMapper objectMapper,
-      McpResponseCorrelationService correlationService) {
+      McpResponseCorrelationService correlationService,
+      StringValueResolver mcpAnnotationValueResolver) {
+    List<ParameterResolver<? super JsonNode>> resolvers =
+        List.of(new McpToolContextResolver(), new McpToolParamsResolver(objectMapper));
+    var handlers =
+        CallToolHandlers.discover(
+            context, generator, invokerFactory, resolvers, mcpAnnotationValueResolver);
     return new McpToolsService(
-        toolProviders, objectMapper, correlationService, mocapiProperties.pagination().pageSize());
+        handlers, objectMapper, correlationService, mocapiProperties.pagination().pageSize());
   }
 
   @Bean
   @ConditionalOnMissingBean(MethodSchemaGenerator.class)
   public MethodSchemaGenerator mcpProtocolMethodSchemaGenerator(ObjectMapper mapper) {
     return new DefaultMethodSchemaGenerator(mapper, props.getSchemaVersion());
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(ToolServiceMcpToolProvider.class)
-  public ToolServiceMcpToolProvider mcpProtocolToolServiceMcpToolProvider(
-      ApplicationContext context,
-      MethodSchemaGenerator generator,
-      MethodInvokerFactory invokerFactory,
-      ObjectMapper objectMapper,
-      StringValueResolver mcpAnnotationValueResolver) {
-    return new ToolServiceMcpToolProvider(
-        context, generator, invokerFactory, objectMapper, mcpAnnotationValueResolver);
   }
 }

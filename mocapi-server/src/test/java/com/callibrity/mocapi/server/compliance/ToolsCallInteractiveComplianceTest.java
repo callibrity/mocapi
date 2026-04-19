@@ -21,7 +21,6 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.ServerCapabilities;
@@ -31,6 +30,7 @@ import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.session.McpSessionStore;
+import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
@@ -41,7 +41,6 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import tools.jackson.databind.JsonNode;
 
 /**
  * MCP 2025-11-25 § Server / Tools + Client / Elicitation + Client / Sampling.
@@ -62,40 +61,34 @@ class ToolsCallInteractiveComplianceTest {
     var inputSchema = MAPPER.createObjectNode().put("type", "object");
     inputSchema.putObject("properties").putObject("name").put("type", "string");
 
-    McpTool interactiveTool =
-        new McpTool() {
-          @Override
-          public Tool descriptor() {
-            return new Tool("interactive", null, "Interactive tool", inputSchema, null);
-          }
+    var interactiveDescriptor =
+        new Tool("interactive", null, "Interactive tool", inputSchema, null);
+    CallToolHandler interactiveTool =
+        new CallToolHandler(
+            interactiveDescriptor,
+            null,
+            null,
+            arguments -> {
+              McpToolContext ctx = McpToolContext.CURRENT.get();
+              ctx.sendProgress(1, 2);
+              ctx.log(LoggingLevel.INFO, "interactive", "Processing");
+              ctx.sendProgress(2, 2);
+              return Map.of("done", true);
+            });
 
-          @Override
-          public Object call(JsonNode arguments) {
-            McpToolContext ctx = McpToolContext.CURRENT.get();
-            ctx.sendProgress(1, 2);
-            ctx.log(LoggingLevel.INFO, "interactive", "Processing");
-            ctx.sendProgress(2, 2);
-            return Map.of("done", true);
-          }
-        };
-
-    McpTool contextCheckTool =
-        new McpTool() {
-          @Override
-          public Tool descriptor() {
-            return new Tool("context-check", null, "Checks context", inputSchema, null);
-          }
-
-          @Override
-          public Object call(JsonNode arguments) {
-            return Map.of("hasContext", McpToolContext.CURRENT.isBound());
-          }
-        };
+    var contextCheckDescriptor =
+        new Tool("context-check", null, "Checks context", inputSchema, null);
+    CallToolHandler contextCheckTool =
+        new CallToolHandler(
+            contextCheckDescriptor,
+            null,
+            null,
+            arguments -> Map.of("hasContext", McpToolContext.CURRENT.isBound()));
 
     sessionStore = inMemorySessionStore();
     var toolsService =
         new McpToolsService(
-            List.of(() -> List.of(interactiveTool, contextCheckTool)),
+            List.of(interactiveTool, contextCheckTool),
             MAPPER,
             mock(McpResponseCorrelationService.class));
 
