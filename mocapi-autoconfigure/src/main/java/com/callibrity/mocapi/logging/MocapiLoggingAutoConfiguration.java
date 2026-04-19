@@ -27,6 +27,7 @@ import org.slf4j.MDC;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.annotation.Order;
 
 /**
  * Autoconfiguration that attaches an {@link McpMdcInterceptor} to every MCP handler via the
@@ -40,6 +41,7 @@ public class MocapiLoggingAutoConfiguration {
   private static final Logger log = LoggerFactory.getLogger(MocapiLoggingAutoConfiguration.class);
 
   @Bean
+  @Order(100)
   public CallToolHandlerCustomizer mcpMdcToolCustomizer() {
     return config -> {
       var name = config.descriptor().name();
@@ -50,6 +52,7 @@ public class MocapiLoggingAutoConfiguration {
   }
 
   @Bean
+  @Order(100)
   public GetPromptHandlerCustomizer mcpMdcPromptCustomizer() {
     return config -> {
       var name = config.descriptor().name();
@@ -62,6 +65,7 @@ public class MocapiLoggingAutoConfiguration {
   }
 
   @Bean
+  @Order(100)
   public ReadResourceHandlerCustomizer mcpMdcResourceCustomizer() {
     return config -> {
       var uri = config.descriptor().uri();
@@ -74,6 +78,7 @@ public class MocapiLoggingAutoConfiguration {
   }
 
   @Bean
+  @Order(100)
   public ReadResourceTemplateHandlerCustomizer mcpMdcResourceTemplateCustomizer() {
     return config -> {
       var uriTemplate = config.descriptor().uriTemplate();

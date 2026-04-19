@@ -65,6 +65,23 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- **`mocapi-audit` module — structured audit logging for every
+  handler invocation.** Drop in `mocapi-audit` and every MCP tool /
+  prompt / resource / resource-template call emits one INFO event
+  on the `mocapi.audit` SLF4J logger carrying caller identity,
+  session id, handler kind/name, outcome
+  (`success`/`forbidden`/`invalid_params`/`error`), duration, and
+  (opt-in via `mocapi.audit.hash-arguments=true`) a SHA-256 hash
+  of the arguments. Caller identity is extracted by a pluggable
+  `AuditCallerIdentityProvider`; the default reads Spring Security's
+  `SecurityContextHolder` when present and returns `anonymous`
+  otherwise. No bundled encoder — users route the `mocapi.audit`
+  logger to their SIEM / file sink with standard Logback config.
+  Audit attaches at `@Order(200)`; `mocapi-logging`'s MDC
+  customizers now pin to `@Order(100)` and `mocapi-o11y`'s
+  observation customizers to `@Order(300)` so the in-flight
+  interceptor chain runs MDC → audit → o11y → user → guard →
+  validation → method. See [Audit](docs/audit.md).
 - **Custom `ParameterResolver`s via the customizer SPI.** Each
   `*HandlerConfig` (tool, prompt, resource, resource-template)
   gains a `resolver(ParameterResolver<? super X>)` mutator that

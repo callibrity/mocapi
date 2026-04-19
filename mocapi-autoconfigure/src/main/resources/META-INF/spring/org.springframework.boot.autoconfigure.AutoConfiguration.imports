@@ -8,6 +8,7 @@ com.callibrity.mocapi.transport.stdio.StdioAutoConfiguration
 com.callibrity.mocapi.oauth2.MocapiOAuth2AutoConfiguration
 com.callibrity.mocapi.logging.MocapiLoggingAutoConfiguration
 com.callibrity.mocapi.o11y.MocapiO11yAutoConfiguration
+com.callibrity.mocapi.audit.MocapiAuditAutoConfiguration
 com.callibrity.mocapi.jakarta.MocapiJakartaValidationAutoConfiguration
 com.callibrity.mocapi.actuator.MocapiActuatorAutoConfiguration
 com.callibrity.mocapi.security.spring.autoconfigure.MocapiSpringSecurityGuardsAutoConfiguration

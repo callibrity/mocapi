@@ -26,6 +26,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.annotation.Order;
 
 /**
  * Wires {@link McpObservationInterceptor} onto every MCP handler via the per-handler customizer
@@ -45,6 +46,7 @@ public class MocapiO11yAutoConfiguration {
   private static final Logger log = LoggerFactory.getLogger(MocapiO11yAutoConfiguration.class);
 
   @Bean
+  @Order(300)
   public CallToolHandlerCustomizer mcpObservationToolCustomizer(ObservationRegistry registry) {
     return config -> {
       var name = config.descriptor().name();
@@ -57,6 +59,7 @@ public class MocapiO11yAutoConfiguration {
   }
 
   @Bean
+  @Order(300)
   public GetPromptHandlerCustomizer mcpObservationPromptCustomizer(ObservationRegistry registry) {
     return config -> {
       var name = config.descriptor().name();
@@ -69,6 +72,7 @@ public class MocapiO11yAutoConfiguration {
   }
 
   @Bean
+  @Order(300)
   public ReadResourceHandlerCustomizer mcpObservationResourceCustomizer(
       ObservationRegistry registry) {
     return config -> {
@@ -82,6 +86,7 @@ public class MocapiO11yAutoConfiguration {
   }
 
   @Bean
+  @Order(300)
   public ReadResourceTemplateHandlerCustomizer mcpObservationResourceTemplateCustomizer(
       ObservationRegistry registry) {
     return config -> {

@@ -28,8 +28,8 @@ public final class LogCaptor implements AutoCloseable {
   private final Logger logger;
   private final ListAppender<ILoggingEvent> appender;
 
-  private LogCaptor(Class<?> target) {
-    this.logger = (Logger) LoggerFactory.getLogger(target);
+  private LogCaptor(Logger target) {
+    this.logger = target;
     this.appender = new ListAppender<>();
     appender.start();
     logger.addAppender(appender);
@@ -37,7 +37,11 @@ public final class LogCaptor implements AutoCloseable {
   }
 
   public static LogCaptor forClass(Class<?> target) {
-    return new LogCaptor(target);
+    return new LogCaptor((Logger) LoggerFactory.getLogger(target));
+  }
+
+  public static LogCaptor forName(String loggerName) {
+    return new LogCaptor((Logger) LoggerFactory.getLogger(loggerName));
   }
 
   public List<ILoggingEvent> events() {
