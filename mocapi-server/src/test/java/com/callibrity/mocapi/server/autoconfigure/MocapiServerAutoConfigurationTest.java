@@ -27,7 +27,6 @@ import com.callibrity.mocapi.server.McpTransportResolver;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
 import com.callibrity.mocapi.server.logging.McpLoggingService;
 import com.callibrity.mocapi.server.ping.McpPingService;
-import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.session.McpSessionResolver;
 import com.callibrity.mocapi.server.session.McpSessionService;
@@ -90,7 +89,6 @@ class MocapiServerAutoConfigurationTest {
           assertThat(context).hasSingleBean(McpSessionService.class);
           assertThat(context).hasSingleBean(McpResponseCorrelationService.class);
           assertThat(context).hasSingleBean(McpServer.class);
-          assertThat(context).hasSingleBean(McpPromptsService.class);
           assertThat(context).hasSingleBean(McpResourcesService.class);
           assertThat(context).hasSingleBean(McpPingService.class);
           assertThat(context).hasSingleBean(McpLifecycleService.class);

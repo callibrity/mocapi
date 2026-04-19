@@ -2,15 +2,31 @@
 
 ## What to build
 
-With handlers already collapsed into concrete classes (specs 170–173),
-migrate the invoker construction to Methodical 0.6's new API and wire
-up bean-level interceptor autowiring so cross-cutting concerns
-(metrics, tracing, MDC, validation, rate limits) can ship as plain
-`MethodInterceptor` beans from downstream starters.
+With handlers already collapsed into concrete classes (specs 170–174),
+migrate invoker construction to Methodical 0.6's new API, introduce a
+per-handler customizer SPI, and wire up bean-level interceptor
+autowiring. Cross-cutting concerns (metrics, tracing, MDC, validation,
+rate limits) ship as plain `MethodInterceptor` beans; concerns that
+need per-handler config (guards, per-tool metric tags, per-tool
+tracing attributes) ship as `*Customizer` beans that touch a
+`*HandlerConfig` at discovery time.
 
-No behavior change beyond the mechanics of the Methodical API move
-and the new "ambient interceptor" plumbing. Downstream specs add
-actual interceptors.
+Two extension tiers:
+
+- **Bean-level interceptors** — a `List<MethodInterceptor<? super T>>`
+  autowired into each handler autoconfig. Applied to every invoker of
+  that kind. Outermost wrap. Good for global concerns (MDC, tracing,
+  metrics).
+- **Per-handler customizers** — a `List<ToolCustomizer>` /
+  `List<PromptCustomizer>` / etc. autowired into each handler
+  autoconfig. Run against a fresh `CallToolHandlerConfig` /
+  `GetPromptHandlerConfig` / etc. per handler, letting the customizer
+  add interceptors (or later, guards) that close over per-handler
+  state. Good for concerns driven by annotations / method metadata.
+
+No functional behavior change beyond the input-schema-validation move
+to an interceptor (see section 2). Downstream specs ship the concrete
+cross-cutting interceptors.
 
 ### Premise
 

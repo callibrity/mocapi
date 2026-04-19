@@ -16,10 +16,19 @@
 package com.callibrity.mocapi.server.autoconfigure;
 
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
+import com.callibrity.mocapi.server.prompts.GetPromptHandlers;
+import com.callibrity.mocapi.server.prompts.McpPromptsService;
+import com.callibrity.mocapi.server.util.StringMapArgResolver;
+import java.util.List;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.convert.ConversionService;
@@ -27,21 +36,39 @@ import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.util.StringValueResolver;
 
 @AutoConfiguration(before = MocapiServerAutoConfiguration.class)
+@EnableConfigurationProperties(MocapiServerProperties.class)
+@RequiredArgsConstructor
+@Slf4j
 public class MocapiServerPromptsAutoConfiguration {
 
+  private final MocapiServerProperties props;
+
   @Bean
-  @ConditionalOnMissingBean(PromptServiceMcpPromptProvider.class)
-  public PromptServiceMcpPromptProvider mcpProtocolPromptServiceMcpPromptProvider(
+  @ConditionalOnMissingBean(McpPromptsService.class)
+  public McpPromptsService mcpProtocolPromptsService(
       ApplicationContext context,
       MethodInvokerFactory invokerFactory,
       ObjectProvider<ConversionService> conversionService,
       StringValueResolver mcpAnnotationValueResolver,
       McpCompletionsService completions) {
-    return new PromptServiceMcpPromptProvider(
-        context,
-        invokerFactory,
-        conversionService.getIfAvailable(DefaultConversionService::getSharedInstance),
-        mcpAnnotationValueResolver,
-        completions);
+    List<ParameterResolver<? super Map<String, String>>> resolvers =
+        List.of(
+            new StringMapArgResolver(
+                conversionService.getIfAvailable(DefaultConversionService::getSharedInstance)));
+    var handlers =
+        GetPromptHandlers.discover(context, invokerFactory, resolvers, mcpAnnotationValueResolver);
+    handlers.forEach(
+        h ->
+            h.completionCandidates()
+                .forEach(
+                    c -> {
+                      completions.registerPromptArgument(
+                          h.descriptor().name(), c.argumentName(), c.values());
+                      log.info(
+                          "\t\tRegistered completions for argument \"{}\": {}",
+                          c.argumentName(),
+                          c.values());
+                    }));
+    return new McpPromptsService(handlers, props.pagination().pageSize());
   }
 }

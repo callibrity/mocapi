@@ -15,8 +15,6 @@
  */
 package com.callibrity.mocapi.server.prompts;
 
-import com.callibrity.mocapi.api.prompts.McpPrompt;
-import com.callibrity.mocapi.api.prompts.McpPromptProvider;
 import com.callibrity.mocapi.model.GetPromptRequestParams;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.ListPromptsResult;
@@ -34,17 +32,17 @@ import java.util.Map;
 /** Manages prompt registration and JSON-RPC dispatch. */
 @JsonRpcService
 @lombok.extern.slf4j.Slf4j
-public class McpPromptsService extends PaginatedService<McpPrompt, Prompt> {
+public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt> {
 
-  public McpPromptsService(List<McpPromptProvider> promptProviders) {
-    this(promptProviders, DEFAULT_PAGE_SIZE);
+  public McpPromptsService(List<GetPromptHandler> handlers) {
+    this(handlers, DEFAULT_PAGE_SIZE);
   }
 
-  public McpPromptsService(List<McpPromptProvider> promptProviders, int pageSize) {
+  public McpPromptsService(List<GetPromptHandler> handlers, int pageSize) {
     super(
-        promptProviders.stream().flatMap(p -> p.getMcpPrompts().stream()).toList(),
-        p -> p.descriptor().name(),
-        McpPrompt::descriptor,
+        handlers,
+        GetPromptHandler::name,
+        GetPromptHandler::descriptor,
         Comparator.comparing(Prompt::name),
         "Prompt",
         pageSize);
@@ -59,8 +57,8 @@ public class McpPromptsService extends PaginatedService<McpPrompt, Prompt> {
   public GetPromptResult getPrompt(@JsonRpcParams GetPromptRequestParams params) {
     String name = params.name();
     log.debug("Received request to get prompt \"{}\"", name);
-    McpPrompt prompt = lookup(name);
+    GetPromptHandler handler = lookup(name);
     Map<String, String> arguments = params.arguments() != null ? params.arguments() : Map.of();
-    return prompt.get(arguments);
+    return handler.get(arguments);
   }
 }

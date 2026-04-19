@@ -19,7 +19,6 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptArgument;
@@ -30,6 +29,7 @@ import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.prompts.GetPromptHandler;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import java.util.List;
 import java.util.Map;
@@ -48,45 +48,30 @@ class PromptsListComplianceTest {
 
   private McpServer server;
 
+  private static GetPromptHandler handler(String name, List<PromptArgument> arguments) {
+    Prompt descriptor = new Prompt(name, null, name + " prompt", null, arguments);
+    return new GetPromptHandler(
+        descriptor,
+        null,
+        null,
+        args -> {
+          @SuppressWarnings("unchecked")
+          Map<String, String> typed = (Map<String, String>) args;
+          return new GetPromptResult(
+              name,
+              List.of(
+                  new PromptMessage(
+                      Role.USER, new TextContent("Hello " + typed.get("name"), null))));
+        },
+        List.of());
+  }
+
   @BeforeEach
   void setUp() {
-    McpPrompt greetPrompt =
-        new McpPrompt() {
-          @Override
-          public Prompt descriptor() {
-            return new Prompt(
-                "greet",
-                null,
-                "Greeting prompt",
-                null,
-                List.of(new PromptArgument("name", "Person's name", true)));
-          }
-
-          @Override
-          public GetPromptResult get(Map<String, String> arguments) {
-            return new GetPromptResult(
-                "Greeting",
-                List.of(
-                    new PromptMessage(
-                        Role.USER, new TextContent("Hello " + arguments.get("name"), null))));
-          }
-        };
-
-    McpPrompt simplePrompt =
-        new McpPrompt() {
-          @Override
-          public Prompt descriptor() {
-            return new Prompt("simple", null, "Simple prompt", null, null);
-          }
-
-          @Override
-          public GetPromptResult get(Map<String, String> arguments) {
-            return new GetPromptResult(
-                "Simple", List.of(new PromptMessage(Role.USER, new TextContent("Hi", null))));
-          }
-        };
-
-    var service = new McpPromptsService(List.of(() -> List.of(greetPrompt, simplePrompt)));
+    GetPromptHandler greet =
+        handler("greet", List.of(new PromptArgument("name", "Person's name", true)));
+    GetPromptHandler simple = handler("simple", null);
+    var service = new McpPromptsService(List.of(greet, simple));
     server =
         buildServer(
             inMemorySessionStore(),
@@ -142,25 +127,12 @@ class PromptsListComplianceTest {
 
   @Test
   void pagination_works() {
-    var prompts = new java.util.ArrayList<McpPrompt>();
+    var prompts = new java.util.ArrayList<GetPromptHandler>();
     for (int i = 0; i < 3; i++) {
-      final var name = "prompt-" + i;
-      prompts.add(
-          new McpPrompt() {
-            @Override
-            public Prompt descriptor() {
-              return new Prompt(name, null, name, null, null);
-            }
-
-            @Override
-            public GetPromptResult get(Map<String, String> arguments) {
-              return new GetPromptResult(
-                  name, List.of(new PromptMessage(Role.USER, new TextContent("Hi", null))));
-            }
-          });
+      prompts.add(handler("prompt-" + i, null));
     }
 
-    var service = new McpPromptsService(List.of(() -> List.copyOf(prompts)), 2);
+    var service = new McpPromptsService(List.copyOf(prompts), 2);
     var pagedServer =
         buildServer(
             inMemorySessionStore(),

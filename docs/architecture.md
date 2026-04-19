@@ -162,9 +162,9 @@ INFO  c.c.m.s.t.CallToolHandlers -- Registering MCP tools for @ToolService bean 
 INFO  c.c.m.s.t.CallToolHandlers -- 	Registered MCP tool: "greet"
 
 # Prompts
-INFO  c.c.m.s.a.PromptServiceMcpPromptProvider -- Registering MCP prompts for @PromptService bean "summarizationPrompts"...
-INFO  c.c.m.s.a.PromptServiceMcpPromptProvider -- 	Registered MCP prompt: "summarize"
-INFO  c.c.m.s.a.PromptServiceMcpPromptProvider -- 		Registered completions for argument "detail": [BRIEF, STANDARD, DETAILED]
+INFO  c.c.m.s.p.GetPromptHandlers -- Registering MCP prompts for @PromptService bean "summarizationPrompts"...
+INFO  c.c.m.s.p.GetPromptHandlers -- 	Registered MCP prompt: "summarize"
+INFO  c.c.m.s.a.MocapiServerPromptsAutoConfiguration -- 		Registered completions for argument "detail": [BRIEF, STANDARD, DETAILED]
 
 # Resources
 INFO  c.c.m.s.a.ResourceServiceMcpResourceProvider -- Registering MCP resources for @ResourceService bean "docResources"...

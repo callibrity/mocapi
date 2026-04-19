@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.prompts.annotation;
+package com.callibrity.mocapi.server.prompts;
 
 import static com.callibrity.mocapi.server.tools.annotation.Names.humanReadableName;
 import static com.callibrity.mocapi.server.tools.annotation.Names.identifier;
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefault;
 
-import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.prompts.PromptMethod;
+import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptArgument;
@@ -33,22 +33,56 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
+import org.springframework.context.ApplicationContext;
 import org.springframework.util.StringValueResolver;
 
-public class AnnotationMcpPrompt implements McpPrompt {
+/**
+ * Static factory that discovers {@code @PromptService} beans in an application context and builds a
+ * {@link GetPromptHandler} for every {@code @PromptMethod}-annotated method on them.
+ */
+@Slf4j
+public final class GetPromptHandlers {
 
   private static final TypeRef<Map<String, String>> ARGS_TYPE = new TypeRef<>() {};
 
-  private final Prompt descriptor;
-  private final MethodInvoker<Map<String, String>> invoker;
-  private final List<CompletionCandidate> candidates;
+  private GetPromptHandlers() {}
 
-  public static List<AnnotationMcpPrompt> createPrompts(
+  /**
+   * Scans every {@link PromptService} bean in the context and returns the concatenated list of
+   * handlers. Called once during {@link McpPromptsService} bean creation.
+   */
+  public static List<GetPromptHandler> discover(
+      ApplicationContext context,
+      MethodInvokerFactory invokerFactory,
+      List<ParameterResolver<? super Map<String, String>>> resolvers,
+      StringValueResolver valueResolver) {
+    Map<String, Object> beans = context.getBeansWithAnnotation(PromptService.class);
+    return beans.entrySet().stream()
+        .flatMap(
+            entry -> {
+              String beanName = entry.getKey();
+              Object bean = entry.getValue();
+              log.info(
+                  "Registering MCP prompts for @{} bean \"{}\"...",
+                  PromptService.class.getSimpleName(),
+                  beanName);
+              List<GetPromptHandler> handlers =
+                  create(invokerFactory, resolvers, bean, valueResolver);
+              handlers.forEach(
+                  h -> log.info("\tRegistered MCP prompt: \"{}\"", h.descriptor().name()));
+              return handlers.stream();
+            })
+        .toList();
+  }
+
+  static List<GetPromptHandler> create(
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
       Object targetObject,
@@ -56,19 +90,18 @@ public class AnnotationMcpPrompt implements McpPrompt {
     return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), PromptMethod.class)
         .stream()
         .sorted(Comparator.comparing(Method::getName))
-        .map(
-            m -> new AnnotationMcpPrompt(invokerFactory, resolvers, targetObject, m, valueResolver))
+        .map(method -> build(invokerFactory, resolvers, targetObject, method, valueResolver))
         .toList();
   }
 
-  AnnotationMcpPrompt(
+  private static GetPromptHandler build(
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
       Object targetObject,
       Method method,
       StringValueResolver valueResolver) {
     validateReturnType(targetObject, method);
-    var annotation = method.getAnnotation(PromptMethod.class);
+    PromptMethod annotation = method.getAnnotation(PromptMethod.class);
     String name =
         resolveOrDefault(valueResolver, annotation.name(), () -> identifier(targetObject, method));
     String title =
@@ -77,21 +110,10 @@ public class AnnotationMcpPrompt implements McpPrompt {
     String description =
         resolveOrDefault(
             valueResolver, annotation.description(), () -> humanReadableName(targetObject, method));
-    this.invoker = invokerFactory.create(method, targetObject, ARGS_TYPE, resolvers);
-    this.descriptor = new Prompt(name, title, description, null, argumentsOf(method));
-    this.candidates = candidatesOf(method);
-  }
-
-  private static List<CompletionCandidate> candidatesOf(Method method) {
-    return Arrays.stream(method.getParameters())
-        .filter(p -> !isWholeArgsMap(p))
-        .map(
-            p -> {
-              var values = CompletionCandidates.valuesFor(p);
-              return values.isEmpty() ? null : new CompletionCandidate(p.getName(), values);
-            })
-        .filter(java.util.Objects::nonNull)
-        .toList();
+    Prompt descriptor = new Prompt(name, title, description, null, argumentsOf(method));
+    MethodInvoker<Map<String, String>> invoker =
+        invokerFactory.create(method, targetObject, ARGS_TYPE, resolvers);
+    return new GetPromptHandler(descriptor, method, targetObject, invoker, candidatesOf(method));
   }
 
   private static void validateReturnType(Object targetObject, Method method) {
@@ -108,7 +130,19 @@ public class AnnotationMcpPrompt implements McpPrompt {
   private static List<PromptArgument> argumentsOf(Method method) {
     return Arrays.stream(method.getParameters())
         .filter(p -> !isWholeArgsMap(p))
-        .map(AnnotationMcpPrompt::toArgument)
+        .map(GetPromptHandlers::toArgument)
+        .toList();
+  }
+
+  private static List<CompletionCandidate> candidatesOf(Method method) {
+    return Arrays.stream(method.getParameters())
+        .filter(p -> !isWholeArgsMap(p))
+        .map(
+            p -> {
+              var values = CompletionCandidates.valuesFor(p);
+              return values.isEmpty() ? null : new CompletionCandidate(p.getName(), values);
+            })
+        .filter(Objects::nonNull)
         .toList();
   }
 
@@ -119,24 +153,5 @@ public class AnnotationMcpPrompt implements McpPrompt {
   private static PromptArgument toArgument(Parameter parameter) {
     return new PromptArgument(
         parameter.getName(), Parameters.descriptionOf(parameter), Parameters.isRequired(parameter));
-  }
-
-  /**
-   * Completion candidates derived from annotated method parameters — one entry per parameter that
-   * has an enum type or a {@code @Schema(allowableValues=...)} attribute. Whole-map parameters are
-   * skipped, consistent with how declared {@link PromptArgument}s are built.
-   */
-  public List<CompletionCandidate> completionCandidates() {
-    return candidates;
-  }
-
-  @Override
-  public Prompt descriptor() {
-    return descriptor;
-  }
-
-  @Override
-  public GetPromptResult get(Map<String, String> arguments) {
-    return (GetPromptResult) invoker.invoke(arguments == null ? Map.of() : arguments);
   }
 }

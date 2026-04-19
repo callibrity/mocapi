@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.prompts.annotation;
+package com.callibrity.mocapi.server.prompts;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,14 +37,14 @@ import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.core.convert.support.DefaultConversionService;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class AnnotationMcpPromptTest {
+class GetPromptHandlerTest {
 
   private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory(List.of());
   private final List<ParameterResolver<? super Map<String, String>>> resolvers =
       List.of(new StringMapArgResolver(DefaultConversionService.getSharedInstance()));
 
-  private List<AnnotationMcpPrompt> createPrompts(Object target) {
-    return AnnotationMcpPrompt.createPrompts(invokerFactory, resolvers, target, s -> s);
+  private List<GetPromptHandler> createHandlers(Object target) {
+    return GetPromptHandlers.create(invokerFactory, resolvers, target, s -> s);
   }
 
   enum Detail {
@@ -85,9 +85,9 @@ class AnnotationMcpPromptTest {
 
   @Test
   void generates_descriptor_from_annotation_and_parameters() {
-    var prompt = createPrompts(new SummarizePrompt()).getFirst();
+    var handler = createHandlers(new SummarizePrompt()).getFirst();
 
-    var d = prompt.descriptor();
+    var d = handler.descriptor();
     assertThat(d.name()).isEqualTo("summarize");
     assertThat(d.title()).isEqualTo("Summarize");
     assertThat(d.description()).isEqualTo("Summarize text at a specified detail level");
@@ -96,13 +96,16 @@ class AnnotationMcpPromptTest {
     assertThat(d.arguments().get(0).required()).isTrue();
     assertThat(d.arguments().get(1).name()).isEqualTo("detail");
     assertThat(d.arguments().get(1).required()).isFalse();
+    assertThat(handler.name()).isEqualTo("summarize");
+    assertThat(handler.method().getName()).isEqualTo("summarize");
+    assertThat(handler.bean()).isInstanceOf(SummarizePrompt.class);
   }
 
   @Test
   void invokes_method_with_converted_args() {
-    var prompt = createPrompts(new SummarizePrompt()).getFirst();
+    var handler = createHandlers(new SummarizePrompt()).getFirst();
 
-    var result = prompt.get(Map.of("text", "hello world", "detail", "BRIEF"));
+    var result = handler.get(Map.of("text", "hello world", "detail", "BRIEF"));
 
     assertThat(result.messages()).hasSize(1);
     var content = (TextContent) result.messages().getFirst().content();
@@ -111,9 +114,9 @@ class AnnotationMcpPromptTest {
 
   @Test
   void missing_optional_arg_comes_through_as_null() {
-    var prompt = createPrompts(new SummarizePrompt()).getFirst();
+    var handler = createHandlers(new SummarizePrompt()).getFirst();
 
-    var result = prompt.get(Map.of("text", "hi"));
+    var result = handler.get(Map.of("text", "hi"));
 
     var content = (TextContent) result.messages().getFirst().content();
     assertThat(content.text()).isEqualTo("STANDARD: hi");
@@ -121,16 +124,16 @@ class AnnotationMcpPromptTest {
 
   @Test
   void whole_map_parameter_is_not_declared_as_an_argument() {
-    var prompt = createPrompts(new WholeMapPrompt()).getFirst();
+    var handler = createHandlers(new WholeMapPrompt()).getFirst();
 
-    assertThat(prompt.descriptor().arguments()).isEmpty();
+    assertThat(handler.descriptor().arguments()).isEmpty();
   }
 
   @Test
   void map_typed_param_receives_whole_arguments_map() {
-    var prompt = createPrompts(new WholeMapPrompt()).getFirst();
+    var handler = createHandlers(new WholeMapPrompt()).getFirst();
 
-    var result = prompt.get(Map.of("a", "1", "b", "2"));
+    var result = handler.get(Map.of("a", "1", "b", "2"));
 
     var content = (TextContent) result.messages().getFirst().content();
     assertThat(content.text()).contains("a=1").contains("b=2");
@@ -138,9 +141,9 @@ class AnnotationMcpPromptTest {
 
   @Test
   void get_with_null_arguments_invokes_with_empty_map() {
-    var prompt = createPrompts(new WholeMapPrompt()).getFirst();
+    var handler = createHandlers(new WholeMapPrompt()).getFirst();
 
-    var result = prompt.get(null);
+    var result = handler.get(null);
 
     var content = (TextContent) result.messages().getFirst().content();
     assertThat(content.text()).isEqualTo("{}");
@@ -149,8 +152,18 @@ class AnnotationMcpPromptTest {
   @Test
   void rejects_method_with_non_get_prompt_result_return_type() {
     var target = new BadReturnPrompt();
-    assertThatThrownBy(() -> createPrompts(target))
+    assertThatThrownBy(() -> createHandlers(target))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("GetPromptResult");
+  }
+
+  @Test
+  void completion_candidates_include_enum_parameters() {
+    var handler = createHandlers(new SummarizePrompt()).getFirst();
+
+    assertThat(handler.completionCandidates()).hasSize(1);
+    assertThat(handler.completionCandidates().getFirst().argumentName()).isEqualTo("detail");
+    assertThat(handler.completionCandidates().getFirst().values())
+        .containsExactly("BRIEF", "STANDARD", "DETAILED");
   }
 }

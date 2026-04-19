@@ -18,8 +18,6 @@ package com.callibrity.mocapi.server.prompts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.api.prompts.McpPrompt;
-import com.callibrity.mocapi.api.prompts.McpPromptProvider;
 import com.callibrity.mocapi.model.GetPromptRequestParams;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
@@ -42,34 +40,34 @@ class McpPromptsServiceTest {
 
   private McpPromptsService service;
 
-  private static McpPrompt prompt(String name, String description) {
-    return new McpPrompt() {
-      @Override
-      public Prompt descriptor() {
-        return new Prompt(
+  private static GetPromptHandler handler(String name, String description) {
+    Prompt descriptor =
+        new Prompt(
             name,
             name,
             description,
             null,
             List.of(new PromptArgument("arg1", "An argument", true)));
-      }
-
-      @Override
-      public GetPromptResult get(Map<String, String> arguments) {
-        String arg1 = arguments.getOrDefault("arg1", "default");
-        return new GetPromptResult(
-            description,
-            List.of(new PromptMessage(Role.USER, new TextContent(name + ": " + arg1, null))));
-      }
-    };
+    return new GetPromptHandler(
+        descriptor,
+        null,
+        null,
+        args -> {
+          @SuppressWarnings("unchecked")
+          Map<String, String> typed = (Map<String, String>) args;
+          String arg1 = typed.getOrDefault("arg1", "default");
+          return new GetPromptResult(
+              description,
+              List.of(new PromptMessage(Role.USER, new TextContent(name + ": " + arg1, null))));
+        },
+        List.of());
   }
 
   @BeforeEach
   void setUp() {
-    var provider =
-        (McpPromptProvider)
-            () -> List.of(prompt("beta-prompt", "Beta desc"), prompt("alpha-prompt", "Alpha desc"));
-    service = new McpPromptsService(List.of(provider));
+    service =
+        new McpPromptsService(
+            List.of(handler("beta-prompt", "Beta desc"), handler("alpha-prompt", "Alpha desc")));
   }
 
   @Test
@@ -114,8 +112,8 @@ class McpPromptsServiceTest {
   }
 
   @Test
-  void lookup_returns_prompt() {
-    McpPrompt found = service.lookup("beta-prompt");
+  void lookup_returns_handler() {
+    GetPromptHandler found = service.lookup("beta-prompt");
     assertThat(found.descriptor().name()).isEqualTo("beta-prompt");
   }
 
@@ -139,11 +137,11 @@ class McpPromptsServiceTest {
 
   @Test
   void pagination_works() {
-    List<McpPrompt> prompts =
+    List<GetPromptHandler> prompts =
         IntStream.range(0, 5)
-            .mapToObj(i -> prompt(String.format("prompt-%03d", i), "desc " + i))
+            .mapToObj(i -> handler(String.format("prompt-%03d", i), "desc " + i))
             .toList();
-    var svc = new McpPromptsService(List.of(() -> prompts), 2);
+    var svc = new McpPromptsService(prompts, 2);
 
     var page1 = svc.listPrompts(null);
     assertThat(page1.prompts()).hasSize(2);

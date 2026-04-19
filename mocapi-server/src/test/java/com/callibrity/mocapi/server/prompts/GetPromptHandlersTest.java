@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.autoconfigure;
+package com.callibrity.mocapi.server.prompts;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.prompts.PromptMethod;
 import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.CompleteRequestParams;
@@ -28,6 +27,8 @@ import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.PromptReference;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
+import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
+import com.callibrity.mocapi.server.autoconfigure.MocapiServerPromptsAutoConfiguration;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
@@ -47,7 +48,7 @@ import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class PromptServiceMcpPromptProviderTest {
+class GetPromptHandlersTest {
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
@@ -135,10 +136,10 @@ class PromptServiceMcpPromptProviderTest {
         .withBean(SamplePromptService.class, SamplePromptService::new)
         .run(
             context -> {
-              var provider = context.getBean(PromptServiceMcpPromptProvider.class);
-              List<McpPrompt> prompts = provider.getMcpPrompts();
+              var service = context.getBean(McpPromptsService.class);
+              var prompts = service.allDescriptors();
               assertThat(prompts).hasSize(1);
-              assertThat(prompts.getFirst().descriptor().name()).isEqualTo("greet");
+              assertThat(prompts.getFirst().name()).isEqualTo("greet");
             });
   }
 
@@ -146,8 +147,9 @@ class PromptServiceMcpPromptProviderTest {
   void returns_empty_list_when_no_prompt_service_beans() {
     contextRunner.run(
         context -> {
-          var provider = context.getBean(PromptServiceMcpPromptProvider.class);
-          assertThat(provider.getMcpPrompts()).isEmpty();
+          var service = context.getBean(McpPromptsService.class);
+          assertThat(service.isEmpty()).isTrue();
+          assertThat(service.allDescriptors()).isEmpty();
         });
   }
 
@@ -161,12 +163,11 @@ class PromptServiceMcpPromptProviderTest {
             "prompt.description=Resolved prompt description")
         .run(
             context -> {
-              var provider = context.getBean(PromptServiceMcpPromptProvider.class);
-              var prompt = provider.getMcpPrompts().getFirst();
-              assertThat(prompt.descriptor().name()).isEqualTo("resolved-prompt");
-              assertThat(prompt.descriptor().title()).isEqualTo("Resolved Prompt Title");
-              assertThat(prompt.descriptor().description())
-                  .isEqualTo("Resolved prompt description");
+              var service = context.getBean(McpPromptsService.class);
+              var prompt = service.allDescriptors().getFirst();
+              assertThat(prompt.name()).isEqualTo("resolved-prompt");
+              assertThat(prompt.title()).isEqualTo("Resolved Prompt Title");
+              assertThat(prompt.description()).isEqualTo("Resolved prompt description");
             });
   }
 
@@ -199,17 +200,6 @@ class PromptServiceMcpPromptProviderTest {
                           null));
               assertThat(result.completion().values())
                   .containsExactly("BRIEF", "STANDARD", "DETAILED");
-            });
-  }
-
-  @Test
-  void returns_unmodifiable_list() {
-    contextRunner
-        .withBean(SamplePromptService.class, SamplePromptService::new)
-        .run(
-            context -> {
-              var provider = context.getBean(PromptServiceMcpPromptProvider.class);
-              assertThat(provider.getMcpPrompts()).isUnmodifiable();
             });
   }
 }

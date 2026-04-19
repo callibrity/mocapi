@@ -15,7 +15,6 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
-import com.callibrity.mocapi.api.prompts.McpPromptProvider;
 import com.callibrity.mocapi.api.resources.McpResourceProvider;
 import com.callibrity.mocapi.api.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.model.CompletionsCapability;
@@ -33,7 +32,6 @@ import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
 import com.callibrity.mocapi.server.logging.McpLoggingService;
 import com.callibrity.mocapi.server.ping.McpPingService;
-import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.session.AtomMcpSessionStore;
 import com.callibrity.mocapi.server.session.McpSessionResolver;
@@ -144,12 +142,6 @@ public class MocapiServerAutoConfiguration {
       JsonRpcDispatcher dispatcher,
       McpResponseCorrelationService correlationService) {
     return new DefaultMcpServer(sessionService, dispatcher, correlationService);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(McpPromptsService.class)
-  public McpPromptsService mcpProtocolPromptsService(List<McpPromptProvider> promptProviders) {
-    return new McpPromptsService(promptProviders, props.pagination().pageSize());
   }
 
   @Bean

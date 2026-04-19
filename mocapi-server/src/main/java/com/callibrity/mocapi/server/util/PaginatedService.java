@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  * Base class for MCP services that manage a named collection with cursor-based pagination and
  * lookup-by-name.
  *
- * @param <T> the item type (e.g., CallToolHandler, McpPrompt)
+ * @param <T> the item type (e.g., CallToolHandler, GetPromptHandler)
  * @param <D> the descriptor type (e.g., Tool, Prompt)
  */
 public abstract class PaginatedService<T, D> {

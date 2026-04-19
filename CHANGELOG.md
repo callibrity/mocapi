@@ -8,6 +8,18 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Breaking changes
 
+- Removed the `McpPrompt` and `McpPromptProvider` interfaces from
+  `mocapi-api`. Prompt discovery is purely annotation-driven: every
+  `@PromptMethod` on a `@PromptService` bean produces a
+  `GetPromptHandler` (server-internal) that `McpPromptsService`
+  dispatches to directly. No user code implemented these SPI types
+  in practice — prompts are declared with annotations, not by hand
+  — so this change is source-invisible for typical applications.
+  The internal `AnnotationMcpPrompt` /
+  `PromptServiceMcpPromptProvider` classes are gone; their logic
+  moved to
+  `com.callibrity.mocapi.server.prompts.GetPromptHandlers#discover`.
+
 - Removed the `McpTool` and `McpToolProvider` interfaces from
   `mocapi-api`. Tool discovery is purely annotation-driven: every
   `@ToolMethod` on a `@ToolService` bean produces a

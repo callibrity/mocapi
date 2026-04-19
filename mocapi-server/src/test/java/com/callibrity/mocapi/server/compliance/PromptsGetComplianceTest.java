@@ -19,7 +19,6 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptArgument;
@@ -30,6 +29,7 @@ import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.prompts.GetPromptHandler;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import java.util.List;
@@ -51,28 +51,29 @@ class PromptsGetComplianceTest {
 
   @BeforeEach
   void setUp() {
-    McpPrompt greetPrompt =
-        new McpPrompt() {
-          @Override
-          public Prompt descriptor() {
-            return new Prompt(
-                "greet",
-                null,
-                "Greeting",
-                null,
-                List.of(new PromptArgument("name", "Person's name", true)));
-          }
+    Prompt descriptor =
+        new Prompt(
+            "greet",
+            null,
+            "Greeting",
+            null,
+            List.of(new PromptArgument("name", "Person's name", true)));
+    GetPromptHandler greetHandler =
+        new GetPromptHandler(
+            descriptor,
+            null,
+            null,
+            args -> {
+              @SuppressWarnings("unchecked")
+              Map<String, String> typed = (Map<String, String>) args;
+              String name = typed.getOrDefault("name", "World");
+              return new GetPromptResult(
+                  "Greeting",
+                  List.of(new PromptMessage(Role.USER, new TextContent("Hello " + name, null))));
+            },
+            List.of());
 
-          @Override
-          public GetPromptResult get(Map<String, String> arguments) {
-            String name = arguments.getOrDefault("name", "World");
-            return new GetPromptResult(
-                "Greeting",
-                List.of(new PromptMessage(Role.USER, new TextContent("Hello " + name, null))));
-          }
-        };
-
-    var service = new McpPromptsService(List.of(() -> List.of(greetPrompt)));
+    var service = new McpPromptsService(List.of(greetHandler));
     server =
         buildServer(
             inMemorySessionStore(),
