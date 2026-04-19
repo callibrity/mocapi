@@ -27,6 +27,7 @@ import com.callibrity.mocapi.server.completions.CompletionCandidate;
 import com.callibrity.mocapi.server.completions.CompletionCandidates;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.tools.schema.Parameters;
+import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
@@ -40,6 +41,7 @@ import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
+import org.springframework.core.convert.ConversionService;
 
 /**
  * Pure-Java factory that builds a single {@link GetPromptHandler} from a {@code (bean, @McpPrompt
@@ -52,12 +54,16 @@ public final class GetPromptHandlers {
 
   private GetPromptHandlers() {}
 
-  /** Builds one {@link GetPromptHandler} for the given {@code (bean, method)} pair. */
+  /**
+   * Builds one {@link GetPromptHandler} for the given {@code (bean, method)} pair. User resolvers
+   * contributed via the customizer chain run ahead of the catch-all {@link StringMapArgResolver} so
+   * a specific resolver always wins over the string-argument fallback.
+   */
   public static GetPromptHandler build(
       Object bean,
       Method method,
       MethodInvokerFactory invokerFactory,
-      List<ParameterResolver<? super Map<String, String>>> resolvers,
+      ConversionService conversionService,
       List<GetPromptHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
     validateReturnType(bean, method);
@@ -74,6 +80,8 @@ public final class GetPromptHandlers {
     customizers.forEach(c -> c.customize(config));
     List<MethodInterceptor<? super Map<String, String>>> chain = config.freezeInterceptors();
     List<Guard> guards = config.freezeGuards();
+    List<ParameterResolver<? super Map<String, String>>> resolvers =
+        buildResolvers(conversionService, config.freezeResolvers());
     MethodInvoker<Map<String, String>> invoker =
         invokerFactory.create(
             method,
@@ -86,6 +94,14 @@ public final class GetPromptHandlers {
     return new GetPromptHandler(descriptor, method, bean, invoker, candidatesOf(method), guards);
   }
 
+  private static List<ParameterResolver<? super Map<String, String>>> buildResolvers(
+      ConversionService conversionService,
+      List<ParameterResolver<? super Map<String, String>>> userResolvers) {
+    List<ParameterResolver<? super Map<String, String>>> out = new ArrayList<>(userResolvers);
+    out.add(new StringMapArgResolver(conversionService));
+    return List.copyOf(out);
+  }
+
   private static final class MutableConfig implements GetPromptHandlerConfig {
     private final Prompt descriptor;
     private final Method method;
@@ -93,6 +109,8 @@ public final class GetPromptHandlers {
     private final List<MethodInterceptor<? super Map<String, String>>> interceptors =
         new ArrayList<>();
     private final List<Guard> guards = new ArrayList<>();
+    private final List<ParameterResolver<? super Map<String, String>>> resolvers =
+        new ArrayList<>();
 
     MutableConfig(Prompt descriptor, Method method, Object bean) {
       this.descriptor = descriptor;
@@ -128,12 +146,23 @@ public final class GetPromptHandlers {
       return this;
     }
 
+    @Override
+    public GetPromptHandlerConfig resolver(
+        ParameterResolver<? super Map<String, String>> resolver) {
+      resolvers.add(resolver);
+      return this;
+    }
+
     List<MethodInterceptor<? super Map<String, String>>> freezeInterceptors() {
       return List.copyOf(interceptors);
     }
 
     List<Guard> freezeGuards() {
       return List.copyOf(guards);
+    }
+
+    List<ParameterResolver<? super Map<String, String>>> freezeResolvers() {
+      return List.copyOf(resolvers);
     }
   }
 

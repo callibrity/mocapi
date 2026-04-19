@@ -65,6 +65,25 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- **Custom `ParameterResolver`s via the customizer SPI.** Each
+  `*HandlerConfig` (tool, prompt, resource, resource-template)
+  gains a `resolver(ParameterResolver<? super X>)` mutator that
+  slots alongside the existing `interceptor(...)` and `guard(...)`
+  entry points. Customizer beans (e.g. `CallToolHandlerCustomizer`)
+  can now register bespoke resolvers — for patterns like
+  `@CurrentTenant String tenant` pulled from the session — without
+  forking the autoconfig. User resolvers are placed ahead of the
+  structural catch-all (Jackson for tools, `StringMapArgResolver`
+  for prompts and resource templates), so a specific `supports()`
+  check always wins over the generic fallback. Builder signatures
+  changed: `CallToolHandlers.build(...)` takes an `ObjectMapper`
+  (the structural resolvers are constructed internally);
+  `GetPromptHandlers.build(...)` and
+  `ReadResourceTemplateHandlers.build(...)` take a
+  `ConversionService`; none of the builders accept a resolver list
+  any longer. See
+  [docs/tools-guide.md](docs/tools-guide.md) ("Custom Parameter
+  Resolvers") and [docs/prompts-guide.md](docs/prompts-guide.md).
 - **New module `mocapi-spring-security-guards`.** First real `Guard`
   implementation mocapi ships. Two method-level annotations —
   `@RequiresScope(String[])` (all scopes required, AND semantics) and

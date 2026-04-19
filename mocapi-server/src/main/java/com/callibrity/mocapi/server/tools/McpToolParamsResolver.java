@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.autoconfigure;
+package com.callibrity.mocapi.server.tools;
 
 import com.callibrity.mocapi.api.tools.McpToolParams;
 import org.jwcarman.methodical.ParameterResolutionException;
@@ -23,11 +23,15 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-class McpToolParamsResolver implements ParameterResolver<JsonNode> {
+/**
+ * Resolves a tool method's {@code @McpToolParams}-annotated parameter by deserializing the incoming
+ * JSON argument tree into the parameter's declared type via the supplied {@link ObjectMapper}.
+ */
+public class McpToolParamsResolver implements ParameterResolver<JsonNode> {
 
   private final ObjectMapper mapper;
 
-  McpToolParamsResolver(ObjectMapper mapper) {
+  public McpToolParamsResolver(ObjectMapper mapper) {
     this.mapper = mapper;
   }
 

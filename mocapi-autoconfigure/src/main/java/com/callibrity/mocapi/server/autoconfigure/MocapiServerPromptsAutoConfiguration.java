@@ -21,13 +21,10 @@ import com.callibrity.mocapi.server.prompts.GetPromptHandler;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlers;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
-import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -55,10 +52,8 @@ public class MocapiServerPromptsAutoConfiguration {
       StringValueResolver mcpAnnotationValueResolver,
       McpCompletionsService completions,
       @Autowired(required = false) List<GetPromptHandlerCustomizer> promptCustomizers) {
-    List<ParameterResolver<? super Map<String, String>>> resolvers =
-        List.of(
-            new StringMapArgResolver(
-                conversionService.getIfAvailable(DefaultConversionService::getSharedInstance)));
+    ConversionService cs =
+        conversionService.getIfAvailable(DefaultConversionService::getSharedInstance);
     List<GetPromptHandlerCustomizer> customizers =
         promptCustomizers == null ? List.of() : promptCustomizers;
     List<GetPromptHandler> handlers =
@@ -70,7 +65,7 @@ public class MocapiServerPromptsAutoConfiguration {
                           bm.bean(),
                           bm.method(),
                           invokerFactory,
-                          resolvers,
+                          cs,
                           customizers,
                           mcpAnnotationValueResolver::resolveStringValue);
                   log.info(

@@ -21,7 +21,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
-import com.callibrity.mocapi.server.util.StringMapArgResolver;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,15 +35,16 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
+import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ReadResourceTemplateHandlerTest {
 
   private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
-  private final List<ParameterResolver<? super Map<String, String>>> templateResolvers =
-      List.of(new StringMapArgResolver(DefaultConversionService.getSharedInstance()));
+  private final ConversionService conversionService = DefaultConversionService.getSharedInstance();
 
   private List<ReadResourceTemplateHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpResourceTemplate.class)
@@ -48,7 +52,7 @@ class ReadResourceTemplateHandlerTest {
         .map(
             m ->
                 ReadResourceTemplateHandlers.build(
-                    target, m, invokerFactory, templateResolvers, List.of(), s -> s))
+                    target, m, invokerFactory, conversionService, List.of(), s -> s))
         .toList();
   }
 
@@ -163,7 +167,7 @@ class ReadResourceTemplateHandlerTest {
 
     var handler =
         ReadResourceTemplateHandlers.build(
-            bean, method, invokerFactory, templateResolvers, List.of(customizer), s -> s);
+            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();
@@ -181,5 +185,88 @@ class ReadResourceTemplateHandlerTest {
     assertThatThrownBy(() -> createHandlers(target))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ReadResourceResult");
+  }
+
+  @Test
+  void customizer_added_resolver_binds_custom_parameter() {
+    var bean = new TenantTemplate();
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResourceTemplate.class)
+            .getFirst();
+    ReadResourceTemplateHandlerCustomizer customizer =
+        config -> config.resolver(new CurrentTenantResolver());
+
+    var handler =
+        ReadResourceTemplateHandlers.build(
+            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+    var result = handler.read(Map.of("id", "7"));
+
+    var content = (TextResourceContents) result.contents().getFirst();
+    assertThat(content.text()).isEqualTo("tenant=acme id=7");
+  }
+
+  @Test
+  void customizer_added_resolver_wins_over_string_map_catchall() {
+    var bean = new StringArgTemplate();
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResourceTemplate.class)
+            .getFirst();
+    ReadResourceTemplateHandlerCustomizer customizer =
+        config ->
+            config.resolver(
+                new ParameterResolver<Map<String, String>>() {
+                  @Override
+                  public boolean supports(ParameterInfo info) {
+                    return info.resolvedType() == String.class;
+                  }
+
+                  @Override
+                  public Object resolve(ParameterInfo info, Map<String, String> vars) {
+                    return "from-resolver";
+                  }
+                });
+
+    var handler =
+        ReadResourceTemplateHandlers.build(
+            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+    var result = handler.read(Map.of("value", "from-vars"));
+
+    var content = (TextResourceContents) result.contents().getFirst();
+    assertThat(content.text()).isEqualTo("from-resolver");
+  }
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.PARAMETER)
+  @interface CurrentTenant {}
+
+  static final class CurrentTenantResolver implements ParameterResolver<Map<String, String>> {
+    @Override
+    public boolean supports(ParameterInfo info) {
+      return info.parameter().isAnnotationPresent(CurrentTenant.class)
+          && info.resolvedType() == String.class;
+    }
+
+    @Override
+    public Object resolve(ParameterInfo info, Map<String, String> vars) {
+      return "acme";
+    }
+  }
+
+  public static class TenantTemplate {
+    @McpResourceTemplate(uriTemplate = "test://tenants/{id}")
+    public ReadResourceResult read(@CurrentTenant String tenant, String id) {
+      return new ReadResourceResult(
+          List.of(
+              new TextResourceContents(
+                  "test://tenants/" + id, "text/plain", "tenant=" + tenant + " id=" + id)));
+    }
+  }
+
+  public static class StringArgTemplate {
+    @McpResourceTemplate(uriTemplate = "test://echo/{value}")
+    public ReadResourceResult echo(String value) {
+      return new ReadResourceResult(
+          List.of(new TextResourceContents("test://echo/" + value, "text/plain", value)));
+    }
   }
 }

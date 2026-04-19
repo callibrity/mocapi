@@ -25,6 +25,11 @@ import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.util.HelloTool;
 import com.callibrity.mocapi.server.tools.util.InteractiveTool;
 import com.github.victools.jsonschema.generator.SchemaVersion;
+import jakarta.annotation.Nullable;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,7 +39,7 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
-import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
+import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -44,8 +49,6 @@ class CallToolHandlerTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
   private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
-  private final List<ParameterResolver<? super JsonNode>> resolvers =
-      List.of(new McpToolContextResolver(), new Jackson3ParameterResolver(mapper));
   private final DefaultMethodSchemaGenerator generator =
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
 
@@ -54,7 +57,7 @@ class CallToolHandlerTest {
         .map(
             m ->
                 CallToolHandlers.build(
-                    target, m, generator, invokerFactory, resolvers, List.of(), s -> s))
+                    target, m, generator, invokerFactory, mapper, List.of(), s -> s))
         .toList();
   }
 
@@ -142,7 +145,7 @@ class CallToolHandlerTest {
 
     var handler =
         CallToolHandlers.build(
-            bean, method, generator, invokerFactory, resolvers, List.of(customizer), s -> s);
+            bean, method, generator, invokerFactory, mapper, List.of(customizer), s -> s);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();
@@ -152,6 +155,86 @@ class CallToolHandlerTest {
 
     handler.call(mapper.createObjectNode().put("name", "World"));
     assertThat(hits).hasValue(1);
+  }
+
+  @Test
+  void customizer_added_resolver_binds_custom_parameter() {
+    var bean = new TenantTool();
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
+    CallToolHandlerCustomizer customizer = config -> config.resolver(new CurrentTenantResolver());
+
+    var handler =
+        CallToolHandlers.build(
+            bean, method, generator, invokerFactory, mapper, List.of(customizer), s -> s);
+    var result = handler.call(mapper.createObjectNode());
+
+    assertThat(mapper.valueToTree(result).get("tenant").stringValue()).isEqualTo("acme");
+  }
+
+  @Test
+  void customizer_added_resolver_wins_over_jackson_catchall() {
+    var bean = new StringArgTool();
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
+    // Resolver claims any String parameter and supplies a fixed value — if ordering were wrong
+    // the catch-all Jackson3ParameterResolver would read "input" from the arguments tree instead.
+    CallToolHandlerCustomizer customizer =
+        config ->
+            config.resolver(
+                new ParameterResolver<JsonNode>() {
+                  @Override
+                  public boolean supports(ParameterInfo info) {
+                    return info.resolvedType() == String.class;
+                  }
+
+                  @Override
+                  public Object resolve(ParameterInfo info, JsonNode arguments) {
+                    return "from-resolver";
+                  }
+                });
+
+    var handler =
+        CallToolHandlers.build(
+            bean, method, generator, invokerFactory, mapper, List.of(customizer), s -> s);
+    var result = handler.call(mapper.createObjectNode().put("input", "from-json"));
+
+    assertThat(mapper.valueToTree(result).get("value").stringValue()).isEqualTo("from-resolver");
+  }
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.PARAMETER)
+  @interface CurrentTenant {}
+
+  static final class CurrentTenantResolver implements ParameterResolver<JsonNode> {
+    @Override
+    public boolean supports(ParameterInfo info) {
+      return info.parameter().isAnnotationPresent(CurrentTenant.class)
+          && info.resolvedType() == String.class;
+    }
+
+    @Override
+    public Object resolve(ParameterInfo info, JsonNode arguments) {
+      return "acme";
+    }
+  }
+
+  record TenantResult(String tenant) {}
+
+  static class TenantTool {
+    @McpTool
+    public TenantResult read(@CurrentTenant @Nullable String tenant) {
+      return new TenantResult(tenant);
+    }
+  }
+
+  record StringResult(String value) {}
+
+  static class StringArgTool {
+    @McpTool
+    public StringResult echo(String input) {
+      return new StringResult(input);
+    }
   }
 
   static class CustomizedTool {

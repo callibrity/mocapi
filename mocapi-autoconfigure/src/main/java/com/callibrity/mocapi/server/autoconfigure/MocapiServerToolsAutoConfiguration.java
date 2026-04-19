@@ -20,7 +20,6 @@ import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlers;
-import com.callibrity.mocapi.server.tools.McpToolContextResolver;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
@@ -28,8 +27,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
-import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -37,7 +34,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.util.StringValueResolver;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration(after = MocapiServerAutoConfiguration.class)
@@ -60,11 +56,6 @@ public class MocapiServerToolsAutoConfiguration {
       McpResponseCorrelationService correlationService,
       @Autowired(required = false) List<CallToolHandlerCustomizer> toolCustomizers,
       StringValueResolver mcpAnnotationValueResolver) {
-    List<ParameterResolver<? super JsonNode>> resolvers =
-        List.of(
-            new McpToolContextResolver(),
-            new McpToolParamsResolver(objectMapper),
-            new Jackson3ParameterResolver(objectMapper));
     List<CallToolHandlerCustomizer> customizers =
         toolCustomizers == null ? List.of() : toolCustomizers;
     List<CallToolHandler> handlers =
@@ -77,7 +68,7 @@ public class MocapiServerToolsAutoConfiguration {
                           bm.method(),
                           generator,
                           invokerFactory,
-                          resolvers,
+                          objectMapper,
                           customizers,
                           mcpAnnotationValueResolver::resolveStringValue);
                   log.info(

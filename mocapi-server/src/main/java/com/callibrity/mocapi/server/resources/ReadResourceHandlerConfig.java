@@ -19,12 +19,14 @@ import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.server.guards.Guard;
 import java.lang.reflect.Method;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
+import org.jwcarman.methodical.param.ParameterResolver;
 
 /**
  * Per-handler configuration view passed to each {@link ReadResourceHandlerCustomizer} while a
  * {@link ReadResourceHandler} is being built. Customizers may inspect the resource descriptor,
  * target method, and target bean, append {@link MethodInterceptor}s to the handler's invocation
- * chain, and attach {@link Guard}s that gate visibility and invocation.
+ * chain, attach {@link Guard}s that gate visibility and invocation, and register additional {@link
+ * ParameterResolver}s that supply values for bespoke parameter types.
  */
 public interface ReadResourceHandlerConfig {
 
@@ -37,4 +39,6 @@ public interface ReadResourceHandlerConfig {
   ReadResourceHandlerConfig interceptor(MethodInterceptor<? super Object> interceptor);
 
   ReadResourceHandlerConfig guard(Guard guard);
+
+  ReadResourceHandlerConfig resolver(ParameterResolver<? super Object> resolver);
 }

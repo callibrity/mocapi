@@ -36,8 +36,10 @@ import java.util.function.UnaryOperator;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
+import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import org.jwcarman.methodical.param.ParameterResolver;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
@@ -51,16 +53,20 @@ public final class CallToolHandlers {
 
   /**
    * Builds one {@link CallToolHandler} for the given {@code (bean, method)} pair. The handler's
-   * invoker is wired with the supplied parameter resolvers plus any interceptors contributed by the
-   * customizer chain; an {@link InputSchemaValidatingInterceptor} for the compiled input schema is
-   * appended last (innermost) so schema validation runs closest to the reflective call.
+   * invoker is wired with the structural parameter resolvers ({@link McpToolContextResolver},
+   * {@link McpToolParamsResolver}, and a catch-all {@link Jackson3ParameterResolver}) plus any
+   * user-supplied resolvers contributed via the customizer chain; customizer-added resolvers are
+   * placed ahead of the catch-all so a specific resolver always wins over the generic Jackson
+   * fallback. Interceptors contributed by customizers run in order, followed by an {@link
+   * InputSchemaValidatingInterceptor} for the compiled input schema (innermost) so schema
+   * validation runs closest to the reflective call.
    */
   public static CallToolHandler build(
       Object bean,
       Method method,
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
-      List<ParameterResolver<? super JsonNode>> resolvers,
+      ObjectMapper objectMapper,
       List<CallToolHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
     validateMcpToolParams(bean, method);
@@ -80,6 +86,8 @@ public final class CallToolHandlers {
     customizers.forEach(c -> c.customize(config));
     List<MethodInterceptor<? super JsonNode>> chain = config.freezeInterceptors();
     List<Guard> guards = config.freezeGuards();
+    List<ParameterResolver<? super JsonNode>> resolvers =
+        buildResolvers(objectMapper, config.freezeResolvers());
     MethodInvoker<JsonNode> invoker =
         invokerFactory.create(
             method,
@@ -93,12 +101,23 @@ public final class CallToolHandlers {
     return new CallToolHandler(descriptor, method, bean, invoker, guards);
   }
 
+  private static List<ParameterResolver<? super JsonNode>> buildResolvers(
+      ObjectMapper objectMapper, List<ParameterResolver<? super JsonNode>> userResolvers) {
+    List<ParameterResolver<? super JsonNode>> out = new ArrayList<>();
+    out.add(new McpToolContextResolver());
+    out.add(new McpToolParamsResolver(objectMapper));
+    out.addAll(userResolvers);
+    out.add(new Jackson3ParameterResolver(objectMapper));
+    return List.copyOf(out);
+  }
+
   private static final class MutableConfig implements CallToolHandlerConfig {
     private final Tool descriptor;
     private final Method method;
     private final Object bean;
     private final List<MethodInterceptor<? super JsonNode>> interceptors = new ArrayList<>();
     private final List<Guard> guards = new ArrayList<>();
+    private final List<ParameterResolver<? super JsonNode>> resolvers = new ArrayList<>();
 
     MutableConfig(Tool descriptor, Method method, Object bean) {
       this.descriptor = descriptor;
@@ -133,12 +152,22 @@ public final class CallToolHandlers {
       return this;
     }
 
+    @Override
+    public CallToolHandlerConfig resolver(ParameterResolver<? super JsonNode> resolver) {
+      resolvers.add(resolver);
+      return this;
+    }
+
     List<MethodInterceptor<? super JsonNode>> freezeInterceptors() {
       return List.copyOf(interceptors);
     }
 
     List<Guard> freezeGuards() {
       return List.copyOf(guards);
+    }
+
+    List<ParameterResolver<? super JsonNode>> freezeResolvers() {
+      return List.copyOf(resolvers);
     }
   }
 

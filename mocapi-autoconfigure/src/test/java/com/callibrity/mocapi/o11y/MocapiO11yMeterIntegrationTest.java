@@ -32,6 +32,7 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
 import org.jwcarman.methodical.intercept.MethodInvocation;
+import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -129,6 +130,11 @@ class MocapiO11yMeterIntegrationTest {
 
     @Override
     public CallToolHandlerConfig guard(com.callibrity.mocapi.server.guards.Guard guard) {
+      return this;
+    }
+
+    @Override
+    public CallToolHandlerConfig resolver(ParameterResolver<? super JsonNode> resolver) {
       return this;
     }
   }

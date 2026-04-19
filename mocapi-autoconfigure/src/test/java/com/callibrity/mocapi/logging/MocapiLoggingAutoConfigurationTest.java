@@ -37,6 +37,7 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
 import org.jwcarman.methodical.intercept.MethodInvocation;
+import org.jwcarman.methodical.param.ParameterResolver;
 import org.slf4j.MDC;
 import tools.jackson.databind.JsonNode;
 
@@ -157,6 +158,11 @@ class MocapiLoggingAutoConfigurationTest {
     public CallToolHandlerConfig guard(Guard guard) {
       return this;
     }
+
+    @Override
+    public CallToolHandlerConfig resolver(ParameterResolver<? super JsonNode> resolver) {
+      return this;
+    }
   }
 
   private static final class StubPromptConfig implements GetPromptHandlerConfig {
@@ -194,6 +200,12 @@ class MocapiLoggingAutoConfigurationTest {
     public GetPromptHandlerConfig guard(Guard guard) {
       return this;
     }
+
+    @Override
+    public GetPromptHandlerConfig resolver(
+        ParameterResolver<? super Map<String, String>> resolver) {
+      return this;
+    }
   }
 
   private static final class StubResourceConfig implements ReadResourceHandlerConfig {
@@ -227,6 +239,11 @@ class MocapiLoggingAutoConfigurationTest {
 
     @Override
     public ReadResourceHandlerConfig guard(Guard guard) {
+      return this;
+    }
+
+    @Override
+    public ReadResourceHandlerConfig resolver(ParameterResolver<? super Object> resolver) {
       return this;
     }
   }
@@ -265,6 +282,12 @@ class MocapiLoggingAutoConfigurationTest {
 
     @Override
     public ReadResourceTemplateHandlerConfig guard(Guard guard) {
+      return this;
+    }
+
+    @Override
+    public ReadResourceTemplateHandlerConfig resolver(
+        ParameterResolver<? super Map<String, String>> resolver) {
       return this;
     }
   }

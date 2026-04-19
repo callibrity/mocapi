@@ -132,6 +132,42 @@ public GetPromptResult dynamic(Map<String, String> args) {
 
 This is useful when argument names are determined dynamically or when you want to sidestep type conversion entirely.
 
+## Custom Parameter Resolvers
+
+By default, prompt parameters are pulled from the incoming `Map<String, String>` via mocapi's built-in string resolver (with Spring `ConversionService` for type conversion). You can layer your own resolver in front of that fallback to bind bespoke parameter types — for example a "current tenant" annotation populated from the session:
+
+```java
+public final class CurrentTenantResolver implements ParameterResolver<Map<String, String>> {
+    @Override
+    public boolean supports(ParameterInfo info) {
+        return info.parameter().isAnnotationPresent(CurrentTenant.class)
+                && info.resolvedType() == String.class;
+    }
+
+    @Override
+    public Object resolve(ParameterInfo info, Map<String, String> args) {
+        return McpSession.CURRENT.get().attribute("tenant");
+    }
+}
+```
+
+Attach it via a customizer bean:
+
+```java
+@Bean
+GetPromptHandlerCustomizer currentTenantResolverCustomizer() {
+    CurrentTenantResolver resolver = new CurrentTenantResolver();
+    return config -> config.resolver(resolver);
+}
+
+@McpPrompt(name = "tenant-brief")
+public GetPromptResult brief(@CurrentTenant String tenant, String topic) {
+    return ...;
+}
+```
+
+User resolvers run ahead of the string-map fallback, so a specific `supports()` check always wins over the generic string conversion. Resolver selection is first-match-wins per Methodical's semantics. The same pattern applies to `ReadResourceTemplateHandlerCustomizer` for URI-template handlers and `ReadResourceHandlerCustomizer` for static resources.
+
 ## Externalizing Metadata
 
 Every string attribute on `@McpPrompt` (`name`, `title`, `description`) supports Spring's `${...}` property placeholder syntax, so long descriptions don't have to live inline on the annotation. See [Externalizing Annotation Metadata](externalizing-metadata.md).

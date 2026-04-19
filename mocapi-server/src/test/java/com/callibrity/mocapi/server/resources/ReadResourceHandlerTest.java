@@ -21,6 +21,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,6 +34,8 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
+import org.jwcarman.methodical.param.ParameterInfo;
+import org.jwcarman.methodical.param.ParameterResolver;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ReadResourceHandlerTest {
@@ -129,6 +135,47 @@ class ReadResourceHandlerTest {
 
     handler.read();
     assertThat(hits).hasValue(1);
+  }
+
+  @Test
+  void customizer_added_resolver_binds_custom_parameter() {
+    var bean = new TenantResource();
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResource.class).getFirst();
+    ReadResourceHandlerCustomizer customizer =
+        config -> config.resolver(new CurrentTenantResolver());
+
+    var handler =
+        ReadResourceHandlers.build(bean, method, invokerFactory, List.of(customizer), s -> s);
+    var result = handler.read();
+
+    var content = (TextResourceContents) result.contents().getFirst();
+    assertThat(content.text()).isEqualTo("tenant=acme");
+  }
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.PARAMETER)
+  @interface CurrentTenant {}
+
+  static final class CurrentTenantResolver implements ParameterResolver<Object> {
+    @Override
+    public boolean supports(ParameterInfo info) {
+      return info.parameter().isAnnotationPresent(CurrentTenant.class)
+          && info.resolvedType() == String.class;
+    }
+
+    @Override
+    public Object resolve(ParameterInfo info, Object args) {
+      return "acme";
+    }
+  }
+
+  public static class TenantResource {
+    @McpResource(uri = "test://tenant")
+    public ReadResourceResult read(@CurrentTenant String tenant) {
+      return new ReadResourceResult(
+          List.of(new TextResourceContents("test://tenant", "text/plain", "tenant=" + tenant)));
+    }
   }
 
   @Test

@@ -30,6 +30,7 @@ import java.util.function.UnaryOperator;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
+import org.jwcarman.methodical.param.ParameterResolver;
 
 /**
  * Pure-Java factory that builds a single {@link ReadResourceHandler} from a {@code
@@ -40,7 +41,11 @@ public final class ReadResourceHandlers {
 
   private ReadResourceHandlers() {}
 
-  /** Builds one {@link ReadResourceHandler} for the given {@code (bean, method)} pair. */
+  /**
+   * Builds one {@link ReadResourceHandler} for the given {@code (bean, method)} pair. Resource
+   * methods have no structural parameter resolvers; any resolvers attached by customizers are the
+   * only ones wired into the invoker.
+   */
   public static ReadResourceHandler build(
       Object bean,
       Method method,
@@ -59,8 +64,16 @@ public final class ReadResourceHandlers {
     customizers.forEach(c -> c.customize(config));
     List<MethodInterceptor<? super Object>> chain = config.freezeInterceptors();
     List<Guard> guards = config.freezeGuards();
+    List<ParameterResolver<? super Object>> resolvers = config.freezeResolvers();
     MethodInvoker<Object> invoker =
-        invokerFactory.create(method, bean, Object.class, cfg -> chain.forEach(cfg::interceptor));
+        invokerFactory.create(
+            method,
+            bean,
+            Object.class,
+            cfg -> {
+              resolvers.forEach(cfg::resolver);
+              chain.forEach(cfg::interceptor);
+            });
     return new ReadResourceHandler(descriptor, method, bean, invoker, guards);
   }
 
@@ -70,6 +83,7 @@ public final class ReadResourceHandlers {
     private final Object bean;
     private final List<MethodInterceptor<? super Object>> interceptors = new ArrayList<>();
     private final List<Guard> guards = new ArrayList<>();
+    private final List<ParameterResolver<? super Object>> resolvers = new ArrayList<>();
 
     MutableConfig(Resource descriptor, Method method, Object bean) {
       this.descriptor = descriptor;
@@ -104,12 +118,22 @@ public final class ReadResourceHandlers {
       return this;
     }
 
+    @Override
+    public ReadResourceHandlerConfig resolver(ParameterResolver<? super Object> resolver) {
+      resolvers.add(resolver);
+      return this;
+    }
+
     List<MethodInterceptor<? super Object>> freezeInterceptors() {
       return List.copyOf(interceptors);
     }
 
     List<Guard> freezeGuards() {
       return List.copyOf(guards);
+    }
+
+    List<ParameterResolver<? super Object>> freezeResolvers() {
+      return List.copyOf(resolvers);
     }
   }
 

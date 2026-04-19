@@ -25,13 +25,10 @@ import com.callibrity.mocapi.server.resources.ReadResourceHandlers;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlers;
-import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -61,10 +58,8 @@ public class MocapiServerResourcesAutoConfiguration {
       @Autowired(required = false) List<ReadResourceHandlerCustomizer> resourceCustomizers,
       @Autowired(required = false)
           List<ReadResourceTemplateHandlerCustomizer> resourceTemplateCustomizers) {
-    List<ParameterResolver<? super Map<String, String>>> templateResolvers =
-        List.of(
-            new StringMapArgResolver(
-                conversionService.getIfAvailable(DefaultConversionService::getSharedInstance)));
+    ConversionService cs =
+        conversionService.getIfAvailable(DefaultConversionService::getSharedInstance);
     List<ReadResourceHandlerCustomizer> resourceCustoms =
         resourceCustomizers == null ? List.of() : resourceCustomizers;
     List<ReadResourceTemplateHandlerCustomizer> templateCustoms =
@@ -96,7 +91,7 @@ public class MocapiServerResourcesAutoConfiguration {
                           bm.bean(),
                           bm.method(),
                           invokerFactory,
-                          templateResolvers,
+                          cs,
                           templateCustoms,
                           mcpAnnotationValueResolver::resolveStringValue);
                   log.info(

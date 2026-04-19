@@ -23,9 +23,12 @@ import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
-import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,19 +39,23 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
+import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class GetPromptHandlerTest {
 
   private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
-  private final List<ParameterResolver<? super Map<String, String>>> resolvers =
-      List.of(new StringMapArgResolver(DefaultConversionService.getSharedInstance()));
+  private final ConversionService conversionService = DefaultConversionService.getSharedInstance();
 
   private List<GetPromptHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpPrompt.class).stream()
-        .map(m -> GetPromptHandlers.build(target, m, invokerFactory, resolvers, List.of(), s -> s))
+        .map(
+            m ->
+                GetPromptHandlers.build(
+                    target, m, invokerFactory, conversionService, List.of(), s -> s))
         .toList();
   }
 
@@ -181,7 +188,7 @@ class GetPromptHandlerTest {
 
     var handler =
         GetPromptHandlers.build(
-            bean, method, invokerFactory, resolvers, List.of(customizer), s -> s);
+            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();
@@ -191,6 +198,84 @@ class GetPromptHandlerTest {
 
     handler.get(Map.of("text", "hello"));
     assertThat(hits).hasValue(1);
+  }
+
+  @Test
+  void customizer_added_resolver_binds_custom_parameter() {
+    var bean = new TenantPrompt();
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpPrompt.class).getFirst();
+    GetPromptHandlerCustomizer customizer = config -> config.resolver(new CurrentTenantResolver());
+
+    var handler =
+        GetPromptHandlers.build(
+            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+    var result = handler.get(Map.of());
+
+    var content = (TextContent) result.messages().getFirst().content();
+    assertThat(content.text()).isEqualTo("tenant=acme");
+  }
+
+  @Test
+  void customizer_added_resolver_wins_over_string_map_catchall() {
+    var bean = new StringArgPrompt();
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpPrompt.class).getFirst();
+    GetPromptHandlerCustomizer customizer =
+        config ->
+            config.resolver(
+                new ParameterResolver<Map<String, String>>() {
+                  @Override
+                  public boolean supports(ParameterInfo info) {
+                    return info.resolvedType() == String.class;
+                  }
+
+                  @Override
+                  public Object resolve(ParameterInfo info, Map<String, String> args) {
+                    return "from-resolver";
+                  }
+                });
+
+    var handler =
+        GetPromptHandlers.build(
+            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+    var result = handler.get(Map.of("value", "from-args"));
+
+    var content = (TextContent) result.messages().getFirst().content();
+    assertThat(content.text()).isEqualTo("from-resolver");
+  }
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.PARAMETER)
+  @interface CurrentTenant {}
+
+  static final class CurrentTenantResolver implements ParameterResolver<Map<String, String>> {
+    @Override
+    public boolean supports(ParameterInfo info) {
+      return info.parameter().isAnnotationPresent(CurrentTenant.class)
+          && info.resolvedType() == String.class;
+    }
+
+    @Override
+    public Object resolve(ParameterInfo info, Map<String, String> args) {
+      return "acme";
+    }
+  }
+
+  public static class TenantPrompt {
+    @McpPrompt(name = "tenant")
+    public GetPromptResult tenant(@CurrentTenant String tenant) {
+      return new GetPromptResult(
+          null, List.of(new PromptMessage(Role.USER, new TextContent("tenant=" + tenant, null))));
+    }
+  }
+
+  public static class StringArgPrompt {
+    @McpPrompt(name = "string-arg")
+    public GetPromptResult echo(String value) {
+      return new GetPromptResult(
+          null, List.of(new PromptMessage(Role.USER, new TextContent(value, null))));
+    }
   }
 
   @Test

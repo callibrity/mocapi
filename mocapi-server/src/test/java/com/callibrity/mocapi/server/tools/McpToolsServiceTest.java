@@ -53,12 +53,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
-import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
-import org.jwcarman.methodical.param.ParameterResolver;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
@@ -70,9 +67,6 @@ class McpToolsServiceTest {
   private final DefaultMethodSchemaGenerator generator =
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
   private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
-  private final List<ParameterResolver<? super JsonNode>> resolvers =
-      List.of(new McpToolContextResolver(), new Jackson3ParameterResolver(mapper));
-
   @Mock private McpResponseCorrelationService correlationService;
 
   private McpToolsService service;
@@ -82,7 +76,7 @@ class McpToolsServiceTest {
         .map(
             m ->
                 CallToolHandlers.build(
-                    target, m, generator, invokerFactory, resolvers, List.of(), s -> s))
+                    target, m, generator, invokerFactory, mapper, List.of(), s -> s))
         .toList();
   }
 
@@ -333,7 +327,7 @@ class McpToolsServiceTest {
                     m,
                     generator,
                     invokerFactory,
-                    resolvers,
+                    mapper,
                     List.of(config -> java.util.Arrays.stream(guards).forEach(config::guard)),
                     s -> s))
         .toList();

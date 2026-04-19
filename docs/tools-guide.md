@@ -161,6 +161,48 @@ public CallToolResult getStatus() {
 }
 ```
 
+## Custom Parameter Resolvers
+
+The tool builder wires mocapi's own parameter resolvers by default — an `McpToolContext` resolver, an `@McpToolParams` deserializer, and a Jackson catch-all that deserializes named arguments from the request tree. You can layer your own resolver alongside those to bind bespoke parameter types (for example, a "current tenant" pulled from the session).
+
+Write the resolver:
+
+```java
+public final class CurrentTenantResolver implements ParameterResolver<JsonNode> {
+    @Override
+    public boolean supports(ParameterInfo info) {
+        return info.parameter().isAnnotationPresent(CurrentTenant.class)
+                && info.resolvedType() == String.class;
+    }
+
+    @Override
+    public Object resolve(ParameterInfo info, JsonNode arguments) {
+        return McpSession.CURRENT.get().attribute("tenant");
+    }
+}
+```
+
+Attach it to every tool via a customizer bean:
+
+```java
+@Bean
+CallToolHandlerCustomizer currentTenantResolverCustomizer() {
+    CurrentTenantResolver resolver = new CurrentTenantResolver();
+    return config -> config.resolver(resolver);
+}
+```
+
+And declare it on a handler:
+
+```java
+@McpTool(name = "list_tenant_widgets")
+public List<Widget> listTenantWidgets(@CurrentTenant String tenant) {
+    return widgetService.listForTenant(tenant);
+}
+```
+
+Ordering: user resolvers are placed ahead of the catch-all Jackson resolver, so a specific `supports()` check always wins over generic JSON deserialization. Resolver selection within Methodical is first-match-wins.
+
 ## Externalizing Metadata
 
 Every string attribute on `@McpTool` (`name`, `title`, `description`) supports Spring's `${...}` property placeholder syntax, so long descriptions don't have to live inline on the annotation. See [Externalizing Annotation Metadata](externalizing-metadata.md).
