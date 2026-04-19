@@ -21,13 +21,12 @@ import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.Tool;
-import com.callibrity.mocapi.server.guards.Guard;
-import com.callibrity.mocapi.server.prompts.GetPromptHandlerConfig;
-import com.callibrity.mocapi.server.resources.ReadResourceHandlerConfig;
-import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerConfig;
-import com.callibrity.mocapi.server.tools.CallToolHandlerConfig;
+import com.callibrity.mocapi.support.LogCaptor;
+import com.callibrity.mocapi.support.StubHandlerConfigs.StubPromptConfig;
+import com.callibrity.mocapi.support.StubHandlerConfigs.StubResourceConfig;
+import com.callibrity.mocapi.support.StubHandlerConfigs.StubResourceTemplateConfig;
+import com.callibrity.mocapi.support.StubHandlerConfigs.StubToolConfig;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,9 +36,7 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
 import org.jwcarman.methodical.intercept.MethodInvocation;
-import org.jwcarman.methodical.param.ParameterResolver;
 import org.slf4j.MDC;
-import tools.jackson.databind.JsonNode;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MocapiLoggingAutoConfigurationTest {
@@ -96,6 +93,52 @@ class MocapiLoggingAutoConfigurationTest {
     assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("mem://item/{id}");
   }
 
+  @Test
+  void tool_customizer_logs_attachment() {
+    var config = new StubToolConfig(new Tool("get-weather", null, null, null, null));
+
+    try (var captor = LogCaptor.forClass(MocapiLoggingAutoConfiguration.class)) {
+      autoConfig.mcpMdcToolCustomizer().customize(config);
+      assertThat(captor.formattedMessages())
+          .containsExactly("Attached McpMdcInterceptor interceptor to tool \"get-weather\"");
+    }
+  }
+
+  @Test
+  void prompt_customizer_logs_attachment() {
+    var config = new StubPromptConfig(new Prompt("summarize", null, null, null, null));
+
+    try (var captor = LogCaptor.forClass(MocapiLoggingAutoConfiguration.class)) {
+      autoConfig.mcpMdcPromptCustomizer().customize(config);
+      assertThat(captor.formattedMessages())
+          .containsExactly("Attached McpMdcInterceptor interceptor to prompt \"summarize\"");
+    }
+  }
+
+  @Test
+  void resource_customizer_logs_attachment() {
+    var config = new StubResourceConfig(new Resource("mem://hello", "hello", null, null));
+
+    try (var captor = LogCaptor.forClass(MocapiLoggingAutoConfiguration.class)) {
+      autoConfig.mcpMdcResourceCustomizer().customize(config);
+      assertThat(captor.formattedMessages())
+          .containsExactly("Attached McpMdcInterceptor interceptor to resource \"mem://hello\"");
+    }
+  }
+
+  @Test
+  void resource_template_customizer_logs_attachment() {
+    var config =
+        new StubResourceTemplateConfig(new ResourceTemplate("mem://item/{id}", "item", null, null));
+
+    try (var captor = LogCaptor.forClass(MocapiLoggingAutoConfiguration.class)) {
+      autoConfig.mcpMdcResourceTemplateCustomizer().customize(config);
+      assertThat(captor.formattedMessages())
+          .containsExactly(
+              "Attached McpMdcInterceptor interceptor to resource_template \"mem://item/{id}\"");
+    }
+  }
+
   private static AtomicReference<Map<String, String>> runFirstInterceptor(
       List<? extends MethodInterceptor<?>> interceptors) {
     assertThat(interceptors).hasSize(1);
@@ -122,173 +165,6 @@ class MocapiLoggingAutoConfigurationTest {
       return Object.class.getDeclaredMethod("toString");
     } catch (NoSuchMethodException e) {
       throw new AssertionError(e);
-    }
-  }
-
-  private static final class StubToolConfig implements CallToolHandlerConfig {
-    private final Tool descriptor;
-    private final List<MethodInterceptor<? super JsonNode>> interceptors = new ArrayList<>();
-
-    StubToolConfig(Tool descriptor) {
-      this.descriptor = descriptor;
-    }
-
-    @Override
-    public Tool descriptor() {
-      return descriptor;
-    }
-
-    @Override
-    public Method method() {
-      return dummyMethod();
-    }
-
-    @Override
-    public Object bean() {
-      return this;
-    }
-
-    @Override
-    public CallToolHandlerConfig interceptor(MethodInterceptor<? super JsonNode> interceptor) {
-      interceptors.add(interceptor);
-      return this;
-    }
-
-    @Override
-    public CallToolHandlerConfig guard(Guard guard) {
-      return this;
-    }
-
-    @Override
-    public CallToolHandlerConfig resolver(ParameterResolver<? super JsonNode> resolver) {
-      return this;
-    }
-  }
-
-  private static final class StubPromptConfig implements GetPromptHandlerConfig {
-    private final Prompt descriptor;
-    private final List<MethodInterceptor<? super Map<String, String>>> interceptors =
-        new ArrayList<>();
-
-    StubPromptConfig(Prompt descriptor) {
-      this.descriptor = descriptor;
-    }
-
-    @Override
-    public Prompt descriptor() {
-      return descriptor;
-    }
-
-    @Override
-    public Method method() {
-      return dummyMethod();
-    }
-
-    @Override
-    public Object bean() {
-      return this;
-    }
-
-    @Override
-    public GetPromptHandlerConfig interceptor(
-        MethodInterceptor<? super Map<String, String>> interceptor) {
-      interceptors.add(interceptor);
-      return this;
-    }
-
-    @Override
-    public GetPromptHandlerConfig guard(Guard guard) {
-      return this;
-    }
-
-    @Override
-    public GetPromptHandlerConfig resolver(
-        ParameterResolver<? super Map<String, String>> resolver) {
-      return this;
-    }
-  }
-
-  private static final class StubResourceConfig implements ReadResourceHandlerConfig {
-    private final Resource descriptor;
-    private final List<MethodInterceptor<? super Object>> interceptors = new ArrayList<>();
-
-    StubResourceConfig(Resource descriptor) {
-      this.descriptor = descriptor;
-    }
-
-    @Override
-    public Resource descriptor() {
-      return descriptor;
-    }
-
-    @Override
-    public Method method() {
-      return dummyMethod();
-    }
-
-    @Override
-    public Object bean() {
-      return this;
-    }
-
-    @Override
-    public ReadResourceHandlerConfig interceptor(MethodInterceptor<? super Object> interceptor) {
-      interceptors.add(interceptor);
-      return this;
-    }
-
-    @Override
-    public ReadResourceHandlerConfig guard(Guard guard) {
-      return this;
-    }
-
-    @Override
-    public ReadResourceHandlerConfig resolver(ParameterResolver<? super Object> resolver) {
-      return this;
-    }
-  }
-
-  private static final class StubResourceTemplateConfig
-      implements ReadResourceTemplateHandlerConfig {
-    private final ResourceTemplate descriptor;
-    private final List<MethodInterceptor<? super Map<String, String>>> interceptors =
-        new ArrayList<>();
-
-    StubResourceTemplateConfig(ResourceTemplate descriptor) {
-      this.descriptor = descriptor;
-    }
-
-    @Override
-    public ResourceTemplate descriptor() {
-      return descriptor;
-    }
-
-    @Override
-    public Method method() {
-      return dummyMethod();
-    }
-
-    @Override
-    public Object bean() {
-      return this;
-    }
-
-    @Override
-    public ReadResourceTemplateHandlerConfig interceptor(
-        MethodInterceptor<? super Map<String, String>> interceptor) {
-      interceptors.add(interceptor);
-      return this;
-    }
-
-    @Override
-    public ReadResourceTemplateHandlerConfig guard(Guard guard) {
-      return this;
-    }
-
-    @Override
-    public ReadResourceTemplateHandlerConfig resolver(
-        ParameterResolver<? super Map<String, String>> resolver) {
-      return this;
     }
   }
 }

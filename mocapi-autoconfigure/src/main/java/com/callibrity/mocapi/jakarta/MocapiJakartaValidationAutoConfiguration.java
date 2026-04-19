@@ -20,6 +20,8 @@ import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import org.jwcarman.methodical.jakarta.JakartaValidationInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -38,27 +40,54 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnBean(JakartaValidationInterceptor.class)
 public class MocapiJakartaValidationAutoConfiguration {
 
+  private static final Logger log =
+      LoggerFactory.getLogger(MocapiJakartaValidationAutoConfiguration.class);
+
   @Bean
   public CallToolHandlerCustomizer jakartaValidationToolCustomizer(
       JakartaValidationInterceptor interceptor) {
-    return config -> config.interceptor(interceptor);
+    return config -> {
+      config.interceptor(interceptor);
+      log.info(
+          "Attached {} interceptor to tool \"{}\"",
+          JakartaValidationInterceptor.class.getSimpleName(),
+          config.descriptor().name());
+    };
   }
 
   @Bean
   public GetPromptHandlerCustomizer jakartaValidationPromptCustomizer(
       JakartaValidationInterceptor interceptor) {
-    return config -> config.interceptor(interceptor);
+    return config -> {
+      config.interceptor(interceptor);
+      log.info(
+          "Attached {} interceptor to prompt \"{}\"",
+          JakartaValidationInterceptor.class.getSimpleName(),
+          config.descriptor().name());
+    };
   }
 
   @Bean
   public ReadResourceHandlerCustomizer jakartaValidationResourceCustomizer(
       JakartaValidationInterceptor interceptor) {
-    return config -> config.interceptor(interceptor);
+    return config -> {
+      config.interceptor(interceptor);
+      log.info(
+          "Attached {} interceptor to resource \"{}\"",
+          JakartaValidationInterceptor.class.getSimpleName(),
+          config.descriptor().uri());
+    };
   }
 
   @Bean
   public ReadResourceTemplateHandlerCustomizer jakartaValidationResourceTemplateCustomizer(
       JakartaValidationInterceptor interceptor) {
-    return config -> config.interceptor(interceptor);
+    return config -> {
+      config.interceptor(interceptor);
+      log.info(
+          "Attached {} interceptor to resource_template \"{}\"",
+          JakartaValidationInterceptor.class.getSimpleName(),
+          config.descriptor().uriTemplate());
+    };
   }
 }

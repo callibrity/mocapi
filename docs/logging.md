@@ -104,3 +104,50 @@ or in `application.properties`:
 ```properties
 spring.autoconfigure.exclude=com.callibrity.mocapi.logging.MocapiLoggingAutoConfiguration
 ```
+
+## Startup log lines
+
+Every built-in mocapi customizer emits one INFO-level line each time it
+successfully attaches an interceptor, guard, or resolver to a handler.
+Use these lines to confirm at boot time that the autoconfig you expected
+to activate actually did — no more hunting through `/actuator/conditions`.
+
+Format:
+
+```
+Attached <class simple name> interceptor to <kind> "<name>"
+Attached <class simple name> guard       to <kind> "<name>"
+```
+
+Where `<kind>` is `tool`, `prompt`, `resource`, or `resource_template`,
+and `<name>` is the tool/prompt name or resource URI / URI template.
+
+Which class emits what:
+
+| Logger (autoconfig FQN)                                                              | Attaches                        |
+|--------------------------------------------------------------------------------------|---------------------------------|
+| `com.callibrity.mocapi.logging.MocapiLoggingAutoConfiguration`                       | `McpMdcInterceptor`             |
+| `com.callibrity.mocapi.o11y.MocapiO11yAutoConfiguration`                             | `McpObservationInterceptor`     |
+| `com.callibrity.mocapi.jakarta.MocapiJakartaValidationAutoConfiguration`             | `JakartaValidationInterceptor`  |
+| `com.callibrity.mocapi.security.spring.autoconfigure.MocapiSpringSecurityGuardsAutoConfiguration` | `ScopeGuard` / `RoleGuard` (only when `@RequiresScope` / `@RequiresRole` is present) |
+
+Quick debugging recipes:
+
+- *"Why don't my metrics show up?"* — `grep 'Attached McpObservationInterceptor'`
+  on startup output. Zero lines means the o11y autoconfig didn't activate
+  (likely no `ObservationRegistry` bean). N lines means it's wired — look
+  elsewhere (exposure, actual tool invocations).
+- *"Is MDC wired?"* — `grep 'Attached McpMdcInterceptor'`.
+- *"Did validation activate?"* — `grep 'Attached JakartaValidationInterceptor'`.
+
+To silence the attachment lines once you've confirmed wiring:
+
+```properties
+logging.level.com.callibrity.mocapi=WARN
+```
+
+Conditional customizers (spring-security-guards) log only when they
+actually attach — methods without `@RequiresScope` / `@RequiresRole`
+produce no output. Per-invocation logging (which tool was called, by
+whom) is emitted by the o11y interceptor, not the customizer, and is
+out of scope for the attachment log.

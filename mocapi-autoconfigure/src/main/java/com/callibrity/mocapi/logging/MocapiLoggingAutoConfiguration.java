@@ -21,6 +21,8 @@ import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomi
 import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -35,27 +37,51 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnClass({McpMdcInterceptor.class, MDC.class, MethodInterceptor.class, McpSession.class})
 public class MocapiLoggingAutoConfiguration {
 
+  private static final Logger log = LoggerFactory.getLogger(MocapiLoggingAutoConfiguration.class);
+
   @Bean
   public CallToolHandlerCustomizer mcpMdcToolCustomizer() {
-    return config -> config.interceptor(new McpMdcInterceptor("tool", config.descriptor().name()));
+    return config -> {
+      var name = config.descriptor().name();
+      config.interceptor(new McpMdcInterceptor("tool", name));
+      log.info(
+          "Attached {} interceptor to tool \"{}\"", McpMdcInterceptor.class.getSimpleName(), name);
+    };
   }
 
   @Bean
   public GetPromptHandlerCustomizer mcpMdcPromptCustomizer() {
-    return config ->
-        config.interceptor(new McpMdcInterceptor("prompt", config.descriptor().name()));
+    return config -> {
+      var name = config.descriptor().name();
+      config.interceptor(new McpMdcInterceptor("prompt", name));
+      log.info(
+          "Attached {} interceptor to prompt \"{}\"",
+          McpMdcInterceptor.class.getSimpleName(),
+          name);
+    };
   }
 
   @Bean
   public ReadResourceHandlerCustomizer mcpMdcResourceCustomizer() {
-    return config ->
-        config.interceptor(new McpMdcInterceptor("resource", config.descriptor().uri()));
+    return config -> {
+      var uri = config.descriptor().uri();
+      config.interceptor(new McpMdcInterceptor("resource", uri));
+      log.info(
+          "Attached {} interceptor to resource \"{}\"",
+          McpMdcInterceptor.class.getSimpleName(),
+          uri);
+    };
   }
 
   @Bean
   public ReadResourceTemplateHandlerCustomizer mcpMdcResourceTemplateCustomizer() {
-    return config ->
-        config.interceptor(
-            new McpMdcInterceptor("resource_template", config.descriptor().uriTemplate()));
+    return config -> {
+      var uriTemplate = config.descriptor().uriTemplate();
+      config.interceptor(new McpMdcInterceptor("resource_template", uriTemplate));
+      log.info(
+          "Attached {} interceptor to resource_template \"{}\"",
+          McpMdcInterceptor.class.getSimpleName(),
+          uriTemplate);
+    };
   }
 }

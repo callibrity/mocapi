@@ -17,14 +17,12 @@ package com.callibrity.mocapi.security.spring.autoconfigure;
 
 import com.callibrity.mocapi.security.spring.ScopeGuard;
 import com.callibrity.mocapi.security.spring.SpringSecurityGuards;
-import com.callibrity.mocapi.server.prompts.GetPromptHandlerConfig;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
-import com.callibrity.mocapi.server.resources.ReadResourceHandlerConfig;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
-import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerConfig;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
-import com.callibrity.mocapi.server.tools.CallToolHandlerConfig;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
@@ -46,28 +44,66 @@ import org.springframework.security.core.Authentication;
 @ConditionalOnClass({ScopeGuard.class, Authentication.class})
 public class MocapiSpringSecurityGuardsAutoConfiguration {
 
+  private static final Logger log =
+      LoggerFactory.getLogger(MocapiSpringSecurityGuardsAutoConfiguration.class);
+
   @Bean
   public CallToolHandlerCustomizer springSecurityToolGuardCustomizer() {
     return config ->
-        SpringSecurityGuards.attach(config, config.method(), CallToolHandlerConfig::guard);
+        SpringSecurityGuards.attach(
+            config,
+            config.method(),
+            (c, g) -> {
+              c.guard(g);
+              log.info(
+                  "Attached {} guard to tool \"{}\"",
+                  g.getClass().getSimpleName(),
+                  config.descriptor().name());
+            });
   }
 
   @Bean
   public GetPromptHandlerCustomizer springSecurityPromptGuardCustomizer() {
     return config ->
-        SpringSecurityGuards.attach(config, config.method(), GetPromptHandlerConfig::guard);
+        SpringSecurityGuards.attach(
+            config,
+            config.method(),
+            (c, g) -> {
+              c.guard(g);
+              log.info(
+                  "Attached {} guard to prompt \"{}\"",
+                  g.getClass().getSimpleName(),
+                  config.descriptor().name());
+            });
   }
 
   @Bean
   public ReadResourceHandlerCustomizer springSecurityResourceGuardCustomizer() {
     return config ->
-        SpringSecurityGuards.attach(config, config.method(), ReadResourceHandlerConfig::guard);
+        SpringSecurityGuards.attach(
+            config,
+            config.method(),
+            (c, g) -> {
+              c.guard(g);
+              log.info(
+                  "Attached {} guard to resource \"{}\"",
+                  g.getClass().getSimpleName(),
+                  config.descriptor().uri());
+            });
   }
 
   @Bean
   public ReadResourceTemplateHandlerCustomizer springSecurityResourceTemplateGuardCustomizer() {
     return config ->
         SpringSecurityGuards.attach(
-            config, config.method(), ReadResourceTemplateHandlerConfig::guard);
+            config,
+            config.method(),
+            (c, g) -> {
+              c.guard(g);
+              log.info(
+                  "Attached {} guard to resource_template \"{}\"",
+                  g.getClass().getSimpleName(),
+                  config.descriptor().uriTemplate());
+            });
   }
 }
