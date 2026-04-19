@@ -1,11 +1,21 @@
-# mocapi-actuator: /actuator/mcp endpoint core (handlers + sessions)
+# mocapi-actuator: /actuator/mcp endpoint core (handlers only)
 
 ## What to build
 
 A Spring Boot Actuator endpoint at `/actuator/mcp` that reports server
-info, handler catalog, and active sessions. This spec covers the
-endpoint shell and handler/session sub-resources; metrics integration is
-in spec 174.
+info and the handler catalog. This spec covers the endpoint shell and
+tools/prompts/resources sub-resources; metrics integration is in spec
+174.
+
+### Scope note — no session data
+
+Mocapi is a multi-node architecture: `McpSessionService` is backed by
+Substrate (Redis / NATS / etc.) in production. A single node reporting
+"sessions" via its own actuator is either expensive (cross-node
+fan-out), inconsistent (each node sees a subset), or a cross-tenant
+leak. **This endpoint does not expose session listings or counts.**
+Operators that need session visibility build that separately from
+their backing store's native tooling.
 
 ### Module layout
 
@@ -17,7 +27,6 @@ mocapi-actuator/
   src/main/java/com/callibrity/mocapi/actuator/dto/EndpointSnapshot.java
   src/main/java/com/callibrity/mocapi/actuator/dto/ServerInfo.java
   src/main/java/com/callibrity/mocapi/actuator/dto/HandlerSummary.java
-  src/main/java/com/callibrity/mocapi/actuator/dto/SessionSummary.java
   src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
   src/test/...
 ```
@@ -40,7 +49,6 @@ public class McpEndpoint {
   private final McpPromptsService promptsService;
   private final McpResourcesService resourcesService;
   private final McpResourceTemplatesService resourceTemplatesService;
-  private final McpSessionService sessionService;
   private final BuildProperties buildProperties; // optional — @Nullable
 
   @ReadOperation
@@ -48,7 +56,6 @@ public class McpEndpoint {
     return new EndpointSnapshot(
         serverInfo(),
         handlerCounts(),
-        sessionCounts(),
         uptime()
     );
   }
@@ -58,19 +65,12 @@ public class McpEndpoint {
     // path == "tools" → all tools; path starting "tools/" → single by name
     // (or use a separate @ReadOperation method with a nested path selector)
   }
-
-  @ReadOperation
-  public List<SessionSummary> sessions() {
-    return sessionService.snapshotAll().stream()
-        .map(SessionSummary::of)
-        .toList();
-  }
 }
 ```
 
 Sub-operations: `tools`, `tools/{name}`, `prompts`, `prompts/{name}`,
 `resources`, `resources/{uriOrEncodedUri}`, `resourceTemplates`,
-`resourceTemplates/{name}`, `sessions`. Follow whatever selector syntax
+`resourceTemplates/{name}`. Follow whatever selector syntax
 `@WebEndpoint` supports cleanly — multiple `@ReadOperation` methods
 with distinct selectors is fine.
 
@@ -80,7 +80,6 @@ with distinct selectors is fine.
 public record EndpointSnapshot(
     ServerInfo server,
     Map<String, Integer> handlers,   // {tools, prompts, resources, resourceTemplates}
-    Map<String, Integer> sessions,   // {active, initialized}
     String uptime                    // ISO-8601 Duration
 ) {}
 ```
@@ -123,28 +122,13 @@ public record HandlerDetail(
 ) {}
 ```
 
-### DTO: `SessionSummary`
-
-```java
-public record SessionSummary(
-    String id,
-    boolean initialized,
-    LoggingLevel logLevel,
-    Instant createdAt,
-    Instant lastActivityAt
-) {}
-```
-
-**Never includes session content, tool arguments, or any user payload.**
-
 ### Service additions
 
-- `McpSessionService` gains `Collection<SessionSummary> snapshotAll()` if
-  not already present. Returns a defensive copy — no live session
-  refs.
 - Each paginated service (`McpToolsService`, `McpPromptsService`,
   `McpResourcesService`, `McpResourceTemplatesService`) already has
   `allDescriptors()` (added in an earlier change) — use it.
+- `McpSessionService` is **not** touched by this spec; no session data
+  is exposed (see the scope note at the top).
 
 ### Autoconfig
 
