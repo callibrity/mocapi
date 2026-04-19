@@ -17,7 +17,16 @@ package com.callibrity.mocapi.api.resources;
 
 import java.util.List;
 
+/**
+ * Contributes a batch of {@link McpResourceTemplate}s to the server's resource-template registry.
+ * Every Spring bean that implements this interface is picked up at startup; the returned templates
+ * are merged into the catalog exposed through {@code resources/templates/list}.
+ *
+ * <p>For fixed (non-parameterized) URIs, use {@link McpResourceProvider}. Most applications declare
+ * resource templates with {@code @ResourceTemplateMethod} and never implement this SPI directly.
+ */
 @FunctionalInterface
 public interface McpResourceTemplateProvider {
+  /** Returns the resource templates this provider contributes. Called once at startup. */
   List<McpResourceTemplate> getMcpResourceTemplates();
 }

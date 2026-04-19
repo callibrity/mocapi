@@ -21,7 +21,6 @@ import com.callibrity.mocapi.model.ModelPreferences;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.model.ToolChoice;
-import java.util.List;
 
 /**
  * Fluent configuration surface for a sampling {@code createMessage} request. Tool authors receive
@@ -31,8 +30,8 @@ import java.util.List;
  * customizer returns, so callers only ever see this config-only view.
  *
  * <p>Only {@code messages} and {@code maxTokens} are required per the MCP spec. {@code maxTokens}
- * defaults to {@value #DEFAULT_MAX_TOKENS}; at least one message must be added or {@code build()}
- * will throw.
+ * defaults to {@value #DEFAULT_MAX_TOKENS}; at least one message must be added or the runtime's
+ * {@code build()} will throw.
  */
 public interface CreateMessageRequestConfig {
 
@@ -53,16 +52,11 @@ public interface CreateMessageRequestConfig {
   /** Appends a message with the given role and content block (text, image, audio, etc.). */
   CreateMessageRequestConfig message(Role role, ContentBlock content);
 
-  /**
-   * Appends one user-role message per string, in order. Convenient for few-shot prompting. Silently
-   * does nothing if {@code texts} is empty.
-   */
-  default CreateMessageRequestConfig userMessages(String... texts) {
-    for (String text : texts) {
-      userMessage(text);
-    }
-    return this;
-  }
+  /** Appends one user-role message per string, in order. */
+  CreateMessageRequestConfig userMessages(String... texts);
+
+  /** Appends one assistant-role message per string, in order. */
+  CreateMessageRequestConfig assistantMessages(String... texts);
 
   // --- Scalars ----------------------------------------------------------------------------------
 
@@ -88,6 +82,9 @@ public interface CreateMessageRequestConfig {
   /** Appends a model hint by name (e.g. {@code "claude-3-sonnet"}). Multiple calls accumulate. */
   CreateMessageRequestConfig preferModel(String modelNameHint);
 
+  /** Appends multiple model hints by name, in preference order. */
+  CreateMessageRequestConfig preferModels(String... modelNameHints);
+
   /** Cost priority 0.0–1.0. Higher = the client should prefer cheaper models. */
   CreateMessageRequestConfig costPriority(double costPriority);
 
@@ -105,7 +102,7 @@ public interface CreateMessageRequestConfig {
 
   // --- Tools ------------------------------------------------------------------------------------
 
-  /** Append a tool definition the server wants to expose to the LLM during this sample. */
+  /** Append a raw {@link Tool} — fallback for callers that already hold one. */
   CreateMessageRequestConfig tool(Tool tool);
 
   /**
@@ -115,8 +112,8 @@ public interface CreateMessageRequestConfig {
    */
   CreateMessageRequestConfig tool(String name);
 
-  /** Append all tools from the given list. */
-  CreateMessageRequestConfig tools(List<Tool> tools);
+  /** Append multiple tools by name, each resolved from this server's registered tools. */
+  CreateMessageRequestConfig tools(String... names);
 
   /** Append every tool registered on this server. */
   CreateMessageRequestConfig allServerTools();
@@ -125,19 +122,11 @@ public interface CreateMessageRequestConfig {
   CreateMessageRequestConfig toolChoice(ToolChoice toolChoice);
 
   /** Shortcut for {@code toolChoice(ToolChoice.auto())}. */
-  default CreateMessageRequestConfig autoToolChoice() {
-    return toolChoice(ToolChoice.auto());
-  }
+  CreateMessageRequestConfig autoToolChoice();
 
   /** Shortcut for {@code toolChoice(ToolChoice.none())}. */
-  default CreateMessageRequestConfig noneToolChoice() {
-    return toolChoice(ToolChoice.none());
-  }
+  CreateMessageRequestConfig noneToolChoice();
 
-  /**
-   * Shortcut for {@code toolChoice(ToolChoice.specific(name))} — force the model to call this tool.
-   */
-  default CreateMessageRequestConfig mustUseTool(String name) {
-    return toolChoice(ToolChoice.specific(name));
-  }
+  /** Shortcut for {@code toolChoice(ToolChoice.specific(name))} — force this specific tool. */
+  CreateMessageRequestConfig mustUseTool(String name);
 }

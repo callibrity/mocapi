@@ -19,9 +19,25 @@ import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.Prompt;
 import java.util.Map;
 
+/**
+ * Runtime representation of a single MCP prompt — the {@link #descriptor() descriptor} is what
+ * clients see in {@code prompts/list} (name, description, argument specs), and {@link #get(Map)} is
+ * what runs when the client sends {@code prompts/get}. Registered prompts are discovered at startup
+ * via {@link McpPromptProvider}.
+ *
+ * <p>Most applications declare prompts with {@code @PromptService} + {@code @PromptMethod} on
+ * Spring beans and never implement this interface directly — the annotation processor generates an
+ * {@code McpPrompt} per annotated method. Implement this SPI only when you need fully programmatic
+ * control.
+ */
 public interface McpPrompt {
 
+  /** The descriptor advertised to clients in {@code prompts/list}. */
   Prompt descriptor();
 
+  /**
+   * Resolve the prompt with the given arguments. Arguments have already been validated against
+   * {@link Prompt#arguments()} before this method is invoked.
+   */
   GetPromptResult get(Map<String, String> arguments);
 }

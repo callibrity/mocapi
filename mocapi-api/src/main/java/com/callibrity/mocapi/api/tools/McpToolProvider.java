@@ -17,7 +17,18 @@ package com.callibrity.mocapi.api.tools;
 
 import java.util.List;
 
+/**
+ * Contributes a batch of {@link McpTool}s to the server's tool registry. Every Spring bean that
+ * implements this interface is picked up at startup; the returned tools are merged into a single
+ * catalog exposed through {@code tools/list}.
+ *
+ * <p>Most applications never implement this directly — the {@code @ToolService} /
+ * {@code @ToolMethod} annotations generate a provider per annotated bean. Implement this SPI when
+ * you need to register tools programmatically (dynamic catalogs, tools loaded from configuration,
+ * etc.).
+ */
 @FunctionalInterface
 public interface McpToolProvider {
+  /** Returns the tools this provider contributes. Called once at startup. */
   List<McpTool> getMcpTools();
 }

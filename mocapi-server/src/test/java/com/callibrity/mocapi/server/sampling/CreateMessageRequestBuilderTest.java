@@ -175,6 +175,42 @@ class CreateMessageRequestBuilderTest {
   }
 
   @Test
+  void cost_priority_alone_builds_ModelPreferences() {
+    var params =
+        new CreateMessageRequestBuilder(toolsService).userMessage("hi").costPriority(0.1).build();
+
+    assertThat(params.modelPreferences()).isNotNull();
+    assertThat(params.modelPreferences().costPriority()).isEqualTo(0.1);
+    assertThat(params.modelPreferences().speedPriority()).isNull();
+    assertThat(params.modelPreferences().intelligencePriority()).isNull();
+  }
+
+  @Test
+  void speed_priority_alone_builds_ModelPreferences() {
+    var params =
+        new CreateMessageRequestBuilder(toolsService).userMessage("hi").speedPriority(0.3).build();
+
+    assertThat(params.modelPreferences()).isNotNull();
+    assertThat(params.modelPreferences().costPriority()).isNull();
+    assertThat(params.modelPreferences().speedPriority()).isEqualTo(0.3);
+    assertThat(params.modelPreferences().intelligencePriority()).isNull();
+  }
+
+  @Test
+  void intelligence_priority_alone_builds_ModelPreferences() {
+    var params =
+        new CreateMessageRequestBuilder(toolsService)
+            .userMessage("hi")
+            .intelligencePriority(0.7)
+            .build();
+
+    assertThat(params.modelPreferences()).isNotNull();
+    assertThat(params.modelPreferences().costPriority()).isNull();
+    assertThat(params.modelPreferences().speedPriority()).isNull();
+    assertThat(params.modelPreferences().intelligencePriority()).isEqualTo(0.7);
+  }
+
+  @Test
   void priorities_aggregate_into_ModelPreferences() {
     var params =
         new CreateMessageRequestBuilder(toolsService)
@@ -247,6 +283,50 @@ class CreateMessageRequestBuilderTest {
     var builder = new CreateMessageRequestBuilder(toolsService).userMessages();
 
     assertThatThrownBy(builder::build).isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void assistantMessages_varargs_appends_one_assistant_message_per_string() {
+    var params =
+        new CreateMessageRequestBuilder(toolsService)
+            .userMessage("q")
+            .assistantMessages("a1", "a2")
+            .build();
+
+    assertThat(params.messages()).hasSize(3);
+    assertThat(params.messages().get(1).role()).isEqualTo(Role.ASSISTANT);
+    assertThat(((TextContent) params.messages().get(1).content()).text()).isEqualTo("a1");
+    assertThat(params.messages().get(2).role()).isEqualTo(Role.ASSISTANT);
+    assertThat(((TextContent) params.messages().get(2).content()).text()).isEqualTo("a2");
+  }
+
+  @Test
+  void preferModels_varargs_appends_one_hint_per_string() {
+    var params =
+        new CreateMessageRequestBuilder(toolsService)
+            .userMessage("hi")
+            .preferModels("claude-3-sonnet", "claude-3-opus", "claude-3-haiku")
+            .build();
+
+    assertThat(params.modelPreferences().hints())
+        .extracting("name")
+        .containsExactly("claude-3-sonnet", "claude-3-opus", "claude-3-haiku");
+  }
+
+  @Test
+  void tools_varargs_resolves_each_name_via_tools_service() {
+    var t1 = new Tool("blast-radius", null, "A", null, null);
+    var t2 = new Tool("service-dependents", null, "B", null, null);
+    when(toolsService.findToolDescriptor("blast-radius")).thenReturn(t1);
+    when(toolsService.findToolDescriptor("service-dependents")).thenReturn(t2);
+
+    var params =
+        new CreateMessageRequestBuilder(toolsService)
+            .userMessage("hi")
+            .tools("blast-radius", "service-dependents")
+            .build();
+
+    assertThat(params.tools()).containsExactly(t1, t2);
   }
 
   @Test

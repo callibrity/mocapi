@@ -19,9 +19,24 @@ import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import java.util.Map;
 
+/**
+ * Runtime representation of a parameterized MCP resource — the {@link #descriptor() descriptor}
+ * carries a URI template (e.g. {@code file:///logs/{date}}) advertised in {@code
+ * resources/templates/list}, and {@link #read(Map)} resolves a concrete read request by filling in
+ * the template variables. Registered via {@link McpResourceTemplateProvider}.
+ *
+ * <p>Use {@link McpResource} for fixed (non-parameterized) URIs. Most applications declare resource
+ * templates with {@code @ResourceTemplateMethod} and never implement this SPI directly.
+ */
 public interface McpResourceTemplate {
 
+  /** The template descriptor advertised to clients in {@code resources/templates/list}. */
   ResourceTemplate descriptor();
 
+  /**
+   * Read the resource for a concrete set of path-variable bindings extracted from the requested
+   * URI. Keys in {@code pathVariables} correspond to the {@code {name}} placeholders in {@link
+   * ResourceTemplate#uriTemplate()}.
+   */
   ReadResourceResult read(Map<String, String> pathVariables);
 }

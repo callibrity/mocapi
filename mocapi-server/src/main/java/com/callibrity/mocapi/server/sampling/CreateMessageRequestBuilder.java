@@ -80,6 +80,14 @@ public final class CreateMessageRequestBuilder implements CreateMessageRequestCo
   }
 
   @Override
+  public CreateMessageRequestBuilder assistantMessages(String... texts) {
+    for (String text : texts) {
+      assistantMessage(text);
+    }
+    return this;
+  }
+
+  @Override
   public CreateMessageRequestBuilder systemPrompt(String systemPrompt) {
     this.systemPrompt = systemPrompt;
     return this;
@@ -112,6 +120,14 @@ public final class CreateMessageRequestBuilder implements CreateMessageRequestCo
   @Override
   public CreateMessageRequestBuilder preferModel(String modelNameHint) {
     hints.add(new ModelHint(modelNameHint));
+    return this;
+  }
+
+  @Override
+  public CreateMessageRequestBuilder preferModels(String... modelNameHints) {
+    for (String hint : modelNameHints) {
+      preferModel(hint);
+    }
     return this;
   }
 
@@ -156,8 +172,10 @@ public final class CreateMessageRequestBuilder implements CreateMessageRequestCo
   }
 
   @Override
-  public CreateMessageRequestBuilder tools(List<Tool> tools) {
-    this.tools.addAll(tools);
+  public CreateMessageRequestBuilder tools(String... names) {
+    for (String name : names) {
+      tool(name);
+    }
     return this;
   }
 

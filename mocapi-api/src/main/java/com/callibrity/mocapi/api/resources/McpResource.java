@@ -18,9 +18,21 @@ package com.callibrity.mocapi.api.resources;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 
+/**
+ * Runtime representation of a single fixed MCP resource — the {@link #descriptor() descriptor} is
+ * what clients see in {@code resources/list} (URI, name, description, MIME type), and {@link
+ * #read()} produces the content returned by {@code resources/read}. Registered via {@link
+ * McpResourceProvider}.
+ *
+ * <p>Use {@link McpResourceTemplate} instead when the URI contains path variables (e.g. {@code
+ * file:///logs/{date}}). Most applications declare resources with {@code @ResourceService} +
+ * {@code @ResourceMethod} rather than implementing this SPI directly.
+ */
 public interface McpResource {
 
+  /** The descriptor advertised to clients in {@code resources/list}. */
   Resource descriptor();
 
+  /** Produce the content returned by {@code resources/read}. Called on every read request. */
   ReadResourceResult read();
 }

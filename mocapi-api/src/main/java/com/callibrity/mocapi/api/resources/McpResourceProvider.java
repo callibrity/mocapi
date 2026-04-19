@@ -17,7 +17,17 @@ package com.callibrity.mocapi.api.resources;
 
 import java.util.List;
 
+/**
+ * Contributes a batch of fixed {@link McpResource}s to the server's resource registry. Every Spring
+ * bean that implements this interface is picked up at startup; the returned resources are merged
+ * into the catalog exposed through {@code resources/list}.
+ *
+ * <p>For parameterized URIs, use {@link McpResourceTemplateProvider} instead. Most applications
+ * declare resources with {@code @ResourceService} / {@code @ResourceMethod} and never implement
+ * this SPI directly.
+ */
 @FunctionalInterface
 public interface McpResourceProvider {
+  /** Returns the resources this provider contributes. Called once at startup. */
   List<McpResource> getMcpResources();
 }

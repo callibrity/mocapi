@@ -17,7 +17,17 @@ package com.callibrity.mocapi.api.prompts;
 
 import java.util.List;
 
+/**
+ * Contributes a batch of {@link McpPrompt}s to the server's prompt registry. Every Spring bean that
+ * implements this interface is picked up at startup; the returned prompts are merged into a single
+ * catalog exposed through {@code prompts/list}.
+ *
+ * <p>Most applications never implement this directly — the {@code @PromptService} /
+ * {@code @PromptMethod} annotations generate a provider per annotated bean. Implement this SPI when
+ * you need programmatic prompt registration.
+ */
 @FunctionalInterface
 public interface McpPromptProvider {
+  /** Returns the prompts this provider contributes. Called once at startup. */
   List<McpPrompt> getMcpPrompts();
 }
