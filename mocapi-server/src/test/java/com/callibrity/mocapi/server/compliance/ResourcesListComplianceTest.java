@@ -19,7 +19,6 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
@@ -30,6 +29,7 @@ import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
+import com.callibrity.mocapi.server.resources.ReadResourceHandler;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,33 +50,26 @@ class ResourcesListComplianceTest {
 
   @BeforeEach
   void setUp() {
-    McpResource fileResource =
-        new McpResource() {
-          @Override
-          public Resource descriptor() {
-            return new Resource("file:///readme.md", "readme", "The readme", "text/markdown");
-          }
+    ReadResourceHandler fileResource =
+        new ReadResourceHandler(
+            new Resource("file:///readme.md", "readme", "The readme", "text/markdown"),
+            null,
+            null,
+            ignored ->
+                new ReadResourceResult(
+                    List.of(
+                        new TextResourceContents("file:///readme.md", "text/markdown", "# Hi"))));
 
-          @Override
-          public ReadResourceResult read() {
-            return new ReadResourceResult(
-                List.of(new TextResourceContents("file:///readme.md", "text/markdown", "# Hi")));
-          }
-        };
-
-    McpResource configResource =
-        new McpResource() {
-          @Override
-          public Resource descriptor() {
-            return new Resource("file:///config.json", "config", "Config file", "application/json");
-          }
-
-          @Override
-          public ReadResourceResult read() {
-            return new ReadResourceResult(
-                List.of(new TextResourceContents("file:///config.json", "application/json", "{}")));
-          }
-        };
+    ReadResourceHandler configResource =
+        new ReadResourceHandler(
+            new Resource("file:///config.json", "config", "Config file", "application/json"),
+            null,
+            null,
+            ignored ->
+                new ReadResourceResult(
+                    List.of(
+                        new TextResourceContents(
+                            "file:///config.json", "application/json", "{}"))));
 
     McpResourceTemplate userTemplate =
         new McpResourceTemplate() {
@@ -99,8 +92,7 @@ class ResourcesListComplianceTest {
 
     var resourcesService =
         new McpResourcesService(
-            List.of(() -> List.of(fileResource, configResource)),
-            List.of(() -> List.of(userTemplate)));
+            List.of(fileResource, configResource), List.of(() -> List.of(userTemplate)));
 
     server =
         buildServer(
@@ -139,11 +131,11 @@ class ResourcesListComplianceTest {
 
   @Test
   void pagination_works() {
-    McpResource r1 = simpleResource("file:///a.txt", "a", "A");
-    McpResource r2 = simpleResource("file:///b.txt", "b", "B");
-    McpResource r3 = simpleResource("file:///c.txt", "c", "C");
+    ReadResourceHandler r1 = simpleResource("file:///a.txt", "a", "A");
+    ReadResourceHandler r2 = simpleResource("file:///b.txt", "b", "B");
+    ReadResourceHandler r3 = simpleResource("file:///c.txt", "c", "C");
 
-    var pagedService = new McpResourcesService(List.of(() -> List.of(r1, r2, r3)), List.of(), 2);
+    var pagedService = new McpResourcesService(List.of(r1, r2, r3), List.of(), 2);
     var pagedServer =
         buildServer(
             inMemorySessionStore(),
@@ -183,18 +175,13 @@ class ResourcesListComplianceTest {
 
   // --- helpers ---
 
-  private static McpResource simpleResource(String uri, String name, String description) {
-    return new McpResource() {
-      @Override
-      public Resource descriptor() {
-        return new Resource(uri, name, description, "text/plain");
-      }
-
-      @Override
-      public ReadResourceResult read() {
-        return new ReadResourceResult(
-            List.of(new TextResourceContents(uri, "text/plain", "content")));
-      }
-    };
+  private static ReadResourceHandler simpleResource(String uri, String name, String description) {
+    return new ReadResourceHandler(
+        new Resource(uri, name, description, "text/plain"),
+        null,
+        null,
+        ignored ->
+            new ReadResourceResult(
+                List.of(new TextResourceContents(uri, "text/plain", "content"))));
   }
 }

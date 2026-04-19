@@ -15,8 +15,6 @@
  */
 package com.callibrity.mocapi.server.resources;
 
-import com.callibrity.mocapi.api.resources.McpResource;
-import com.callibrity.mocapi.api.resources.McpResourceProvider;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.model.ListResourceTemplatesResult;
@@ -47,31 +45,34 @@ public class McpResourcesService {
 
   public static final int DEFAULT_PAGE_SIZE = 50;
 
-  private final Map<String, McpResource> resources;
+  private final Map<String, ReadResourceHandler> resources;
   private final Map<UriTemplate, McpResourceTemplate> templates;
   private final List<Resource> sortedResourceDescriptors;
   private final List<ResourceTemplate> sortedTemplateDescriptors;
   private final int pageSize;
 
   public McpResourcesService(
-      List<McpResourceProvider> resourceProviders,
-      List<McpResourceTemplateProvider> templateProviders) {
-    this(resourceProviders, templateProviders, DEFAULT_PAGE_SIZE);
+      List<ReadResourceHandler> handlers, List<McpResourceTemplateProvider> templateProviders) {
+    this(handlers, templateProviders, DEFAULT_PAGE_SIZE);
   }
 
   public McpResourcesService(
-      List<McpResourceProvider> resourceProviders,
+      List<ReadResourceHandler> handlers,
       List<McpResourceTemplateProvider> templateProviders,
       int pageSize) {
-    var allResources =
-        resourceProviders.stream()
-            .flatMap(provider -> provider.getMcpResources().stream())
-            .toList();
     this.resources =
-        allResources.stream().collect(Collectors.toMap(r -> r.descriptor().uri(), r -> r));
+        handlers.stream()
+            .collect(
+                Collectors.toMap(
+                    ReadResourceHandler::uri,
+                    h -> h,
+                    (a, b) -> {
+                      throw new IllegalArgumentException("Duplicate resource URI: " + a.uri());
+                    },
+                    LinkedHashMap::new));
     this.sortedResourceDescriptors =
-        allResources.stream()
-            .map(McpResource::descriptor)
+        handlers.stream()
+            .map(ReadResourceHandler::descriptor)
             .sorted(Comparator.comparing(Resource::uri))
             .toList();
 
@@ -119,7 +120,7 @@ public class McpResourcesService {
     String uri = params.uri();
     log.debug("Received request to read resource \"{}\"", uri);
 
-    McpResource exact = resources.get(uri);
+    ReadResourceHandler exact = resources.get(uri);
     if (exact != null) {
       return exact.read();
     }

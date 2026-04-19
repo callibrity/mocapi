@@ -23,10 +23,13 @@ import com.callibrity.mocapi.api.resources.ResourceService;
 import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
 import com.callibrity.mocapi.model.CompleteRequestParams;
 import com.callibrity.mocapi.model.CompletionArgument;
+import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplateReference;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
+import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
@@ -45,7 +48,7 @@ import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class ResourceServiceMcpResourceProviderTest {
+class ResourceServiceAutoConfigurationTest {
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
@@ -147,23 +150,23 @@ class ResourceServiceMcpResourceProviderTest {
         .withBean(SampleResourceService.class, SampleResourceService::new)
         .run(
             context -> {
-              var provider = context.getBean(ResourceServiceMcpResourceProvider.class);
-              assertThat(provider.getMcpResources()).hasSize(1);
-              assertThat(provider.getMcpResources().getFirst().descriptor().uri())
-                  .isEqualTo("test://hello");
-              assertThat(provider.getMcpResourceTemplates()).hasSize(1);
-              assertThat(provider.getMcpResourceTemplates().getFirst().descriptor().uriTemplate())
-                  .isEqualTo("test://items/{id}");
+              var service = context.getBean(McpResourcesService.class);
+              var resources = service.listResources(null).resources();
+              assertThat(resources).hasSize(1);
+              assertThat(resources.getFirst().uri()).isEqualTo("test://hello");
+
+              var templates = service.listResourceTemplates(null).resourceTemplates();
+              assertThat(templates).hasSize(1);
+              assertThat(templates.getFirst().uriTemplate()).isEqualTo("test://items/{id}");
             });
   }
 
   @Test
-  void returns_empty_lists_when_no_resource_service_beans() {
+  void returns_empty_when_no_resource_service_beans() {
     contextRunner.run(
         context -> {
-          var provider = context.getBean(ResourceServiceMcpResourceProvider.class);
-          assertThat(provider.getMcpResources()).isEmpty();
-          assertThat(provider.getMcpResourceTemplates()).isEmpty();
+          var service = context.getBean(McpResourcesService.class);
+          assertThat(service.isEmpty()).isTrue();
         });
   }
 
@@ -182,21 +185,19 @@ class ResourceServiceMcpResourceProviderTest {
             "template.mimeType=application/xml")
         .run(
             context -> {
-              var provider = context.getBean(ResourceServiceMcpResourceProvider.class);
+              var service = context.getBean(McpResourcesService.class);
 
-              var resource = provider.getMcpResources().getFirst();
-              assertThat(resource.descriptor().uri()).isEqualTo("test://resolved");
-              assertThat(resource.descriptor().name()).isEqualTo("Resolved Resource");
-              assertThat(resource.descriptor().description())
-                  .isEqualTo("Resolved resource description");
-              assertThat(resource.descriptor().mimeType()).isEqualTo("application/json");
+              var resource = service.listResources(null).resources().getFirst();
+              assertThat(resource.uri()).isEqualTo("test://resolved");
+              assertThat(resource.name()).isEqualTo("Resolved Resource");
+              assertThat(resource.description()).isEqualTo("Resolved resource description");
+              assertThat(resource.mimeType()).isEqualTo("application/json");
 
-              var template = provider.getMcpResourceTemplates().getFirst();
-              assertThat(template.descriptor().uriTemplate()).isEqualTo("test://resolved/{id}");
-              assertThat(template.descriptor().name()).isEqualTo("Resolved Template");
-              assertThat(template.descriptor().description())
-                  .isEqualTo("Resolved template description");
-              assertThat(template.descriptor().mimeType()).isEqualTo("application/xml");
+              var template = service.listResourceTemplates(null).resourceTemplates().getFirst();
+              assertThat(template.uriTemplate()).isEqualTo("test://resolved/{id}");
+              assertThat(template.name()).isEqualTo("Resolved Template");
+              assertThat(template.description()).isEqualTo("Resolved template description");
+              assertThat(template.mimeType()).isEqualTo("application/xml");
             });
   }
 
@@ -210,7 +211,7 @@ class ResourceServiceMcpResourceProviderTest {
                     .hasFailed()
                     .getFailure()
                     .rootCause()
-                    .hasMessageContaining("resource.uri"));
+                    .hasMessageContaining("Could not resolve placeholder"));
   }
 
   @Test
@@ -232,14 +233,28 @@ class ResourceServiceMcpResourceProviderTest {
   }
 
   @Test
-  void returns_unmodifiable_lists() {
+  void read_resource_dispatches_through_handler() {
     contextRunner
         .withBean(SampleResourceService.class, SampleResourceService::new)
         .run(
             context -> {
-              var provider = context.getBean(ResourceServiceMcpResourceProvider.class);
-              assertThat(provider.getMcpResources()).isUnmodifiable();
-              assertThat(provider.getMcpResourceTemplates()).isUnmodifiable();
+              var service = context.getBean(McpResourcesService.class);
+              var result = service.readResource(new ResourceRequestParams("test://hello", null));
+              var content = (TextResourceContents) result.contents().getFirst();
+              assertThat(content.text()).isEqualTo("hi");
+            });
+  }
+
+  @Test
+  void paginates_with_configured_page_size() {
+    contextRunner
+        .withBean(SampleResourceService.class, SampleResourceService::new)
+        .withPropertyValues("mocapi.server.pagination.page-size=1")
+        .run(
+            context -> {
+              var service = context.getBean(McpResourcesService.class);
+              var page = service.listResources(new PaginatedRequestParams(null, null));
+              assertThat(page.resources()).hasSize(1);
             });
   }
 }

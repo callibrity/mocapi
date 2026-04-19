@@ -8,6 +8,23 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Breaking changes
 
+- Removed the `McpResource` and `McpResourceProvider` interfaces from
+  `mocapi-api`. Fixed-URI resource discovery is purely
+  annotation-driven: every `@ResourceMethod` on a `@ResourceService`
+  bean produces a `ReadResourceHandler` (server-internal) that
+  `McpResourcesService` dispatches to via a `Map<String,
+  ReadResourceHandler>` keyed by URI. No user code implemented these
+  SPI types in practice — resources are declared with annotations, not
+  by hand — so this change is source-invisible for typical
+  applications. The internal `AnnotationMcpResource` /
+  `ResourceServiceMcpResourceProvider` classes are gone; their logic
+  moved to
+  `com.callibrity.mocapi.server.resources.ReadResourceHandlers#discover`
+  and `MocapiServerResourcesAutoConfiguration`. Resource templates
+  (parameterized URIs) still flow through the existing
+  `McpResourceTemplateProvider` SPI — spec 174 will collapse them into
+  a `ReadResourceTemplateHandler` on the same pattern.
+
 - Removed the `McpPrompt` and `McpPromptProvider` interfaces from
   `mocapi-api`. Prompt discovery is purely annotation-driven: every
   `@PromptMethod` on a `@PromptService` bean produces a

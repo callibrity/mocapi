@@ -33,9 +33,12 @@ import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.substrate.atom.AtomFactory;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -50,7 +53,10 @@ class MocapiServerAutoConfigurationTest {
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
-          .withConfiguration(AutoConfigurations.of(MocapiServerAutoConfiguration.class))
+          .withConfiguration(
+              AutoConfigurations.of(
+                  MocapiServerResourcesAutoConfiguration.class,
+                  MocapiServerAutoConfiguration.class))
           .withUserConfiguration(InfrastructureConfig.class);
 
   @Configuration(proxyBeanMethods = false)
@@ -74,6 +80,11 @@ class MocapiServerAutoConfigurationTest {
     @Bean
     JsonRpcDispatcher jsonRpcDispatcher() {
       return mock(JsonRpcDispatcher.class);
+    }
+
+    @Bean
+    MethodInvokerFactory methodInvokerFactory() {
+      return new DefaultMethodInvokerFactory(List.of());
     }
   }
 

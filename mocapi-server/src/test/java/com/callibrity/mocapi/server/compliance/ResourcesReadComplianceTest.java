@@ -19,7 +19,6 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.model.BlobResourceContents;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
@@ -29,6 +28,7 @@ import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
+import com.callibrity.mocapi.server.resources.ReadResourceHandler;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import java.util.Base64;
 import java.util.List;
@@ -50,38 +50,30 @@ class ResourcesReadComplianceTest {
 
   @BeforeEach
   void setUp() {
-    McpResource textResource =
-        new McpResource() {
-          @Override
-          public Resource descriptor() {
-            return new Resource("file:///readme.md", "readme", "Readme", "text/markdown");
-          }
+    ReadResourceHandler textResource =
+        new ReadResourceHandler(
+            new Resource("file:///readme.md", "readme", "Readme", "text/markdown"),
+            null,
+            null,
+            ignored ->
+                new ReadResourceResult(
+                    List.of(
+                        new TextResourceContents(
+                            "file:///readme.md", "text/markdown", "# Hello"))));
 
-          @Override
-          public ReadResourceResult read() {
-            return new ReadResourceResult(
-                List.of(new TextResourceContents("file:///readme.md", "text/markdown", "# Hello")));
-          }
-        };
+    ReadResourceHandler blobResource =
+        new ReadResourceHandler(
+            new Resource("file:///image.png", "image", "An image", "image/png"),
+            null,
+            null,
+            ignored -> {
+              var data =
+                  Base64.getEncoder().encodeToString(new byte[] {(byte) 0x89, 0x50, 0x4E, 0x47});
+              return new ReadResourceResult(
+                  List.of(new BlobResourceContents("file:///image.png", "image/png", data)));
+            });
 
-    McpResource blobResource =
-        new McpResource() {
-          @Override
-          public Resource descriptor() {
-            return new Resource("file:///image.png", "image", "An image", "image/png");
-          }
-
-          @Override
-          public ReadResourceResult read() {
-            var data =
-                Base64.getEncoder().encodeToString(new byte[] {(byte) 0x89, 0x50, 0x4E, 0x47});
-            return new ReadResourceResult(
-                List.of(new BlobResourceContents("file:///image.png", "image/png", data)));
-          }
-        };
-
-    var service =
-        new McpResourcesService(List.of(() -> List.of(textResource, blobResource)), List.of());
+    var service = new McpResourcesService(List.of(textResource, blobResource), List.of());
 
     server =
         buildServer(

@@ -39,6 +39,19 @@ every handler's `completionCandidates()` and registers them with
 `McpCompletionsService`, so `completion/complete` keeps working for
 prompt arguments.
 
-Resources and resource templates will follow the same shape
-(`ReadResourceHandler`, `ReadResourceTemplateHandler`) as the 170-series
-handler cleanup proceeds.
+## ReadResourceHandler — `resources/read` (fixed URIs)
+
+Every `@ResourceMethod`-annotated method on a `@ResourceService` bean
+produces one `ReadResourceHandler`. The handler bundles the generated
+`Resource` descriptor (URI, name, description, MIME type) with a
+`MethodInvoker<Object>` that produces the `ReadResourceResult` returned
+by `resources/read`. `McpResourcesService` holds a `Map<String,
+ReadResourceHandler>` keyed by URI and looks up the handler on every
+fixed-URI `resources/read` call before dispatching.
+
+Discovery lives in `ReadResourceHandlers#discover`, invoked once during
+`McpResourcesService` bean creation by
+`MocapiServerResourcesAutoConfiguration`. Resource templates
+(parameterized URIs) still flow through the older
+`McpResourceTemplateProvider` SPI — spec 174 collapses them into a
+`ReadResourceTemplateHandler` on the same pattern.

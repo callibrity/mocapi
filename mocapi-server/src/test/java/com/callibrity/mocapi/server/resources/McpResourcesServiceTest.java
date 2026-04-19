@@ -18,8 +18,6 @@ package com.callibrity.mocapi.server.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.api.resources.McpResource;
-import com.callibrity.mocapi.api.resources.McpResourceProvider;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
@@ -42,20 +40,16 @@ class McpResourcesServiceTest {
 
   private McpResourcesService service;
 
-  private static McpResource resource(
+  private static ReadResourceHandler handler(
       String uri, String name, String description, String mimeType) {
-    return new McpResource() {
-      @Override
-      public Resource descriptor() {
-        return new Resource(uri, name, description, mimeType);
-      }
-
-      @Override
-      public ReadResourceResult read() {
-        return new ReadResourceResult(
-            List.of(new TextResourceContents(uri, mimeType, "content of " + uri)));
-      }
-    };
+    Resource descriptor = new Resource(uri, name, description, mimeType);
+    return new ReadResourceHandler(
+        descriptor,
+        null,
+        null,
+        ignored ->
+            new ReadResourceResult(
+                List.of(new TextResourceContents(uri, mimeType, "content of " + uri))));
   }
 
   private static McpResourceTemplate template(
@@ -76,17 +70,16 @@ class McpResourcesServiceTest {
 
   @BeforeEach
   void setUp() {
-    var resourceProvider =
-        (McpResourceProvider)
-            () ->
-                List.of(
-                    resource("test://b", "Resource B", "desc B", "text/plain"),
-                    resource("test://a", "Resource A", "desc A", "text/plain"));
     var templateProvider =
         (McpResourceTemplateProvider)
             () ->
                 List.of(template("test://items/{id}", "Item Template", "desc", "application/json"));
-    service = new McpResourcesService(List.of(resourceProvider), List.of(templateProvider));
+    service =
+        new McpResourcesService(
+            List.of(
+                handler("test://b", "Resource B", "desc B", "text/plain"),
+                handler("test://a", "Resource A", "desc A", "text/plain")),
+            List.of(templateProvider));
   }
 
   @Test
@@ -133,11 +126,9 @@ class McpResourcesServiceTest {
 
   @Test
   void exact_match_takes_precedence_over_template() {
-    var exactResource = resource("test://items/special", "Special", "desc", "text/plain");
+    var exact = handler("test://items/special", "Special", "desc", "text/plain");
     var templateResource = template("test://items/{id}", "Item", "desc", "application/json");
-    var svc =
-        new McpResourcesService(
-            List.of(() -> List.of(exactResource)), List.of(() -> List.of(templateResource)));
+    var svc = new McpResourcesService(List.of(exact), List.of(() -> List.of(templateResource)));
 
     var result = svc.readResource(new ResourceRequestParams("test://items/special", null));
 
@@ -176,12 +167,11 @@ class McpResourcesServiceTest {
 
   @Test
   void pagination_works_for_resources() {
-    List<McpResource> resources =
+    List<ReadResourceHandler> handlers =
         IntStream.range(0, 5)
-            .mapToObj(
-                i -> resource(String.format("test://r%03d", i), "R" + i, "desc", "text/plain"))
+            .mapToObj(i -> handler(String.format("test://r%03d", i), "R" + i, "desc", "text/plain"))
             .toList();
-    var svc = new McpResourcesService(List.of(() -> resources), List.of(), 2);
+    var svc = new McpResourcesService(handlers, List.of(), 2);
 
     var page1 = svc.listResources(null);
     assertThat(page1.resources()).hasSize(2);
@@ -230,20 +220,30 @@ class McpResourcesServiceTest {
     var t1 = template("test://items/{id}", "T1", "first", "text/plain");
     var t2 = template("test://items/{id}", "T2", "duplicate", "text/plain");
 
-    List<McpResourceTemplateProvider> tools = List.of(() -> List.of(t1, t2));
-    List<McpResourceProvider> emptyList = List.of();
-    assertThatThrownBy(() -> new McpResourcesService(emptyList, tools))
+    List<McpResourceTemplateProvider> providers = List.of(() -> List.of(t1, t2));
+    List<ReadResourceHandler> emptyHandlers = List.of();
+    assertThatThrownBy(() -> new McpResourcesService(emptyHandlers, providers))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Duplicate URI template");
+  }
+
+  @Test
+  void duplicate_resource_uri_throws_exception() {
+    var a1 = handler("test://dup", "A", "first", "text/plain");
+    var a2 = handler("test://dup", "B", "second", "text/plain");
+    List<ReadResourceHandler> handlers = List.of(a1, a2);
+    List<McpResourceTemplateProvider> emptyProviders = List.of();
+    assertThatThrownBy(() -> new McpResourcesService(handlers, emptyProviders))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Duplicate resource URI");
   }
 
   @Test
   void out_of_range_cursor_returns_empty_page() {
     var svc =
         new McpResourcesService(
-            List.of(() -> List.of(resource("test://a", "A", "desc", "text/plain"))), List.of(), 2);
+            List.of(handler("test://a", "A", "desc", "text/plain")), List.of(), 2);
 
-    // Encode a large offset manually via Base64
     var largeOffset =
         java.util.Base64.getEncoder()
             .encodeToString(java.nio.ByteBuffer.allocate(4).putInt(100).array());

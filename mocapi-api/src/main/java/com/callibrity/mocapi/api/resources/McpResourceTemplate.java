@@ -25,8 +25,8 @@ import java.util.Map;
  * resources/templates/list}, and {@link #read(Map)} resolves a concrete read request by filling in
  * the template variables. Registered via {@link McpResourceTemplateProvider}.
  *
- * <p>Use {@link McpResource} for fixed (non-parameterized) URIs. Most applications declare resource
- * templates with {@code @ResourceTemplateMethod} and never implement this SPI directly.
+ * <p>Use {@code @ResourceMethod} for fixed (non-parameterized) URIs. Most applications declare
+ * resource templates with {@code @ResourceTemplateMethod} and never implement this SPI directly.
  */
 public interface McpResourceTemplate {
 

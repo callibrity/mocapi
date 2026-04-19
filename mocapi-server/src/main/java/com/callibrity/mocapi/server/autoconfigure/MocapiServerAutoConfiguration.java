@@ -15,8 +15,6 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
-import com.callibrity.mocapi.api.resources.McpResourceProvider;
-import com.callibrity.mocapi.api.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.model.CompletionsCapability;
 import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.LoggingCapability;
@@ -32,13 +30,11 @@ import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
 import com.callibrity.mocapi.server.logging.McpLoggingService;
 import com.callibrity.mocapi.server.ping.McpPingService;
-import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.session.AtomMcpSessionStore;
 import com.callibrity.mocapi.server.session.McpSessionResolver;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.jwcarman.substrate.atom.AtomFactory;
@@ -142,15 +138,6 @@ public class MocapiServerAutoConfiguration {
       JsonRpcDispatcher dispatcher,
       McpResponseCorrelationService correlationService) {
     return new DefaultMcpServer(sessionService, dispatcher, correlationService);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(McpResourcesService.class)
-  public McpResourcesService mcpProtocolResourcesService(
-      List<McpResourceProvider> resourceProviders,
-      List<McpResourceTemplateProvider> templateProviders) {
-    return new McpResourcesService(
-        resourceProviders, templateProviders, props.pagination().pageSize());
   }
 
   @Bean

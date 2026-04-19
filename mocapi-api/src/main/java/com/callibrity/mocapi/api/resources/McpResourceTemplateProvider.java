@@ -22,7 +22,7 @@ import java.util.List;
  * Every Spring bean that implements this interface is picked up at startup; the returned templates
  * are merged into the catalog exposed through {@code resources/templates/list}.
  *
- * <p>For fixed (non-parameterized) URIs, use {@link McpResourceProvider}. Most applications declare
+ * <p>For fixed (non-parameterized) URIs, use {@code @ResourceMethod}. Most applications declare
  * resource templates with {@code @ResourceTemplateMethod} and never implement this SPI directly.
  */
 @FunctionalInterface

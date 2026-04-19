@@ -14,7 +14,7 @@ When the cowork-connector-example was run under the tracing agent with `/mcp/**`
 - `mocapi.server.*` non-autoconfigure — 19 (framework service beans)
 - `mocapi.transport.http.*` — 3 (controller, validator, auto-config)
 - `mocapi.prompts.spring.*` — 2 (template factory + auto-config)
-- `mocapi.api.*` annotations + SPI ifaces — 7 (`@ToolService`, `@ToolMethod`, `@PromptService`, `@PromptMethod`, `McpResourceProvider`, `McpResourceTemplateProvider`, `PromptTemplateFactory`)
+- `mocapi.api.*` annotations + SPI ifaces — 6 (`@ToolService`, `@ToolMethod`, `@PromptService`, `@PromptMethod`, `McpResourceTemplateProvider`, `PromptTemplateFactory`)
 - `mocapi.server.session.McpSession` — 1
 - `mocapi.model.*` wire types — 36
 

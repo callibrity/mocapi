@@ -13,56 +13,63 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.resources.annotation;
+package com.callibrity.mocapi.server.resources;
 
 import static com.callibrity.mocapi.server.tools.annotation.Names.humanReadableName;
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefault;
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrNull;
 
-import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.ResourceMethod;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import java.lang.reflect.Method;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
-import org.springframework.util.StringValueResolver;
 
-public class AnnotationMcpResource implements McpResource {
+/**
+ * Pure-Java factory that builds a {@link ReadResourceHandler} for every {@code @ResourceMethod}-
+ * annotated method on a single {@code @ResourceService} bean.
+ */
+public final class ReadResourceHandlers {
 
-  private final Resource descriptor;
-  private final MethodInvoker<Object> invoker;
+  private ReadResourceHandlers() {}
 
-  public static List<AnnotationMcpResource> createResources(
-      MethodInvokerFactory invokerFactory, Object targetObject, StringValueResolver valueResolver) {
-    return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), ResourceMethod.class)
+  /**
+   * Walks {@code @ResourceMethod} methods on {@code resourceServiceBean} and returns one {@link
+   * ReadResourceHandler} per method.
+   */
+  public static List<ReadResourceHandler> discover(
+      Object resourceServiceBean,
+      MethodInvokerFactory invokerFactory,
+      UnaryOperator<String> valueResolver) {
+    return MethodUtils.getMethodsListWithAnnotation(
+            resourceServiceBean.getClass(), ResourceMethod.class)
         .stream()
         .sorted(Comparator.comparing(Method::getName))
-        .map(m -> new AnnotationMcpResource(invokerFactory, targetObject, m, valueResolver))
+        .map(method -> build(invokerFactory, resourceServiceBean, method, valueResolver))
         .toList();
   }
 
-  AnnotationMcpResource(
+  private static ReadResourceHandler build(
       MethodInvokerFactory invokerFactory,
       Object targetObject,
       Method method,
-      StringValueResolver valueResolver) {
+      UnaryOperator<String> valueResolver) {
     validateReturnType(targetObject, method);
-    var annotation = method.getAnnotation(ResourceMethod.class);
-    String uri = valueResolver.resolveStringValue(annotation.uri());
+    ResourceMethod annotation = method.getAnnotation(ResourceMethod.class);
+    String uri = valueResolver.apply(annotation.uri());
     String name =
         resolveOrDefault(
-            valueResolver::resolveStringValue,
-            annotation.name(),
-            () -> humanReadableName(targetObject, method));
-    String description =
-        resolveOrDefault(valueResolver::resolveStringValue, annotation.description(), () -> name);
-    String mimeType = resolveOrNull(valueResolver::resolveStringValue, annotation.mimeType());
-    this.invoker = invokerFactory.create(method, targetObject, Object.class);
-    this.descriptor = new Resource(uri, name, description, mimeType);
+            valueResolver, annotation.name(), () -> humanReadableName(targetObject, method));
+    String description = resolveOrDefault(valueResolver, annotation.description(), () -> name);
+    String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
+    Resource descriptor = new Resource(uri, name, description, mimeType);
+    MethodInvoker<Object> invoker = invokerFactory.create(method, targetObject, Object.class);
+    return new ReadResourceHandler(descriptor, method, targetObject, invoker);
   }
 
   private static void validateReturnType(Object targetObject, Method method) {
@@ -74,15 +81,5 @@ public class AnnotationMcpResource implements McpResource {
               method.getName(),
               ReadResourceResult.class.getName()));
     }
-  }
-
-  @Override
-  public Resource descriptor() {
-    return descriptor;
-  }
-
-  @Override
-  public ReadResourceResult read() {
-    return (ReadResourceResult) invoker.invoke(null);
   }
 }
