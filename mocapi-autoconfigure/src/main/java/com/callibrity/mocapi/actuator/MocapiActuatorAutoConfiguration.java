@@ -32,7 +32,7 @@ import org.springframework.context.annotation.Bean;
  * expose via {@code management.endpoints.web.exposure.include}).
  */
 @AutoConfiguration
-@ConditionalOnClass(Endpoint.class)
+@ConditionalOnClass({Endpoint.class, McpActuatorEndpoint.class})
 @ConditionalOnAvailableEndpoint(endpoint = McpActuatorEndpoint.class)
 public class MocapiActuatorAutoConfiguration {
 

@@ -81,10 +81,11 @@ node) and does not fold in a metrics snapshot — metrics already have
 `/actuator/metrics` + `/actuator/prometheus`, and duplicating them
 into a mocapi-specific endpoint would create two sources of truth.
 
-Shipped as `spring-boot-starter-actuator`. Activation follows
-standard actuator rules: `@ConditionalOnAvailableEndpoint` means
-users opt in via
-`management.endpoints.web.exposure.include=mcp`.
+Shipped as `mocapi-actuator`. Activation follows standard
+actuator rules: `@ConditionalOnAvailableEndpoint` means users
+opt in via `management.endpoints.web.exposure.include=mcp`, and
+requires `spring-boot-starter-actuator` on the classpath
+alongside `mocapi-actuator`.
 
 ## Guards / entitlements (visibility)
 

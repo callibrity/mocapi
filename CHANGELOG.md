@@ -38,7 +38,7 @@ All notable changes to this project are documented in this file. The format is b
   | `mocapi-jakarta-validation-spring-boot-starter` | `mocapi-jakarta-validation` |
   | `mocapi-logging-spring-boot-starter` | `mocapi-logging` |
   | `mocapi-o11y-spring-boot-starter` | `mocapi-o11y` |
-  | `mocapi-actuator-spring-boot-starter` | `spring-boot-starter-actuator` (triggers `MocapiActuatorAutoConfiguration` in `mocapi-autoconfigure`) |
+  | `mocapi-actuator-spring-boot-starter` | `mocapi-actuator` (pair with `spring-boot-starter-actuator` to activate `MocapiActuatorAutoConfiguration` in `mocapi-autoconfigure`) |
 
   The two transport starters
   (`mocapi-streamable-http-spring-boot-starter`,
@@ -48,6 +48,20 @@ All notable changes to this project are documented in this file. The format is b
   same runtime deps the old starter packaged (no source of its own).
   This is pre-1.0 — no compat shims. Migration is a one-line
   artifactId rename in each consumer pom.
+
+### Changed
+
+- **`mocapi-actuator` extracted from `mocapi-autoconfigure`.** The
+  actuator endpoint code (`McpActuatorEndpoint`, `McpActuatorSnapshot`,
+  `McpActuatorSnapshots`) now lives in its own `mocapi-actuator` module
+  — matching the pattern used by every other feature (`mocapi-oauth2`,
+  `mocapi-logging`, `mocapi-o11y`, `mocapi-jakarta-validation`):
+  feature code in a dedicated module, feature autoconfig in
+  `mocapi-autoconfigure`. Activation is unchanged in spirit but now
+  requires both `mocapi-actuator` and `spring-boot-starter-actuator`
+  on the classpath. Side benefit: consumers who want only the
+  snapshot-building machinery for a custom admin endpoint can depend
+  on `mocapi-actuator` without pulling in the autoconfig.
 
 ### Added
 
