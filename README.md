@@ -162,20 +162,6 @@ Run your Spring Boot application. With `mocapi-streamable-http-spring-boot-start
 - **`mocapi-prompts-spring`** — `PromptTemplateFactory` using Spring's `${name}` placeholder syntax; no extra dependencies
 - **`mocapi-prompts-mustache`** — `PromptTemplateFactory` backed by [JMustache](https://github.com/samskivert/jmustache) for richer `{{name}}` templates with sections
 
-### Testing (optional)
-
-- **`mocapi-test`** — `MockMcpToolContext` for unit-testing `@ToolMethod` handlers. Captures every `sendProgress`/`log`/`elicit`/`sample` call and scripts responses for elicitation and sampling without standing up a transport or Spring context. Pull it in with `<scope>test</scope>`:
-
-  ```java
-  var ctx = new MockMcpToolContext()
-      .elicitResponse(new ElicitResult(ElicitAction.ACCEPT, content));
-
-  var response = myTool.invoke(ctx);
-
-  assertThat(ctx.elicitCalls()).singleElement()
-      .satisfies(call -> assertThat(call.params().message()).isEqualTo("Please tell me about yourself!"));
-  ```
-
 ### Bill of Materials (optional)
 
 - **`mocapi-bom`** — imports into your `<dependencyManagement>` to align versions across multiple mocapi artifacts without hard-coding each one

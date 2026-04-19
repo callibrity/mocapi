@@ -65,7 +65,6 @@
         <module>mocapi-jakarta-validation-spring-boot-starter</module>
         <module>mocapi-prompts-mustache</module>
         <module>mocapi-prompts-spring</module>
-        <module>mocapi-test</module>
         <module>mocapi-bom</module>
         <module>examples</module>
         <module>mocapi-conformance</module>

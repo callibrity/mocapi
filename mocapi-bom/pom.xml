@@ -92,11 +92,6 @@
                 <artifactId>mocapi-prompts-mustache</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.callibrity.mocapi</groupId>
-                <artifactId>mocapi-test</artifactId>
-                <version>${project.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
