@@ -20,7 +20,6 @@ import static com.callibrity.mocapi.server.tools.annotation.Names.identifier;
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefault;
 
 import com.callibrity.mocapi.api.prompts.PromptMethod;
-import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptArgument;
@@ -34,20 +33,17 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import lombok.extern.slf4j.Slf4j;
+import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
-import org.springframework.context.ApplicationContext;
-import org.springframework.util.StringValueResolver;
 
 /**
- * Static factory that discovers {@code @PromptService} beans in an application context and builds a
- * {@link GetPromptHandler} for every {@code @PromptMethod}-annotated method on them.
+ * Pure-Java factory that builds a {@link GetPromptHandler} for every {@code @PromptMethod}-
+ * annotated method on a single {@code @PromptService} bean.
  */
-@Slf4j
 public final class GetPromptHandlers {
 
   private static final TypeRef<Map<String, String>> ARGS_TYPE = new TypeRef<>() {};
@@ -55,42 +51,19 @@ public final class GetPromptHandlers {
   private GetPromptHandlers() {}
 
   /**
-   * Scans every {@link PromptService} bean in the context and returns the concatenated list of
-   * handlers. Called once during {@link McpPromptsService} bean creation.
+   * Walks {@code @PromptMethod} methods on {@code promptServiceBean} and returns one {@link
+   * GetPromptHandler} per method.
    */
   public static List<GetPromptHandler> discover(
-      ApplicationContext context,
+      Object promptServiceBean,
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
-      StringValueResolver valueResolver) {
-    Map<String, Object> beans = context.getBeansWithAnnotation(PromptService.class);
-    return beans.entrySet().stream()
-        .flatMap(
-            entry -> {
-              String beanName = entry.getKey();
-              Object bean = entry.getValue();
-              log.info(
-                  "Registering MCP prompts for @{} bean \"{}\"...",
-                  PromptService.class.getSimpleName(),
-                  beanName);
-              List<GetPromptHandler> handlers =
-                  create(invokerFactory, resolvers, bean, valueResolver);
-              handlers.forEach(
-                  h -> log.info("\tRegistered MCP prompt: \"{}\"", h.descriptor().name()));
-              return handlers.stream();
-            })
-        .toList();
-  }
-
-  static List<GetPromptHandler> create(
-      MethodInvokerFactory invokerFactory,
-      List<ParameterResolver<? super Map<String, String>>> resolvers,
-      Object targetObject,
-      StringValueResolver valueResolver) {
-    return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), PromptMethod.class)
+      UnaryOperator<String> valueResolver) {
+    return MethodUtils.getMethodsListWithAnnotation(
+            promptServiceBean.getClass(), PromptMethod.class)
         .stream()
         .sorted(Comparator.comparing(Method::getName))
-        .map(method -> build(invokerFactory, resolvers, targetObject, method, valueResolver))
+        .map(method -> build(invokerFactory, resolvers, promptServiceBean, method, valueResolver))
         .toList();
   }
 
@@ -99,7 +72,7 @@ public final class GetPromptHandlers {
       List<ParameterResolver<? super Map<String, String>>> resolvers,
       Object targetObject,
       Method method,
-      StringValueResolver valueResolver) {
+      UnaryOperator<String> valueResolver) {
     validateReturnType(targetObject, method);
     PromptMethod annotation = method.getAnnotation(PromptMethod.class);
     String name =

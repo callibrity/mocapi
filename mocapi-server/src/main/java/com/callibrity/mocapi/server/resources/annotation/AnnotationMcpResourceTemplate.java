@@ -73,9 +73,12 @@ public class AnnotationMcpResourceTemplate implements McpResourceTemplate {
     String uriTemplate = valueResolver.resolveStringValue(annotation.uriTemplate());
     String name =
         resolveOrDefault(
-            valueResolver, annotation.name(), () -> humanReadableName(targetObject, method));
-    String description = resolveOrDefault(valueResolver, annotation.description(), () -> name);
-    String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
+            valueResolver::resolveStringValue,
+            annotation.name(),
+            () -> humanReadableName(targetObject, method));
+    String description =
+        resolveOrDefault(valueResolver::resolveStringValue, annotation.description(), () -> name);
+    String mimeType = resolveOrNull(valueResolver::resolveStringValue, annotation.mimeType());
     this.invoker = invokerFactory.create(method, targetObject, VARS_TYPE, resolvers);
     this.descriptor = new ResourceTemplate(uriTemplate, name, description, mimeType);
     this.candidates = candidatesOf(method);

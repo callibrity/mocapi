@@ -15,7 +15,9 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
+import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
+import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.CallToolHandlers;
 import com.callibrity.mocapi.server.tools.McpToolContextResolver;
 import com.callibrity.mocapi.server.tools.McpToolsService;
@@ -23,6 +25,7 @@ import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -39,6 +42,7 @@ import tools.jackson.databind.ObjectMapper;
 @EnableConfigurationProperties({MocapiServerToolsProperties.class, MocapiServerProperties.class})
 @PropertySource("classpath:mocapi-server-tools-defaults.properties")
 @RequiredArgsConstructor
+@Slf4j
 public class MocapiServerToolsAutoConfiguration {
 
   private final MocapiServerToolsProperties props;
@@ -55,9 +59,28 @@ public class MocapiServerToolsAutoConfiguration {
       StringValueResolver mcpAnnotationValueResolver) {
     List<ParameterResolver<? super JsonNode>> resolvers =
         List.of(new McpToolContextResolver(), new McpToolParamsResolver(objectMapper));
-    var handlers =
-        CallToolHandlers.discover(
-            context, generator, invokerFactory, resolvers, mcpAnnotationValueResolver);
+    List<CallToolHandler> handlers =
+        context.getBeansWithAnnotation(ToolService.class).entrySet().stream()
+            .flatMap(
+                entry -> {
+                  String beanName = entry.getKey();
+                  Object bean = entry.getValue();
+                  log.info(
+                      "Registering MCP tools for @{} bean \"{}\"...",
+                      ToolService.class.getSimpleName(),
+                      beanName);
+                  List<CallToolHandler> perBean =
+                      CallToolHandlers.discover(
+                          bean,
+                          generator,
+                          invokerFactory,
+                          resolvers,
+                          mcpAnnotationValueResolver::resolveStringValue);
+                  perBean.forEach(
+                      h -> log.info("\tRegistered MCP tool: \"{}\"", h.descriptor().name()));
+                  return perBean.stream();
+                })
+            .toList();
     return new McpToolsService(
         handlers, objectMapper, correlationService, mocapiProperties.pagination().pageSize());
   }

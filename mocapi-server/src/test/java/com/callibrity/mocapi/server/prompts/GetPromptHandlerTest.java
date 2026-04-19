@@ -44,7 +44,7 @@ class GetPromptHandlerTest {
       List.of(new StringMapArgResolver(DefaultConversionService.getSharedInstance()));
 
   private List<GetPromptHandler> createHandlers(Object target) {
-    return GetPromptHandlers.create(invokerFactory, resolvers, target, s -> s);
+    return GetPromptHandlers.discover(target, invokerFactory, resolvers, s -> s);
   }
 
   enum Detail {

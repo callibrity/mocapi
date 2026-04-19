@@ -54,6 +54,17 @@ All notable changes to this project are documented in this file. The format is b
   unchanged and remains available for callers that want to pick a
   level dynamically.
 
+### Changed
+
+- `CallToolHandlers#discover` and `GetPromptHandlers#discover` are
+  now pure Java helpers with zero Spring imports. They take a
+  single `@ToolService` / `@PromptService` bean directly and a
+  `UnaryOperator<String>` value resolver instead of an
+  `ApplicationContext` and Spring's `StringValueResolver`. The
+  `MocapiServer*AutoConfiguration` classes own the bean scan and
+  adapt the Spring resolver via `::resolveStringValue`. The helpers
+  are server-internal — no downstream-facing API surface change.
+
 ## [0.10.0] - 2026-04-18
 
 ### Added

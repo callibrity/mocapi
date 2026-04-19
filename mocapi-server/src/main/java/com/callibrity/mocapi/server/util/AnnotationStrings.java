@@ -17,8 +17,8 @@ package com.callibrity.mocapi.server.util;
 
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.util.StringValueResolver;
 
 /**
  * Shared helpers for pulling String values out of mocapi annotations. Every annotation-processor
@@ -30,21 +30,20 @@ public final class AnnotationStrings {
   private AnnotationStrings() {}
 
   /**
-   * Resolves Spring placeholders in {@code raw} (e.g. {@code ${prop}} or {@code #{SpEL}}), trims
-   * the result to null, and returns either the non-blank resolved value or the supplied fallback.
+   * Resolves placeholders in {@code raw} (e.g. {@code ${prop}} or {@code #{SpEL}}), trims the
+   * result to null, and returns either the non-blank resolved value or the supplied fallback.
    */
   public static String resolveOrDefault(
-      StringValueResolver resolver, String raw, Supplier<String> fallback) {
-    return Optional.ofNullable(StringUtils.trimToNull(resolver.resolveStringValue(raw)))
-        .orElseGet(fallback);
+      UnaryOperator<String> resolver, String raw, Supplier<String> fallback) {
+    return Optional.ofNullable(StringUtils.trimToNull(resolver.apply(raw))).orElseGet(fallback);
   }
 
   /**
-   * Resolves Spring placeholders in {@code raw} and trims the result to null. Returns null if the
-   * resolved value is blank. Use when the caller has no meaningful fallback (e.g. {@code mimeType}
-   * is legitimately optional).
+   * Resolves placeholders in {@code raw} and trims the result to null. Returns null if the resolved
+   * value is blank. Use when the caller has no meaningful fallback (e.g. {@code mimeType} is
+   * legitimately optional).
    */
-  public static String resolveOrNull(StringValueResolver resolver, String raw) {
-    return StringUtils.trimToNull(resolver.resolveStringValue(raw));
+  public static String resolveOrNull(UnaryOperator<String> resolver, String raw) {
+    return StringUtils.trimToNull(resolver.apply(raw));
   }
 }

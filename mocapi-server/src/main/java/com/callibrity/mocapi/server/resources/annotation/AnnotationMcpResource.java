@@ -55,9 +55,12 @@ public class AnnotationMcpResource implements McpResource {
     String uri = valueResolver.resolveStringValue(annotation.uri());
     String name =
         resolveOrDefault(
-            valueResolver, annotation.name(), () -> humanReadableName(targetObject, method));
-    String description = resolveOrDefault(valueResolver, annotation.description(), () -> name);
-    String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
+            valueResolver::resolveStringValue,
+            annotation.name(),
+            () -> humanReadableName(targetObject, method));
+    String description =
+        resolveOrDefault(valueResolver::resolveStringValue, annotation.description(), () -> name);
+    String mimeType = resolveOrNull(valueResolver::resolveStringValue, annotation.mimeType());
     this.invoker = invokerFactory.create(method, targetObject, Object.class);
     this.descriptor = new Resource(uri, name, description, mimeType);
   }

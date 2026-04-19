@@ -15,7 +15,9 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
+import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
+import com.callibrity.mocapi.server.prompts.GetPromptHandler;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlers;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.util.StringMapArgResolver;
@@ -55,8 +57,27 @@ public class MocapiServerPromptsAutoConfiguration {
         List.of(
             new StringMapArgResolver(
                 conversionService.getIfAvailable(DefaultConversionService::getSharedInstance)));
-    var handlers =
-        GetPromptHandlers.discover(context, invokerFactory, resolvers, mcpAnnotationValueResolver);
+    List<GetPromptHandler> handlers =
+        context.getBeansWithAnnotation(PromptService.class).entrySet().stream()
+            .flatMap(
+                entry -> {
+                  String beanName = entry.getKey();
+                  Object bean = entry.getValue();
+                  log.info(
+                      "Registering MCP prompts for @{} bean \"{}\"...",
+                      PromptService.class.getSimpleName(),
+                      beanName);
+                  List<GetPromptHandler> perBean =
+                      GetPromptHandlers.discover(
+                          bean,
+                          invokerFactory,
+                          resolvers,
+                          mcpAnnotationValueResolver::resolveStringValue);
+                  perBean.forEach(
+                      h -> log.info("\tRegistered MCP prompt: \"{}\"", h.descriptor().name()));
+                  return perBean.stream();
+                })
+            .toList();
     handlers.forEach(
         h ->
             h.completionCandidates()

@@ -48,7 +48,7 @@ class CallToolHandlerTest {
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
 
   private List<CallToolHandler> createHandlers(Object target) {
-    return CallToolHandlers.create(generator, invokerFactory, resolvers, target, s -> s);
+    return CallToolHandlers.discover(target, generator, invokerFactory, resolvers, s -> s);
   }
 
   @Test

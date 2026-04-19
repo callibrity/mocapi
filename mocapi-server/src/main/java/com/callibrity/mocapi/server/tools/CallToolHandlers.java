@@ -22,75 +22,44 @@ import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefau
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.callibrity.mocapi.api.tools.ToolMethod;
-import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
+import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
-import org.springframework.context.ApplicationContext;
-import org.springframework.util.StringValueResolver;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Static factory that discovers {@code @ToolService} beans in an application context and builds a
- * {@link CallToolHandler} for every {@code @ToolMethod}-annotated method on them.
+ * Pure-Java factory that builds a {@link CallToolHandler} for every {@code @ToolMethod}-annotated
+ * method on a single {@code @ToolService} bean.
  */
-@Slf4j
 public final class CallToolHandlers {
 
   private CallToolHandlers() {}
 
   /**
-   * Scans every {@link ToolService} bean in the context and returns the concatenated list of
-   * handlers. Called once during {@link com.callibrity.mocapi.server.tools.McpToolsService} bean
-   * creation.
+   * Walks {@code @ToolMethod} methods on {@code toolServiceBean} and returns one {@link
+   * CallToolHandler} per method.
    */
   public static List<CallToolHandler> discover(
-      ApplicationContext context,
+      Object toolServiceBean,
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super JsonNode>> resolvers,
-      StringValueResolver valueResolver) {
-    Map<String, Object> beans = context.getBeansWithAnnotation(ToolService.class);
-    return beans.entrySet().stream()
-        .flatMap(
-            entry -> {
-              String beanName = entry.getKey();
-              Object bean = entry.getValue();
-              log.info(
-                  "Registering MCP tools for @{} bean \"{}\"...",
-                  ToolService.class.getSimpleName(),
-                  beanName);
-              List<CallToolHandler> handlers =
-                  create(generator, invokerFactory, resolvers, bean, valueResolver);
-              handlers.forEach(
-                  h -> log.info("\tRegistered MCP tool: \"{}\"", h.descriptor().name()));
-              return handlers.stream();
-            })
-        .toList();
-  }
-
-  static List<CallToolHandler> create(
-      MethodSchemaGenerator generator,
-      MethodInvokerFactory invokerFactory,
-      List<ParameterResolver<? super JsonNode>> resolvers,
-      Object targetObject,
-      StringValueResolver valueResolver) {
-    return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), ToolMethod.class)
+      UnaryOperator<String> valueResolver) {
+    return MethodUtils.getMethodsListWithAnnotation(toolServiceBean.getClass(), ToolMethod.class)
         .stream()
         .sorted(Comparator.comparing(Method::getName))
         .map(
             method ->
-                build(generator, invokerFactory, resolvers, targetObject, method, valueResolver))
+                build(generator, invokerFactory, resolvers, toolServiceBean, method, valueResolver))
         .toList();
   }
 
@@ -100,7 +69,7 @@ public final class CallToolHandlers {
       List<ParameterResolver<? super JsonNode>> resolvers,
       Object targetObject,
       Method method,
-      StringValueResolver valueResolver) {
+      UnaryOperator<String> valueResolver) {
     validateMcpToolParams(targetObject, method);
     ToolMethod annotation = method.getAnnotation(ToolMethod.class);
     String name =
