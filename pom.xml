@@ -63,6 +63,8 @@
         <module>mocapi-oauth2</module>
         <module>mocapi-oauth2-spring-boot-starter</module>
         <module>mocapi-jakarta-validation-spring-boot-starter</module>
+        <module>mocapi-logging</module>
+        <module>mocapi-logging-spring-boot-starter</module>
         <module>mocapi-prompts-mustache</module>
         <module>mocapi-prompts-spring</module>
         <module>mocapi-bom</module>

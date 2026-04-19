@@ -6,6 +6,36 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- New module pair `mocapi-logging` + `mocapi-logging-spring-boot-starter`:
+  an SLF4J MDC correlation interceptor for MCP handler invocations. Adding
+  the starter registers a single `McpMdcInterceptor` methodical interceptor
+  that stamps the following MDC attributes for the duration of every
+  `@McpTool` / `@McpPrompt` / `@McpResource` / `@McpResourceTemplate`
+  invocation and removes them on the way out — pre-existing MDC state
+  from upstream filters is preserved.
+
+  | Key                | Value                                                                   |
+  |--------------------|-------------------------------------------------------------------------|
+  | `mcp.session`      | Current MCP session id (only set when a session is bound).              |
+  | `mcp.handler.kind` | One of `tool`, `prompt`, `resource`, `resource_template`.               |
+  | `mcp.handler.name` | Tool / prompt name, or resource URI / URI template.                     |
+  | `mcp.request`      | Reserved for JSON-RPC request id; wired by a follow-up spec.            |
+
+  Drop the starter on the classpath and every log line emitted during a
+  handler call — including lines from user handler code — carries the
+  correlation keys automatically. Remove the starter and the keys stop
+  appearing. There is no mocapi API addition either way. See
+  [`docs/logging.md`](docs/logging.md) for the logback pattern snippet and
+  the virtual-threads caveat.
+
+- New `HandlerKinds` utility in `mocapi-api`
+  (`com.callibrity.mocapi.api.handlers`). Tiny annotation-introspection
+  helper shared by the observability starters (logging today, metrics and
+  tracing next) so every starter tags handlers with the same
+  `tool` / `prompt` / `resource` / `resource_template` strings.
+
 ### Changed
 
 - Bumped Methodical to `0.6.0` and ripcurl to `2.7.0`. Methodical 0.6

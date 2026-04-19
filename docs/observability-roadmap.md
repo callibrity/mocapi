@@ -8,19 +8,23 @@ classpath, it auto-wires into every handler of the matching kind.
 
 ---
 
-## MDC (correlation keys in SLF4J)
+## MDC (correlation keys in SLF4J) — ✅ shipped (spec 178)
 
-Set MDC attributes for the duration of every handler invocation so
-every log line emitted during the call carries correlation context:
+Sets MDC attributes for the duration of every handler invocation so
+every log line emitted during the call — including lines from user
+handler code — carries correlation context:
 
-- `mcp.session` — current MCP session id
-- `mcp.request` — JSON-RPC request id
-- `mcp.handler.kind` — `tool` / `prompt` / `resource` / `resource-template`
-- `mcp.handler.name` — handler name
+- `mcp.session` — current MCP session id (only set when a session is bound)
+- `mcp.request` — JSON-RPC request id (reserved; wired by a follow-up spec)
+- `mcp.handler.kind` — `tool` / `prompt` / `resource` / `resource_template`
+- `mcp.handler.name` — handler name (tool/prompt name or resource URI / URI template)
 
-A reusable MDC helper already exists in Methodical's stereotype
-package (`ScopedValueInterceptor`-style pattern). Shipped as
-`mocapi-logging-spring-boot-starter`.
+Shipped as `mocapi-logging` + `mocapi-logging-spring-boot-starter`. See
+[`docs/logging.md`](logging.md) for the Logback pattern snippet and the
+virtual-threads caveat. The annotation-introspection helper
+(`com.callibrity.mocapi.api.handlers.HandlerKinds`) that produces the
+`kind` / `name` tags lives in `mocapi-api` and is the shared point of
+reference for the metrics and tracing starters queued next.
 
 ## Metrics (Micrometer)
 
