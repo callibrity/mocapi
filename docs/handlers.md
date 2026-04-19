@@ -51,7 +51,32 @@ fixed-URI `resources/read` call before dispatching.
 
 Discovery lives in `ReadResourceHandlers#discover`, invoked once during
 `McpResourcesService` bean creation by
-`MocapiServerResourcesAutoConfiguration`. Resource templates
-(parameterized URIs) still flow through the older
-`McpResourceTemplateProvider` SPI — spec 174 collapses them into a
-`ReadResourceTemplateHandler` on the same pattern.
+`MocapiServerResourcesAutoConfiguration`.
+
+## ReadResourceTemplateHandler — `resources/read` (templated URIs)
+
+Every `@ResourceTemplateMethod`-annotated method on a `@ResourceService`
+bean produces one `ReadResourceTemplateHandler`. The handler bundles
+the generated `ResourceTemplate` descriptor (URI template, name,
+description, MIME type) with a `MethodInvoker<Map<String, String>>`
+that converts the URI's resolved path variables to the declared
+parameter types, plus the list of `CompletionCandidate`s derived from
+enum-typed or `@Schema(allowableValues=...)` variables.
+`McpResourcesService` holds a `Map<UriTemplate,
+ReadResourceTemplateHandler>` and matches an incoming `resources/read`
+URI against the templates after the fixed-URI map lookup misses.
+
+Discovery lives in `ReadResourceTemplateHandlers#discover`, invoked
+once during `McpResourcesService` bean creation by
+`MocapiServerResourcesAutoConfiguration`. The same bean method walks
+every handler's `completionCandidates()` and registers them with
+`McpCompletionsService`, so `completion/complete` keeps working for
+resource-template variables.
+
+## No public handler SPI
+
+After the 170–174 cleanup series, mocapi has no public handler-SPI
+interfaces at all. Tools, prompts, resources, and resource templates
+are all annotation-driven; each internal representation is a single
+concrete class built once at startup. There is no SPI users
+implement — only annotations.

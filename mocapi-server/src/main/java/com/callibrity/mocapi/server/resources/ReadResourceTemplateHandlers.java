@@ -13,75 +13,77 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.resources.annotation;
+package com.callibrity.mocapi.server.resources;
 
 import static com.callibrity.mocapi.server.tools.annotation.Names.humanReadableName;
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefault;
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrNull;
 
-import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.resources.ResourceTemplateMethod;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.server.completions.CompletionCandidate;
 import com.callibrity.mocapi.server.completions.CompletionCandidates;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
-import org.springframework.util.StringValueResolver;
 
-public class AnnotationMcpResourceTemplate implements McpResourceTemplate {
+/**
+ * Pure-Java factory that builds a {@link ReadResourceTemplateHandler} for every
+ * {@code @ResourceTemplateMethod}-annotated method on a single {@code @ResourceService} bean.
+ */
+public final class ReadResourceTemplateHandlers {
 
   private static final TypeRef<Map<String, String>> VARS_TYPE = new TypeRef<>() {};
 
-  private final ResourceTemplate descriptor;
-  private final MethodInvoker<Map<String, String>> invoker;
-  private final List<CompletionCandidate> candidates;
+  private ReadResourceTemplateHandlers() {}
 
-  public static List<AnnotationMcpResourceTemplate> createTemplates(
+  /**
+   * Walks {@code @ResourceTemplateMethod} methods on {@code resourceServiceBean} and returns one
+   * {@link ReadResourceTemplateHandler} per method.
+   */
+  public static List<ReadResourceTemplateHandler> discover(
+      Object resourceServiceBean,
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
-      Object targetObject,
-      StringValueResolver valueResolver) {
+      UnaryOperator<String> valueResolver) {
     return MethodUtils.getMethodsListWithAnnotation(
-            targetObject.getClass(), ResourceTemplateMethod.class)
+            resourceServiceBean.getClass(), ResourceTemplateMethod.class)
         .stream()
         .sorted(Comparator.comparing(Method::getName))
-        .map(
-            m ->
-                new AnnotationMcpResourceTemplate(
-                    invokerFactory, resolvers, targetObject, m, valueResolver))
+        .map(method -> build(invokerFactory, resolvers, resourceServiceBean, method, valueResolver))
         .toList();
   }
 
-  AnnotationMcpResourceTemplate(
+  private static ReadResourceTemplateHandler build(
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
       Object targetObject,
       Method method,
-      StringValueResolver valueResolver) {
+      UnaryOperator<String> valueResolver) {
     validateReturnType(targetObject, method);
-    var annotation = method.getAnnotation(ResourceTemplateMethod.class);
-    String uriTemplate = valueResolver.resolveStringValue(annotation.uriTemplate());
+    ResourceTemplateMethod annotation = method.getAnnotation(ResourceTemplateMethod.class);
+    String uriTemplate = valueResolver.apply(annotation.uriTemplate());
     String name =
         resolveOrDefault(
-            valueResolver::resolveStringValue,
-            annotation.name(),
-            () -> humanReadableName(targetObject, method));
-    String description =
-        resolveOrDefault(valueResolver::resolveStringValue, annotation.description(), () -> name);
-    String mimeType = resolveOrNull(valueResolver::resolveStringValue, annotation.mimeType());
-    this.invoker = invokerFactory.create(method, targetObject, VARS_TYPE, resolvers);
-    this.descriptor = new ResourceTemplate(uriTemplate, name, description, mimeType);
-    this.candidates = candidatesOf(method);
+            valueResolver, annotation.name(), () -> humanReadableName(targetObject, method));
+    String description = resolveOrDefault(valueResolver, annotation.description(), () -> name);
+    String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
+    ResourceTemplate descriptor = new ResourceTemplate(uriTemplate, name, description, mimeType);
+    MethodInvoker<Map<String, String>> invoker =
+        invokerFactory.create(method, targetObject, VARS_TYPE, resolvers);
+    return new ReadResourceTemplateHandler(
+        descriptor, method, targetObject, invoker, candidatesOf(method));
   }
 
   private static List<CompletionCandidate> candidatesOf(Method method) {
@@ -96,16 +98,8 @@ public class AnnotationMcpResourceTemplate implements McpResourceTemplate {
         .toList();
   }
 
-  private static boolean isWholeVarsMap(java.lang.reflect.Parameter parameter) {
+  private static boolean isWholeVarsMap(Parameter parameter) {
     return TypeRef.parameterType(parameter).isAssignableFrom(VARS_TYPE);
-  }
-
-  /**
-   * Completion candidates derived from annotated method parameters — one entry per URI template
-   * variable that has an enum type or a {@code @Schema(allowableValues=...)} attribute.
-   */
-  public List<CompletionCandidate> completionCandidates() {
-    return candidates;
   }
 
   private static void validateReturnType(Object targetObject, Method method) {
@@ -117,15 +111,5 @@ public class AnnotationMcpResourceTemplate implements McpResourceTemplate {
               method.getName(),
               ReadResourceResult.class.getName()));
     }
-  }
-
-  @Override
-  public ResourceTemplate descriptor() {
-    return descriptor;
-  }
-
-  @Override
-  public ReadResourceResult read(Map<String, String> pathVariables) {
-    return (ReadResourceResult) invoker.invoke(pathVariables == null ? Map.of() : pathVariables);
   }
 }

@@ -169,9 +169,9 @@ INFO  c.c.m.s.a.MocapiServerPromptsAutoConfiguration -- 		Registered completions
 # Resources
 INFO  c.c.m.s.a.MocapiServerResourcesAutoConfiguration -- Registering MCP resources for @ResourceService bean "docResources"...
 INFO  c.c.m.s.a.MocapiServerResourcesAutoConfiguration -- 	Registered MCP resource: "docs://readme"
-INFO  c.c.m.s.a.ResourceServiceMcpResourceTemplateProvider -- Registering MCP resource templates for @ResourceService bean "docResources"...
-INFO  c.c.m.s.a.ResourceServiceMcpResourceTemplateProvider -- 	Registered MCP resource template: "env://{stage}/config"
-INFO  c.c.m.s.a.ResourceServiceMcpResourceTemplateProvider -- 		Registered completions for variable "stage": [DEV, STAGE, PROD]
+INFO  c.c.m.s.a.MocapiServerResourcesAutoConfiguration -- Registering MCP resource templates for @ResourceService bean "docResources"...
+INFO  c.c.m.s.a.MocapiServerResourcesAutoConfiguration -- 	Registered MCP resource template: "env://{stage}/config"
+INFO  c.c.m.s.a.MocapiServerResourcesAutoConfiguration -- 		Registered completions for variable "stage": [DEV, STAGE, PROD]
 ```
 
 The nested "Registered completions for argument/variable" line only appears when the parameter is an enum type or carries `@Schema(allowableValues = {...})` — otherwise there are no candidate values to register. See the [Writing Prompts](prompts-guide.md) and [Writing Resources](resources-guide.md) guides for details on what triggers completion registration.

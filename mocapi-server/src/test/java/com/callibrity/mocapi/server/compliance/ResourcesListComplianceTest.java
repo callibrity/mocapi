@@ -19,7 +19,6 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceTemplate;
@@ -30,6 +29,7 @@ import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.resources.ReadResourceHandler;
+import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,28 +71,23 @@ class ResourcesListComplianceTest {
                         new TextResourceContents(
                             "file:///config.json", "application/json", "{}"))));
 
-    McpResourceTemplate userTemplate =
-        new McpResourceTemplate() {
-          @Override
-          public ResourceTemplate descriptor() {
-            return new ResourceTemplate(
-                "users://{userId}/profile", "User Profile", "Profile for user", "application/json");
-          }
-
-          @Override
-          public ReadResourceResult read(Map<String, String> pathVariables) {
-            return new ReadResourceResult(
-                List.of(
-                    new TextResourceContents(
-                        "users://" + pathVariables.get("userId") + "/profile",
-                        "application/json",
-                        "{}")));
-          }
-        };
+    ReadResourceTemplateHandler userTemplate =
+        new ReadResourceTemplateHandler(
+            new ResourceTemplate(
+                "users://{userId}/profile", "User Profile", "Profile for user", "application/json"),
+            null,
+            null,
+            pathVariables ->
+                new ReadResourceResult(
+                    List.of(
+                        new TextResourceContents(
+                            "users://" + pathVariables.get("userId") + "/profile",
+                            "application/json",
+                            "{}"))),
+            List.of());
 
     var resourcesService =
-        new McpResourcesService(
-            List.of(fileResource, configResource), List.of(() -> List.of(userTemplate)));
+        new McpResourcesService(List.of(fileResource, configResource), List.of(userTemplate));
 
     server =
         buildServer(

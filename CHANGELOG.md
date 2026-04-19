@@ -8,6 +8,23 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Breaking changes
 
+- Removed the `McpResourceTemplate` and `McpResourceTemplateProvider`
+  interfaces from `mocapi-api`. Resource-template discovery is purely
+  annotation-driven: every `@ResourceTemplateMethod` on a
+  `@ResourceService` bean produces a `ReadResourceTemplateHandler`
+  (server-internal) that `McpResourcesService` dispatches to via a
+  `Map<UriTemplate, ReadResourceTemplateHandler>` after fixed-URI
+  lookup misses. No user code implemented these SPI types in
+  practice — resource templates are declared with annotations, not
+  by hand — so this change is source-invisible for typical
+  applications. The internal `AnnotationMcpResourceTemplate` /
+  `ResourceServiceMcpResourceTemplateProvider` classes are gone;
+  their logic moved to
+  `com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlers#discover`
+  and `MocapiServerResourcesAutoConfiguration`. After this change
+  mocapi has no public handler-SPI interfaces — tools, prompts,
+  resources, and resource templates are all annotation-driven.
+
 - Removed the `McpResource` and `McpResourceProvider` interfaces from
   `mocapi-api`. Fixed-URI resource discovery is purely
   annotation-driven: every `@ResourceMethod` on a `@ResourceService`
@@ -20,10 +37,7 @@ All notable changes to this project are documented in this file. The format is b
   `ResourceServiceMcpResourceProvider` classes are gone; their logic
   moved to
   `com.callibrity.mocapi.server.resources.ReadResourceHandlers#discover`
-  and `MocapiServerResourcesAutoConfiguration`. Resource templates
-  (parameterized URIs) still flow through the existing
-  `McpResourceTemplateProvider` SPI — spec 174 will collapse them into
-  a `ReadResourceTemplateHandler` on the same pattern.
+  and `MocapiServerResourcesAutoConfiguration`.
 
 - Removed the `McpPrompt` and `McpPromptProvider` interfaces from
   `mocapi-api`. Prompt discovery is purely annotation-driven: every

@@ -15,8 +15,6 @@
  */
 package com.callibrity.mocapi.server.resources;
 
-import com.callibrity.mocapi.api.resources.McpResourceTemplate;
-import com.callibrity.mocapi.api.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.model.ListResourceTemplatesResult;
 import com.callibrity.mocapi.model.ListResourcesResult;
 import com.callibrity.mocapi.model.McpMethods;
@@ -46,19 +44,19 @@ public class McpResourcesService {
   public static final int DEFAULT_PAGE_SIZE = 50;
 
   private final Map<String, ReadResourceHandler> resources;
-  private final Map<UriTemplate, McpResourceTemplate> templates;
+  private final Map<UriTemplate, ReadResourceTemplateHandler> templates;
   private final List<Resource> sortedResourceDescriptors;
   private final List<ResourceTemplate> sortedTemplateDescriptors;
   private final int pageSize;
 
   public McpResourcesService(
-      List<ReadResourceHandler> handlers, List<McpResourceTemplateProvider> templateProviders) {
-    this(handlers, templateProviders, DEFAULT_PAGE_SIZE);
+      List<ReadResourceHandler> handlers, List<ReadResourceTemplateHandler> templateHandlers) {
+    this(handlers, templateHandlers, DEFAULT_PAGE_SIZE);
   }
 
   public McpResourcesService(
       List<ReadResourceHandler> handlers,
-      List<McpResourceTemplateProvider> templateProviders,
+      List<ReadResourceTemplateHandler> templateHandlers,
       int pageSize) {
     this.resources =
         handlers.stream()
@@ -76,28 +74,23 @@ public class McpResourcesService {
             .sorted(Comparator.comparing(Resource::uri))
             .toList();
 
-    var allTemplates =
-        templateProviders.stream()
-            .flatMap(provider -> provider.getMcpResourceTemplates().stream())
-            .toList();
     var templatesByString =
-        allTemplates.stream()
+        templateHandlers.stream()
             .collect(
                 Collectors.toMap(
-                    t -> t.descriptor().uriTemplate(),
-                    t -> t,
+                    ReadResourceTemplateHandler::uriTemplate,
+                    h -> h,
                     (a, b) -> {
                       throw new IllegalArgumentException(
-                          "Duplicate URI template: " + a.descriptor().uriTemplate());
+                          "Duplicate URI template: " + a.uriTemplate());
                     },
                     LinkedHashMap::new));
     this.templates = new LinkedHashMap<>();
     templatesByString.forEach(
-        (uriTemplate, mcpTemplate) ->
-            this.templates.put(new UriTemplate(uriTemplate), mcpTemplate));
+        (uriTemplate, handler) -> this.templates.put(new UriTemplate(uriTemplate), handler));
     this.sortedTemplateDescriptors =
-        allTemplates.stream()
-            .map(McpResourceTemplate::descriptor)
+        templateHandlers.stream()
+            .map(ReadResourceTemplateHandler::descriptor)
             .sorted(Comparator.comparing(ResourceTemplate::uriTemplate))
             .toList();
     this.pageSize = pageSize;

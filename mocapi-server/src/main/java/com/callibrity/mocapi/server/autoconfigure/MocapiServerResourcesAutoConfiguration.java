@@ -15,16 +15,20 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
-import com.callibrity.mocapi.api.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.api.resources.ResourceService;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.resources.ReadResourceHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlers;
+import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
+import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlers;
+import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -44,31 +48,20 @@ public class MocapiServerResourcesAutoConfiguration {
   private final MocapiServerProperties props;
 
   @Bean
-  @ConditionalOnMissingBean(ResourceServiceMcpResourceTemplateProvider.class)
-  public ResourceServiceMcpResourceTemplateProvider
-      mcpProtocolResourceServiceMcpResourceTemplateProvider(
-          ApplicationContext context,
-          MethodInvokerFactory invokerFactory,
-          ObjectProvider<ConversionService> conversionService,
-          StringValueResolver mcpAnnotationValueResolver,
-          McpCompletionsService completions) {
-    return new ResourceServiceMcpResourceTemplateProvider(
-        context,
-        invokerFactory,
-        conversionService.getIfAvailable(DefaultConversionService::getSharedInstance),
-        mcpAnnotationValueResolver,
-        completions);
-  }
-
-  @Bean
   @ConditionalOnMissingBean(McpResourcesService.class)
   public McpResourcesService mcpProtocolResourcesService(
       ApplicationContext context,
       MethodInvokerFactory invokerFactory,
+      ObjectProvider<ConversionService> conversionService,
       StringValueResolver mcpAnnotationValueResolver,
-      List<McpResourceTemplateProvider> templateProviders) {
+      McpCompletionsService completions) {
+    List<ParameterResolver<? super Map<String, String>>> templateResolvers =
+        List.of(
+            new StringMapArgResolver(
+                conversionService.getIfAvailable(DefaultConversionService::getSharedInstance)));
+    var beans = context.getBeansWithAnnotation(ResourceService.class);
     List<ReadResourceHandler> handlers =
-        context.getBeansWithAnnotation(ResourceService.class).entrySet().stream()
+        beans.entrySet().stream()
             .flatMap(
                 entry -> {
                   String beanName = entry.getKey();
@@ -85,6 +78,42 @@ public class MocapiServerResourcesAutoConfiguration {
                   return perBean.stream();
                 })
             .toList();
-    return new McpResourcesService(handlers, templateProviders, props.pagination().pageSize());
+    List<ReadResourceTemplateHandler> templateHandlers =
+        beans.entrySet().stream()
+            .flatMap(
+                entry -> {
+                  String beanName = entry.getKey();
+                  Object bean = entry.getValue();
+                  log.info(
+                      "Registering MCP resource templates for @{} bean \"{}\"...",
+                      ResourceService.class.getSimpleName(),
+                      beanName);
+                  List<ReadResourceTemplateHandler> perBean =
+                      ReadResourceTemplateHandlers.discover(
+                          bean,
+                          invokerFactory,
+                          templateResolvers,
+                          mcpAnnotationValueResolver::resolveStringValue);
+                  perBean.forEach(
+                      h ->
+                          log.info(
+                              "\tRegistered MCP resource template: \"{}\"",
+                              h.descriptor().uriTemplate()));
+                  return perBean.stream();
+                })
+            .toList();
+    templateHandlers.forEach(
+        h ->
+            h.completionCandidates()
+                .forEach(
+                    c -> {
+                      completions.registerResourceTemplateVariable(
+                          h.descriptor().uriTemplate(), c.argumentName(), c.values());
+                      log.info(
+                          "\t\tRegistered completions for variable \"{}\": {}",
+                          c.argumentName(),
+                          c.values());
+                    }));
+    return new McpResourcesService(handlers, templateHandlers, props.pagination().pageSize());
   }
 }

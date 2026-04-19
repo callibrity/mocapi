@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.resources.annotation;
+package com.callibrity.mocapi.server.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -33,7 +33,7 @@ import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.core.convert.support.DefaultConversionService;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class AnnotationMcpResourceTemplateTest {
+class ReadResourceTemplateHandlerTest {
 
   private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory(List.of());
   private final List<ParameterResolver<? super Map<String, String>>> templateResolvers =
@@ -66,6 +66,14 @@ class AnnotationMcpResourceTemplateTest {
     }
   }
 
+  public static class DefaultedFixture {
+    @ResourceTemplateMethod(uriTemplate = "test://defaulted/{x}")
+    public ReadResourceResult defaulted(String x) {
+      return new ReadResourceResult(
+          List.of(new TextResourceContents("test://defaulted/" + x, "text/plain", x)));
+    }
+  }
+
   public static class BadTemplate {
     @ResourceTemplateMethod(uriTemplate = "test://bad/{x}")
     public String oops(String x) {
@@ -74,29 +82,41 @@ class AnnotationMcpResourceTemplateTest {
   }
 
   @Test
-  void template_builds_descriptor_and_invokes_with_converted_path_variables() {
-    var template =
-        AnnotationMcpResourceTemplate.createTemplates(
-                invokerFactory, templateResolvers, new Fixture(), s -> s)
+  void discover_builds_handler_from_annotated_method() {
+    var handler =
+        ReadResourceTemplateHandlers.discover(
+                new Fixture(), invokerFactory, templateResolvers, s -> s)
             .getFirst();
 
-    assertThat(template.descriptor().uriTemplate()).isEqualTo("test://items/{id}");
-    assertThat(template.descriptor().name()).isEqualTo("Item");
+    assertThat(handler.uriTemplate()).isEqualTo("test://items/{id}");
+    assertThat(handler.descriptor().name()).isEqualTo("Item");
+    assertThat(handler.descriptor().mimeType()).isEqualTo("text/plain");
+    assertThat(handler.method().getName()).isEqualTo("item");
+    assertThat(handler.bean()).isInstanceOf(Fixture.class);
+  }
 
-    var result = template.read(Map.of("id", "42"));
+  @Test
+  void read_invokes_underlying_method_with_converted_path_variables() {
+    var handler =
+        ReadResourceTemplateHandlers.discover(
+                new Fixture(), invokerFactory, templateResolvers, s -> s)
+            .getFirst();
+
+    var result = handler.read(Map.of("id", "42"));
+
     var content = (TextResourceContents) result.contents().getFirst();
     assertThat(content.text()).isEqualTo("item 42");
     assertThat(content.uri()).isEqualTo("test://items/42");
   }
 
   @Test
-  void template_read_with_null_path_variables_invokes_with_empty_map() {
-    var template =
-        AnnotationMcpResourceTemplate.createTemplates(
-                invokerFactory, templateResolvers, new StringPathFixture(), s -> s)
+  void read_with_null_path_variables_invokes_with_empty_map() {
+    var handler =
+        ReadResourceTemplateHandlers.discover(
+                new StringPathFixture(), invokerFactory, templateResolvers, s -> s)
             .getFirst();
 
-    var result = template.read(null);
+    var result = handler.read(null);
 
     var content = (TextResourceContents) result.contents().getFirst();
     assertThat(content.text()).isEqualTo("hi null");
@@ -104,25 +124,37 @@ class AnnotationMcpResourceTemplateTest {
 
   @Test
   void whole_vars_map_parameter_receives_all_path_variables_and_registers_no_completions() {
-    var template =
-        AnnotationMcpResourceTemplate.createTemplates(
-                invokerFactory, templateResolvers, new WholeVarsMapFixture(), s -> s)
+    var handler =
+        ReadResourceTemplateHandlers.discover(
+                new WholeVarsMapFixture(), invokerFactory, templateResolvers, s -> s)
             .getFirst();
 
-    var result = template.read(Map.of("a", "1", "b", "2"));
+    var result = handler.read(Map.of("a", "1", "b", "2"));
 
     var content = (TextResourceContents) result.contents().getFirst();
     assertThat(content.text()).contains("a=1").contains("b=2");
-    assertThat(template.completionCandidates()).isEmpty();
+    assertThat(handler.completionCandidates()).isEmpty();
   }
 
   @Test
-  void template_method_with_non_result_return_type_is_rejected() {
+  void name_and_description_default_when_annotation_values_are_blank() {
+    var handler =
+        ReadResourceTemplateHandlers.discover(
+                new DefaultedFixture(), invokerFactory, templateResolvers, s -> s)
+            .getFirst();
+
+    assertThat(handler.descriptor().name()).isNotBlank();
+    assertThat(handler.descriptor().description()).isEqualTo(handler.descriptor().name());
+    assertThat(handler.descriptor().mimeType()).isNull();
+  }
+
+  @Test
+  void resource_template_method_with_non_result_return_type_is_rejected() {
     var target = new BadTemplate();
     assertThatThrownBy(
             () ->
-                AnnotationMcpResourceTemplate.createTemplates(
-                    invokerFactory, templateResolvers, target, s -> s))
+                ReadResourceTemplateHandlers.discover(
+                    target, invokerFactory, templateResolvers, s -> s))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ReadResourceResult");
   }

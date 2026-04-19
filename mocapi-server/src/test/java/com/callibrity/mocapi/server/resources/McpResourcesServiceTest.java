@@ -18,8 +18,6 @@ package com.callibrity.mocapi.server.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.api.resources.McpResourceTemplate;
-import com.callibrity.mocapi.api.resources.McpResourceTemplateProvider;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
@@ -28,7 +26,6 @@ import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -52,34 +49,28 @@ class McpResourcesServiceTest {
                 List.of(new TextResourceContents(uri, mimeType, "content of " + uri))));
   }
 
-  private static McpResourceTemplate template(
+  private static ReadResourceTemplateHandler templateHandler(
       String uriTemplate, String name, String description, String mimeType) {
-    return new McpResourceTemplate() {
-      @Override
-      public ResourceTemplate descriptor() {
-        return new ResourceTemplate(uriTemplate, name, description, mimeType);
-      }
-
-      @Override
-      public ReadResourceResult read(Map<String, String> pathVariables) {
-        return new ReadResourceResult(
-            List.of(new TextResourceContents(uriTemplate, mimeType, "template " + pathVariables)));
-      }
-    };
+    ResourceTemplate descriptor = new ResourceTemplate(uriTemplate, name, description, mimeType);
+    return new ReadResourceTemplateHandler(
+        descriptor,
+        null,
+        null,
+        vars ->
+            new ReadResourceResult(
+                List.of(new TextResourceContents(uriTemplate, mimeType, "template " + vars))),
+        List.of());
   }
 
   @BeforeEach
   void setUp() {
-    var templateProvider =
-        (McpResourceTemplateProvider)
-            () ->
-                List.of(template("test://items/{id}", "Item Template", "desc", "application/json"));
     service =
         new McpResourcesService(
             List.of(
                 handler("test://b", "Resource B", "desc B", "text/plain"),
                 handler("test://a", "Resource A", "desc A", "text/plain")),
-            List.of(templateProvider));
+            List.of(
+                templateHandler("test://items/{id}", "Item Template", "desc", "application/json")));
   }
 
   @Test
@@ -127,8 +118,8 @@ class McpResourcesServiceTest {
   @Test
   void exact_match_takes_precedence_over_template() {
     var exact = handler("test://items/special", "Special", "desc", "text/plain");
-    var templateResource = template("test://items/{id}", "Item", "desc", "application/json");
-    var svc = new McpResourcesService(List.of(exact), List.of(() -> List.of(templateResource)));
+    var template = templateHandler("test://items/{id}", "Item", "desc", "application/json");
+    var svc = new McpResourcesService(List.of(exact), List.of(template));
 
     var result = svc.readResource(new ResourceRequestParams("test://items/special", null));
 
@@ -160,8 +151,7 @@ class McpResourcesServiceTest {
   void is_empty_returns_false_with_only_templates() {
     var svc =
         new McpResourcesService(
-            List.of(),
-            List.of(() -> List.of(template("test://t/{id}", "T", "desc", "text/plain"))));
+            List.of(), List.of(templateHandler("test://t/{id}", "T", "desc", "text/plain")));
     assertThat(svc.isEmpty()).isFalse();
   }
 
@@ -191,12 +181,14 @@ class McpResourcesServiceTest {
 
   @Test
   void pagination_works_for_templates() {
-    List<McpResourceTemplate> templates =
+    List<ReadResourceTemplateHandler> templates =
         IntStream.range(0, 3)
             .mapToObj(
-                i -> template(String.format("test://t%03d/{id}", i), "T" + i, "desc", "text/plain"))
+                i ->
+                    templateHandler(
+                        String.format("test://t%03d/{id}", i), "T" + i, "desc", "text/plain"))
             .toList();
-    var svc = new McpResourcesService(List.of(), List.of(() -> templates), 2);
+    var svc = new McpResourcesService(List.of(), templates, 2);
 
     var page1 = svc.listResourceTemplates(null);
     assertThat(page1.resourceTemplates()).hasSize(2);
@@ -217,12 +209,12 @@ class McpResourcesServiceTest {
 
   @Test
   void duplicate_uri_template_throws_exception() {
-    var t1 = template("test://items/{id}", "T1", "first", "text/plain");
-    var t2 = template("test://items/{id}", "T2", "duplicate", "text/plain");
+    var t1 = templateHandler("test://items/{id}", "T1", "first", "text/plain");
+    var t2 = templateHandler("test://items/{id}", "T2", "duplicate", "text/plain");
 
-    List<McpResourceTemplateProvider> providers = List.of(() -> List.of(t1, t2));
+    List<ReadResourceTemplateHandler> templates = List.of(t1, t2);
     List<ReadResourceHandler> emptyHandlers = List.of();
-    assertThatThrownBy(() -> new McpResourcesService(emptyHandlers, providers))
+    assertThatThrownBy(() -> new McpResourcesService(emptyHandlers, templates))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Duplicate URI template");
   }
@@ -232,8 +224,8 @@ class McpResourcesServiceTest {
     var a1 = handler("test://dup", "A", "first", "text/plain");
     var a2 = handler("test://dup", "B", "second", "text/plain");
     List<ReadResourceHandler> handlers = List.of(a1, a2);
-    List<McpResourceTemplateProvider> emptyProviders = List.of();
-    assertThatThrownBy(() -> new McpResourcesService(handlers, emptyProviders))
+    List<ReadResourceTemplateHandler> emptyTemplates = List.of();
+    assertThatThrownBy(() -> new McpResourcesService(handlers, emptyTemplates))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Duplicate resource URI");
   }
@@ -251,5 +243,12 @@ class McpResourcesServiceTest {
 
     assertThat(result.resources()).isEmpty();
     assertThat(result.nextCursor()).isNull();
+  }
+
+  @Test
+  void template_handler_read_receives_path_variables() {
+    var params = new ResourceRequestParams("test://items/abc", null);
+    var content = (TextResourceContents) service.readResource(params).contents().getFirst();
+    assertThat(content.text()).contains("id=abc");
   }
 }
