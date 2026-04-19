@@ -1,8 +1,8 @@
-LAST_RUN: 2026-04-13T09:13:00-04:00
-ITERATION: 93
-SPEC_COMPLETED: 164-remove-backend-specific-starters.md
-WHAT_WAS_DONE: Deleted all four backend-specific starter modules (redis, hazelcast, postgresql, aws) and removed them from the parent POM. Updated example POMs (redis, hazelcast, postgresql) to depend directly on substrate-* backends plus their Spring Boot integration deps. Moved integration tests from starters to corresponding example modules with failsafe configured.
-VERIFICATION: mvn verify -pl '!mocapi-compat' — BUILD SUCCESS. All 13 modules pass. Redis (4 IT), Hazelcast (4 IT), PostgreSQL (4 IT) integration tests all green.
-STATUS: DONE
-NEXT_SPEC: none
-NOTES: The AWS starter's integration test (AwsStarterAutoConfigurationIT) was deleted since there is no AWS example module to move it to. It tested Substrate's DynamoDB/SNS auto-configuration, not mocapi code. The NATS example already used direct substrate-nats dependency (no starter existed for it), so it served as the model for this migration.
+LAST_RUN: 2026-04-18T22:23:00-04:00
+ITERATION: 94
+SPEC_COMPLETED: 166-mock-mcp-tool-context-test-utility.md
+WHAT_WAS_DONE: Added new mocapi-test module (no Spring dependency) containing MockMcpToolContext — a final McpToolContext implementation with nested ProgressEvent/LogEntry/ElicitCall/SampleCall records, defensive-copy accessors, fixed and Function-based scripted elicit/sample responses, reset(), and a package-private TestCreateMessageRequestConfig that throws from tool(String)/tools(String...)/allServerTools() with a clear "MockMcpToolContext" message. Added module to parent pom, mocapi-bom, and wrote a demo test in examples/example-autoconfigure exercising HelloTool.sayHelloElicitation against the mock. README entry added under a new Testing section.
+VERIFICATION: mvn verify -pl '!mocapi-conformance' — BUILD SUCCESS. All 22 reactor modules (incl. new Mocapi - Test) pass. MockMcpToolContextTest (unit) and HelloToolMockMcpToolContextTest (demo) both green.
+STATUS: MORE_WORK
+NEXT_SPEC: 167-mcp-logger-interface.md
+NOTES: Spec #166 was updated mid-iteration to rename captured-call records (ElicitCall/SampleCall wrapping the params) and mandate a final class with package-private helper TestCreateMessageRequestConfig; the implementation matches the updated spec. Specs 167–171 on disk differ in title from what was in the queue last iteration (now 167-mcp-logger-interface, 168-mdc-attributes-for-handler-invocations, 169-structured-validation-error-text, 170-mcp-handler-observer-spi, 171-opentelemetry-tracing) — next iteration should pick up 167 as usual.
