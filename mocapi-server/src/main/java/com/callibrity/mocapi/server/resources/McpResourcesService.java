@@ -131,4 +131,14 @@ public class McpResourcesService {
   public boolean isEmpty() {
     return resources.isEmpty() && templates.isEmpty();
   }
+
+  /** Returns every registered resource descriptor, sorted by URI. */
+  public List<Resource> allResourceDescriptors() {
+    return sortedResourceDescriptors;
+  }
+
+  /** Returns every registered resource-template descriptor, sorted by URI template. */
+  public List<ResourceTemplate> allResourceTemplateDescriptors() {
+    return sortedTemplateDescriptors;
+  }
 }

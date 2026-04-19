@@ -152,6 +152,7 @@ Run your Spring Boot application. With `mocapi-streamable-http-spring-boot-start
 - **`mocapi-jakarta-validation-spring-boot-starter`** — Jakarta Bean Validation on user `@McpTool` / `@McpPrompt` / `@McpResourceTemplate` parameters. Annotations like `@NotBlank`/`@Size`/`@Pattern` surface as `CallToolResult.isError=true` for tools (MCP-spec-idiomatic for LLM self-correction) and JSON-RPC `-32602 Invalid params` with per-violation detail for prompts and resources. See [Validation](docs/validation.md).
 - **`mocapi-o11y`** — single-interceptor observability library. Wraps every tool / prompt / resource / resource-template invocation in a Micrometer `Observation` so the same code emits both metrics (via a `MeterObservationHandler`) and tracing spans (via a `TracingObservationHandler`) — no separate metrics / tracing interceptors.
 - **`mocapi-o11y-spring-boot-starter`** — autoconfig that wires the o11y interceptor onto every handler whenever an `ObservationRegistry` bean is present. Drop in alongside `spring-boot-starter-actuator` + a Micrometer meter registry for metrics, or alongside `micrometer-tracing-bridge-otel` for tracing, or both.
+- **`mocapi-actuator-spring-boot-starter`** — Spring Boot Actuator endpoint at `/actuator/mcp` exposing a read-only inventory of the MCP tools, prompts, resources, and resource templates registered on this node. Publishes handler names + schema digests (not the full schemas) so ops teams can answer "what's running here?" without opening an MCP session.
 
 ### Prompt templating (optional)
 

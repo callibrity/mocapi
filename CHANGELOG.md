@@ -8,6 +8,23 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- New module `mocapi-actuator-spring-boot-starter`: a Spring Boot
+  Actuator endpoint at `/actuator/mcp` that returns a read-only
+  inventory of every MCP tool / prompt / resource / resource-template
+  registered on the node. The response is a JSON document with a
+  `server` block (name, version, `protocolVersion`), a `counts`
+  block, and per-kind descriptor lists. Tool entries carry
+  `inputSchemaDigest` / `outputSchemaDigest` — SHA-256 hex prefixed
+  `sha256:` — rather than full schema bodies (the full schemas are
+  still available via MCP `tools/list`). Activation follows standard
+  actuator rules: the autoconfig is guarded by
+  `@ConditionalOnAvailableEndpoint`, so users opt in via
+  `management.endpoints.web.exposure.include=mcp`. `BuildProperties`
+  is optional; if absent the `server.version` field is simply
+  omitted. No session state, no metrics fold-in — session
+  introspection is out of scope for a per-node snapshot, and metrics
+  already have `/actuator/metrics` + `/actuator/prometheus`.
+
 - New module pair `mocapi-o11y` + `mocapi-o11y-spring-boot-starter`:
   single-interceptor observability for MCP handler invocations via
   the Micrometer Observation API. One `McpObservationInterceptor`

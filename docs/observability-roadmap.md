@@ -72,15 +72,19 @@ Deferred follow-ups: session / request attributes on the Observation
 attribute on `CallToolResult.isError=true` results if the standard
 `outcome` tag turns out to be insufficient.
 
-## Actuator endpoint
+## Actuator endpoint — ✅ shipped (spec 185)
 
 `/actuator/mcp` returns server info, handler counts, and per-handler
 metadata (name + schema digest). Does not expose session state
 (mocapi is multi-node; sessions live in the backing store, not on one
-node). When the metrics starter is also present, the endpoint folds
-in a metrics snapshot.
+node) and does not fold in a metrics snapshot — metrics already have
+`/actuator/metrics` + `/actuator/prometheus`, and duplicating them
+into a mocapi-specific endpoint would create two sources of truth.
 
-Shipped as `mocapi-actuator-spring-boot-starter`.
+Shipped as `mocapi-actuator-spring-boot-starter`. Activation follows
+standard actuator rules: `@ConditionalOnAvailableEndpoint` means
+users opt in via
+`management.endpoints.web.exposure.include=mcp`.
 
 ## Guards / entitlements (visibility)
 
