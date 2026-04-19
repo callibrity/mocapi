@@ -52,7 +52,7 @@ class McpObservationInterceptorTest {
   @Test
   void records_error_when_proceed_throws() {
     var registry = TestObservationRegistry.create();
-    var interceptor = new McpObservationInterceptor(registry, "mcp.tool", "tool", "boom-tool");
+    var interceptor = new McpObservationInterceptor(registry, "tool", "boom-tool");
     var invocation =
         MethodInvocation.of(
             dummyMethod(),
@@ -76,7 +76,7 @@ class McpObservationInterceptorTest {
 
   private static void assertObservationRecorded(String observationName, String kind, String name) {
     var registry = TestObservationRegistry.create();
-    var interceptor = new McpObservationInterceptor(registry, observationName, kind, name);
+    var interceptor = new McpObservationInterceptor(registry, kind, name);
 
     Object result =
         interceptor.intercept(

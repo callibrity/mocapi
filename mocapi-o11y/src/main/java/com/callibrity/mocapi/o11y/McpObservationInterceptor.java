@@ -15,9 +15,6 @@
  */
 package com.callibrity.mocapi.o11y;
 
-import static com.callibrity.mocapi.o11y.McpObservationConvention.HANDLER_KIND;
-import static com.callibrity.mocapi.o11y.McpObservationConvention.HANDLER_NAME;
-
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
@@ -34,29 +31,30 @@ import org.jwcarman.methodical.intercept.MethodInvocation;
  */
 public final class McpObservationInterceptor implements MethodInterceptor<Object> {
 
+  /** Tag key for the handler kind (tool / prompt / resource / resource_template). */
+  public static final String HANDLER_KIND_KEY = "mcp.handler.kind";
+
+  /** Tag key for the handler name (tool / prompt name, resource URI, or URI template). */
+  public static final String HANDLER_NAME_KEY = "mcp.handler.name";
+
   private final ObservationRegistry registry;
   private final String observationName;
   private final String handlerKind;
   private final String handlerName;
 
   public McpObservationInterceptor(
-      ObservationRegistry registry,
-      String observationName,
-      String handlerKind,
-      String handlerName) {
+      ObservationRegistry registry, String handlerKind, String handlerName) {
     this.registry = registry;
-    this.observationName = observationName;
+    this.observationName = "mcp." + handlerKind;
     this.handlerKind = handlerKind;
     this.handlerName = handlerName;
   }
 
   @Override
   public Object intercept(MethodInvocation<?> invocation) {
-    McpObservationContext context = new McpObservationContext(handlerKind, handlerName);
-    Observation observation =
-        Observation.createNotStarted(observationName, () -> context, registry)
-            .lowCardinalityKeyValue(HANDLER_KIND, handlerKind)
-            .lowCardinalityKeyValue(HANDLER_NAME, handlerName);
-    return observation.observe(invocation::proceed);
+    return Observation.createNotStarted(observationName, registry)
+        .lowCardinalityKeyValue(HANDLER_KIND_KEY, handlerKind)
+        .lowCardinalityKeyValue(HANDLER_NAME_KEY, handlerName)
+        .observe(invocation::proceed);
   }
 }

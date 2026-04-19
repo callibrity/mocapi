@@ -39,25 +39,18 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnBean(ObservationRegistry.class)
 public class MocapiO11yAutoConfiguration {
 
-  static final String TOOL_OBSERVATION_NAME = "mcp.tool";
-  static final String PROMPT_OBSERVATION_NAME = "mcp.prompt";
-  static final String RESOURCE_OBSERVATION_NAME = "mcp.resource";
-  static final String RESOURCE_TEMPLATE_OBSERVATION_NAME = "mcp.resource_template";
-
   @Bean
   public CallToolHandlerCustomizer mcpObservationToolCustomizer(ObservationRegistry registry) {
     return config ->
         config.interceptor(
-            new McpObservationInterceptor(
-                registry, TOOL_OBSERVATION_NAME, "tool", config.descriptor().name()));
+            new McpObservationInterceptor(registry, "tool", config.descriptor().name()));
   }
 
   @Bean
   public GetPromptHandlerCustomizer mcpObservationPromptCustomizer(ObservationRegistry registry) {
     return config ->
         config.interceptor(
-            new McpObservationInterceptor(
-                registry, PROMPT_OBSERVATION_NAME, "prompt", config.descriptor().name()));
+            new McpObservationInterceptor(registry, "prompt", config.descriptor().name()));
   }
 
   @Bean
@@ -65,8 +58,7 @@ public class MocapiO11yAutoConfiguration {
       ObservationRegistry registry) {
     return config ->
         config.interceptor(
-            new McpObservationInterceptor(
-                registry, RESOURCE_OBSERVATION_NAME, "resource", config.descriptor().uri()));
+            new McpObservationInterceptor(registry, "resource", config.descriptor().uri()));
   }
 
   @Bean
@@ -75,9 +67,6 @@ public class MocapiO11yAutoConfiguration {
     return config ->
         config.interceptor(
             new McpObservationInterceptor(
-                registry,
-                RESOURCE_TEMPLATE_OBSERVATION_NAME,
-                "resource_template",
-                config.descriptor().uriTemplate()));
+                registry, "resource_template", config.descriptor().uriTemplate()));
   }
 }
