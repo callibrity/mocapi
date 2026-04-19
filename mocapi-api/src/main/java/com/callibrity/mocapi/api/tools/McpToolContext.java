@@ -187,6 +187,27 @@ public interface McpToolContext {
   }
 
   /**
+   * Shortcut for {@link #sample(String)} that returns only the assistant's text content — by far
+   * the most common use of a sampling result. Equivalent to {@code sample(prompt).text()}. Returns
+   * {@code null} if the assistant responded with a non-text content block.
+   *
+   * <pre>{@code
+   * String summary = ctx.sampleText("Summarize the above in one sentence.");
+   * }</pre>
+   */
+  default String sampleText(String userMessage) {
+    return sample(userMessage).text();
+  }
+
+  /**
+   * Same as {@link #sampleText(String)} but takes a fluent {@link CreateMessageRequestConfig}
+   * customizer.
+   */
+  default String sampleText(Consumer<CreateMessageRequestConfig> customizer) {
+    return sample(customizer).text();
+  }
+
+  /**
    * Sends a sampling request built via a fluent {@link CreateMessageRequestConfig}. Only {@code
    * messages} and {@code maxTokens} are required per the MCP spec; {@code maxTokens} defaults to
    * {@value CreateMessageRequestConfig#DEFAULT_MAX_TOKENS}. Example:

@@ -53,6 +53,17 @@ public interface CreateMessageRequestConfig {
   /** Appends a message with the given role and content block (text, image, audio, etc.). */
   CreateMessageRequestConfig message(Role role, ContentBlock content);
 
+  /**
+   * Appends one user-role message per string, in order. Convenient for few-shot prompting. Silently
+   * does nothing if {@code texts} is empty.
+   */
+  default CreateMessageRequestConfig userMessages(String... texts) {
+    for (String text : texts) {
+      userMessage(text);
+    }
+    return this;
+  }
+
   // --- Scalars ----------------------------------------------------------------------------------
 
   /** System prompt — client decides whether/how to honor it. */
@@ -112,4 +123,21 @@ public interface CreateMessageRequestConfig {
 
   /** Set the tool-choice hint for this sample. */
   CreateMessageRequestConfig toolChoice(ToolChoice toolChoice);
+
+  /** Shortcut for {@code toolChoice(ToolChoice.auto())}. */
+  default CreateMessageRequestConfig autoToolChoice() {
+    return toolChoice(ToolChoice.auto());
+  }
+
+  /** Shortcut for {@code toolChoice(ToolChoice.none())}. */
+  default CreateMessageRequestConfig noneToolChoice() {
+    return toolChoice(ToolChoice.none());
+  }
+
+  /**
+   * Shortcut for {@code toolChoice(ToolChoice.specific(name))} — force the model to call this tool.
+   */
+  default CreateMessageRequestConfig mustUseTool(String name) {
+    return toolChoice(ToolChoice.specific(name));
+  }
 }

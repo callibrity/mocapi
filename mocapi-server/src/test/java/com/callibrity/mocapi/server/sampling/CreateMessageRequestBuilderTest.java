@@ -230,6 +230,53 @@ class CreateMessageRequestBuilderTest {
   }
 
   @Test
+  void userMessages_varargs_appends_one_user_message_per_string() {
+    var params =
+        new CreateMessageRequestBuilder(toolsService)
+            .userMessages("first", "second", "third")
+            .build();
+
+    assertThat(params.messages()).hasSize(3);
+    assertThat(params.messages()).allMatch(m -> m.role() == Role.USER);
+    assertThat(params.messages().stream().map(m -> ((TextContent) m.content()).text()))
+        .containsExactly("first", "second", "third");
+  }
+
+  @Test
+  void userMessages_empty_varargs_is_noop() {
+    var builder = new CreateMessageRequestBuilder(toolsService).userMessages();
+
+    assertThatThrownBy(builder::build).isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void autoToolChoice_shortcut_sets_ToolChoice_Auto() {
+    var params =
+        new CreateMessageRequestBuilder(toolsService).userMessage("hi").autoToolChoice().build();
+
+    assertThat(params.toolChoice()).isEqualTo(ToolChoice.auto());
+  }
+
+  @Test
+  void noneToolChoice_shortcut_sets_ToolChoice_None() {
+    var params =
+        new CreateMessageRequestBuilder(toolsService).userMessage("hi").noneToolChoice().build();
+
+    assertThat(params.toolChoice()).isEqualTo(ToolChoice.none());
+  }
+
+  @Test
+  void mustUseTool_shortcut_sets_ToolChoice_Specific() {
+    var params =
+        new CreateMessageRequestBuilder(toolsService)
+            .userMessage("hi")
+            .mustUseTool("blast-radius")
+            .build();
+
+    assertThat(params.toolChoice()).isEqualTo(ToolChoice.specific("blast-radius"));
+  }
+
+  @Test
   void allServerTools_appends_every_tool_from_service() {
     var t1 = new Tool("a", null, "A", null, null);
     var t2 = new Tool("b", null, "B", null, null);

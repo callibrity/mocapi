@@ -72,6 +72,14 @@ public final class CreateMessageRequestBuilder implements CreateMessageRequestCo
   }
 
   @Override
+  public CreateMessageRequestBuilder userMessages(String... texts) {
+    for (String text : texts) {
+      userMessage(text);
+    }
+    return this;
+  }
+
+  @Override
   public CreateMessageRequestBuilder systemPrompt(String systemPrompt) {
     this.systemPrompt = systemPrompt;
     return this;
@@ -163,6 +171,21 @@ public final class CreateMessageRequestBuilder implements CreateMessageRequestCo
   public CreateMessageRequestBuilder toolChoice(ToolChoice toolChoice) {
     this.toolChoice = toolChoice;
     return this;
+  }
+
+  @Override
+  public CreateMessageRequestBuilder autoToolChoice() {
+    return toolChoice(ToolChoice.auto());
+  }
+
+  @Override
+  public CreateMessageRequestBuilder noneToolChoice() {
+    return toolChoice(ToolChoice.none());
+  }
+
+  @Override
+  public CreateMessageRequestBuilder mustUseTool(String name) {
+    return toolChoice(ToolChoice.specific(name));
   }
 
   public CreateMessageRequestParams build() {
