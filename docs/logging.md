@@ -30,9 +30,13 @@ Add the starter:
 </dependency>
 ```
 
-That's it. The autoconfiguration registers an `McpMdcInterceptor` bean,
-which Methodical picks up as an ambient interceptor on every mocapi
-handler invoker.
+That's it. The autoconfiguration registers one per-handler customizer
+bean per handler kind (`CallToolHandlerCustomizer`,
+`GetPromptHandlerCustomizer`, `ReadResourceHandlerCustomizer`,
+`ReadResourceTemplateHandlerCustomizer`). Each customizer attaches an
+`McpMdcInterceptor` to its handler's invocation chain at startup, with
+the handler's kind and name baked in — so the hot path does no
+reflection.
 
 ## Logback pattern
 
@@ -87,20 +91,16 @@ observation propagation if you're already using it).
 
 No `@ConditionalOnProperty` toggle is provided. Starter on classpath = MDC
 on. Starter off classpath = MDC off. If you want to keep the starter
-present but disable the behavior at runtime, define a `@Bean` of type
-`McpMdcInterceptor` that does nothing:
+present but disable the behavior at runtime, exclude the
+autoconfiguration:
 
 ```java
-@Bean
-McpMdcInterceptor mcpMdcInterceptor() {
-  return new McpMdcInterceptor() {
-    @Override
-    public Object intercept(org.jwcarman.methodical.intercept.MethodInvocation<?> inv) {
-      return inv.proceed();
-    }
-  };
-}
+@SpringBootApplication(exclude = MocapiLoggingAutoConfiguration.class)
+public class MyApp { }
 ```
 
-`@ConditionalOnMissingBean` on the autoconfig bean means your override
-wins.
+or in `application.properties`:
+
+```properties
+spring.autoconfigure.exclude=com.callibrity.mocapi.logging.MocapiLoggingAutoConfiguration
+```

@@ -19,7 +19,6 @@ import static com.callibrity.mocapi.logging.McpMdcKeys.HANDLER_KIND;
 import static com.callibrity.mocapi.logging.McpMdcKeys.HANDLER_NAME;
 import static com.callibrity.mocapi.logging.McpMdcKeys.SESSION;
 
-import com.callibrity.mocapi.api.handlers.HandlerKinds;
 import com.callibrity.mocapi.server.session.McpSession;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,19 +34,28 @@ import org.slf4j.MDC;
  * <p>Keys set: {@code mcp.handler.kind}, {@code mcp.handler.name}, and (when a session is bound to
  * the current scope) {@code mcp.session}. The interceptor removes exactly the keys it added on the
  * way out; pre-existing MDC state from upstream filters is preserved.
+ *
+ * <p>The handler kind and name are closed over at construction — one instance per handler, wired in
+ * by the per-handler customizers in {@link MocapiLoggingAutoConfiguration}. The hot path does no
+ * reflection.
  */
 public final class McpMdcInterceptor implements MethodInterceptor<Object> {
 
+  private final String handlerKind;
+  private final String handlerName;
+
+  public McpMdcInterceptor(String handlerKind, String handlerName) {
+    this.handlerKind = handlerKind;
+    this.handlerName = handlerName;
+  }
+
   @Override
   public Object intercept(MethodInvocation<?> invocation) {
-    var method = invocation.method();
-    var kind = HandlerKinds.kindOf(method);
-    var name = kind == null ? null : blankToNull(HandlerKinds.nameOf(method));
     var sessionId = McpSession.CURRENT.isBound() ? McpSession.CURRENT.get().sessionId() : null;
 
     var added = new ArrayList<String>(3);
-    putIfPresent(added, HANDLER_KIND, kind);
-    putIfPresent(added, HANDLER_NAME, name);
+    putIfPresent(added, HANDLER_KIND, handlerKind);
+    putIfPresent(added, HANDLER_NAME, blankToNull(handlerName));
     putIfPresent(added, SESSION, sessionId);
 
     try {

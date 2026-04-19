@@ -21,10 +21,16 @@ handler code — carries correlation context:
 
 Shipped as `mocapi-logging` + `mocapi-logging-spring-boot-starter`. See
 [`docs/logging.md`](logging.md) for the Logback pattern snippet and the
-virtual-threads caveat. The annotation-introspection helper
-(`com.callibrity.mocapi.api.handlers.HandlerKinds`) that produces the
-`kind` / `name` tags lives in `mocapi-api` and is the shared point of
-reference for the metrics and tracing starters queued next.
+virtual-threads caveat. Wiring: the autoconfig exposes one
+`*HandlerCustomizer` bean per handler kind (spec 180 SPI); each
+customizer reads the handler's descriptor name / uri / uriTemplate and
+attaches a per-handler `McpMdcInterceptor` with the kind/name baked in.
+The hot path does no reflection. The annotation-introspection helper
+(`com.callibrity.mocapi.api.handlers.HandlerKinds`) in `mocapi-api` is
+no longer consulted by `mocapi-logging` but remains available for other
+code that needs to classify a `Method` outside of a Config-carrying
+context, and is the shared point of reference for the metrics and
+tracing starters queued next.
 
 ## Metrics (Micrometer)
 

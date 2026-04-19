@@ -15,24 +15,47 @@
  */
 package com.callibrity.mocapi.logging;
 
+import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
+import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
+import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
 import com.callibrity.mocapi.server.session.McpSession;
+import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
 import org.slf4j.MDC;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
 /**
- * Autoconfiguration that registers {@link McpMdcInterceptor} as an ambient methodical interceptor.
+ * Autoconfiguration that attaches an {@link McpMdcInterceptor} to every MCP handler via the
+ * per-handler customizer SPI. One customizer bean per handler kind bakes the descriptor's
+ * name/uri/uriTemplate into the interceptor at build time, so the hot path does no reflection.
  */
 @AutoConfiguration
 @ConditionalOnClass({MDC.class, MethodInterceptor.class, McpSession.class})
 public class MocapiLoggingAutoConfiguration {
 
   @Bean
-  @ConditionalOnMissingBean
-  public McpMdcInterceptor mcpMdcInterceptor() {
-    return new McpMdcInterceptor();
+  public CallToolHandlerCustomizer mcpMdcToolCustomizer() {
+    return config -> config.interceptor(new McpMdcInterceptor("tool", config.descriptor().name()));
+  }
+
+  @Bean
+  public GetPromptHandlerCustomizer mcpMdcPromptCustomizer() {
+    return config ->
+        config.interceptor(new McpMdcInterceptor("prompt", config.descriptor().name()));
+  }
+
+  @Bean
+  public ReadResourceHandlerCustomizer mcpMdcResourceCustomizer() {
+    return config ->
+        config.interceptor(new McpMdcInterceptor("resource", config.descriptor().uri()));
+  }
+
+  @Bean
+  public ReadResourceTemplateHandlerCustomizer mcpMdcResourceTemplateCustomizer() {
+    return config ->
+        config.interceptor(
+            new McpMdcInterceptor("resource_template", config.descriptor().uriTemplate()));
   }
 }

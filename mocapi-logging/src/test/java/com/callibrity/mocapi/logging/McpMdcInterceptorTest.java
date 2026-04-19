@@ -18,10 +18,6 @@ package com.callibrity.mocapi.logging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.api.prompts.McpPrompt;
-import com.callibrity.mocapi.api.resources.McpResource;
-import com.callibrity.mocapi.api.resources.McpResourceTemplate;
-import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.server.session.McpSession;
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -36,17 +32,15 @@ import org.slf4j.MDC;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpMdcInterceptorTest {
 
-  private final McpMdcInterceptor interceptor = new McpMdcInterceptor();
-
   @AfterEach
   void clearMdc() {
     MDC.clear();
   }
 
   @Test
-  void sets_tool_keys_for_the_duration_of_proceed() throws Exception {
-    var method = Fixtures.class.getDeclaredMethod("toolMethod");
-    var captured = invokeCapturingMdc(method);
+  void sets_configured_kind_and_name_for_the_duration_of_proceed() throws Exception {
+    var interceptor = new McpMdcInterceptor("tool", "my-tool");
+    var captured = invokeCapturingMdc(interceptor);
 
     assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("tool");
     assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("my-tool");
@@ -55,35 +49,8 @@ class McpMdcInterceptorTest {
   }
 
   @Test
-  void sets_prompt_keys() throws Exception {
-    var method = Fixtures.class.getDeclaredMethod("promptMethod");
-    var captured = invokeCapturingMdc(method);
-
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("prompt");
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("my-prompt");
-  }
-
-  @Test
-  void sets_resource_keys() throws Exception {
-    var method = Fixtures.class.getDeclaredMethod("resourceMethod");
-    var captured = invokeCapturingMdc(method);
-
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("resource");
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("mem://hello");
-  }
-
-  @Test
-  void sets_resource_template_keys() throws Exception {
-    var method = Fixtures.class.getDeclaredMethod("resourceTemplateMethod");
-    var captured = invokeCapturingMdc(method);
-
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("resource_template");
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("mem://item/{id}");
-  }
-
-  @Test
   void sets_session_key_when_session_is_bound() throws Exception {
-    var method = Fixtures.class.getDeclaredMethod("toolMethod");
+    var interceptor = new McpMdcInterceptor("tool", "my-tool");
     var session = new McpSession("session-42", "2025-11-25", null, null);
     AtomicReference<String> seen = new AtomicReference<>();
 
@@ -93,7 +60,7 @@ class McpMdcInterceptorTest {
               try {
                 interceptor.intercept(
                     MethodInvocation.of(
-                        method,
+                        dummyMethod(),
                         new Fixtures(),
                         null,
                         new Object[0],
@@ -112,18 +79,18 @@ class McpMdcInterceptorTest {
 
   @Test
   void omits_session_key_when_session_is_not_bound() throws Exception {
-    var method = Fixtures.class.getDeclaredMethod("toolMethod");
-    var captured = invokeCapturingMdc(method);
+    var interceptor = new McpMdcInterceptor("tool", "my-tool");
+    var captured = invokeCapturingMdc(interceptor);
 
     assertThat(captured.get().containsKey(McpMdcKeys.SESSION)).isFalse();
   }
 
   @Test
   void removes_keys_even_when_proceed_throws() throws Exception {
-    var method = Fixtures.class.getDeclaredMethod("toolMethod");
+    var interceptor = new McpMdcInterceptor("tool", "my-tool");
     var invocation =
         MethodInvocation.of(
-            method,
+            dummyMethod(),
             new Fixtures(),
             null,
             new Object[0],
@@ -141,37 +108,55 @@ class McpMdcInterceptorTest {
   @Test
   void preserves_pre_existing_mdc_entries() throws Exception {
     MDC.put("upstream.trace", "abc-123");
-    var method = Fixtures.class.getDeclaredMethod("toolMethod");
+    var interceptor = new McpMdcInterceptor("tool", "my-tool");
 
-    var captured = invokeCapturingMdc(method);
+    var captured = invokeCapturingMdc(interceptor);
 
     assertThat(captured.get().get("upstream.trace")).isEqualTo("abc-123");
     assertThat(MDC.get("upstream.trace")).isEqualTo("abc-123");
   }
 
   @Test
-  void does_not_stamp_keys_when_method_lacks_mcp_annotation() throws Exception {
-    var method = Fixtures.class.getDeclaredMethod("plainMethod");
-    var captured = invokeCapturingMdc(method);
-
-    assertThat(captured.get().containsKey(McpMdcKeys.HANDLER_KIND)).isFalse();
-    assertThat(captured.get().containsKey(McpMdcKeys.HANDLER_NAME)).isFalse();
-  }
-
-  @Test
-  void does_not_stamp_name_key_when_annotation_name_is_blank() throws Exception {
-    var method = Fixtures.class.getDeclaredMethod("toolWithDefaultName");
-    var captured = invokeCapturingMdc(method);
+  void omits_name_key_when_handler_name_is_blank() throws Exception {
+    var interceptor = new McpMdcInterceptor("tool", "");
+    var captured = invokeCapturingMdc(interceptor);
 
     assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("tool");
     assertThat(captured.get().containsKey(McpMdcKeys.HANDLER_NAME)).isFalse();
   }
 
-  private AtomicReference<Map<String, String>> invokeCapturingMdc(Method method) {
+  @Test
+  void omits_name_key_when_handler_name_is_null() throws Exception {
+    var interceptor = new McpMdcInterceptor("tool", null);
+    var captured = invokeCapturingMdc(interceptor);
+
+    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("tool");
+    assertThat(captured.get().containsKey(McpMdcKeys.HANDLER_NAME)).isFalse();
+  }
+
+  @Test
+  void resource_kind_and_uri_render_as_handler_name() throws Exception {
+    var interceptor = new McpMdcInterceptor("resource", "mem://hello");
+    var captured = invokeCapturingMdc(interceptor);
+
+    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("resource");
+    assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("mem://hello");
+  }
+
+  @Test
+  void resource_template_kind_and_uri_template_render_as_handler_name() throws Exception {
+    var interceptor = new McpMdcInterceptor("resource_template", "mem://item/{id}");
+    var captured = invokeCapturingMdc(interceptor);
+
+    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("resource_template");
+    assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("mem://item/{id}");
+  }
+
+  private AtomicReference<Map<String, String>> invokeCapturingMdc(McpMdcInterceptor interceptor) {
     AtomicReference<Map<String, String>> captured = new AtomicReference<>();
     interceptor.intercept(
         MethodInvocation.of(
-            method,
+            dummyMethod(),
             new Fixtures(),
             null,
             new Object[0],
@@ -183,22 +168,15 @@ class McpMdcInterceptorTest {
     return captured;
   }
 
+  private static Method dummyMethod() {
+    try {
+      return Fixtures.class.getDeclaredMethod("target");
+    } catch (NoSuchMethodException e) {
+      throw new AssertionError(e);
+    }
+  }
+
   static class Fixtures {
-    @McpTool(name = "my-tool")
-    public void toolMethod() {}
-
-    @McpTool
-    public void toolWithDefaultName() {}
-
-    @McpPrompt(name = "my-prompt")
-    public void promptMethod() {}
-
-    @McpResource(uri = "mem://hello")
-    public void resourceMethod() {}
-
-    @McpResourceTemplate(uriTemplate = "mem://item/{id}")
-    public void resourceTemplateMethod() {}
-
-    public void plainMethod() {}
+    public void target() {}
   }
 }

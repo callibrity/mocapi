@@ -55,6 +55,23 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Changed
 
+- `mocapi-logging` MDC interceptor now attaches per-handler via the
+  customizer SPI introduced in the previous entry, instead of riding
+  the global `MethodInterceptor<? super ...>` bean-autowiring path.
+  `MocapiLoggingAutoConfiguration` exposes four beans
+  (`CallToolHandlerCustomizer`, `GetPromptHandlerCustomizer`,
+  `ReadResourceHandlerCustomizer`,
+  `ReadResourceTemplateHandlerCustomizer`); each reads the handler's
+  descriptor name / uri / uriTemplate and attaches an
+  `McpMdcInterceptor` with the kind and name baked in at startup.
+  Same keys (`mcp.handler.kind`, `mcp.handler.name`, `mcp.session`),
+  same scope (from handler-chain entry to exit), no user-visible
+  behavior change. Side effect: the ripcurl JSON-RPC dispatch layer
+  no longer runs MDC code — previously a `MethodInterceptor<Object>`
+  bean was double-picked-up there and produced stale or null MDC
+  values on ripcurl-internal log lines; those log lines no longer
+  show MDC keys at all. The hot path also drops a per-call
+  `HandlerKinds.kindOf` / `nameOf` reflective lookup.
 - `mocapi-jakarta-validation-spring-boot-starter` and
   `mocapi-logging-spring-boot-starter` now depend on `mocapi-server`
   directly instead of pulling in
