@@ -24,7 +24,6 @@ import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.TextResourceContents;
-import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -272,31 +271,8 @@ class McpResourcesServiceTest {
         List.of(guard));
   }
 
-  @Test
-  void denied_read_throws_json_rpc_forbidden_with_reason() {
-    var uri = "file:///secret";
-    var svc =
-        new McpResourcesService(
-            List.of(guardedHandler(uri, () -> new GuardDecision.Deny("no-access"))), List.of());
-    assertThatThrownBy(() -> svc.readResource(new ResourceRequestParams(uri, null)))
-        .isInstanceOf(JsonRpcException.class)
-        .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
-        .hasMessageContaining("Forbidden")
-        .hasMessageContaining("no-access");
-  }
-
-  @Test
-  void denied_template_read_throws_forbidden() {
-    var svc =
-        new McpResourcesService(
-            List.of(),
-            List.of(
-                guardedTemplateHandler("file:///{name}", () -> new GuardDecision.Deny("blocked"))));
-    assertThatThrownBy(() -> svc.readResource(new ResourceRequestParams("file:///anything", null)))
-        .isInstanceOf(JsonRpcException.class)
-        .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
-        .hasMessageContaining("blocked");
-  }
+  // Call-time denial (guardedHandler + readResource) moved to GuardEvaluationInterceptor;
+  // covered by GuardEvaluationInterceptorTest and the per-kind chain-ordering tests.
 
   @Test
   void denied_resource_and_template_are_absent_from_list() {

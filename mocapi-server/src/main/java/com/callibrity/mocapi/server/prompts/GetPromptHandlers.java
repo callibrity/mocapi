@@ -26,6 +26,7 @@ import com.callibrity.mocapi.model.PromptArgument;
 import com.callibrity.mocapi.server.completions.CompletionCandidate;
 import com.callibrity.mocapi.server.completions.CompletionCandidates;
 import com.callibrity.mocapi.server.guards.Guard;
+import com.callibrity.mocapi.server.guards.GuardEvaluationInterceptor;
 import com.callibrity.mocapi.server.tools.schema.Parameters;
 import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import java.lang.reflect.Method;
@@ -90,6 +91,9 @@ public final class GetPromptHandlers {
             cfg -> {
               resolvers.forEach(cfg::resolver);
               chain.forEach(cfg::interceptor);
+              if (!guards.isEmpty()) {
+                cfg.interceptor(new GuardEvaluationInterceptor(guards));
+              }
             });
     return new GetPromptHandler(descriptor, method, bean, invoker, candidatesOf(method), guards);
   }

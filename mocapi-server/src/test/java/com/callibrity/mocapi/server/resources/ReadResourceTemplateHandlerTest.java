@@ -21,6 +21,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
+import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.guards.GuardDecision;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -268,5 +271,32 @@ class ReadResourceTemplateHandlerTest {
       return new ReadResourceResult(
           List.of(new TextResourceContents("test://echo/" + value, "text/plain", value)));
     }
+  }
+
+  @Test
+  void guards_run_after_customizer_interceptors() {
+    var bean = new StringPathFixture();
+    var customizerHits = new AtomicInteger();
+    ReadResourceTemplateHandlerCustomizer customizer =
+        config -> {
+          config.interceptor(
+              invocation -> {
+                customizerHits.incrementAndGet();
+                return invocation.proceed();
+              });
+          config.guard(() -> new GuardDecision.Deny("no-access"));
+        };
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResourceTemplate.class)
+            .getFirst();
+    var handler =
+        ReadResourceTemplateHandlers.build(
+            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+
+    assertThatThrownBy(() -> handler.read(Map.of("name", "World")))
+        .isInstanceOf(JsonRpcException.class)
+        .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
+        .hasMessageContaining("no-access");
+    assertThat(customizerHits).hasValue(1);
   }
 }

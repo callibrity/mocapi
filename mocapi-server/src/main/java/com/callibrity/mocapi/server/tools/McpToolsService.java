@@ -28,7 +28,6 @@ import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -106,10 +105,6 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
     JsonNode args =
         params.arguments() != null ? params.arguments() : objectMapper.createObjectNode();
     CallToolHandler handler = lookup(name);
-    GuardDecision decision = Guards.evaluate(handler.guards());
-    if (decision instanceof GuardDecision.Deny deny) {
-      throw new JsonRpcException(JsonRpcErrorCodes.FORBIDDEN, "Forbidden: " + deny.reason());
-    }
     return invokeTool(name, handler, args, params);
   }
 
@@ -124,6 +119,15 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
     try {
       Object result = ScopedValue.where(McpToolContext.CURRENT, ctx).call(() -> handler.call(args));
       return toCallToolResult(result);
+    } catch (JsonRpcException e) {
+      // Guard denials (-32003) are a protocol-level gate and must surface as JSON-RPC errors, not
+      // be wrapped into a CallToolResult. Schema-validation JsonRpcExceptions (-32602) stay wrapped
+      // so the calling LLM can self-correct on malformed arguments.
+      if (e.getCode() == JsonRpcErrorCodes.FORBIDDEN) {
+        throw e;
+      }
+      log.warn("Tool {} threw an unhandled exception", name, e);
+      return toErrorCallToolResult(e);
     } catch (Exception e) {
       log.warn("Tool {} threw an unhandled exception", name, e);
       return toErrorCallToolResult(e);

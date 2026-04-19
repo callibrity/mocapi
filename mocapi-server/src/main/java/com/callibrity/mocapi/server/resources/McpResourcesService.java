@@ -23,8 +23,6 @@ import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplate;
-import com.callibrity.mocapi.server.JsonRpcErrorCodes;
-import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
@@ -114,20 +112,12 @@ public class McpResourcesService {
 
     ReadResourceHandler exact = resources.get(uri);
     if (exact != null) {
-      GuardDecision decision = Guards.evaluate(exact.guards());
-      if (decision instanceof GuardDecision.Deny deny) {
-        throw new JsonRpcException(JsonRpcErrorCodes.FORBIDDEN, "Forbidden: " + deny.reason());
-      }
       return exact.read();
     }
 
     for (var entry : templates.entrySet()) {
       if (entry.getKey().matches(uri)) {
         ReadResourceTemplateHandler handler = entry.getValue();
-        GuardDecision decision = Guards.evaluate(handler.guards());
-        if (decision instanceof GuardDecision.Deny deny) {
-          throw new JsonRpcException(JsonRpcErrorCodes.FORBIDDEN, "Forbidden: " + deny.reason());
-        }
         return handler.read(entry.getKey().match(uri));
       }
     }

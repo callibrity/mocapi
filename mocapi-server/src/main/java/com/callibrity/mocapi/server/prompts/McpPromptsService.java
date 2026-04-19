@@ -21,14 +21,11 @@ import com.callibrity.mocapi.model.ListPromptsResult;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Prompt;
-import com.callibrity.mocapi.server.JsonRpcErrorCodes;
-import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
-import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -68,10 +65,6 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
     String name = params.name();
     log.debug("Received request to get prompt \"{}\"", name);
     GetPromptHandler handler = lookup(name);
-    GuardDecision decision = Guards.evaluate(handler.guards());
-    if (decision instanceof GuardDecision.Deny deny) {
-      throw new JsonRpcException(JsonRpcErrorCodes.FORBIDDEN, "Forbidden: " + deny.reason());
-    }
     Map<String, String> arguments = params.arguments() != null ? params.arguments() : Map.of();
     return handler.get(arguments);
   }

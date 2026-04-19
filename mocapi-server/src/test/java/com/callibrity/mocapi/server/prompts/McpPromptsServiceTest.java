@@ -26,7 +26,6 @@ import com.callibrity.mocapi.model.PromptArgument;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
-import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -183,19 +182,6 @@ class McpPromptsServiceTest {
   }
 
   @Test
-  void denied_get_throws_json_rpc_forbidden_with_reason() {
-    var guarded =
-        new McpPromptsService(
-            List.of(guardedHandler("blocked", () -> new GuardDecision.Deny("nope"))));
-    assertThatThrownBy(
-            () -> guarded.getPrompt(new GetPromptRequestParams("blocked", Map.of(), null)))
-        .isInstanceOf(JsonRpcException.class)
-        .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
-        .hasMessageContaining("Forbidden")
-        .hasMessageContaining("nope");
-  }
-
-  @Test
   void denied_prompt_is_absent_from_list() {
     var guarded =
         new McpPromptsService(
@@ -207,23 +193,21 @@ class McpPromptsServiceTest {
   }
 
   @Test
-  void mixed_guards_with_one_deny_hides_and_rejects() {
-    var handler = guardedHandler("mixed", () -> new GuardDecision.Deny("x"));
-    // Add a second guard that allows — spec says any deny wins
-    var withExtra =
+  void mixed_guards_with_one_deny_hides_from_list() {
+    // List-time filtering: any deny hides the descriptor. Call-time denial moved to
+    // GuardEvaluationInterceptor and is covered by its unit tests.
+    var descriptor = new Prompt("mixed", "mixed", "mixed desc", null, List.of());
+    var handler =
         new GetPromptHandler(
-            handler.descriptor(),
+            descriptor,
             null,
             null,
             args -> new GetPromptResult("mixed", List.of()),
             List.of(),
             List.of(() -> new GuardDecision.Allow(), () -> new GuardDecision.Deny("blocked")));
-    var guarded = new McpPromptsService(List.of(withExtra));
+    var guarded = new McpPromptsService(List.of(handler));
 
     assertThat(guarded.listPrompts(null).prompts()).isEmpty();
-    assertThatThrownBy(() -> guarded.getPrompt(new GetPromptRequestParams("mixed", Map.of(), null)))
-        .isInstanceOf(JsonRpcException.class)
-        .hasMessageContaining("blocked");
   }
 
   @Test

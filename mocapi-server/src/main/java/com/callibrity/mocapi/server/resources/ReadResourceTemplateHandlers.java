@@ -25,6 +25,7 @@ import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.server.completions.CompletionCandidate;
 import com.callibrity.mocapi.server.completions.CompletionCandidates;
 import com.callibrity.mocapi.server.guards.Guard;
+import com.callibrity.mocapi.server.guards.GuardEvaluationInterceptor;
 import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -86,6 +87,9 @@ public final class ReadResourceTemplateHandlers {
             cfg -> {
               resolvers.forEach(cfg::resolver);
               chain.forEach(cfg::interceptor);
+              if (!guards.isEmpty()) {
+                cfg.interceptor(new GuardEvaluationInterceptor(guards));
+              }
             });
     return new ReadResourceTemplateHandler(
         descriptor, method, bean, invoker, candidatesOf(method), guards);

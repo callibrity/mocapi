@@ -24,6 +24,7 @@ import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.guards.Guard;
+import com.callibrity.mocapi.server.guards.GuardEvaluationInterceptor;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
@@ -96,6 +97,9 @@ public final class CallToolHandlers {
             cfg -> {
               resolvers.forEach(cfg::resolver);
               chain.forEach(cfg::interceptor);
+              if (!guards.isEmpty()) {
+                cfg.interceptor(new GuardEvaluationInterceptor(guards));
+              }
               cfg.interceptor(new InputSchemaValidatingInterceptor(compiledInputSchema));
             });
     return new CallToolHandler(descriptor, method, bean, invoker, guards);

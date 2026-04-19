@@ -21,9 +21,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
+import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.util.HelloTool;
 import com.callibrity.mocapi.server.tools.util.InteractiveTool;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import jakarta.annotation.Nullable;
 import java.lang.annotation.ElementType;
@@ -200,6 +203,65 @@ class CallToolHandlerTest {
     var result = handler.call(mapper.createObjectNode().put("input", "from-json"));
 
     assertThat(mapper.valueToTree(result).get("value").stringValue()).isEqualTo("from-resolver");
+  }
+
+  @Test
+  void guards_run_after_customizer_interceptors_and_before_schema_validation() {
+    var bean = new HelloTool();
+    var customizerHits = new AtomicInteger();
+    var bodyHits = new AtomicInteger();
+    CallToolHandlerCustomizer customizer =
+        config -> {
+          config.interceptor(
+              invocation -> {
+                customizerHits.incrementAndGet();
+                return invocation.proceed();
+              });
+          config.guard(() -> new GuardDecision.Deny("no-scope"));
+          config.interceptor(
+              invocation -> {
+                bodyHits.incrementAndGet();
+                return invocation.proceed();
+              });
+        };
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
+    var handler =
+        CallToolHandlers.build(
+            bean, method, generator, invokerFactory, mapper, List.of(customizer), s -> s);
+
+    // Invalid args (missing required "name") would trip schema validation — but guards evaluate
+    // first, so we get FORBIDDEN rather than a schema error.
+    assertThatThrownBy(() -> handler.call(mapper.createObjectNode()))
+        .isInstanceOf(JsonRpcException.class)
+        .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
+        .hasMessageContaining("no-scope");
+
+    // Both customizer-contributed interceptors ran before the guard decision aborted the call,
+    // proving the guard interceptor sits after all customizer interceptors.
+    assertThat(customizerHits).hasValue(1);
+    assertThat(bodyHits).hasValue(1);
+  }
+
+  @Test
+  void no_guards_means_no_guard_interceptor_overhead() {
+    var bean = new HelloTool();
+    CallToolHandlerCustomizer customizer =
+        config ->
+            config.interceptor(
+                invocation -> {
+                  // Guard list is empty, so GuardEvaluationInterceptor should not be wired in.
+                  // We can only assert indirectly: the call succeeds with no denial.
+                  return invocation.proceed();
+                });
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
+    var handler =
+        CallToolHandlers.build(
+            bean, method, generator, invokerFactory, mapper, List.of(customizer), s -> s);
+
+    var result = handler.call(mapper.createObjectNode().put("name", "World"));
+    assertThat(result).isNotNull();
   }
 
   @Retention(RetentionPolicy.RUNTIME)

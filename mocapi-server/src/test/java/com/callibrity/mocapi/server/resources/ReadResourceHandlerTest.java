@@ -21,6 +21,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
+import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.guards.GuardDecision;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -151,6 +154,31 @@ class ReadResourceHandlerTest {
 
     var content = (TextResourceContents) result.contents().getFirst();
     assertThat(content.text()).isEqualTo("tenant=acme");
+  }
+
+  @Test
+  void guards_run_after_customizer_interceptors() {
+    var bean = new Fixture();
+    var customizerHits = new AtomicInteger();
+    ReadResourceHandlerCustomizer customizer =
+        config -> {
+          config.interceptor(
+              invocation -> {
+                customizerHits.incrementAndGet();
+                return invocation.proceed();
+              });
+          config.guard(() -> new GuardDecision.Deny("no-access"));
+        };
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResource.class).getFirst();
+    var handler =
+        ReadResourceHandlers.build(bean, method, invokerFactory, List.of(customizer), s -> s);
+
+    assertThatThrownBy(handler::read)
+        .isInstanceOf(JsonRpcException.class)
+        .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
+        .hasMessageContaining("no-access");
+    assertThat(customizerHits).hasValue(1);
   }
 
   @Retention(RetentionPolicy.RUNTIME)

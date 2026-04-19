@@ -23,6 +23,7 @@ import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.server.guards.Guard;
+import com.callibrity.mocapi.server.guards.GuardEvaluationInterceptor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,6 +74,9 @@ public final class ReadResourceHandlers {
             cfg -> {
               resolvers.forEach(cfg::resolver);
               chain.forEach(cfg::interceptor);
+              if (!guards.isEmpty()) {
+                cfg.interceptor(new GuardEvaluationInterceptor(guards));
+              }
             });
     return new ReadResourceHandler(descriptor, method, bean, invoker, guards);
   }

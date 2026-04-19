@@ -17,26 +17,30 @@ package com.callibrity.mocapi.examples.tools;
 
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Component
+@Slf4j
 public class HelloTool {
 
-  @McpTool(name = "hello", description = "Returns a greeting message")
-  public HelloResponse sayHello(String name) {
-    return new HelloResponse(String.format("Hello, %s!", name));
-  }
+    @McpTool(name = "hello", description = "Returns a greeting message")
+    public HelloResponse sayHello(String name) {
+        log.info("Saying hello to " + name);
+        return new HelloResponse(String.format("Hello, %s!", name));
+    }
 
-  @McpTool(name = "hello-elicitation", description = "Returns a greeting message after elicitation")
-  public HelloResponse sayHelloElicitation(McpToolContext ctx) {
-    var result =
-        ctx.elicit(
-            "Please tell me about yourself!",
-            schema -> schema.string("firstName", "First Name").string("lastName", "Last Name"));
-    var firstName = result.getString("firstName");
-    var lastName = result.getString("lastName");
-    return new HelloResponse(String.format("Hello, %s %s!", firstName, lastName));
-  }
+    @McpTool(name = "hello-elicitation", description = "Returns a greeting message after elicitation")
+    public HelloResponse sayHelloElicitation(McpToolContext ctx) {
+        var result =
+                ctx.elicit(
+                        "Please tell me about yourself!",
+                        schema -> schema.string("firstName", "First Name").string("lastName", "Last Name"));
+        var firstName = result.getString("firstName");
+        var lastName = result.getString("lastName");
+        return new HelloResponse(String.format("Hello, %s %s!", firstName, lastName));
+    }
 
-  public record HelloResponse(String message) {}
+    public record HelloResponse(String message) {
+    }
 }

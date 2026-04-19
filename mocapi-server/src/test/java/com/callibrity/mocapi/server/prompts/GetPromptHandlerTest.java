@@ -23,6 +23,9 @@ import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
+import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.guards.GuardDecision;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import java.lang.annotation.ElementType;
@@ -276,6 +279,32 @@ class GetPromptHandlerTest {
       return new GetPromptResult(
           null, List.of(new PromptMessage(Role.USER, new TextContent(value, null))));
     }
+  }
+
+  @Test
+  void guards_run_after_customizer_interceptors() {
+    var bean = new StringArgPrompt();
+    var customizerHits = new AtomicInteger();
+    GetPromptHandlerCustomizer customizer =
+        config -> {
+          config.interceptor(
+              invocation -> {
+                customizerHits.incrementAndGet();
+                return invocation.proceed();
+              });
+          config.guard(() -> new GuardDecision.Deny("no-access"));
+        };
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpPrompt.class).getFirst();
+    var handler =
+        GetPromptHandlers.build(
+            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+
+    assertThatThrownBy(() -> handler.get(Map.of("value", "hi")))
+        .isInstanceOf(JsonRpcException.class)
+        .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
+        .hasMessageContaining("no-access");
+    assertThat(customizerHits).hasValue(1);
   }
 
   @Test
