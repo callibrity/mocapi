@@ -23,6 +23,7 @@ import com.callibrity.mocapi.transport.http.StreamableHttpController;
 import com.callibrity.mocapi.transport.http.sse.Ciphers;
 import com.callibrity.mocapi.transport.http.sse.DefaultSseStreamFactory;
 import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
+import io.micrometer.context.ContextSnapshotFactory;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import org.jwcarman.odyssey.core.Odyssey;
@@ -57,13 +58,21 @@ public class StreamableHttpAutoConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean
+  public ContextSnapshotFactory mcpContextSnapshotFactory() {
+    return ContextSnapshotFactory.builder().build();
+  }
+
+  @Bean
   @ConditionalOnMissingBean(StreamableHttpController.class)
   public StreamableHttpController mcpProtocolStreamableHttpController(
       McpServer protocol,
       McpRequestValidator validator,
       SseStreamFactory sseStreamFactory,
-      ObjectMapper objectMapper) {
-    return new StreamableHttpController(protocol, validator, sseStreamFactory, objectMapper);
+      ObjectMapper objectMapper,
+      ContextSnapshotFactory contextSnapshotFactory) {
+    return new StreamableHttpController(
+        protocol, validator, sseStreamFactory, objectMapper, contextSnapshotFactory);
   }
 
   private static byte[] decodeMasterKey(String encoded) {

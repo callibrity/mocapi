@@ -117,6 +117,10 @@ Every `JsonRpcCall` POST runs on a virtual thread through `StreamableHttpTranspo
 
 Simple tools that only return a response get JSON — no unnecessary SSE upgrade. Tools that emit progress/log notifications or issue sampling/elicitation requests upgrade lazily when the first notification or server-initiated call is sent.
 
+#### Thread-local context propagation
+
+Virtual threads created via `Thread.ofVirtual().start(...)` do **not** inherit `ThreadLocal` values from their parent, so request-thread context (Spring Security's `SecurityContextHolder`, Micrometer observation scope, SLF4J MDC, etc.) would otherwise vanish at the handler spawn boundary. The controller captures an `io.micrometer.context.ContextSnapshot` on the request thread and wraps the handler `Runnable` via `snapshot.wrap(...)` before spawning the VT. Every `ThreadLocalAccessor` registered via the `context-propagation` SPI is restored on the handler VT at `run()` entry and cleared on exit — Spring Security 6+ and Micrometer Observation ship accessors out of the box, so authentication and tracing parent linkage cross the spawn automatically. The `ContextSnapshotFactory` bean is exposed by `StreamableHttpAutoConfiguration` under `@ConditionalOnMissingBean`; register custom `ThreadLocalAccessor`s via `ContextRegistry` to propagate additional context objects.
+
 ### Encrypted Event IDs
 
 SSE event IDs are encrypted using AES-256-GCM with the session ID as context. This prevents cross-session event enumeration and forged resumption requests. Encryption lives in `DefaultSseStreamFactory`; the controller and transport have no direct knowledge of cipher details.

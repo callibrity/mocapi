@@ -55,6 +55,23 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Changed
 
+- `mocapi-streamable-http-transport` now propagates request-thread
+  context across the per-call virtual-thread spawn in
+  `StreamableHttpController.handleCall`. The controller takes an
+  injected `io.micrometer.context.ContextSnapshotFactory` bean
+  (auto-configured in `StreamableHttpAutoConfiguration` under
+  `@ConditionalOnMissingBean`), captures a snapshot on the request
+  thread, and wraps the handler `Runnable` via
+  `ContextSnapshot.wrap(...)` before `Thread.ofVirtual().start(...)`.
+  Every `ThreadLocalAccessor` registered via the
+  `context-propagation` SPI is restored on the handler VT — out of
+  the box that means Spring Security's `SecurityContextHolder`,
+  Micrometer's observation scope, SLF4J MDC, and anything else that
+  ships an accessor. Unblocks Spring Security-backed guards and
+  proper tracing parent linkage (spec 183 needs this so `mcp.tool` /
+  `mcp.prompt` spans are children of the inbound HTTP span instead
+  of orphans). Stdio transport is unchanged — no VT boundary
+  crossed there.
 - `mocapi-logging` MDC interceptor now attaches per-handler via the
   customizer SPI introduced in the previous entry, instead of riding
   the global `MethodInterceptor<? super ...>` bean-autowiring path.

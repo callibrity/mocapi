@@ -30,6 +30,8 @@ import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
+import io.micrometer.context.ContextSnapshot;
+import io.micrometer.context.ContextSnapshotFactory;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -65,16 +67,19 @@ public class StreamableHttpController {
   private final McpRequestValidator validator;
   private final SseStreamFactory sseStreamFactory;
   private final ObjectMapper objectMapper;
+  private final ContextSnapshotFactory contextSnapshotFactory;
 
   public StreamableHttpController(
       McpServer server,
       McpRequestValidator validator,
       SseStreamFactory sseStreamFactory,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      ContextSnapshotFactory contextSnapshotFactory) {
     this.server = server;
     this.validator = validator;
     this.sseStreamFactory = sseStreamFactory;
     this.objectMapper = objectMapper;
+    this.contextSnapshotFactory = contextSnapshotFactory;
   }
 
   @PostMapping(produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE})
@@ -198,15 +203,17 @@ public class StreamableHttpController {
   private CompletableFuture<ResponseEntity<Object>> handleCall(
       McpContext context, JsonRpcCall call) {
     var transport = new StreamableHttpTransport(() -> sseStreamFactory.responseStream(context));
+    ContextSnapshot snapshot = contextSnapshotFactory.captureAll();
     Thread.ofVirtual()
         .start(
-            () -> {
-              try {
-                server.handleCall(context, call, transport);
-              } catch (Exception e) {
-                transport.response().completeExceptionally(e);
-              }
-            });
+            snapshot.wrap(
+                () -> {
+                  try {
+                    server.handleCall(context, call, transport);
+                  } catch (Exception e) {
+                    transport.response().completeExceptionally(e);
+                  }
+                }));
     return transport.response();
   }
 

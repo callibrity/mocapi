@@ -23,6 +23,7 @@ import com.callibrity.mocapi.server.autoconfigure.MocapiServerProperties;
 import com.callibrity.mocapi.transport.http.McpRequestValidator;
 import com.callibrity.mocapi.transport.http.StreamableHttpController;
 import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
+import io.micrometer.context.ContextSnapshotFactory;
 import java.util.Base64;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -76,7 +77,20 @@ class StreamableHttpAutoConfigurationTest {
         context -> {
           assertThat(context).hasSingleBean(McpRequestValidator.class);
           assertThat(context).hasSingleBean(StreamableHttpController.class);
+          assertThat(context).hasSingleBean(ContextSnapshotFactory.class);
         });
+  }
+
+  @Test
+  void custom_context_snapshot_factory_overrides_default() {
+    ContextSnapshotFactory custom = ContextSnapshotFactory.builder().build();
+    contextRunner
+        .withBean(ContextSnapshotFactory.class, () -> custom)
+        .run(
+            context -> {
+              assertThat(context).hasSingleBean(ContextSnapshotFactory.class);
+              assertThat(context.getBean(ContextSnapshotFactory.class)).isSameAs(custom);
+            });
   }
 
   @Test
@@ -107,12 +121,16 @@ class StreamableHttpAutoConfigurationTest {
 
     @Bean
     StreamableHttpController customController(
-        McpServer protocol, SseStreamFactory sseStreamFactory, ObjectMapper objectMapper) {
+        McpServer protocol,
+        SseStreamFactory sseStreamFactory,
+        ObjectMapper objectMapper,
+        ContextSnapshotFactory contextSnapshotFactory) {
       return new StreamableHttpController(
           protocol,
           new McpRequestValidator(java.util.List.of("localhost")),
           sseStreamFactory,
-          objectMapper);
+          objectMapper,
+          contextSnapshotFactory);
     }
   }
 

@@ -36,6 +36,7 @@ import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
+import io.micrometer.context.ContextSnapshotFactory;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -76,7 +77,13 @@ class StreamableHttpControllerTest {
   @BeforeEach
   void set_up() {
     McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
-    controller = new StreamableHttpController(protocol, validator, sseStreamFactory, objectMapper);
+    controller =
+        new StreamableHttpController(
+            protocol,
+            validator,
+            sseStreamFactory,
+            objectMapper,
+            ContextSnapshotFactory.builder().build());
   }
 
   @Nested
