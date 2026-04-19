@@ -82,7 +82,7 @@ class McpToolsServiceTest {
         .map(
             m ->
                 CallToolHandlers.build(
-                    target, m, generator, invokerFactory, resolvers, List.of(), List.of(), s -> s))
+                    target, m, generator, invokerFactory, resolvers, List.of(), s -> s))
         .toList();
   }
 
@@ -334,7 +334,6 @@ class McpToolsServiceTest {
                     generator,
                     invokerFactory,
                     resolvers,
-                    List.of(),
                     List.of(config -> java.util.Arrays.stream(guards).forEach(config::guard)),
                     s -> s))
         .toList();

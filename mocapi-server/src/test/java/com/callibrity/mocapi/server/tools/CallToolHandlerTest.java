@@ -54,7 +54,7 @@ class CallToolHandlerTest {
         .map(
             m ->
                 CallToolHandlers.build(
-                    target, m, generator, invokerFactory, resolvers, List.of(), List.of(), s -> s))
+                    target, m, generator, invokerFactory, resolvers, List.of(), s -> s))
         .toList();
   }
 
@@ -142,14 +142,7 @@ class CallToolHandlerTest {
 
     var handler =
         CallToolHandlers.build(
-            bean,
-            method,
-            generator,
-            invokerFactory,
-            resolvers,
-            List.of(),
-            List.of(customizer),
-            s -> s);
+            bean, method, generator, invokerFactory, resolvers, List.of(customizer), s -> s);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();

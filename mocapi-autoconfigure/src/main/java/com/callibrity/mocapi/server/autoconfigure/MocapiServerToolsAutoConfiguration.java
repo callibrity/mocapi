@@ -28,7 +28,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,7 +58,6 @@ public class MocapiServerToolsAutoConfiguration {
       MethodInvokerFactory invokerFactory,
       ObjectMapper objectMapper,
       McpResponseCorrelationService correlationService,
-      @Autowired(required = false) List<MethodInterceptor<? super JsonNode>> toolInterceptors,
       @Autowired(required = false) List<CallToolHandlerCustomizer> toolCustomizers,
       StringValueResolver mcpAnnotationValueResolver) {
     List<ParameterResolver<? super JsonNode>> resolvers =
@@ -67,8 +65,6 @@ public class MocapiServerToolsAutoConfiguration {
             new McpToolContextResolver(),
             new McpToolParamsResolver(objectMapper),
             new Jackson3ParameterResolver(objectMapper));
-    List<MethodInterceptor<? super JsonNode>> interceptors =
-        toolInterceptors == null ? List.of() : toolInterceptors;
     List<CallToolHandlerCustomizer> customizers =
         toolCustomizers == null ? List.of() : toolCustomizers;
     List<CallToolHandler> handlers =
@@ -82,7 +78,6 @@ public class MocapiServerToolsAutoConfiguration {
                           generator,
                           invokerFactory,
                           resolvers,
-                          interceptors,
                           customizers,
                           mcpAnnotationValueResolver::resolveStringValue);
                   log.info(

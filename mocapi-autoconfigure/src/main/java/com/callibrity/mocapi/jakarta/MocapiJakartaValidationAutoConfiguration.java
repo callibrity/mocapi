@@ -1,0 +1,64 @@
+/*
+ * Copyright © 2025 Callibrity, Inc. (contactus@callibrity.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.callibrity.mocapi.jakarta;
+
+import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
+import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
+import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
+import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
+import org.jwcarman.methodical.jakarta.JakartaValidationInterceptor;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.context.annotation.Bean;
+
+/**
+ * Attaches the methodical {@link JakartaValidationInterceptor} to every MCP handler via the
+ * per-handler customizer SPI. Activates when a {@link JakartaValidationInterceptor} bean is present
+ * — methodical's own autoconfiguration registers one whenever a {@code
+ * jakarta.validation.Validator} is on the classpath (typically via {@code
+ * spring-boot-starter-validation}).
+ */
+@AutoConfiguration(
+    afterName = "org.jwcarman.methodical.autoconfigure.JakartaValidationAutoConfiguration")
+@ConditionalOnClass(JakartaValidationInterceptor.class)
+@ConditionalOnBean(JakartaValidationInterceptor.class)
+public class MocapiJakartaValidationAutoConfiguration {
+
+  @Bean
+  public CallToolHandlerCustomizer jakartaValidationToolCustomizer(
+      JakartaValidationInterceptor interceptor) {
+    return config -> config.interceptor(interceptor);
+  }
+
+  @Bean
+  public GetPromptHandlerCustomizer jakartaValidationPromptCustomizer(
+      JakartaValidationInterceptor interceptor) {
+    return config -> config.interceptor(interceptor);
+  }
+
+  @Bean
+  public ReadResourceHandlerCustomizer jakartaValidationResourceCustomizer(
+      JakartaValidationInterceptor interceptor) {
+    return config -> config.interceptor(interceptor);
+  }
+
+  @Bean
+  public ReadResourceTemplateHandlerCustomizer jakartaValidationResourceTemplateCustomizer(
+      JakartaValidationInterceptor interceptor) {
+    return config -> config.interceptor(interceptor);
+  }
+}

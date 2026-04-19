@@ -45,7 +45,6 @@ public final class ReadResourceHandlers {
       Object bean,
       Method method,
       MethodInvokerFactory invokerFactory,
-      List<MethodInterceptor<? super Object>> interceptors,
       List<ReadResourceHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
     validateReturnType(bean, method);
@@ -56,7 +55,7 @@ public final class ReadResourceHandlers {
     String description = resolveOrDefault(valueResolver, annotation.description(), () -> name);
     String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
     Resource descriptor = new Resource(uri, name, description, mimeType);
-    MutableConfig config = new MutableConfig(descriptor, method, bean, interceptors);
+    MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
     List<MethodInterceptor<? super Object>> chain = config.freezeInterceptors();
     List<Guard> guards = config.freezeGuards();
@@ -69,18 +68,13 @@ public final class ReadResourceHandlers {
     private final Resource descriptor;
     private final Method method;
     private final Object bean;
-    private final List<MethodInterceptor<? super Object>> interceptors;
+    private final List<MethodInterceptor<? super Object>> interceptors = new ArrayList<>();
     private final List<Guard> guards = new ArrayList<>();
 
-    MutableConfig(
-        Resource descriptor,
-        Method method,
-        Object bean,
-        List<MethodInterceptor<? super Object>> initial) {
+    MutableConfig(Resource descriptor, Method method, Object bean) {
       this.descriptor = descriptor;
       this.method = method;
       this.bean = bean;
-      this.interceptors = new ArrayList<>(initial);
     }
 
     @Override

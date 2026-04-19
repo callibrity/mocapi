@@ -8,6 +8,19 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Breaking changes
 
+- **Bean-level `MethodInterceptor` autowiring removed from handler
+  autoconfigs.** The three handler autoconfigs
+  (`MocapiServerToolsAutoConfiguration`,
+  `MocapiServerPromptsAutoConfiguration`,
+  `MocapiServerResourcesAutoConfiguration`) no longer pick up bare
+  `MethodInterceptor<? super X>` beans from the context and apply
+  them to every handler of that kind. Interceptors now attach
+  exclusively via the `*HandlerCustomizer` SPI. Migration: wrap
+  each former `MethodInterceptor` bean in a customizer, e.g.
+  `@Bean CallToolHandlerCustomizer c() { return cfg -> cfg.interceptor(new MyInterceptor()); }`.
+  The same applies for `GetPromptHandlerCustomizer`,
+  `ReadResourceHandlerCustomizer`, and
+  `ReadResourceTemplateHandlerCustomizer`.
 - **Artifact layout consolidated around `mocapi-autoconfigure`.**
   All feature-level `-spring-boot-starter` modules have been
   collapsed into a single `mocapi-autoconfigure` module containing

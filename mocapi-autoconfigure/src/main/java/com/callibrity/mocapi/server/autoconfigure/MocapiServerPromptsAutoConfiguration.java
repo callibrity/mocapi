@@ -27,7 +27,6 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,15 +54,11 @@ public class MocapiServerPromptsAutoConfiguration {
       ObjectProvider<ConversionService> conversionService,
       StringValueResolver mcpAnnotationValueResolver,
       McpCompletionsService completions,
-      @Autowired(required = false)
-          List<MethodInterceptor<? super Map<String, String>>> promptInterceptors,
       @Autowired(required = false) List<GetPromptHandlerCustomizer> promptCustomizers) {
     List<ParameterResolver<? super Map<String, String>>> resolvers =
         List.of(
             new StringMapArgResolver(
                 conversionService.getIfAvailable(DefaultConversionService::getSharedInstance)));
-    List<MethodInterceptor<? super Map<String, String>>> interceptors =
-        promptInterceptors == null ? List.of() : promptInterceptors;
     List<GetPromptHandlerCustomizer> customizers =
         promptCustomizers == null ? List.of() : promptCustomizers;
     List<GetPromptHandler> handlers =
@@ -76,7 +71,6 @@ public class MocapiServerPromptsAutoConfiguration {
                           bm.method(),
                           invokerFactory,
                           resolvers,
-                          interceptors,
                           customizers,
                           mcpAnnotationValueResolver::resolveStringValue);
                   log.info(

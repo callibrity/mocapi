@@ -48,7 +48,7 @@ class ReadResourceTemplateHandlerTest {
         .map(
             m ->
                 ReadResourceTemplateHandlers.build(
-                    target, m, invokerFactory, templateResolvers, List.of(), List.of(), s -> s))
+                    target, m, invokerFactory, templateResolvers, List.of(), s -> s))
         .toList();
   }
 
@@ -163,13 +163,7 @@ class ReadResourceTemplateHandlerTest {
 
     var handler =
         ReadResourceTemplateHandlers.build(
-            bean,
-            method,
-            invokerFactory,
-            templateResolvers,
-            List.of(),
-            List.of(customizer),
-            s -> s);
+            bean, method, invokerFactory, templateResolvers, List.of(customizer), s -> s);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();

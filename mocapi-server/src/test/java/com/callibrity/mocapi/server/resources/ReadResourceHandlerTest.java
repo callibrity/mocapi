@@ -38,9 +38,7 @@ class ReadResourceHandlerTest {
 
   private List<ReadResourceHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpResource.class).stream()
-        .map(
-            m ->
-                ReadResourceHandlers.build(target, m, invokerFactory, List.of(), List.of(), s -> s))
+        .map(m -> ReadResourceHandlers.build(target, m, invokerFactory, List.of(), s -> s))
         .toList();
   }
 
@@ -121,8 +119,7 @@ class ReadResourceHandlerTest {
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResource.class).getFirst();
 
     var handler =
-        ReadResourceHandlers.build(
-            bean, method, invokerFactory, List.of(), List.of(customizer), s -> s);
+        ReadResourceHandlers.build(bean, method, invokerFactory, List.of(customizer), s -> s);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();

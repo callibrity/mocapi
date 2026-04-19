@@ -51,9 +51,9 @@ public final class CallToolHandlers {
 
   /**
    * Builds one {@link CallToolHandler} for the given {@code (bean, method)} pair. The handler's
-   * invoker is wired with the supplied parameter resolvers plus the supplied interceptor list; an
-   * {@link InputSchemaValidatingInterceptor} for the compiled input schema is appended last
-   * (innermost) so schema validation runs closest to the reflective call.
+   * invoker is wired with the supplied parameter resolvers plus any interceptors contributed by the
+   * customizer chain; an {@link InputSchemaValidatingInterceptor} for the compiled input schema is
+   * appended last (innermost) so schema validation runs closest to the reflective call.
    */
   public static CallToolHandler build(
       Object bean,
@@ -61,7 +61,6 @@ public final class CallToolHandlers {
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super JsonNode>> resolvers,
-      List<MethodInterceptor<? super JsonNode>> interceptors,
       List<CallToolHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
     validateMcpToolParams(bean, method);
@@ -77,7 +76,7 @@ public final class CallToolHandlers {
     ObjectNode outputSchema = isVoid(method) ? null : generator.generateOutputSchema(bean, method);
     Tool descriptor = new Tool(name, title, description, inputSchema, outputSchema);
     Schema compiledInputSchema = compile(inputSchema);
-    MutableConfig config = new MutableConfig(descriptor, method, bean, interceptors);
+    MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
     List<MethodInterceptor<? super JsonNode>> chain = config.freezeInterceptors();
     List<Guard> guards = config.freezeGuards();
@@ -98,18 +97,13 @@ public final class CallToolHandlers {
     private final Tool descriptor;
     private final Method method;
     private final Object bean;
-    private final List<MethodInterceptor<? super JsonNode>> interceptors;
+    private final List<MethodInterceptor<? super JsonNode>> interceptors = new ArrayList<>();
     private final List<Guard> guards = new ArrayList<>();
 
-    MutableConfig(
-        Tool descriptor,
-        Method method,
-        Object bean,
-        List<MethodInterceptor<? super JsonNode>> initial) {
+    MutableConfig(Tool descriptor, Method method, Object bean) {
       this.descriptor = descriptor;
       this.method = method;
       this.bean = bean;
-      this.interceptors = new ArrayList<>(initial);
     }
 
     @Override

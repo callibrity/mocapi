@@ -48,10 +48,7 @@ class GetPromptHandlerTest {
 
   private List<GetPromptHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpPrompt.class).stream()
-        .map(
-            m ->
-                GetPromptHandlers.build(
-                    target, m, invokerFactory, resolvers, List.of(), List.of(), s -> s))
+        .map(m -> GetPromptHandlers.build(target, m, invokerFactory, resolvers, List.of(), s -> s))
         .toList();
   }
 
@@ -184,7 +181,7 @@ class GetPromptHandlerTest {
 
     var handler =
         GetPromptHandlers.build(
-            bean, method, invokerFactory, resolvers, List.of(), List.of(customizer), s -> s);
+            bean, method, invokerFactory, resolvers, List.of(customizer), s -> s);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();

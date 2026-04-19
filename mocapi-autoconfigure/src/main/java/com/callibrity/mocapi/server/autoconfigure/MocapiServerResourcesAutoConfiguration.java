@@ -31,7 +31,6 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
 import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,9 +58,6 @@ public class MocapiServerResourcesAutoConfiguration {
       ObjectProvider<ConversionService> conversionService,
       StringValueResolver mcpAnnotationValueResolver,
       McpCompletionsService completions,
-      @Autowired(required = false) List<MethodInterceptor<? super Object>> resourceInterceptors,
-      @Autowired(required = false)
-          List<MethodInterceptor<? super Map<String, String>>> resourceTemplateInterceptors,
       @Autowired(required = false) List<ReadResourceHandlerCustomizer> resourceCustomizers,
       @Autowired(required = false)
           List<ReadResourceTemplateHandlerCustomizer> resourceTemplateCustomizers) {
@@ -69,10 +65,6 @@ public class MocapiServerResourcesAutoConfiguration {
         List.of(
             new StringMapArgResolver(
                 conversionService.getIfAvailable(DefaultConversionService::getSharedInstance)));
-    List<MethodInterceptor<? super Object>> resourceInts =
-        resourceInterceptors == null ? List.of() : resourceInterceptors;
-    List<MethodInterceptor<? super Map<String, String>>> templateInts =
-        resourceTemplateInterceptors == null ? List.of() : resourceTemplateInterceptors;
     List<ReadResourceHandlerCustomizer> resourceCustoms =
         resourceCustomizers == null ? List.of() : resourceCustomizers;
     List<ReadResourceTemplateHandlerCustomizer> templateCustoms =
@@ -86,7 +78,6 @@ public class MocapiServerResourcesAutoConfiguration {
                           bm.bean(),
                           bm.method(),
                           invokerFactory,
-                          resourceInts,
                           resourceCustoms,
                           mcpAnnotationValueResolver::resolveStringValue);
                   log.info(
@@ -106,7 +97,6 @@ public class MocapiServerResourcesAutoConfiguration {
                           bm.method(),
                           invokerFactory,
                           templateResolvers,
-                          templateInts,
                           templateCustoms,
                           mcpAnnotationValueResolver::resolveStringValue);
                   log.info(

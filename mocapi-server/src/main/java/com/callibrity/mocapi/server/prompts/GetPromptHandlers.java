@@ -58,7 +58,6 @@ public final class GetPromptHandlers {
       Method method,
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
-      List<MethodInterceptor<? super Map<String, String>>> interceptors,
       List<GetPromptHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
     validateReturnType(bean, method);
@@ -71,7 +70,7 @@ public final class GetPromptHandlers {
         resolveOrDefault(
             valueResolver, annotation.description(), () -> humanReadableName(bean, method));
     Prompt descriptor = new Prompt(name, title, description, null, argumentsOf(method));
-    MutableConfig config = new MutableConfig(descriptor, method, bean, interceptors);
+    MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
     List<MethodInterceptor<? super Map<String, String>>> chain = config.freezeInterceptors();
     List<Guard> guards = config.freezeGuards();
@@ -91,18 +90,14 @@ public final class GetPromptHandlers {
     private final Prompt descriptor;
     private final Method method;
     private final Object bean;
-    private final List<MethodInterceptor<? super Map<String, String>>> interceptors;
+    private final List<MethodInterceptor<? super Map<String, String>>> interceptors =
+        new ArrayList<>();
     private final List<Guard> guards = new ArrayList<>();
 
-    MutableConfig(
-        Prompt descriptor,
-        Method method,
-        Object bean,
-        List<MethodInterceptor<? super Map<String, String>>> initial) {
+    MutableConfig(Prompt descriptor, Method method, Object bean) {
       this.descriptor = descriptor;
       this.method = method;
       this.bean = bean;
-      this.interceptors = new ArrayList<>(initial);
     }
 
     @Override
