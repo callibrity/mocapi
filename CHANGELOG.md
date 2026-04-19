@@ -38,6 +38,20 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Changed
 
+- `mocapi-jakarta-validation-spring-boot-starter` and
+  `mocapi-logging-spring-boot-starter` now depend on `mocapi-server`
+  directly instead of pulling in
+  `mocapi-streamable-http-spring-boot-starter` transitively. These
+  feature starters are transport-agnostic — a stdio-only (or
+  future-transport-only) consumer adding validation or MDC logging
+  no longer drags the HTTP stack in for the ride. Migration: users
+  who relied on these starters implicitly bringing the HTTP transport
+  must now declare `mocapi-streamable-http-spring-boot-starter`
+  explicitly. In practice most consumers already declare a transport
+  starter, so this is a no-op for them.
+  `mocapi-oauth2-spring-boot-starter` still depends on the HTTP
+  starter — OAuth2 resource-server validation is HTTP-specific.
+
 - Bumped Methodical to `0.6.0` and ripcurl to `2.7.0`. Methodical 0.6
   replaces the old stateful `MethodInvokerFactory` (which carried a
   per-factory resolver list) with a stateless factory plus a

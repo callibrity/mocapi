@@ -64,12 +64,22 @@
             <version>${ripcurl.version}</version>
         </dependency>
 
-        <!-- Test: pull the full streamable-http starter so we get the same Spring context a real
-             mocapi HTTP deployment would have — autoconfig for ripcurl, methodical, substrate,
-             mocapi-server, plus Jackson. webEnvironment=NONE on the tests keeps Tomcat inert. -->
+        <!-- Transport-agnostic: feature starters depend on mocapi-server directly so the
+             user's choice of transport (stdio, streamable-HTTP, or future transports) is
+             unaffected by adding validation. -->
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-streamable-http-spring-boot-starter</artifactId>
+            <artifactId>mocapi-server</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Test: pull in the stdio starter (not the HTTP one) so the integration test
+             has a full mocapi transport stack available without dragging the HTTP
+             servlet layer into this module. webEnvironment=NONE on the tests keeps
+             the stdio dispatcher inert. -->
+        <dependency>
+            <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-stdio-spring-boot-starter</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

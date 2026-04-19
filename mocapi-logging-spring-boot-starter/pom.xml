@@ -37,7 +37,7 @@
         </dependency>
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
-            <artifactId>mocapi-streamable-http-spring-boot-starter</artifactId>
+            <artifactId>mocapi-server</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
