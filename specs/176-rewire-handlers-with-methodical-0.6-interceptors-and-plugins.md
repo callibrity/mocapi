@@ -51,9 +51,14 @@ spec post-176.
 
 ---
 
-### 1. Methodical bump
+### 1. Methodical + ripcurl bumps
 
 - `pom.xml`: `<methodical.version>0.6.0</methodical.version>`.
+- `pom.xml`: `<ripcurl.version>2.7.0-SNAPSHOT</ripcurl.version>` (until
+  released — install locally with `mvn install` in the ripcurl tree).
+  ripcurl's Methodical-aware bits (`ConstraintViolationExceptionTranslator`,
+  the jakarta-validation bridge) need the 2.7.0 release to line up with
+  Methodical 0.6's API changes.
 - No other transitive version changes expected.
 
 ### 2. Rename internal handler interfaces
