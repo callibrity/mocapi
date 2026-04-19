@@ -150,6 +150,8 @@ Run your Spring Boot application. With `mocapi-streamable-http-spring-boot-start
 - **`mocapi-stdio-spring-boot-starter`** — bundles `mocapi-server` + stdio transport
 - **`mocapi-oauth2-spring-boot-starter`** — OAuth2 resource-server protection on the MCP endpoint (MCP 2025-11-25 authorization); wraps Spring Boot's OAuth2 resource-server starter and adds the RFC 9728 protected-resource metadata document. See [Authorization](docs/authorization.md).
 - **`mocapi-jakarta-validation-spring-boot-starter`** — Jakarta Bean Validation on user `@McpTool` / `@McpPrompt` / `@McpResourceTemplate` parameters. Annotations like `@NotBlank`/`@Size`/`@Pattern` surface as `CallToolResult.isError=true` for tools (MCP-spec-idiomatic for LLM self-correction) and JSON-RPC `-32602 Invalid params` with per-violation detail for prompts and resources. See [Validation](docs/validation.md).
+- **`mocapi-o11y`** — single-interceptor observability library. Wraps every tool / prompt / resource / resource-template invocation in a Micrometer `Observation` so the same code emits both metrics (via a `MeterObservationHandler`) and tracing spans (via a `TracingObservationHandler`) — no separate metrics / tracing interceptors.
+- **`mocapi-o11y-spring-boot-starter`** — autoconfig that wires the o11y interceptor onto every handler whenever an `ObservationRegistry` bean is present. Drop in alongside `spring-boot-starter-actuator` + a Micrometer meter registry for metrics, or alongside `micrometer-tracing-bridge-otel` for tracing, or both.
 
 ### Prompt templating (optional)
 

@@ -8,6 +8,37 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- New module pair `mocapi-o11y` + `mocapi-o11y-spring-boot-starter`:
+  single-interceptor observability for MCP handler invocations via
+  the Micrometer Observation API. One `McpObservationInterceptor`
+  wraps every `@McpTool` / `@McpPrompt` / `@McpResource` /
+  `@McpResourceTemplate` call in an `Observation`, so the same code
+  produces both metrics (when a `MeterObservationHandler` is
+  registered) and distributed-tracing spans (when a
+  `TracingObservationHandler` is registered) — whichever observation
+  handlers the user has on their classpath participate automatically.
+
+  Observation names: `mcp.tool`, `mcp.prompt`, `mcp.resource`,
+  `mcp.resource_template`. Low-cardinality tags:
+  `mcp.handler.kind` (`tool` / `prompt` / `resource` /
+  `resource_template`) and `mcp.handler.name` (tool / prompt name, or
+  resource URI / URI template). The standard `outcome` tag is added
+  automatically by `DefaultMeterObservationHandler` on exception.
+
+  The starter autoconfig activates only when an `ObservationRegistry`
+  bean is present. Spring Boot 3+ auto-creates one whenever
+  `spring-boot-starter-actuator` or any Micrometer Observation
+  autoconfiguration is on the classpath, so adding this starter
+  alongside e.g. `micrometer-registry-prometheus` or
+  `micrometer-tracing-bridge-otel` just works. Stdio-only apps with
+  no metrics / tracing stack on the classpath get no registry and no
+  customizers wire — pure no-op.
+
+  Wiring uses the per-handler customizer SPI (spec 180): four
+  `*HandlerCustomizer` beans, one per handler kind, each closing over
+  the descriptor's name / uri / uriTemplate at startup so the hot
+  path does zero reflection.
+
 - Per-handler customizer SPI in `mocapi-server`. Eight new interfaces —
   `CallToolHandlerConfig` / `CallToolHandlerCustomizer`,
   `GetPromptHandlerConfig` / `GetPromptHandlerCustomizer`,

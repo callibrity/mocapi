@@ -32,30 +32,45 @@ code that needs to classify a `Method` outside of a Config-carrying
 context, and is the shared point of reference for the metrics and
 tracing starters queued next.
 
-## Metrics (Micrometer)
+## Metrics + Tracing (Micrometer Observation API) — ✅ shipped (spec 183)
 
-Emit standard meters per invocation, tagged by handler kind and name:
+One interceptor wraps every handler invocation in a Micrometer
+`Observation`. The same code emits **both** metrics and distributed-
+tracing spans: whichever `ObservationHandler`s the user has on their
+classpath participate automatically — `MeterObservationHandler`
+converts events to `Timer` / `Counter`, `TracingObservationHandler`
+converts events to spans. No separate metrics or tracing interceptors.
 
-- `mcp.tool.invocations` (Counter), `mcp.tool.duration` (Timer),
-  `mcp.tool.active` (Gauge) — plus `prompt` / `resource` variants.
-- Outcome tag: `success` / `error`. Tool results with `isError=true`
-  count as `success` (protocol-successful; model-visible error).
-- Opt-in per-handler metric tags via plugin-contributed metadata (see
-  interceptor spec).
+Observation names (one per handler kind, so meter dashboards get
+distinct `Timer`s rather than a single meter partitioned by tag):
 
-Shipped as `mocapi-metrics-spring-boot-starter`; only activates when
-a `MeterRegistry` bean is present.
+- `mcp.tool`
+- `mcp.prompt`
+- `mcp.resource`
+- `mcp.resource_template`
 
-## Tracing (OpenTelemetry)
+Low-cardinality tags: `mcp.handler.kind` (`tool` / `prompt` /
+`resource` / `resource_template`) and `mcp.handler.name` (tool /
+prompt name, or resource URI / URI template). The standard Micrometer
+`outcome` tag (`SUCCESS` / `ERROR`) is added automatically by
+`DefaultMeterObservationHandler` on exception.
 
-One span per handler invocation, named `mcp.<kind> <handlerName>`,
-kind `INTERNAL`, with attributes for handler kind / name, session id,
-request id, and (for tools) an `mcp.tool.is_error` flag on
-`isError=true` results. Exceptions record on the span and set status
-to `ERROR`.
+Shipped as `mocapi-o11y` + `mocapi-o11y-spring-boot-starter`. Only
+activates when an `ObservationRegistry` bean is present — Spring Boot
+3+ auto-creates one whenever `spring-boot-starter-actuator` or any
+Micrometer Observation autoconfiguration is on the classpath, so the
+starter lights up automatically when paired with a metrics or tracing
+stack.
 
-Shipped as `mocapi-tracing-spring-boot-starter`; depends only on
-`opentelemetry-api`. Users bring their own SDK + exporter.
+Users who prefer `@Observed` on individual tool methods (Spring
+Boot's built-in AOP advice) can skip this starter and wire their own
+observations; the two paths don't fight but do nest if both are
+enabled on the same method.
+
+Deferred follow-ups: session / request attributes on the Observation
+(pending the MDC request-id piece of spec 178); an `mcp.tool.is_error`
+attribute on `CallToolResult.isError=true` results if the standard
+`outcome` tag turns out to be insufficient.
 
 ## Actuator endpoint
 
