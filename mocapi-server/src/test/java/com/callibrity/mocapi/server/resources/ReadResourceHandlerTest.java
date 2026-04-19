@@ -21,7 +21,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -36,7 +38,9 @@ class ReadResourceHandlerTest {
 
   private List<ReadResourceHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpResource.class).stream()
-        .map(m -> ReadResourceHandlers.build(target, m, invokerFactory, List.of(), s -> s))
+        .map(
+            m ->
+                ReadResourceHandlers.build(target, m, invokerFactory, List.of(), List.of(), s -> s))
         .toList();
   }
 
@@ -97,6 +101,37 @@ class ReadResourceHandlerTest {
     assertThat(handler.descriptor().name()).isNotBlank();
     assertThat(handler.descriptor().description()).isEqualTo(handler.descriptor().name());
     assertThat(handler.descriptor().mimeType()).isNull();
+  }
+
+  @Test
+  void customizer_receives_config_and_attached_interceptor_runs_during_invocation() {
+    var bean = new Fixture();
+    var captured = new ArrayList<ReadResourceHandlerConfig>();
+    var hits = new AtomicInteger();
+    ReadResourceHandlerCustomizer customizer =
+        config -> {
+          captured.add(config);
+          config.interceptor(
+              invocation -> {
+                hits.incrementAndGet();
+                return invocation.proceed();
+              });
+        };
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResource.class).getFirst();
+
+    var handler =
+        ReadResourceHandlers.build(
+            bean, method, invokerFactory, List.of(), List.of(customizer), s -> s);
+
+    assertThat(captured).hasSize(1);
+    var config = captured.getFirst();
+    assertThat(config.descriptor().uri()).isEqualTo("test://hello");
+    assertThat(config.method()).isEqualTo(method);
+    assertThat(config.bean()).isSameAs(bean);
+
+    handler.read();
+    assertThat(hits).hasValue(1);
   }
 
   @Test

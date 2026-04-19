@@ -8,6 +8,23 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- Per-handler customizer SPI in `mocapi-server`. Eight new interfaces —
+  `CallToolHandlerConfig` / `CallToolHandlerCustomizer`,
+  `GetPromptHandlerConfig` / `GetPromptHandlerCustomizer`,
+  `ReadResourceHandlerConfig` / `ReadResourceHandlerCustomizer`, and
+  `ReadResourceTemplateHandlerConfig` / `ReadResourceTemplateHandlerCustomizer` —
+  let starter authors (observability, entitlements, rate-limiting) attach a
+  `MethodInterceptor` to an individual handler while reading that handler's
+  descriptor, target method, and target bean. Each `*HandlersAutoConfiguration`
+  autowires the matching `List<*HandlerCustomizer>` (optional) and runs every
+  customizer once per handler before the `MethodInvoker` is built.
+  Customizer-added interceptors run after any bean-level interceptors and before
+  any kind-specific trailing interceptors (e.g. the tool input-schema
+  validator). The existing autowired
+  `List<MethodInterceptor<? super JsonNode>>` (and prompt / resource / template
+  analogs) path is unchanged for this release; a follow-up will migrate
+  `mocapi-logging`'s MDC interceptor onto the new SPI.
+
 - New module pair `mocapi-logging` + `mocapi-logging-spring-boot-starter`:
   an SLF4J MDC correlation interceptor for MCP handler invocations. Adding
   the starter registers a single `McpMdcInterceptor` methodical interceptor

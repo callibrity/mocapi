@@ -29,6 +29,7 @@ import com.github.erosb.jsonsKema.Schema;
 import com.github.erosb.jsonsKema.SchemaLoader;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 import org.jwcarman.methodical.MethodInvoker;
@@ -60,6 +61,7 @@ public final class CallToolHandlers {
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super JsonNode>> resolvers,
       List<MethodInterceptor<? super JsonNode>> interceptors,
+      List<CallToolHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
     validateMcpToolParams(bean, method);
     McpTool annotation = method.getAnnotation(McpTool.class);
@@ -74,6 +76,9 @@ public final class CallToolHandlers {
     ObjectNode outputSchema = isVoid(method) ? null : generator.generateOutputSchema(bean, method);
     Tool descriptor = new Tool(name, title, description, inputSchema, outputSchema);
     Schema compiledInputSchema = compile(inputSchema);
+    MutableConfig config = new MutableConfig(descriptor, method, bean, interceptors);
+    customizers.forEach(c -> c.customize(config));
+    List<MethodInterceptor<? super JsonNode>> chain = config.freeze();
     MethodInvoker<JsonNode> invoker =
         invokerFactory.create(
             method,
@@ -81,10 +86,53 @@ public final class CallToolHandlers {
             JsonNode.class,
             cfg -> {
               resolvers.forEach(cfg::resolver);
-              interceptors.forEach(cfg::interceptor);
+              chain.forEach(cfg::interceptor);
               cfg.interceptor(new InputSchemaValidatingInterceptor(compiledInputSchema));
             });
     return new CallToolHandler(descriptor, method, bean, invoker);
+  }
+
+  private static final class MutableConfig implements CallToolHandlerConfig {
+    private final Tool descriptor;
+    private final Method method;
+    private final Object bean;
+    private final List<MethodInterceptor<? super JsonNode>> interceptors;
+
+    MutableConfig(
+        Tool descriptor,
+        Method method,
+        Object bean,
+        List<MethodInterceptor<? super JsonNode>> initial) {
+      this.descriptor = descriptor;
+      this.method = method;
+      this.bean = bean;
+      this.interceptors = new ArrayList<>(initial);
+    }
+
+    @Override
+    public Tool descriptor() {
+      return descriptor;
+    }
+
+    @Override
+    public Method method() {
+      return method;
+    }
+
+    @Override
+    public Object bean() {
+      return bean;
+    }
+
+    @Override
+    public CallToolHandlerConfig interceptor(MethodInterceptor<? super JsonNode> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    List<MethodInterceptor<? super JsonNode>> freeze() {
+      return List.copyOf(interceptors);
+    }
   }
 
   private static Schema compile(ObjectNode inputSchema) {

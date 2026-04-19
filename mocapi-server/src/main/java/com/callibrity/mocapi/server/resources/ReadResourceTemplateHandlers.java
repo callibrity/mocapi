@@ -26,6 +26,7 @@ import com.callibrity.mocapi.server.completions.CompletionCandidate;
 import com.callibrity.mocapi.server.completions.CompletionCandidates;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +56,7 @@ public final class ReadResourceTemplateHandlers {
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
       List<MethodInterceptor<? super Map<String, String>>> interceptors,
+      List<ReadResourceTemplateHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
     validateReturnType(bean, method);
     McpResourceTemplate annotation = method.getAnnotation(McpResourceTemplate.class);
@@ -64,6 +66,9 @@ public final class ReadResourceTemplateHandlers {
     String description = resolveOrDefault(valueResolver, annotation.description(), () -> name);
     String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
     ResourceTemplate descriptor = new ResourceTemplate(uriTemplate, name, description, mimeType);
+    MutableConfig config = new MutableConfig(descriptor, method, bean, interceptors);
+    customizers.forEach(c -> c.customize(config));
+    List<MethodInterceptor<? super Map<String, String>>> chain = config.freeze();
     MethodInvoker<Map<String, String>> invoker =
         invokerFactory.create(
             method,
@@ -71,9 +76,53 @@ public final class ReadResourceTemplateHandlers {
             VARS_TYPE,
             cfg -> {
               resolvers.forEach(cfg::resolver);
-              interceptors.forEach(cfg::interceptor);
+              chain.forEach(cfg::interceptor);
             });
     return new ReadResourceTemplateHandler(descriptor, method, bean, invoker, candidatesOf(method));
+  }
+
+  private static final class MutableConfig implements ReadResourceTemplateHandlerConfig {
+    private final ResourceTemplate descriptor;
+    private final Method method;
+    private final Object bean;
+    private final List<MethodInterceptor<? super Map<String, String>>> interceptors;
+
+    MutableConfig(
+        ResourceTemplate descriptor,
+        Method method,
+        Object bean,
+        List<MethodInterceptor<? super Map<String, String>>> initial) {
+      this.descriptor = descriptor;
+      this.method = method;
+      this.bean = bean;
+      this.interceptors = new ArrayList<>(initial);
+    }
+
+    @Override
+    public ResourceTemplate descriptor() {
+      return descriptor;
+    }
+
+    @Override
+    public Method method() {
+      return method;
+    }
+
+    @Override
+    public Object bean() {
+      return bean;
+    }
+
+    @Override
+    public ReadResourceTemplateHandlerConfig interceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    List<MethodInterceptor<? super Map<String, String>>> freeze() {
+      return List.copyOf(interceptors);
+    }
   }
 
   private static List<CompletionCandidate> candidatesOf(Method method) {

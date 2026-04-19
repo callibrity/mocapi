@@ -20,8 +20,10 @@ import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.resources.ReadResourceHandler;
+import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlers;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
+import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlers;
 import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import java.util.List;
@@ -59,7 +61,10 @@ public class MocapiServerResourcesAutoConfiguration {
       McpCompletionsService completions,
       @Autowired(required = false) List<MethodInterceptor<? super Object>> resourceInterceptors,
       @Autowired(required = false)
-          List<MethodInterceptor<? super Map<String, String>>> resourceTemplateInterceptors) {
+          List<MethodInterceptor<? super Map<String, String>>> resourceTemplateInterceptors,
+      @Autowired(required = false) List<ReadResourceHandlerCustomizer> resourceCustomizers,
+      @Autowired(required = false)
+          List<ReadResourceTemplateHandlerCustomizer> resourceTemplateCustomizers) {
     List<ParameterResolver<? super Map<String, String>>> templateResolvers =
         List.of(
             new StringMapArgResolver(
@@ -68,6 +73,10 @@ public class MocapiServerResourcesAutoConfiguration {
         resourceInterceptors == null ? List.of() : resourceInterceptors;
     List<MethodInterceptor<? super Map<String, String>>> templateInts =
         resourceTemplateInterceptors == null ? List.of() : resourceTemplateInterceptors;
+    List<ReadResourceHandlerCustomizer> resourceCustoms =
+        resourceCustomizers == null ? List.of() : resourceCustomizers;
+    List<ReadResourceTemplateHandlerCustomizer> templateCustoms =
+        resourceTemplateCustomizers == null ? List.of() : resourceTemplateCustomizers;
     List<ReadResourceHandler> handlers =
         cache.forAnnotation(McpResource.class).stream()
             .map(
@@ -78,6 +87,7 @@ public class MocapiServerResourcesAutoConfiguration {
                           bm.method(),
                           invokerFactory,
                           resourceInts,
+                          resourceCustoms,
                           mcpAnnotationValueResolver::resolveStringValue);
                   log.info(
                       "Registered MCP resource: \"{}\" (bean \"{}\")",
@@ -97,6 +107,7 @@ public class MocapiServerResourcesAutoConfiguration {
                           invokerFactory,
                           templateResolvers,
                           templateInts,
+                          templateCustoms,
                           mcpAnnotationValueResolver::resolveStringValue);
                   log.info(
                       "Registered MCP resource template: \"{}\" (bean \"{}\")",

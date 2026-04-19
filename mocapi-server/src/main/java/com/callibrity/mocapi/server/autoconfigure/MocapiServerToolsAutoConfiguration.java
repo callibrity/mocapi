@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server.autoconfigure;
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
+import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlers;
 import com.callibrity.mocapi.server.tools.McpToolContextResolver;
 import com.callibrity.mocapi.server.tools.McpToolsService;
@@ -59,6 +60,7 @@ public class MocapiServerToolsAutoConfiguration {
       ObjectMapper objectMapper,
       McpResponseCorrelationService correlationService,
       @Autowired(required = false) List<MethodInterceptor<? super JsonNode>> toolInterceptors,
+      @Autowired(required = false) List<CallToolHandlerCustomizer> toolCustomizers,
       StringValueResolver mcpAnnotationValueResolver) {
     List<ParameterResolver<? super JsonNode>> resolvers =
         List.of(
@@ -67,6 +69,8 @@ public class MocapiServerToolsAutoConfiguration {
             new Jackson3ParameterResolver(objectMapper));
     List<MethodInterceptor<? super JsonNode>> interceptors =
         toolInterceptors == null ? List.of() : toolInterceptors;
+    List<CallToolHandlerCustomizer> customizers =
+        toolCustomizers == null ? List.of() : toolCustomizers;
     List<CallToolHandler> handlers =
         cache.forAnnotation(McpTool.class).stream()
             .map(
@@ -79,6 +83,7 @@ public class MocapiServerToolsAutoConfiguration {
                           invokerFactory,
                           resolvers,
                           interceptors,
+                          customizers,
                           mcpAnnotationValueResolver::resolveStringValue);
                   log.info(
                       "Registered MCP tool: \"{}\" (bean \"{}\")",

@@ -28,6 +28,7 @@ import com.callibrity.mocapi.server.completions.CompletionCandidates;
 import com.callibrity.mocapi.server.tools.schema.Parameters;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,7 @@ public final class GetPromptHandlers {
       MethodInvokerFactory invokerFactory,
       List<ParameterResolver<? super Map<String, String>>> resolvers,
       List<MethodInterceptor<? super Map<String, String>>> interceptors,
+      List<GetPromptHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
     validateReturnType(bean, method);
     McpPrompt annotation = method.getAnnotation(McpPrompt.class);
@@ -68,6 +70,9 @@ public final class GetPromptHandlers {
         resolveOrDefault(
             valueResolver, annotation.description(), () -> humanReadableName(bean, method));
     Prompt descriptor = new Prompt(name, title, description, null, argumentsOf(method));
+    MutableConfig config = new MutableConfig(descriptor, method, bean, interceptors);
+    customizers.forEach(c -> c.customize(config));
+    List<MethodInterceptor<? super Map<String, String>>> chain = config.freeze();
     MethodInvoker<Map<String, String>> invoker =
         invokerFactory.create(
             method,
@@ -75,9 +80,53 @@ public final class GetPromptHandlers {
             ARGS_TYPE,
             cfg -> {
               resolvers.forEach(cfg::resolver);
-              interceptors.forEach(cfg::interceptor);
+              chain.forEach(cfg::interceptor);
             });
     return new GetPromptHandler(descriptor, method, bean, invoker, candidatesOf(method));
+  }
+
+  private static final class MutableConfig implements GetPromptHandlerConfig {
+    private final Prompt descriptor;
+    private final Method method;
+    private final Object bean;
+    private final List<MethodInterceptor<? super Map<String, String>>> interceptors;
+
+    MutableConfig(
+        Prompt descriptor,
+        Method method,
+        Object bean,
+        List<MethodInterceptor<? super Map<String, String>>> initial) {
+      this.descriptor = descriptor;
+      this.method = method;
+      this.bean = bean;
+      this.interceptors = new ArrayList<>(initial);
+    }
+
+    @Override
+    public Prompt descriptor() {
+      return descriptor;
+    }
+
+    @Override
+    public Method method() {
+      return method;
+    }
+
+    @Override
+    public Object bean() {
+      return bean;
+    }
+
+    @Override
+    public GetPromptHandlerConfig interceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    List<MethodInterceptor<? super Map<String, String>>> freeze() {
+      return List.copyOf(interceptors);
+    }
   }
 
   private static void validateReturnType(Object bean, Method method) {

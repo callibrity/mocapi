@@ -23,6 +23,7 @@ import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 import org.jwcarman.methodical.MethodInvoker;
@@ -44,6 +45,7 @@ public final class ReadResourceHandlers {
       Method method,
       MethodInvokerFactory invokerFactory,
       List<MethodInterceptor<? super Object>> interceptors,
+      List<ReadResourceHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
     validateReturnType(bean, method);
     McpResource annotation = method.getAnnotation(McpResource.class);
@@ -53,10 +55,55 @@ public final class ReadResourceHandlers {
     String description = resolveOrDefault(valueResolver, annotation.description(), () -> name);
     String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
     Resource descriptor = new Resource(uri, name, description, mimeType);
+    MutableConfig config = new MutableConfig(descriptor, method, bean, interceptors);
+    customizers.forEach(c -> c.customize(config));
+    List<MethodInterceptor<? super Object>> chain = config.freeze();
     MethodInvoker<Object> invoker =
-        invokerFactory.create(
-            method, bean, Object.class, cfg -> interceptors.forEach(cfg::interceptor));
+        invokerFactory.create(method, bean, Object.class, cfg -> chain.forEach(cfg::interceptor));
     return new ReadResourceHandler(descriptor, method, bean, invoker);
+  }
+
+  private static final class MutableConfig implements ReadResourceHandlerConfig {
+    private final Resource descriptor;
+    private final Method method;
+    private final Object bean;
+    private final List<MethodInterceptor<? super Object>> interceptors;
+
+    MutableConfig(
+        Resource descriptor,
+        Method method,
+        Object bean,
+        List<MethodInterceptor<? super Object>> initial) {
+      this.descriptor = descriptor;
+      this.method = method;
+      this.bean = bean;
+      this.interceptors = new ArrayList<>(initial);
+    }
+
+    @Override
+    public Resource descriptor() {
+      return descriptor;
+    }
+
+    @Override
+    public Method method() {
+      return method;
+    }
+
+    @Override
+    public Object bean() {
+      return bean;
+    }
+
+    @Override
+    public ReadResourceHandlerConfig interceptor(MethodInterceptor<? super Object> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    List<MethodInterceptor<? super Object>> freeze() {
+      return List.copyOf(interceptors);
+    }
   }
 
   private static void validateReturnType(Object bean, Method method) {

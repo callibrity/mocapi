@@ -79,7 +79,7 @@ class McpToolsServiceTest {
         .map(
             m ->
                 CallToolHandlers.build(
-                    target, m, generator, invokerFactory, resolvers, List.of(), s -> s))
+                    target, m, generator, invokerFactory, resolvers, List.of(), List.of(), s -> s))
         .toList();
   }
 

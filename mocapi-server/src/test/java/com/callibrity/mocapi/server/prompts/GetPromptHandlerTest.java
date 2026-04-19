@@ -26,8 +26,10 @@ import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -46,7 +48,10 @@ class GetPromptHandlerTest {
 
   private List<GetPromptHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpPrompt.class).stream()
-        .map(m -> GetPromptHandlers.build(target, m, invokerFactory, resolvers, List.of(), s -> s))
+        .map(
+            m ->
+                GetPromptHandlers.build(
+                    target, m, invokerFactory, resolvers, List.of(), List.of(), s -> s))
         .toList();
   }
 
@@ -158,6 +163,37 @@ class GetPromptHandlerTest {
     assertThatThrownBy(() -> createHandlers(target))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("GetPromptResult");
+  }
+
+  @Test
+  void customizer_receives_config_and_attached_interceptor_runs_during_invocation() {
+    var bean = new SummarizePrompt();
+    var captured = new ArrayList<GetPromptHandlerConfig>();
+    var hits = new AtomicInteger();
+    GetPromptHandlerCustomizer customizer =
+        config -> {
+          captured.add(config);
+          config.interceptor(
+              invocation -> {
+                hits.incrementAndGet();
+                return invocation.proceed();
+              });
+        };
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpPrompt.class).getFirst();
+
+    var handler =
+        GetPromptHandlers.build(
+            bean, method, invokerFactory, resolvers, List.of(), List.of(customizer), s -> s);
+
+    assertThat(captured).hasSize(1);
+    var config = captured.getFirst();
+    assertThat(config.descriptor().name()).isEqualTo("summarize");
+    assertThat(config.method()).isEqualTo(method);
+    assertThat(config.bean()).isSameAs(bean);
+
+    handler.get(Map.of("text", "hello"));
+    assertThat(hits).hasValue(1);
   }
 
   @Test

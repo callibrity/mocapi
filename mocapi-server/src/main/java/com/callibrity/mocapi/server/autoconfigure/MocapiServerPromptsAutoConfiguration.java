@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server.autoconfigure;
 import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.prompts.GetPromptHandler;
+import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlers;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.util.StringMapArgResolver;
@@ -55,13 +56,16 @@ public class MocapiServerPromptsAutoConfiguration {
       StringValueResolver mcpAnnotationValueResolver,
       McpCompletionsService completions,
       @Autowired(required = false)
-          List<MethodInterceptor<? super Map<String, String>>> promptInterceptors) {
+          List<MethodInterceptor<? super Map<String, String>>> promptInterceptors,
+      @Autowired(required = false) List<GetPromptHandlerCustomizer> promptCustomizers) {
     List<ParameterResolver<? super Map<String, String>>> resolvers =
         List.of(
             new StringMapArgResolver(
                 conversionService.getIfAvailable(DefaultConversionService::getSharedInstance)));
     List<MethodInterceptor<? super Map<String, String>>> interceptors =
         promptInterceptors == null ? List.of() : promptInterceptors;
+    List<GetPromptHandlerCustomizer> customizers =
+        promptCustomizers == null ? List.of() : promptCustomizers;
     List<GetPromptHandler> handlers =
         cache.forAnnotation(McpPrompt.class).stream()
             .map(
@@ -73,6 +77,7 @@ public class MocapiServerPromptsAutoConfiguration {
                           invokerFactory,
                           resolvers,
                           interceptors,
+                          customizers,
                           mcpAnnotationValueResolver::resolveStringValue);
                   log.info(
                       "Registered MCP prompt: \"{}\" (bean \"{}\")",
