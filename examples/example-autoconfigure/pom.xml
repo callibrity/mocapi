@@ -54,6 +54,13 @@
             <artifactId>mocapi-actuator</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Activates our o11y autoconfig -->
+        <dependency>
+            <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-o11y</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

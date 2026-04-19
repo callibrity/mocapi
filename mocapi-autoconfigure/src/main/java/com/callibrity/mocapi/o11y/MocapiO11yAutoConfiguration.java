@@ -33,7 +33,9 @@ import org.springframework.context.annotation.Bean;
  * Micrometer Observation autoconfiguration is on the classpath, so this starter lights up
  * automatically when paired with a metrics or tracing stack.
  */
-@AutoConfiguration
+@AutoConfiguration(
+    afterName =
+        "org.springframework.boot.micrometer.observation.autoconfigure.ObservationAutoConfiguration")
 @ConditionalOnClass({McpObservationInterceptor.class, ObservationRegistry.class})
 @ConditionalOnBean(ObservationRegistry.class)
 public class MocapiO11yAutoConfiguration {
