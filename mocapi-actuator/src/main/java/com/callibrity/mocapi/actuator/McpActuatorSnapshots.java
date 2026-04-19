@@ -24,10 +24,7 @@ import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.Tool;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
+import com.callibrity.mocapi.server.util.Hashes;
 import java.util.List;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -69,15 +66,6 @@ final class McpActuatorSnapshots {
   // every call (insertion order), so the digest is stable for a given schema instance — good
   // enough for "did this schema drift?" checks across deployments.
   static String schemaDigest(ObjectNode schema) {
-    if (schema == null) {
-      return null;
-    }
-    byte[] bytes = schema.toString().getBytes(StandardCharsets.UTF_8);
-    try {
-      byte[] hash = MessageDigest.getInstance("SHA-256").digest(bytes);
-      return "sha256:" + HexFormat.of().formatHex(hash);
-    } catch (NoSuchAlgorithmException e) {
-      throw new IllegalStateException("SHA-256 not available", e);
-    }
+    return schema == null ? null : Hashes.sha256Of(schema.toString());
   }
 }
