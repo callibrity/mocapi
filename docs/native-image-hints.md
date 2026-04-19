@@ -14,7 +14,7 @@ When the cowork-connector-example was run under the tracing agent with `/mcp/**`
 - `mocapi.server.*` non-autoconfigure — 19 (framework service beans)
 - `mocapi.transport.http.*` — 3 (controller, validator, auto-config)
 - `mocapi.prompts.spring.*` — 2 (template factory + auto-config)
-- `mocapi.api.*` annotations + SPI ifaces — 5 (`@ToolService`, `@McpTool`, `@PromptService`, `@McpPrompt`, `PromptTemplateFactory`)
+- `mocapi.api.*` annotations + SPI ifaces — 3 (`@McpTool`, `@McpPrompt`, `PromptTemplateFactory`)
 - `mocapi.server.session.McpSession` — 1
 - `mocapi.model.*` wire types — 36
 
@@ -32,7 +32,7 @@ com.callibrity.mocapi.server.autoconfigure.aot.MocapiRuntimeHints
 
 ### `MocapiServicesAotProcessor`
 
-For every Spring bean annotated with `@ToolService`, `@PromptService`, or `@ResourceService`, walks its declared methods. On each `@McpTool` / `@McpPrompt` / `@McpResource` / `@McpResourceTemplate`:
+For every Spring bean whose class declares at least one `@McpTool`, `@McpPrompt`, `@McpResource`, or `@McpResourceTemplate` method, walks its declared methods. On each annotated method:
 
 - `ExecutableMode.INVOKE` hint on the method itself (so the dispatcher's reflective call is legal in native).
 - `BindingReflectionHints` on every parameter type (picks up enums, records, nested generics via Spring's registrar walker).
@@ -55,7 +55,7 @@ The scanner is configured with `useDefaultFilters=false`, `isCandidateComponent`
 
 - Every auto-config class and `@ConfigurationProperties` record — Spring Boot's AOT generates the binding code.
 - Every framework Spring bean (`DefaultMcpServer`, `McpToolsService`, `AtomMcpSessionStore`, `StreamableHttpController`, etc.) — Spring AOT replaces reflective bean instantiation with generated factory code.
-- Spring-owned reflective annotation discovery on `@ToolService` / `@PromptService` / `@ResourceService` beans — handled via merged-annotation pre-computation at AOT time.
+- Spring-owned reflective annotation discovery on method-level annotations (`@McpTool`, `@McpPrompt`, `@McpResource`, `@McpResourceTemplate`) — handled via merged-annotation pre-computation at AOT time.
 
 ## Tests
 

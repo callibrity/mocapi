@@ -17,12 +17,10 @@ package com.callibrity.mocapi.conformance;
 
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
-import com.callibrity.mocapi.api.resources.ResourceService;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import org.springframework.stereotype.Component;
 
 @Component
-@ResourceService
 public class ConformanceResources {
 
   // 1x1 red pixel PNG

@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.examples.prompts;
 
 import com.callibrity.mocapi.api.prompts.McpPrompt;
-import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.api.prompts.template.PromptTemplate;
 import com.callibrity.mocapi.api.prompts.template.PromptTemplateFactory;
 import com.callibrity.mocapi.model.GetPromptResult;
@@ -35,7 +34,6 @@ import java.util.Map;
  *       concatenation.
  * </ul>
  */
-@PromptService
 public class SummarizePrompt {
 
   public enum Detail {

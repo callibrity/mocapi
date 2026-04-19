@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.jakarta.fixture;
 
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
-import com.callibrity.mocapi.api.resources.ResourceService;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
 import jakarta.validation.constraints.Pattern;
@@ -28,7 +27,6 @@ import java.util.List;
  * but producing a pattern-violating variable surfaces as a JSON-RPC {@code -32602 Invalid params}
  * error with the per-violation detail populated in the response's {@code data} field.
  */
-@ResourceService
 public class ValidatedResources {
 
   @McpResourceTemplate(

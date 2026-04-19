@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.api.prompts.McpPrompt;
-import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.CompleteRequestParams;
 import com.callibrity.mocapi.model.CompletionArgument;
 import com.callibrity.mocapi.model.GetPromptResult;
@@ -88,7 +87,6 @@ class GetPromptHandlersTest {
     }
   }
 
-  @PromptService
   static class SamplePromptService {
 
     @McpPrompt(name = "greet", description = "Say hello")
@@ -105,7 +103,6 @@ class GetPromptHandlersTest {
     DETAILED
   }
 
-  @PromptService
   static class EnumPromptService {
 
     @McpPrompt(name = "summarize", description = "Summarize at a given detail level")
@@ -116,7 +113,6 @@ class GetPromptHandlersTest {
     }
   }
 
-  @PromptService
   static class PlaceholderPromptService {
 
     @McpPrompt(

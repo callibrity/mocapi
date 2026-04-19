@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.examples.validation;
 
 import com.callibrity.mocapi.api.tools.McpTool;
-import com.callibrity.mocapi.api.tools.ToolService;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.stereotype.Component;
@@ -43,7 +42,6 @@ import org.springframework.stereotype.Component;
  * }</pre>
  */
 @Component
-@ToolService
 public class GreetTool {
 
   @McpTool(name = "greet", description = "Returns a greeting; name must be 2-60 non-blank chars")

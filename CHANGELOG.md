@@ -45,6 +45,30 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Breaking changes
 
+- Removed the class-level `@ToolService`, `@PromptService`, and
+  `@ResourceService` annotations from `mocapi-api`. Handler discovery
+  no longer short-circuits through class-level markers: a single pass
+  over every bean in the `ApplicationContext` (centralized in the new
+  `HandlerMethodsCache`) groups `(bean, method)` pairs by which
+  method-level annotation they carry (`@McpTool`, `@McpPrompt`,
+  `@McpResource`, `@McpResourceTemplate`), and each kind's handler
+  autoconfig consumes its slice through a per-method
+  `CallToolHandlers.build(...)` / `GetPromptHandlers.build(...)` /
+  `ReadResourceHandlers.build(...)` / `ReadResourceTemplateHandlers.build(...)`
+  helper. The old `discover(bean, …)` helpers that walked a bean's
+  methods themselves are gone. Measured startup cost of the all-bean
+  scan is sub-100 ms even for context sizes in the thousands —
+  negligible vs. Spring Boot's own startup work. Migration is a
+  three-annotation delete:
+  ```
+  -@ToolService
+   @Component
+   public class MyTools { … }
+  ```
+  Users who registered their handler class as a `@Bean` (not
+  `@Component`) don't need to change anything — the method annotation
+  is the opt-in, and any bean-hood mechanism is fine.
+
 - Renamed the four method-level handler annotations to drop the
   `Method` suffix and adopt the `Mcp` domain prefix:
   `@ToolMethod` → `@McpTool`, `@PromptMethod` → `@McpPrompt`,

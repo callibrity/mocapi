@@ -7,7 +7,7 @@ see them directly.
 
 ## CallToolHandler — `tools/call`
 
-Every `@McpTool`-annotated method on a `@ToolService` bean produces
+Every `@McpTool`-annotated method on a Spring bean produces
 one `CallToolHandler`. The handler bundles the generated `Tool`
 descriptor (name, title, description, input/output schemas) with a
 `MethodInvoker<JsonNode>` that adapts `tools/call` arguments to the
@@ -15,14 +15,15 @@ method signature. `McpToolsService` holds a `Map<String,
 CallToolHandler>` keyed by tool name and looks up the handler on every
 call before dispatching.
 
-Discovery lives in `CallToolHandlers#discover`, which is invoked once
-during `McpToolsService` bean creation. There is no separate SPI
+Handlers are built by mapping each `(bean, method)` pair from the
+central `HandlerMethodsCache` through `CallToolHandlers.build(...)` in
+`MocapiServerToolsAutoConfiguration`. There is no separate SPI
 interface for tool registration — the annotation scan is the only
 supported path.
 
 ## GetPromptHandler — `prompts/get`
 
-Every `@McpPrompt`-annotated method on a `@PromptService` bean
+Every `@McpPrompt`-annotated method on a Spring bean
 produces one `GetPromptHandler`. The handler bundles the generated
 `Prompt` descriptor (name, title, description, argument list) with a
 `MethodInvoker<Map<String, String>>` that converts the client-supplied
@@ -32,8 +33,8 @@ string arguments to the declared parameter types, plus the list of
 `Map<String, GetPromptHandler>` keyed by prompt name and looks up the
 handler on every `prompts/get` call before dispatching.
 
-Discovery lives in `GetPromptHandlers#discover`, invoked once during
-`McpPromptsService` bean creation by
+Handlers are built by mapping each `(bean, method)` pair from the
+central `HandlerMethodsCache` through `GetPromptHandlers.build(...)` in
 `MocapiServerPromptsAutoConfiguration`. The same bean method walks
 every handler's `completionCandidates()` and registers them with
 `McpCompletionsService`, so `completion/complete` keeps working for
@@ -41,7 +42,7 @@ prompt arguments.
 
 ## ReadResourceHandler — `resources/read` (fixed URIs)
 
-Every `@McpResource`-annotated method on a `@ResourceService` bean
+Every `@McpResource`-annotated method on a Spring bean
 produces one `ReadResourceHandler`. The handler bundles the generated
 `Resource` descriptor (URI, name, description, MIME type) with a
 `MethodInvoker<Object>` that produces the `ReadResourceResult` returned
@@ -49,9 +50,9 @@ by `resources/read`. `McpResourcesService` holds a `Map<String,
 ReadResourceHandler>` keyed by URI and looks up the handler on every
 fixed-URI `resources/read` call before dispatching.
 
-Discovery lives in `ReadResourceHandlers#discover`, invoked once during
-`McpResourcesService` bean creation by
-`MocapiServerResourcesAutoConfiguration`.
+Handlers are built by mapping each `(bean, method)` pair from the
+central `HandlerMethodsCache` through `ReadResourceHandlers.build(...)`
+in `MocapiServerResourcesAutoConfiguration`.
 
 ## ReadResourceTemplateHandler — `resources/read` (templated URIs)
 
@@ -66,8 +67,9 @@ enum-typed or `@Schema(allowableValues=...)` variables.
 ReadResourceTemplateHandler>` and matches an incoming `resources/read`
 URI against the templates after the fixed-URI map lookup misses.
 
-Discovery lives in `ReadResourceTemplateHandlers#discover`, invoked
-once during `McpResourcesService` bean creation by
+Handlers are built by mapping each `(bean, method)` pair from the
+central `HandlerMethodsCache` through
+`ReadResourceTemplateHandlers.build(...)` in
 `MocapiServerResourcesAutoConfiguration`. The same bean method walks
 every handler's `completionCandidates()` and registers them with
 `McpCompletionsService`, so `completion/complete` keeps working for
@@ -88,7 +90,7 @@ runs through a `MethodInterceptor` chain. Each of the four handler
 autoconfigs autowires an optional `List<MethodInterceptor<? super T>>`
 for its kind (`JsonNode` for tools, `Map<String, String>` for prompts
 and resource templates, `Object` for fixed-URI resources) and threads
-it through the `discover(...)` helper. Interceptors are applied in
+it through the `build(...)` helper. Interceptors are applied in
 list order — first-added is outermost — so a downstream starter can
 ship an interceptor as a plain `@Bean` and it will wrap every
 matching handler automatically without any mocapi API additions.

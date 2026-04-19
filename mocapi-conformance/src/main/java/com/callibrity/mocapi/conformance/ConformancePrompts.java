@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.conformance;
 
 import com.callibrity.mocapi.api.prompts.McpPrompt;
-import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.EmbeddedResource;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.ImageContent;
@@ -30,7 +29,6 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 @Component
-@PromptService
 public class ConformancePrompts {
 
   // 1x1 red pixel PNG

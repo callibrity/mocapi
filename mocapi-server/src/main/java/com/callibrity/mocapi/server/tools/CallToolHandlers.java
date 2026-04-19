@@ -29,10 +29,8 @@ import com.github.erosb.jsonsKema.Schema;
 import com.github.erosb.jsonsKema.SchemaLoader;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.UnaryOperator;
-import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
@@ -41,84 +39,59 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Pure-Java factory that builds a {@link CallToolHandler} for every {@code @McpTool}-annotated
- * method on a single {@code @ToolService} bean.
+ * Pure-Java factory that builds a single {@link CallToolHandler} from a {@code (bean, @McpTool
+ * method)} pair. Bean discovery happens centrally in {@code HandlerMethodsCache}; this helper only
+ * constructs the handler.
  */
 public final class CallToolHandlers {
 
   private CallToolHandlers() {}
 
   /**
-   * Walks {@code @McpTool} methods on {@code toolServiceBean} and returns one {@link
-   * CallToolHandler} per method. Each handler's invoker is wired with the supplied parameter
-   * resolvers plus the supplied interceptor list; an {@link InputSchemaValidatingInterceptor} for
-   * that tool's compiled input schema is appended last (innermost) so schema validation runs
-   * closest to the reflective call.
+   * Builds one {@link CallToolHandler} for the given {@code (bean, method)} pair. The handler's
+   * invoker is wired with the supplied parameter resolvers plus the supplied interceptor list; an
+   * {@link InputSchemaValidatingInterceptor} for the compiled input schema is appended last
+   * (innermost) so schema validation runs closest to the reflective call.
    */
-  public static List<CallToolHandler> discover(
-      Object toolServiceBean,
-      MethodSchemaGenerator generator,
-      MethodInvokerFactory invokerFactory,
-      List<ParameterResolver<? super JsonNode>> resolvers,
-      List<MethodInterceptor<? super JsonNode>> interceptors,
-      UnaryOperator<String> valueResolver) {
-    return MethodUtils.getMethodsListWithAnnotation(toolServiceBean.getClass(), McpTool.class)
-        .stream()
-        .sorted(Comparator.comparing(Method::getName))
-        .map(
-            method ->
-                build(
-                    generator,
-                    invokerFactory,
-                    resolvers,
-                    interceptors,
-                    toolServiceBean,
-                    method,
-                    valueResolver))
-        .toList();
-  }
-
-  private static CallToolHandler build(
-      MethodSchemaGenerator generator,
-      MethodInvokerFactory invokerFactory,
-      List<ParameterResolver<? super JsonNode>> resolvers,
-      List<MethodInterceptor<? super JsonNode>> interceptors,
-      Object targetObject,
+  public static CallToolHandler build(
+      Object bean,
       Method method,
+      MethodSchemaGenerator generator,
+      MethodInvokerFactory invokerFactory,
+      List<ParameterResolver<? super JsonNode>> resolvers,
+      List<MethodInterceptor<? super JsonNode>> interceptors,
       UnaryOperator<String> valueResolver) {
-    validateMcpToolParams(targetObject, method);
+    validateMcpToolParams(bean, method);
     McpTool annotation = method.getAnnotation(McpTool.class);
     String name =
-        resolveOrDefault(valueResolver, annotation.name(), () -> identifier(targetObject, method));
+        resolveOrDefault(valueResolver, annotation.name(), () -> identifier(bean, method));
     String title =
-        resolveOrDefault(
-            valueResolver, annotation.title(), () -> humanReadableName(targetObject, method));
+        resolveOrDefault(valueResolver, annotation.title(), () -> humanReadableName(bean, method));
     String description =
         resolveOrDefault(
-            valueResolver, annotation.description(), () -> humanReadableName(targetObject, method));
-    ObjectNode inputSchema = generator.generateInputSchema(targetObject, method);
-    ObjectNode outputSchema =
-        isVoid(method) ? null : generator.generateOutputSchema(targetObject, method);
+            valueResolver, annotation.description(), () -> humanReadableName(bean, method));
+    ObjectNode inputSchema = generator.generateInputSchema(bean, method);
+    ObjectNode outputSchema = isVoid(method) ? null : generator.generateOutputSchema(bean, method);
     Tool descriptor = new Tool(name, title, description, inputSchema, outputSchema);
     Schema compiledInputSchema = compile(inputSchema);
     MethodInvoker<JsonNode> invoker =
         invokerFactory.create(
             method,
-            targetObject,
+            bean,
             JsonNode.class,
             cfg -> {
               resolvers.forEach(cfg::resolver);
               interceptors.forEach(cfg::interceptor);
               cfg.interceptor(new InputSchemaValidatingInterceptor(compiledInputSchema));
             });
-    return new CallToolHandler(descriptor, method, targetObject, invoker);
+    return new CallToolHandler(descriptor, method, bean, invoker);
   }
 
   private static Schema compile(ObjectNode inputSchema) {
     return new SchemaLoader(new JsonParser(inputSchema.toString()).parse()).load();
   }
 
-  private static void validateMcpToolParams(Object targetObject, Method method) {
+  private static void validateMcpToolParams(Object bean, Method method) {
     boolean hasMcpToolParams = false;
     int nonContextParamCount = 0;
     for (Parameter param : method.getParameters()) {
@@ -131,7 +104,7 @@ public final class CallToolHandlers {
     if (hasMcpToolParams && nonContextParamCount > 0) {
       throw new IllegalArgumentException(
           "@McpToolParams must be the only non-context parameter on the tool method "
-              + targetObject.getClass().getName()
+              + bean.getClass().getName()
               + "."
               + method.getName());
     }

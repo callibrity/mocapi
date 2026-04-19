@@ -20,7 +20,6 @@ import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
-import com.callibrity.mocapi.api.resources.ResourceService;
 import com.callibrity.mocapi.model.CompleteRequestParams;
 import com.callibrity.mocapi.model.CompletionArgument;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
@@ -88,7 +87,6 @@ class ResourceServiceAutoConfigurationTest {
     }
   }
 
-  @ResourceService
   static class SampleResourceService {
 
     @McpResource(uri = "test://hello", name = "Hello", mimeType = "text/plain")
@@ -110,7 +108,6 @@ class ResourceServiceAutoConfigurationTest {
     PROD
   }
 
-  @ResourceService
   static class EnumResourceService {
 
     @McpResourceTemplate(uriTemplate = "env://{stage}/config", name = "Env Config")
@@ -120,7 +117,6 @@ class ResourceServiceAutoConfigurationTest {
     }
   }
 
-  @ResourceService
   static class PlaceholderResourceService {
 
     @McpResource(

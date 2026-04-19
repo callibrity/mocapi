@@ -46,12 +46,10 @@ Then declare individual mocapi artifacts without a `<version>` — the BOM pins 
 Define a tool:
 
 ```java
-import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.api.tools.McpTool;
 import org.springframework.stereotype.Component;
 
 @Component
-@ToolService
 public class GreetingTool {
 
     @McpTool(name = "greet", description = "Returns a greeting message")
@@ -67,7 +65,6 @@ Define a prompt:
 
 ```java
 import com.callibrity.mocapi.api.prompts.McpPrompt;
-import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.Role;
@@ -77,7 +74,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-@PromptService
 public class SummarizationPrompts {
 
     @McpPrompt(name = "summarize", description = "Summarize the provided text")
@@ -95,7 +91,6 @@ Define a resource (fixed URI) and a resource template (pattern-matched URI):
 
 ```java
 import com.callibrity.mocapi.api.resources.McpResource;
-import com.callibrity.mocapi.api.resources.ResourceService;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
@@ -104,7 +99,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-@ResourceService
 public class DocResources {
 
     @McpResource(uri = "docs://readme", mimeType = "text/markdown")
@@ -141,7 +135,7 @@ Run your Spring Boot application. With `mocapi-streamable-http-spring-boot-start
 
 ### Core
 
-- **`mocapi-api`** — user-facing API: `@ToolService`/`@McpTool`, `@PromptService`/`@McpPrompt`, `@ResourceService`/`@McpResource`/`@McpResourceTemplate`, `PromptTemplate`/`PromptTemplateFactory`, `McpToolContext`, provider interfaces
+- **`mocapi-api`** — user-facing API: `@McpTool`, `@McpPrompt`, `@McpResource`/`@McpResourceTemplate`, `PromptTemplate`/`PromptTemplateFactory`, `McpToolContext`, provider interfaces
 - **`mocapi-model`** — MCP protocol types (Tool, CallToolResult, ElicitResult, etc.) — mechanical mapping from the MCP spec
 - **`mocapi-server`** — stateful MCP server: session management, JSON-RPC dispatch, tool/prompt/resource invocation
 

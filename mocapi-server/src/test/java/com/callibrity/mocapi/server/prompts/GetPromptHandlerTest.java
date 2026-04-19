@@ -28,6 +28,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -44,7 +45,9 @@ class GetPromptHandlerTest {
       List.of(new StringMapArgResolver(DefaultConversionService.getSharedInstance()));
 
   private List<GetPromptHandler> createHandlers(Object target) {
-    return GetPromptHandlers.discover(target, invokerFactory, resolvers, List.of(), s -> s);
+    return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpPrompt.class).stream()
+        .map(m -> GetPromptHandlers.build(target, m, invokerFactory, resolvers, List.of(), s -> s))
+        .toList();
   }
 
   enum Detail {

@@ -26,6 +26,7 @@ import com.callibrity.mocapi.server.tools.util.HelloTool;
 import com.callibrity.mocapi.server.tools.util.InteractiveTool;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.util.List;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -47,8 +48,12 @@ class CallToolHandlerTest {
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
 
   private List<CallToolHandler> createHandlers(Object target) {
-    return CallToolHandlers.discover(
-        target, generator, invokerFactory, resolvers, List.of(), s -> s);
+    return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpTool.class).stream()
+        .map(
+            m ->
+                CallToolHandlers.build(
+                    target, m, generator, invokerFactory, resolvers, List.of(), s -> s))
+        .toList();
   }
 
   @Test

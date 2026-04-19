@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
-import com.callibrity.mocapi.api.prompts.PromptService;
+import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.prompts.GetPromptHandler;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlers;
@@ -33,13 +33,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.util.StringValueResolver;
 
-@AutoConfiguration(before = MocapiServerAutoConfiguration.class)
+@AutoConfiguration(after = MocapiServerAutoConfiguration.class)
 @EnableConfigurationProperties(MocapiServerProperties.class)
 @RequiredArgsConstructor
 @Slf4j
@@ -50,7 +49,7 @@ public class MocapiServerPromptsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(McpPromptsService.class)
   public McpPromptsService mcpProtocolPromptsService(
-      ApplicationContext context,
+      HandlerMethodsCache cache,
       MethodInvokerFactory invokerFactory,
       ObjectProvider<ConversionService> conversionService,
       StringValueResolver mcpAnnotationValueResolver,
@@ -64,25 +63,22 @@ public class MocapiServerPromptsAutoConfiguration {
     List<MethodInterceptor<? super Map<String, String>>> interceptors =
         promptInterceptors == null ? List.of() : promptInterceptors;
     List<GetPromptHandler> handlers =
-        context.getBeansWithAnnotation(PromptService.class).entrySet().stream()
-            .flatMap(
-                entry -> {
-                  String beanName = entry.getKey();
-                  Object bean = entry.getValue();
-                  log.info(
-                      "Registering MCP prompts for @{} bean \"{}\"...",
-                      PromptService.class.getSimpleName(),
-                      beanName);
-                  List<GetPromptHandler> perBean =
-                      GetPromptHandlers.discover(
-                          bean,
+        cache.forAnnotation(McpPrompt.class).stream()
+            .map(
+                bm -> {
+                  GetPromptHandler handler =
+                      GetPromptHandlers.build(
+                          bm.bean(),
+                          bm.method(),
                           invokerFactory,
                           resolvers,
                           interceptors,
                           mcpAnnotationValueResolver::resolveStringValue);
-                  perBean.forEach(
-                      h -> log.info("\tRegistered MCP prompt: \"{}\"", h.descriptor().name()));
-                  return perBean.stream();
+                  log.info(
+                      "Registered MCP prompt: \"{}\" (bean \"{}\")",
+                      handler.descriptor().name(),
+                      bm.beanName());
+                  return handler;
                 })
             .toList();
     handlers.forEach(
@@ -93,7 +89,7 @@ public class MocapiServerPromptsAutoConfiguration {
                       completions.registerPromptArgument(
                           h.descriptor().name(), c.argumentName(), c.values());
                       log.info(
-                          "\t\tRegistered completions for argument \"{}\": {}",
+                          "\tRegistered completions for argument \"{}\": {}",
                           c.argumentName(),
                           c.values());
                     }));

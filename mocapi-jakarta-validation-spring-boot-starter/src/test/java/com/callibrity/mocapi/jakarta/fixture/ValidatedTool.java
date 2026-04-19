@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.jakarta.fixture;
 
 import com.callibrity.mocapi.api.tools.McpTool;
-import com.callibrity.mocapi.api.tools.ToolService;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -28,7 +27,6 @@ import jakarta.validation.constraints.Size;
  * Jakarta validator wrapping the invocation. The integration test pins down which one actually
  * fires in the current mocapi wiring.
  */
-@ToolService
 public class ValidatedTool {
 
   @McpTool(name = "shout", description = "Uppercase the input; validated")

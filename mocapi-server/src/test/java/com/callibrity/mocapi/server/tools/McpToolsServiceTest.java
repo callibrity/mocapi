@@ -21,6 +21,7 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.RequestMeta;
@@ -41,6 +42,7 @@ import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -73,8 +75,12 @@ class McpToolsServiceTest {
   private McpToolsService service;
 
   private List<CallToolHandler> createHandlers(Object target) {
-    return CallToolHandlers.discover(
-        target, generator, invokerFactory, resolvers, List.of(), s -> s);
+    return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpTool.class).stream()
+        .map(
+            m ->
+                CallToolHandlers.build(
+                    target, m, generator, invokerFactory, resolvers, List.of(), s -> s))
+        .toList();
   }
 
   @BeforeEach

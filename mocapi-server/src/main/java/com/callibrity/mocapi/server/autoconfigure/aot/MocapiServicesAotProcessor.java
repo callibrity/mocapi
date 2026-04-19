@@ -16,15 +16,13 @@
 package com.callibrity.mocapi.server.autoconfigure.aot;
 
 import com.callibrity.mocapi.api.prompts.McpPrompt;
-import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
-import com.callibrity.mocapi.api.resources.ResourceService;
 import com.callibrity.mocapi.api.tools.McpTool;
-import com.callibrity.mocapi.api.tools.ToolService;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.List;
 import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
 import org.springframework.aot.hint.ExecutableMode;
 import org.springframework.aot.hint.RuntimeHints;
@@ -33,17 +31,14 @@ import org.springframework.beans.factory.aot.BeanRegistrationAotProcessor;
 import org.springframework.beans.factory.support.RegisteredBean;
 
 /**
- * Registers AOT reflection hints for every Mocapi annotation-driven service bean:
+ * Registers AOT reflection hints for every Spring bean that hosts at least one mocapi method-level
+ * annotation. For each {@link McpTool}, {@link McpPrompt}, {@link McpResource}, or {@link
+ * McpResourceTemplate}-annotated method, registers:
  *
  * <ul>
- *   <li>{@link ToolService} beans — {@link McpTool}-annotated methods get {@link
- *       ExecutableMode#INVOKE} hints and binding hints on every parameter type and non-void return
- *       type.
- *   <li>{@link PromptService} beans — {@link McpPrompt}-annotated methods get the same treatment.
- *       Enum and record parameters picked up by Spring's {@code ConversionService} are covered via
- *       the binding registrar.
- *   <li>{@link ResourceService} beans — both {@link McpResource} and {@link
- *       McpResourceTemplate}-annotated methods are processed.
+ *   <li>an {@link ExecutableMode#INVOKE} hint on the method itself
+ *   <li>binding hints on every parameter type (via {@link BindingReflectionHintsRegistrar})
+ *   <li>binding hints on the non-void return type
  * </ul>
  *
  * <p>Non-matching beans are ignored. No-op for non-native (JIT) builds.
@@ -53,28 +48,32 @@ public class MocapiServicesAotProcessor implements BeanRegistrationAotProcessor 
   private static final BindingReflectionHintsRegistrar BINDING =
       new BindingReflectionHintsRegistrar();
 
+  private static final List<Class<? extends Annotation>> METHOD_ANNOTATIONS =
+      List.of(McpTool.class, McpPrompt.class, McpResource.class, McpResourceTemplate.class);
+
   @Override
   public BeanRegistrationAotContribution processAheadOfTime(RegisteredBean registeredBean) {
     Class<?> beanClass = registeredBean.getBeanClass();
-    boolean isToolService = beanClass.isAnnotationPresent(ToolService.class);
-    boolean isPromptService = beanClass.isAnnotationPresent(PromptService.class);
-    boolean isResourceService = beanClass.isAnnotationPresent(ResourceService.class);
-    if (!isToolService && !isPromptService && !isResourceService) {
+    if (!hostsAnyMocapiMethod(beanClass)) {
       return null;
     }
     return (generationContext, beanRegistrationCode) -> {
       RuntimeHints hints = generationContext.getRuntimeHints();
-      if (isToolService) {
-        registerAnnotatedMethods(hints, beanClass, McpTool.class);
-      }
-      if (isPromptService) {
-        registerAnnotatedMethods(hints, beanClass, McpPrompt.class);
-      }
-      if (isResourceService) {
-        registerAnnotatedMethods(hints, beanClass, McpResource.class);
-        registerAnnotatedMethods(hints, beanClass, McpResourceTemplate.class);
+      for (Class<? extends Annotation> annotationType : METHOD_ANNOTATIONS) {
+        registerAnnotatedMethods(hints, beanClass, annotationType);
       }
     };
+  }
+
+  private static boolean hostsAnyMocapiMethod(Class<?> beanClass) {
+    for (Method method : beanClass.getDeclaredMethods()) {
+      for (Class<? extends Annotation> annotationType : METHOD_ANNOTATIONS) {
+        if (method.isAnnotationPresent(annotationType)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private static void registerAnnotatedMethods(

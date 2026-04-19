@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.jakarta.fixture;
 
 import com.callibrity.mocapi.api.prompts.McpPrompt;
-import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.Role;
@@ -31,7 +30,6 @@ import java.util.List;
  * surfaces as a JSON-RPC {@code -32602 Invalid params} error with the per-violation detail
  * populated in the response's {@code data} field.
  */
-@PromptService
 public class ValidatedPrompt {
 
   @McpPrompt(name = "echo", description = "Validated echo prompt for integration testing")

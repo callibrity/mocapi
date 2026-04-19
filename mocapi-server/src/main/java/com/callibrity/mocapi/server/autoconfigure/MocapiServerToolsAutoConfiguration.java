@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
-import com.callibrity.mocapi.api.tools.ToolService;
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.CallToolHandlers;
@@ -34,14 +34,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.util.StringValueResolver;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-@AutoConfiguration(before = MocapiServerAutoConfiguration.class)
+@AutoConfiguration(after = MocapiServerAutoConfiguration.class)
 @EnableConfigurationProperties({MocapiServerToolsProperties.class, MocapiServerProperties.class})
 @PropertySource("classpath:mocapi-server-tools-defaults.properties")
 @RequiredArgsConstructor
@@ -54,7 +53,7 @@ public class MocapiServerToolsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(McpToolsService.class)
   public McpToolsService mcpProtocolToolsService(
-      ApplicationContext context,
+      HandlerMethodsCache cache,
       MethodSchemaGenerator generator,
       MethodInvokerFactory invokerFactory,
       ObjectMapper objectMapper,
@@ -69,26 +68,23 @@ public class MocapiServerToolsAutoConfiguration {
     List<MethodInterceptor<? super JsonNode>> interceptors =
         toolInterceptors == null ? List.of() : toolInterceptors;
     List<CallToolHandler> handlers =
-        context.getBeansWithAnnotation(ToolService.class).entrySet().stream()
-            .flatMap(
-                entry -> {
-                  String beanName = entry.getKey();
-                  Object bean = entry.getValue();
-                  log.info(
-                      "Registering MCP tools for @{} bean \"{}\"...",
-                      ToolService.class.getSimpleName(),
-                      beanName);
-                  List<CallToolHandler> perBean =
-                      CallToolHandlers.discover(
-                          bean,
+        cache.forAnnotation(McpTool.class).stream()
+            .map(
+                bm -> {
+                  CallToolHandler handler =
+                      CallToolHandlers.build(
+                          bm.bean(),
+                          bm.method(),
                           generator,
                           invokerFactory,
                           resolvers,
                           interceptors,
                           mcpAnnotationValueResolver::resolveStringValue);
-                  perBean.forEach(
-                      h -> log.info("\tRegistered MCP tool: \"{}\"", h.descriptor().name()));
-                  return perBean.stream();
+                  log.info(
+                      "Registered MCP tool: \"{}\" (bean \"{}\")",
+                      handler.descriptor().name(),
+                      bm.beanName());
+                  return handler;
                 })
             .toList();
     return new McpToolsService(

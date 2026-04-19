@@ -31,8 +31,8 @@ import org.springframework.context.annotation.Bean;
  * same set of capabilities simply by depending on this module.
  *
  * <p>Registered before {@link MocapiServerAutoConfiguration} so that the example beans are present
- * when mocapi's registries scan for {@code @ToolService}, {@code @PromptService}, and
- * {@code @ResourceService} beans.
+ * when mocapi's {@code HandlerMethodsCache} scans for beans with {@code @McpTool} /
+ * {@code @McpPrompt} / {@code @McpResource} / {@code @McpResourceTemplate} methods.
  */
 @AutoConfiguration(before = MocapiServerAutoConfiguration.class)
 public class ExampleAutoConfiguration {

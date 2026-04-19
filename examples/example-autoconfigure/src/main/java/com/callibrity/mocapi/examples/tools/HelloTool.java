@@ -17,11 +17,9 @@ package com.callibrity.mocapi.examples.tools;
 
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
-import com.callibrity.mocapi.api.tools.ToolService;
 import org.springframework.stereotype.Component;
 
 @Component
-@ToolService
 public class HelloTool {
 
   @McpTool(name = "hello", description = "Returns a greeting message")

@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.examples.validation;
 
 import com.callibrity.mocapi.api.prompts.McpPrompt;
-import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.Role;
@@ -49,7 +48,6 @@ import org.springframework.stereotype.Component;
  * }</pre>
  */
 @Component
-@PromptService
 public class SummarizePrompt {
 
   @McpPrompt(name = "summarize", description = "Summarizes the provided text (10-2000 chars)")

@@ -20,13 +20,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.api.prompts.McpPrompt;
-import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
-import com.callibrity.mocapi.api.resources.ResourceService;
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolParams;
-import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.ReadResourceResult;
@@ -52,7 +49,6 @@ class MocapiServicesAotProcessorTest {
 
   public record GreetResult(String message) {}
 
-  @ToolService
   public static class SampleTool {
     @McpTool(name = "greet")
     public GreetResult greet(@McpToolParams GreetArgs args) {
@@ -77,8 +73,6 @@ class MocapiServicesAotProcessorTest {
     }
   }
 
-  @ToolService
-  @PromptService
   public static class SampleCombined {
     @McpTool(name = "tool-side")
     public GreetResult asTool(@McpToolParams GreetArgs args) {
@@ -92,7 +86,6 @@ class MocapiServicesAotProcessorTest {
     }
   }
 
-  @PromptService
   public static class SamplePrompt {
     @McpPrompt(name = "say-hi")
     public GetPromptResult sayHi(String name) {
@@ -101,7 +94,6 @@ class MocapiServicesAotProcessorTest {
     }
   }
 
-  @ResourceService
   public static class SampleResource {
     @McpResource(uri = "test://x")
     public ReadResourceResult fixed() {

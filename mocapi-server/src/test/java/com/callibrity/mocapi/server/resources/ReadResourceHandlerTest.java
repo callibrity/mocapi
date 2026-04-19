@@ -22,6 +22,7 @@ import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
 import java.util.List;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,12 @@ import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 class ReadResourceHandlerTest {
 
   private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
+
+  private List<ReadResourceHandler> createHandlers(Object target) {
+    return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpResource.class).stream()
+        .map(m -> ReadResourceHandlers.build(target, m, invokerFactory, List.of(), s -> s))
+        .toList();
+  }
 
   public static class Fixture {
     @McpResource(
@@ -62,8 +69,7 @@ class ReadResourceHandlerTest {
 
   @Test
   void discover_builds_handler_from_annotated_method() {
-    var handler =
-        ReadResourceHandlers.discover(new Fixture(), invokerFactory, List.of(), s -> s).getFirst();
+    var handler = createHandlers(new Fixture()).getFirst();
 
     assertThat(handler.uri()).isEqualTo("test://hello");
     assertThat(handler.descriptor().name()).isEqualTo("Hello");
@@ -75,8 +81,7 @@ class ReadResourceHandlerTest {
 
   @Test
   void read_invokes_underlying_method() {
-    var handler =
-        ReadResourceHandlers.discover(new Fixture(), invokerFactory, List.of(), s -> s).getFirst();
+    var handler = createHandlers(new Fixture()).getFirst();
 
     var result = handler.read();
 
@@ -87,9 +92,7 @@ class ReadResourceHandlerTest {
 
   @Test
   void name_and_description_default_when_annotation_values_are_blank() {
-    var handler =
-        ReadResourceHandlers.discover(new DefaultedFixture(), invokerFactory, List.of(), s -> s)
-            .getFirst();
+    var handler = createHandlers(new DefaultedFixture()).getFirst();
 
     assertThat(handler.descriptor().name()).isNotBlank();
     assertThat(handler.descriptor().description()).isEqualTo(handler.descriptor().name());
@@ -99,8 +102,7 @@ class ReadResourceHandlerTest {
   @Test
   void resource_method_with_non_result_return_type_is_rejected() {
     var target = new BadResource();
-    assertThatThrownBy(
-            () -> ReadResourceHandlers.discover(target, invokerFactory, List.of(), s -> s))
+    assertThatThrownBy(() -> createHandlers(target))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ReadResourceResult");
   }

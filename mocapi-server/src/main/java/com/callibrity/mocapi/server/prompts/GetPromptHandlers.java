@@ -29,12 +29,10 @@ import com.callibrity.mocapi.server.tools.schema.Parameters;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
-import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
@@ -42,8 +40,9 @@ import org.jwcarman.methodical.param.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
 
 /**
- * Pure-Java factory that builds a {@link GetPromptHandler} for every {@code @McpPrompt}- annotated
- * method on a single {@code @PromptService} bean.
+ * Pure-Java factory that builds a single {@link GetPromptHandler} from a {@code (bean, @McpPrompt
+ * method)} pair. Bean discovery happens centrally in {@code HandlerMethodsCache}; this helper only
+ * constructs the handler.
  */
 public final class GetPromptHandlers {
 
@@ -51,69 +50,42 @@ public final class GetPromptHandlers {
 
   private GetPromptHandlers() {}
 
-  /**
-   * Walks {@code @McpPrompt} methods on {@code promptServiceBean} and returns one {@link
-   * GetPromptHandler} per method.
-   */
-  public static List<GetPromptHandler> discover(
-      Object promptServiceBean,
-      MethodInvokerFactory invokerFactory,
-      List<ParameterResolver<? super Map<String, String>>> resolvers,
-      List<MethodInterceptor<? super Map<String, String>>> interceptors,
-      UnaryOperator<String> valueResolver) {
-    return MethodUtils.getMethodsListWithAnnotation(promptServiceBean.getClass(), McpPrompt.class)
-        .stream()
-        .sorted(Comparator.comparing(Method::getName))
-        .map(
-            method ->
-                build(
-                    invokerFactory,
-                    resolvers,
-                    interceptors,
-                    promptServiceBean,
-                    method,
-                    valueResolver))
-        .toList();
-  }
-
-  private static GetPromptHandler build(
-      MethodInvokerFactory invokerFactory,
-      List<ParameterResolver<? super Map<String, String>>> resolvers,
-      List<MethodInterceptor<? super Map<String, String>>> interceptors,
-      Object targetObject,
+  /** Builds one {@link GetPromptHandler} for the given {@code (bean, method)} pair. */
+  public static GetPromptHandler build(
+      Object bean,
       Method method,
+      MethodInvokerFactory invokerFactory,
+      List<ParameterResolver<? super Map<String, String>>> resolvers,
+      List<MethodInterceptor<? super Map<String, String>>> interceptors,
       UnaryOperator<String> valueResolver) {
-    validateReturnType(targetObject, method);
+    validateReturnType(bean, method);
     McpPrompt annotation = method.getAnnotation(McpPrompt.class);
     String name =
-        resolveOrDefault(valueResolver, annotation.name(), () -> identifier(targetObject, method));
+        resolveOrDefault(valueResolver, annotation.name(), () -> identifier(bean, method));
     String title =
-        resolveOrDefault(
-            valueResolver, annotation.title(), () -> humanReadableName(targetObject, method));
+        resolveOrDefault(valueResolver, annotation.title(), () -> humanReadableName(bean, method));
     String description =
         resolveOrDefault(
-            valueResolver, annotation.description(), () -> humanReadableName(targetObject, method));
+            valueResolver, annotation.description(), () -> humanReadableName(bean, method));
     Prompt descriptor = new Prompt(name, title, description, null, argumentsOf(method));
     MethodInvoker<Map<String, String>> invoker =
         invokerFactory.create(
             method,
-            targetObject,
+            bean,
             ARGS_TYPE,
             cfg -> {
               resolvers.forEach(cfg::resolver);
               interceptors.forEach(cfg::interceptor);
             });
-    return new GetPromptHandler(descriptor, method, targetObject, invoker, candidatesOf(method));
+    return new GetPromptHandler(descriptor, method, bean, invoker, candidatesOf(method));
   }
 
-  private static void validateReturnType(Object targetObject, Method method) {
+  private static void validateReturnType(Object bean, Method method) {
     if (!GetPromptResult.class.isAssignableFrom(method.getReturnType())) {
       throw new IllegalArgumentException(
           String.format(
               "@McpPrompt %s.%s must return %s",
-              targetObject.getClass().getName(),
-              method.getName(),
-              GetPromptResult.class.getName()));
+              bean.getClass().getName(), method.getName(), GetPromptResult.class.getName()));
     }
   }
 

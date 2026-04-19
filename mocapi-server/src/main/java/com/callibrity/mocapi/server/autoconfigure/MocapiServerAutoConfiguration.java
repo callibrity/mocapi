@@ -15,6 +15,10 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
+import com.callibrity.mocapi.api.prompts.McpPrompt;
+import com.callibrity.mocapi.api.resources.McpResource;
+import com.callibrity.mocapi.api.resources.McpResourceTemplate;
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.model.CompletionsCapability;
 import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.LoggingCapability;
@@ -35,12 +39,14 @@ import com.callibrity.mocapi.server.session.McpSessionResolver;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.jwcarman.substrate.atom.AtomFactory;
 import org.jwcarman.substrate.core.autoconfigure.SubstrateAutoConfiguration;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.info.ProjectInfoAutoConfiguration;
@@ -71,6 +77,14 @@ public class MocapiServerAutoConfiguration {
   @ConditionalOnMissingBean(name = "mcpAnnotationValueResolver")
   public StringValueResolver mcpAnnotationValueResolver(ConfigurableBeanFactory beanFactory) {
     return beanFactory::resolveEmbeddedValue;
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(HandlerMethodsCache.class)
+  public HandlerMethodsCache handlerMethodsCache(ConfigurableListableBeanFactory beanFactory) {
+    return HandlerMethodsCache.scan(
+        beanFactory,
+        List.of(McpTool.class, McpPrompt.class, McpResource.class, McpResourceTemplate.class));
   }
 
   @Bean

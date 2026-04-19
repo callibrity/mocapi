@@ -23,70 +23,48 @@ import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import java.lang.reflect.Method;
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.UnaryOperator;
-import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
 
 /**
- * Pure-Java factory that builds a {@link ReadResourceHandler} for every {@code @McpResource}-
- * annotated method on a single {@code @ResourceService} bean.
+ * Pure-Java factory that builds a single {@link ReadResourceHandler} from a {@code
+ * (bean, @McpResource method)} pair. Bean discovery happens centrally in {@code
+ * HandlerMethodsCache}; this helper only constructs the handler.
  */
 public final class ReadResourceHandlers {
 
   private ReadResourceHandlers() {}
 
-  /**
-   * Walks {@code @McpResource} methods on {@code resourceServiceBean} and returns one {@link
-   * ReadResourceHandler} per method.
-   */
-  public static List<ReadResourceHandler> discover(
-      Object resourceServiceBean,
-      MethodInvokerFactory invokerFactory,
-      List<MethodInterceptor<? super Object>> interceptors,
-      UnaryOperator<String> valueResolver) {
-    return MethodUtils.getMethodsListWithAnnotation(
-            resourceServiceBean.getClass(), McpResource.class)
-        .stream()
-        .sorted(Comparator.comparing(Method::getName))
-        .map(
-            method ->
-                build(invokerFactory, interceptors, resourceServiceBean, method, valueResolver))
-        .toList();
-  }
-
-  private static ReadResourceHandler build(
-      MethodInvokerFactory invokerFactory,
-      List<MethodInterceptor<? super Object>> interceptors,
-      Object targetObject,
+  /** Builds one {@link ReadResourceHandler} for the given {@code (bean, method)} pair. */
+  public static ReadResourceHandler build(
+      Object bean,
       Method method,
+      MethodInvokerFactory invokerFactory,
+      List<MethodInterceptor<? super Object>> interceptors,
       UnaryOperator<String> valueResolver) {
-    validateReturnType(targetObject, method);
+    validateReturnType(bean, method);
     McpResource annotation = method.getAnnotation(McpResource.class);
     String uri = valueResolver.apply(annotation.uri());
     String name =
-        resolveOrDefault(
-            valueResolver, annotation.name(), () -> humanReadableName(targetObject, method));
+        resolveOrDefault(valueResolver, annotation.name(), () -> humanReadableName(bean, method));
     String description = resolveOrDefault(valueResolver, annotation.description(), () -> name);
     String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
     Resource descriptor = new Resource(uri, name, description, mimeType);
     MethodInvoker<Object> invoker =
         invokerFactory.create(
-            method, targetObject, Object.class, cfg -> interceptors.forEach(cfg::interceptor));
-    return new ReadResourceHandler(descriptor, method, targetObject, invoker);
+            method, bean, Object.class, cfg -> interceptors.forEach(cfg::interceptor));
+    return new ReadResourceHandler(descriptor, method, bean, invoker);
   }
 
-  private static void validateReturnType(Object targetObject, Method method) {
+  private static void validateReturnType(Object bean, Method method) {
     if (!ReadResourceResult.class.isAssignableFrom(method.getReturnType())) {
       throw new IllegalArgumentException(
           String.format(
               "@McpResource %s.%s must return %s",
-              targetObject.getClass().getName(),
-              method.getName(),
-              ReadResourceResult.class.getName()));
+              bean.getClass().getName(), method.getName(), ReadResourceResult.class.getName()));
     }
   }
 }

@@ -33,7 +33,6 @@ No Spring configuration is needed beyond adding the dependency. All wiring is au
 
 ```java
 @Component
-@ToolService
 public class GreetTool {
     @McpTool(name = "greet", description = "Returns a greeting")
     public GreetResponse greet(@NotBlank @Size(min = 2, max = 60) String name) {
@@ -43,7 +42,6 @@ public class GreetTool {
 }
 
 @Component
-@PromptService
 public class SummarizePrompt {
     @McpPrompt(name = "summarize", description = "Summarizes text")
     public GetPromptResult summarize(@NotBlank @Size(min = 10, max = 2000) String text) {
@@ -53,7 +51,6 @@ public class SummarizePrompt {
 }
 
 @Component
-@ResourceService
 public class ConfigResources {
     @McpResourceTemplate(uriTemplate = "config://{env}/app", name = "Per-env config", mimeType = "text/plain")
     public ReadResourceResult config(@Pattern(regexp = "^[a-z]+$") String env) {

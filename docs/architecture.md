@@ -158,20 +158,16 @@ Log line patterns, by provider:
 
 ```
 # Tools
-INFO  c.c.m.s.t.CallToolHandlers -- Registering MCP tools for @ToolService bean "greetingTool"...
-INFO  c.c.m.s.t.CallToolHandlers -- 	Registered MCP tool: "greet"
+INFO  c.c.m.s.a.MocapiServerToolsAutoConfiguration -- Registered MCP tool: "greet" (bean "greetingTool")
 
 # Prompts
-INFO  c.c.m.s.p.GetPromptHandlers -- Registering MCP prompts for @PromptService bean "summarizationPrompts"...
-INFO  c.c.m.s.p.GetPromptHandlers -- 	Registered MCP prompt: "summarize"
-INFO  c.c.m.s.a.MocapiServerPromptsAutoConfiguration -- 		Registered completions for argument "detail": [BRIEF, STANDARD, DETAILED]
+INFO  c.c.m.s.a.MocapiServerPromptsAutoConfiguration -- Registered MCP prompt: "summarize" (bean "summarizationPrompts")
+INFO  c.c.m.s.a.MocapiServerPromptsAutoConfiguration -- 	Registered completions for argument "detail": [BRIEF, STANDARD, DETAILED]
 
 # Resources
-INFO  c.c.m.s.a.MocapiServerResourcesAutoConfiguration -- Registering MCP resources for @ResourceService bean "docResources"...
-INFO  c.c.m.s.a.MocapiServerResourcesAutoConfiguration -- 	Registered MCP resource: "docs://readme"
-INFO  c.c.m.s.a.MocapiServerResourcesAutoConfiguration -- Registering MCP resource templates for @ResourceService bean "docResources"...
-INFO  c.c.m.s.a.MocapiServerResourcesAutoConfiguration -- 	Registered MCP resource template: "env://{stage}/config"
-INFO  c.c.m.s.a.MocapiServerResourcesAutoConfiguration -- 		Registered completions for variable "stage": [DEV, STAGE, PROD]
+INFO  c.c.m.s.a.MocapiServerResourcesAutoConfiguration -- Registered MCP resource: "docs://readme" (bean "docResources")
+INFO  c.c.m.s.a.MocapiServerResourcesAutoConfiguration -- Registered MCP resource template: "env://{stage}/config" (bean "docResources")
+INFO  c.c.m.s.a.MocapiServerResourcesAutoConfiguration -- 	Registered completions for variable "stage": [DEV, STAGE, PROD]
 ```
 
 The nested "Registered completions for argument/variable" line only appears when the parameter is an enum type or carries `@Schema(allowableValues = {...})` — otherwise there are no candidate values to register. See the [Writing Prompts](prompts-guide.md) and [Writing Resources](resources-guide.md) guides for details on what triggers completion registration.

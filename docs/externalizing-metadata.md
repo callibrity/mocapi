@@ -26,7 +26,6 @@ Every string attribute on `@McpTool`, `@McpPrompt`, `@McpResource`, and `@McpRes
 ## Example
 
 ```java
-@ToolService
 @Component
 public class SearchTool {
 

@@ -1,18 +1,16 @@
 # Writing Tools
 
-Tools are the primary way to expose functionality to MCP clients. A tool is a Java method annotated with `@McpTool` inside a class annotated with `@ToolService`.
+Tools are the primary way to expose functionality to MCP clients. A tool is any Java method annotated with `@McpTool` on a Spring bean.
 
-## Defining a Tool Service
+## Defining a Tool
 
-Mark a class with `@ToolService` and register it as a Spring bean:
+Annotate methods with `@McpTool` and register the enclosing class as a Spring bean:
 
 ```java
-import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.api.tools.McpTool;
 import org.springframework.stereotype.Component;
 
 @Component
-@ToolService
 public class WeatherTool {
 
     @McpTool(name = "get-weather", description = "Gets the current weather for a city")
@@ -25,7 +23,7 @@ public class WeatherTool {
 }
 ```
 
-`@ToolService` is a plain marker annotation -- it does not imply `@Component`. You must also annotate with `@Component`, `@Service`, or register via a `@Bean` method:
+Any bean-hood mechanism works — `@Component`, `@Service`, or a `@Bean` factory method:
 
 ```java
 @Configuration
@@ -38,7 +36,7 @@ public class ToolConfig {
 }
 ```
 
-Both approaches work. The framework discovers all beans annotated with `@ToolService` regardless of how they were registered. Each registered tool is logged at `INFO` level during startup (see [Startup Logging](architecture.md#startup-logging) for the full catalog).
+The framework discovers every bean in the context, scans its methods for `@McpTool`, and registers one handler per annotated method. Each registered tool is logged at `INFO` level during startup (see [Startup Logging](architecture.md#startup-logging) for the full catalog).
 
 ## Tool Method Basics
 

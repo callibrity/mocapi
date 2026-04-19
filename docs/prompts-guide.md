@@ -1,14 +1,13 @@
 # Writing Prompts
 
-Prompts are reusable message templates that clients can invoke by name, optionally supplying arguments. Define a prompt as a Java method annotated with `@McpPrompt` inside a class annotated with `@PromptService`.
+Prompts are reusable message templates that clients can invoke by name, optionally supplying arguments. A prompt is any Java method annotated with `@McpPrompt` on a Spring bean.
 
-## Defining a Prompt Service
+## Defining a Prompt
 
-Mark a class with `@PromptService` and register it as a Spring bean:
+Annotate methods with `@McpPrompt` and register the enclosing class as a Spring bean:
 
 ```java
 import com.callibrity.mocapi.api.prompts.McpPrompt;
-import com.callibrity.mocapi.api.prompts.PromptService;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.Role;
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-@PromptService
 public class SummarizationPrompts {
 
     @McpPrompt(name = "summarize", description = "Summarize the provided text")
@@ -32,7 +30,7 @@ public class SummarizationPrompts {
 }
 ```
 
-`@PromptService` is a marker -- it does not imply `@Component`. You must also annotate with `@Component`, `@Service`, or register via a `@Bean` method.
+Any bean-hood mechanism works — `@Component`, `@Service`, or a `@Bean` factory method. The framework scans every bean for `@McpPrompt` methods and registers one handler per annotated method.
 
 Each registered prompt (and any enum-typed argument's completion candidates) is logged at `INFO` level during startup. See [Startup Logging](architecture.md#startup-logging) for the full catalog.
 
@@ -217,7 +215,7 @@ public GetPromptResult analyzeDoc(String uri) {
 
 ## Prompt Templates
 
-For anything beyond trivial string concatenation, use a `PromptTemplate`. Mocapi ships two engine implementations; each provides a `PromptTemplateFactory` Spring bean that you inject into your `@PromptService`.
+For anything beyond trivial string concatenation, use a `PromptTemplate`. Mocapi ships two engine implementations; each provides a `PromptTemplateFactory` Spring bean that you inject into your prompt bean.
 
 ### The core interfaces
 
@@ -271,7 +269,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @Component
-@PromptService
 public class SummarizationPrompts {
 
     private final PromptTemplate summarize;

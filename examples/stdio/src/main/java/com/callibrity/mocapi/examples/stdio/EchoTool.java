@@ -16,11 +16,9 @@
 package com.callibrity.mocapi.examples.stdio;
 
 import com.callibrity.mocapi.api.tools.McpTool;
-import com.callibrity.mocapi.api.tools.ToolService;
 import org.springframework.stereotype.Component;
 
 @Component
-@ToolService
 public class EchoTool {
 
   @McpTool(name = "echo", description = "Echoes the input string back to the caller")

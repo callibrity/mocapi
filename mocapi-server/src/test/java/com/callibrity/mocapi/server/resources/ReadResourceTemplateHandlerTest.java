@@ -24,6 +24,7 @@ import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,16 @@ class ReadResourceTemplateHandlerTest {
   private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
   private final List<ParameterResolver<? super Map<String, String>>> templateResolvers =
       List.of(new StringMapArgResolver(DefaultConversionService.getSharedInstance()));
+
+  private List<ReadResourceTemplateHandler> createHandlers(Object target) {
+    return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpResourceTemplate.class)
+        .stream()
+        .map(
+            m ->
+                ReadResourceTemplateHandlers.build(
+                    target, m, invokerFactory, templateResolvers, List.of(), s -> s))
+        .toList();
+  }
 
   public static class Fixture {
     @McpResourceTemplate(uriTemplate = "test://items/{id}", name = "Item", mimeType = "text/plain")
@@ -80,10 +91,7 @@ class ReadResourceTemplateHandlerTest {
 
   @Test
   void discover_builds_handler_from_annotated_method() {
-    var handler =
-        ReadResourceTemplateHandlers.discover(
-                new Fixture(), invokerFactory, templateResolvers, List.of(), s -> s)
-            .getFirst();
+    var handler = createHandlers(new Fixture()).getFirst();
 
     assertThat(handler.uriTemplate()).isEqualTo("test://items/{id}");
     assertThat(handler.descriptor().name()).isEqualTo("Item");
@@ -94,10 +102,7 @@ class ReadResourceTemplateHandlerTest {
 
   @Test
   void read_invokes_underlying_method_with_converted_path_variables() {
-    var handler =
-        ReadResourceTemplateHandlers.discover(
-                new Fixture(), invokerFactory, templateResolvers, List.of(), s -> s)
-            .getFirst();
+    var handler = createHandlers(new Fixture()).getFirst();
 
     var result = handler.read(Map.of("id", "42"));
 
@@ -108,10 +113,7 @@ class ReadResourceTemplateHandlerTest {
 
   @Test
   void read_with_null_path_variables_invokes_with_empty_map() {
-    var handler =
-        ReadResourceTemplateHandlers.discover(
-                new StringPathFixture(), invokerFactory, templateResolvers, List.of(), s -> s)
-            .getFirst();
+    var handler = createHandlers(new StringPathFixture()).getFirst();
 
     var result = handler.read(null);
 
@@ -121,10 +123,7 @@ class ReadResourceTemplateHandlerTest {
 
   @Test
   void whole_vars_map_parameter_receives_all_path_variables_and_registers_no_completions() {
-    var handler =
-        ReadResourceTemplateHandlers.discover(
-                new WholeVarsMapFixture(), invokerFactory, templateResolvers, List.of(), s -> s)
-            .getFirst();
+    var handler = createHandlers(new WholeVarsMapFixture()).getFirst();
 
     var result = handler.read(Map.of("a", "1", "b", "2"));
 
@@ -135,10 +134,7 @@ class ReadResourceTemplateHandlerTest {
 
   @Test
   void name_and_description_default_when_annotation_values_are_blank() {
-    var handler =
-        ReadResourceTemplateHandlers.discover(
-                new DefaultedFixture(), invokerFactory, templateResolvers, List.of(), s -> s)
-            .getFirst();
+    var handler = createHandlers(new DefaultedFixture()).getFirst();
 
     assertThat(handler.descriptor().name()).isNotBlank();
     assertThat(handler.descriptor().description()).isEqualTo(handler.descriptor().name());
@@ -148,10 +144,7 @@ class ReadResourceTemplateHandlerTest {
   @Test
   void resource_template_method_with_non_result_return_type_is_rejected() {
     var target = new BadTemplate();
-    assertThatThrownBy(
-            () ->
-                ReadResourceTemplateHandlers.discover(
-                    target, invokerFactory, templateResolvers, List.of(), s -> s))
+    assertThatThrownBy(() -> createHandlers(target))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ReadResourceResult");
   }

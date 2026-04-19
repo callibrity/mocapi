@@ -5,15 +5,14 @@ Resources let MCP clients fetch content by URI. Mocapi supports two flavors:
 - **Fixed resources** -- a specific URI maps to a specific method (`@McpResource`).
 - **Templated resources** -- a URI template captures variables from the request and passes them to the method (`@McpResourceTemplate`).
 
-Both live in a class annotated with `@ResourceService`.
+Both live on a Spring bean — no class-level marker annotation needed.
 
-## Defining a Resource Service
+## Defining Resources
 
-Mark a class with `@ResourceService` and register it as a Spring bean. The same class can mix fixed and templated resource methods:
+Annotate methods with `@McpResource` and/or `@McpResourceTemplate` and register the enclosing class as a Spring bean. The same class can mix fixed and templated resource methods:
 
 ```java
 import com.callibrity.mocapi.api.resources.McpResource;
-import com.callibrity.mocapi.api.resources.ResourceService;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-@ResourceService
 public class DocumentResources {
 
     @McpResource(
@@ -50,7 +48,7 @@ public class DocumentResources {
 }
 ```
 
-`@ResourceService` is a marker -- it does not imply `@Component`. You must also annotate with `@Component`, `@Service`, or register via a `@Bean` method.
+Any bean-hood mechanism works — `@Component`, `@Service`, or a `@Bean` factory method. The framework scans every bean for `@McpResource` and `@McpResourceTemplate` methods and registers one handler per annotated method.
 
 Each registered resource, resource template, and enum-typed URI-variable's completion candidates is logged at `INFO` level during startup. See [Startup Logging](architecture.md#startup-logging) for the full catalog.
 

@@ -17,7 +17,6 @@ package com.callibrity.mocapi.examples.resources;
 
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
-import com.callibrity.mocapi.api.resources.ResourceService;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
 import java.util.List;
@@ -27,7 +26,6 @@ import java.util.List;
  * enum for the {@code stage} path variable so MCP clients asking {@code completion/complete} for
  * the variable get {@code [DEV, STAGE, PROD]}, prefix-filtered.
  */
-@ResourceService
 public class DocsResources {
 
   public enum Stage {

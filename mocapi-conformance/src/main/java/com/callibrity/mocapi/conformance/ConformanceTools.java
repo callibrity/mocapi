@@ -17,7 +17,6 @@ package com.callibrity.mocapi.conformance;
 
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
-import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.model.AudioContent;
 import com.callibrity.mocapi.model.BooleanSchema;
 import com.callibrity.mocapi.model.CallToolResult;
@@ -56,7 +55,6 @@ import org.springframework.stereotype.Component;
  *     Specification</a>
  */
 @Component
-@ToolService
 public class ConformanceTools {
 
   private static final String VALUE_1 = "value1";

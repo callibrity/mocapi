@@ -16,12 +16,10 @@
 package com.callibrity.mocapi.examples.tools;
 
 import com.callibrity.mocapi.api.tools.McpTool;
-import com.callibrity.mocapi.api.tools.ToolService;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.stereotype.Component;
 
 @Component
-@ToolService
 public class Rot13Tool {
 
   @McpTool(description = "A ROT-13 encoding utility.")

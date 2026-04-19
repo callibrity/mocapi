@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.examples.validation;
 
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
-import com.callibrity.mocapi.api.resources.ResourceService;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
 import jakarta.validation.constraints.Pattern;
@@ -48,7 +47,6 @@ import org.springframework.stereotype.Component;
  * }</pre>
  */
 @Component
-@ResourceService
 public class ConfigResources {
 
   @McpResourceTemplate(

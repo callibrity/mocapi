@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.api.tools.McpTool;
-import com.callibrity.mocapi.api.tools.ToolService;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerToolsAutoConfiguration;
@@ -81,7 +80,6 @@ class CallToolHandlersTest {
     }
   }
 
-  @ToolService
   static class SampleToolService {
 
     @McpTool(description = "Says hello")
@@ -90,7 +88,6 @@ class CallToolHandlersTest {
     }
   }
 
-  @ToolService
   static class PlaceholderToolService {
 
     @McpTool(name = "${tool.name}", title = "${tool.title}", description = "${tool.description}")
