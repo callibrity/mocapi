@@ -53,83 +53,46 @@ public interface McpToolContext {
   void log(LoggingLevel level, String logger, String message);
 
   /**
-   * Sends a DEBUG log notification to the client.
+   * Returns true if a message logged at {@code level} would be forwarded to the client. Default
+   * implementations (test doubles, programmatic callers) permit every level; the runtime
+   * implementation consults the bound session's log level.
    *
-   * @param logger the logger name
-   * @param message the log message
+   * @param level the candidate log level
+   * @return whether the level is currently enabled
    */
-  default void debug(String logger, String message) {
-    log(LoggingLevel.DEBUG, logger, message);
+  default boolean isEnabled(LoggingLevel level) {
+    return true;
   }
 
   /**
-   * Sends an INFO log notification to the client.
+   * Returns the name of the handler currently executing (the {@code @ToolMethod} name, or the
+   * prompt / resource name). Implementations that don't know (test doubles, programmatic callers)
+   * return {@code "mcp"}.
    *
-   * @param logger the logger name
-   * @param message the log message
+   * @return the current handler name
    */
-  default void info(String logger, String message) {
-    log(LoggingLevel.INFO, logger, message);
+  default String handlerName() {
+    return "mcp";
   }
 
   /**
-   * Sends a NOTICE log notification to the client.
+   * Returns an {@link McpLogger} that publishes messages under {@code name}.
    *
-   * @param logger the logger name
-   * @param message the log message
+   * @param name the logger name
+   * @return a logger bound to this context
    */
-  default void notice(String logger, String message) {
-    log(LoggingLevel.NOTICE, logger, message);
+  default McpLogger logger(String name) {
+    return new ContextMcpLogger(this, name);
   }
 
   /**
-   * Sends a WARNING log notification to the client.
+   * Returns an {@link McpLogger} named after the handler currently executing (see {@link
+   * #handlerName()}).
    *
-   * @param logger the logger name
-   * @param message the log message
+   * @return a logger named after the current handler
    */
-  default void warning(String logger, String message) {
-    log(LoggingLevel.WARNING, logger, message);
-  }
-
-  /**
-   * Sends an ERROR log notification to the client.
-   *
-   * @param logger the logger name
-   * @param message the log message
-   */
-  default void error(String logger, String message) {
-    log(LoggingLevel.ERROR, logger, message);
-  }
-
-  /**
-   * Sends a CRITICAL log notification to the client.
-   *
-   * @param logger the logger name
-   * @param message the log message
-   */
-  default void critical(String logger, String message) {
-    log(LoggingLevel.CRITICAL, logger, message);
-  }
-
-  /**
-   * Sends an ALERT log notification to the client.
-   *
-   * @param logger the logger name
-   * @param message the log message
-   */
-  default void alert(String logger, String message) {
-    log(LoggingLevel.ALERT, logger, message);
-  }
-
-  /**
-   * Sends an EMERGENCY log notification to the client.
-   *
-   * @param logger the logger name
-   * @param message the log message
-   */
-  default void emergency(String logger, String message) {
-    log(LoggingLevel.EMERGENCY, logger, message);
+  default McpLogger logger() {
+    return logger(handlerName());
   }
 
   /**

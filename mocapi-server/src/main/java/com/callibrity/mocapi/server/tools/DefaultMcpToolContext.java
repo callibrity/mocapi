@@ -45,13 +45,14 @@ public class DefaultMcpToolContext implements McpToolContext {
   private final ValueNode progressToken;
   private final McpResponseCorrelationService correlationService;
   private final McpToolsService toolsService;
+  private final String handlerName;
 
   public DefaultMcpToolContext(
       McpTransport transport,
       ObjectMapper objectMapper,
       ValueNode progressToken,
       McpResponseCorrelationService correlationService) {
-    this(transport, objectMapper, progressToken, correlationService, null);
+    this(transport, objectMapper, progressToken, correlationService, null, "mcp");
   }
 
   public DefaultMcpToolContext(
@@ -60,11 +61,35 @@ public class DefaultMcpToolContext implements McpToolContext {
       ValueNode progressToken,
       McpResponseCorrelationService correlationService,
       McpToolsService toolsService) {
+    this(transport, objectMapper, progressToken, correlationService, toolsService, "mcp");
+  }
+
+  public DefaultMcpToolContext(
+      McpTransport transport,
+      ObjectMapper objectMapper,
+      ValueNode progressToken,
+      McpResponseCorrelationService correlationService,
+      McpToolsService toolsService,
+      String handlerName) {
     this.transport = transport;
     this.objectMapper = objectMapper;
     this.progressToken = progressToken;
     this.correlationService = correlationService;
     this.toolsService = toolsService;
+    this.handlerName = handlerName;
+  }
+
+  @Override
+  public String handlerName() {
+    return handlerName;
+  }
+
+  @Override
+  public boolean isEnabled(LoggingLevel level) {
+    if (McpSession.CURRENT.isBound()) {
+      return level.ordinal() >= McpSession.CURRENT.get().logLevel().ordinal();
+    }
+    return true;
   }
 
   @Override

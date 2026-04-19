@@ -6,6 +6,31 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Breaking changes
+
+- `McpToolContext` no longer exposes the eight per-level log convenience
+  methods (`debug`, `info`, `notice`, `warning`, `error`, `critical`,
+  `alert`, `emergency`). Tools now obtain an SLF4J-shaped `McpLogger`
+  via `ctx.logger(name)` (or `ctx.logger()` for one named after the
+  current handler). The new logger supports `{}`-style parameterized
+  formatting through SLF4J's `MessageFormatter`.
+
+  Migration:
+
+  ```java
+  // Before
+  ctx.info("catalog", "took " + ms + "ms");
+
+  // After
+  ctx.logger("catalog").info("took {}ms", ms);
+  // or, to reuse the handler name:
+  ctx.logger().info("took {}ms", ms);
+  ```
+
+  The underlying `ctx.log(LoggingLevel, String, String)` method is
+  unchanged and remains available for callers that want to pick a
+  level dynamically.
+
 ## [0.10.0] - 2026-04-18
 
 ### Added

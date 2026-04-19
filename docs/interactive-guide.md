@@ -30,16 +30,26 @@ Both arguments are `long`. Progress notifications are sent as `notifications/pro
 
 ## Logging
 
-Send structured log messages to the client using convenience methods:
+Send structured log messages to the client via an SLF4J-shaped logger obtained
+from the context. Messages use `{}` placeholders for parameter interpolation.
 
 ```java
-ctx.info("my-tool", "Processing started");
-ctx.debug("my-tool", "Found 42 items");
-ctx.error("my-tool", "Failed to connect to API");
-ctx.warning("my-tool", "Rate limit approaching");
+var log = ctx.logger("my-tool");
+log.info("Processing started");
+log.debug("Found {} items", count);
+log.error("Failed to connect to {}: {}", host, cause.getMessage());
+log.warn("Rate limit approaching ({} req/s)", rate);
 ```
 
-Or use the general `log` method with an explicit level:
+`ctx.logger()` (no argument) returns a logger named after the currently
+executing handler — the tool's `@ToolMethod` name — so you rarely need to pass
+a name explicitly:
+
+```java
+ctx.logger().info("Processing started");
+```
+
+For rare cases you can still call the general `log` method with an explicit level:
 
 ```java
 import com.callibrity.mocapi.model.LoggingLevel;

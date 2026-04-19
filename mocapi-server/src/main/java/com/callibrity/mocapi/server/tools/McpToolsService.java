@@ -112,7 +112,8 @@ public class McpToolsService extends PaginatedService<McpTool, Tool> {
     McpTransport transport = McpTransport.CURRENT.isBound() ? McpTransport.CURRENT.get() : null;
     ValueNode progressToken = params.meta() != null ? params.meta().progressToken() : null;
     DefaultMcpToolContext ctx =
-        new DefaultMcpToolContext(transport, objectMapper, progressToken, correlationService, this);
+        new DefaultMcpToolContext(
+            transport, objectMapper, progressToken, correlationService, this, name);
 
     try {
       Object result = ScopedValue.where(McpToolContext.CURRENT, ctx).call(() -> tool.call(args));

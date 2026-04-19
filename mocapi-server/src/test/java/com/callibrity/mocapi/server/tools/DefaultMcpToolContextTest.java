@@ -38,15 +38,10 @@ import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -178,49 +173,59 @@ class DefaultMcpToolContextTest {
             transport);
   }
 
-  @ParameterizedTest
-  @MethodSource("loggingConvenienceMethods")
-  void convenience_log_method_delegates_to_log_with_correct_level(
-      LoggingLevel expectedLevel, BiConsumer<DefaultMcpToolContext, String[]> method) {
+  @Test
+  void handler_name_defaults_to_mcp() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
 
-    method.accept(ctx, new String[] {"test-logger", "test message"});
+    assertThat(ctx.handlerName()).isEqualTo("mcp");
+  }
+
+  @Test
+  void handler_name_from_constructor_is_returned() {
+    var transport = mock(McpTransport.class);
+    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService, null, "greet");
+
+    assertThat(ctx.handlerName()).isEqualTo("greet");
+  }
+
+  @Test
+  void logger_routes_through_log_with_handler_name() {
+    var transport = mock(McpTransport.class);
+    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService, null, "greet");
+
+    ctx.logger().info("hi {}", "there");
 
     var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
     verify(transport).send(captor.capture());
     var msg = (JsonRpcNotification) captor.getValue();
     assertThat(msg.method()).isEqualTo("notifications/message");
-    assertThat(msg.params().get("level").asString()).isEqualTo(expectedLevel.toJson());
-    assertThat(msg.params().get("logger").asString()).isEqualTo("test-logger");
-    assertThat(msg.params().get("data").asString()).isEqualTo("test message");
+    assertThat(msg.params().get("level").asString()).isEqualTo("info");
+    assertThat(msg.params().get("logger").asString()).isEqualTo("greet");
+    assertThat(msg.params().get("data").asString()).isEqualTo("hi there");
   }
 
-  static Stream<Arguments> loggingConvenienceMethods() {
-    return Stream.of(
-        Arguments.of(
-            LoggingLevel.DEBUG,
-            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.debug(a[0], a[1])),
-        Arguments.of(
-            LoggingLevel.INFO,
-            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.info(a[0], a[1])),
-        Arguments.of(
-            LoggingLevel.NOTICE,
-            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.notice(a[0], a[1])),
-        Arguments.of(
-            LoggingLevel.WARNING,
-            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.warning(a[0], a[1])),
-        Arguments.of(
-            LoggingLevel.ERROR,
-            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.error(a[0], a[1])),
-        Arguments.of(
-            LoggingLevel.CRITICAL,
-            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.critical(a[0], a[1])),
-        Arguments.of(
-            LoggingLevel.ALERT,
-            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.alert(a[0], a[1])),
-        Arguments.of(
-            LoggingLevel.EMERGENCY,
-            (BiConsumer<DefaultMcpToolContext, String[]>) (ctx, a) -> ctx.emergency(a[0], a[1])));
+  @Test
+  void is_enabled_below_session_level_returns_false() {
+    var transport = mock(McpTransport.class);
+    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
+    var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.WARNING);
+
+    ScopedValue.where(McpSession.CURRENT, session)
+        .run(
+            () -> {
+              assertThat(ctx.isEnabled(LoggingLevel.DEBUG)).isFalse();
+              assertThat(ctx.isEnabled(LoggingLevel.WARNING)).isTrue();
+              assertThat(ctx.isEnabled(LoggingLevel.ERROR)).isTrue();
+            });
+  }
+
+  @Test
+  void is_enabled_without_session_permits_everything() {
+    var transport = mock(McpTransport.class);
+    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
+
+    assertThat(ctx.isEnabled(LoggingLevel.DEBUG)).isTrue();
+    assertThat(ctx.isEnabled(LoggingLevel.EMERGENCY)).isTrue();
   }
 }

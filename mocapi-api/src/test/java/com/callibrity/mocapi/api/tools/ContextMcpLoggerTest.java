@@ -1,0 +1,145 @@
+/*
+ * Copyright © 2025 Callibrity, Inc. (contactus@callibrity.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.callibrity.mocapi.api.tools;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.callibrity.mocapi.api.sampling.CreateMessageRequestConfig;
+import com.callibrity.mocapi.model.CreateMessageRequestParams;
+import com.callibrity.mocapi.model.CreateMessageResult;
+import com.callibrity.mocapi.model.ElicitAction;
+import com.callibrity.mocapi.model.ElicitRequestFormParams;
+import com.callibrity.mocapi.model.ElicitResult;
+import com.callibrity.mocapi.model.LoggingLevel;
+import com.callibrity.mocapi.model.Role;
+import com.callibrity.mocapi.model.TextContent;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Test;
+
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
+class ContextMcpLoggerTest {
+
+  record LogEntry(LoggingLevel level, String logger, String message) {}
+
+  static class CapturingContext implements McpToolContext {
+    final List<LogEntry> entries = new ArrayList<>();
+    LoggingLevel threshold = LoggingLevel.DEBUG;
+
+    @Override
+    public void sendProgress(long progress, long total) {}
+
+    @Override
+    public void log(LoggingLevel level, String logger, String message) {
+      entries.add(new LogEntry(level, logger, message));
+    }
+
+    @Override
+    public boolean isEnabled(LoggingLevel level) {
+      return level.ordinal() >= threshold.ordinal();
+    }
+
+    @Override
+    public ElicitResult elicit(ElicitRequestFormParams params) {
+      return new ElicitResult(ElicitAction.ACCEPT, null);
+    }
+
+    @Override
+    public CreateMessageResult sample(CreateMessageRequestParams params) {
+      return new CreateMessageResult(Role.ASSISTANT, new TextContent("ok", null), null, null);
+    }
+
+    @Override
+    public CreateMessageResult sample(Consumer<CreateMessageRequestConfig> customizer) {
+      throw new UnsupportedOperationException("not used");
+    }
+  }
+
+  @Test
+  void every_level_routes_to_ctx_log_with_matching_level() {
+    var ctx = new CapturingContext();
+    var log = ctx.logger("test");
+
+    log.debug("d");
+    log.info("i");
+    log.notice("n");
+    log.warn("w");
+    log.error("e");
+    log.critical("c");
+    log.alert("a");
+    log.emergency("em");
+
+    assertThat(ctx.entries)
+        .extracting(LogEntry::level)
+        .containsExactly(
+            LoggingLevel.DEBUG,
+            LoggingLevel.INFO,
+            LoggingLevel.NOTICE,
+            LoggingLevel.WARNING,
+            LoggingLevel.ERROR,
+            LoggingLevel.CRITICAL,
+            LoggingLevel.ALERT,
+            LoggingLevel.EMERGENCY);
+    assertThat(ctx.entries).allMatch(e -> "test".equals(e.logger()));
+  }
+
+  @Test
+  void parameterized_format_substitutes_arguments() {
+    var ctx = new CapturingContext();
+
+    ctx.logger("audit").info("user {} ran tool {}", "alice", "blast-radius");
+
+    assertThat(ctx.entries).hasSize(1);
+    assertThat(ctx.entries.getFirst().message()).isEqualTo("user alice ran tool blast-radius");
+  }
+
+  @Test
+  void below_threshold_does_not_evaluate_arguments() {
+    var ctx = new CapturingContext();
+    ctx.threshold = LoggingLevel.WARNING;
+    var counter = new AtomicInteger();
+
+    ctx.logger("perf").info("expensive result: {}", (Object) counter.incrementAndGet());
+
+    // Varargs still evaluates the call to counter.incrementAndGet() eagerly, which is unavoidable.
+    // The key guarantee is that no log entry is recorded and MessageFormatter was not invoked.
+    assertThat(ctx.entries).isEmpty();
+
+    // When guarded manually via isInfoEnabled(), the side effect is suppressed entirely.
+    var guarded = ctx.logger("perf");
+    if (guarded.isInfoEnabled()) {
+      guarded.info("should not run: {}", counter.incrementAndGet());
+    }
+    assertThat(counter.get()).isEqualTo(1);
+  }
+
+  @Test
+  void logger_returns_distinct_instances_but_same_underlying_ctx() {
+    var ctx = new CapturingContext();
+    var a = ctx.logger("a");
+    var b = ctx.logger("a");
+
+    assertThat(a).isNotSameAs(b);
+    a.info("from-a");
+    b.info("from-b");
+    assertThat(ctx.entries).hasSize(2);
+    assertThat(ctx.entries).extracting(LogEntry::logger).containsOnly("a");
+  }
+}

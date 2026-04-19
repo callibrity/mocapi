@@ -24,14 +24,10 @@ import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.LoggingLevel;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpToolContextDefaultMethodsTest {
@@ -80,32 +76,28 @@ class McpToolContextDefaultMethodsTest {
   }
 
   @Nested
-  class Logging_convenience_methods {
-    @ParameterizedTest
-    @MethodSource("com.callibrity.mocapi.api.tools.McpToolContextDefaultMethodsTest#loggingMethods")
-    void convenience_method_delegates_to_log_with_correct_level(
-        LoggingLevel expectedLevel, LogInvoker invoker) {
+  class Logger_factory {
+    @Test
+    void logger_routes_parameterized_message_to_log() {
       var ctx = new CapturingContext();
 
-      invoker.invoke(ctx, "test-logger", "test message");
+      ctx.logger("catalog").info("processed {} in {}ms", 42, 17);
 
       assertThat(ctx.entries).hasSize(1);
-      assertThat(ctx.entries.getFirst().level()).isEqualTo(expectedLevel);
-      assertThat(ctx.entries.getFirst().logger()).isEqualTo("test-logger");
-      assertThat(ctx.entries.getFirst().message()).isEqualTo("test message");
+      assertThat(ctx.entries.getFirst().level()).isEqualTo(LoggingLevel.INFO);
+      assertThat(ctx.entries.getFirst().logger()).isEqualTo("catalog");
+      assertThat(ctx.entries.getFirst().message()).isEqualTo("processed 42 in 17ms");
     }
-  }
 
-  static Stream<Arguments> loggingMethods() {
-    return Stream.of(
-        Arguments.of(LoggingLevel.DEBUG, (LogInvoker) McpToolContext::debug),
-        Arguments.of(LoggingLevel.INFO, (LogInvoker) McpToolContext::info),
-        Arguments.of(LoggingLevel.NOTICE, (LogInvoker) McpToolContext::notice),
-        Arguments.of(LoggingLevel.WARNING, (LogInvoker) McpToolContext::warning),
-        Arguments.of(LoggingLevel.ERROR, (LogInvoker) McpToolContext::error),
-        Arguments.of(LoggingLevel.CRITICAL, (LogInvoker) McpToolContext::critical),
-        Arguments.of(LoggingLevel.ALERT, (LogInvoker) McpToolContext::alert),
-        Arguments.of(LoggingLevel.EMERGENCY, (LogInvoker) McpToolContext::emergency));
+    @Test
+    void default_handler_name_is_mcp() {
+      var ctx = new CapturingContext();
+
+      ctx.logger().warn("careful");
+
+      assertThat(ctx.entries).hasSize(1);
+      assertThat(ctx.entries.getFirst().logger()).isEqualTo("mcp");
+    }
   }
 
   @Nested
@@ -139,10 +131,5 @@ class McpToolContextDefaultMethodsTest {
 
       assertThat(ctx.lastElicitParams.requestedSchema().required()).containsExactly("required");
     }
-  }
-
-  @FunctionalInterface
-  interface LogInvoker {
-    void invoke(McpToolContext ctx, String logger, String message);
   }
 }

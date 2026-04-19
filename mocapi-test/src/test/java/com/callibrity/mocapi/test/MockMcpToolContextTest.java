@@ -78,17 +78,18 @@ class MockMcpToolContextTest {
     }
 
     @Test
-    void default_convenience_methods_all_route_through_log() {
+    void logger_routes_every_level_through_log() {
       var ctx = new MockMcpToolContext();
+      var log = ctx.logger("l");
 
-      ctx.debug("l", "d");
-      ctx.info("l", "i");
-      ctx.notice("l", "n");
-      ctx.warning("l", "w");
-      ctx.error("l", "e");
-      ctx.critical("l", "c");
-      ctx.alert("l", "a");
-      ctx.emergency("l", "em");
+      log.debug("d");
+      log.info("i");
+      log.notice("n");
+      log.warn("w");
+      log.error("e");
+      log.critical("c");
+      log.alert("a");
+      log.emergency("em");
 
       assertThat(ctx.logEntries())
           .extracting(MockMcpToolContext.LogEntry::level)
@@ -256,7 +257,7 @@ class MockMcpToolContextTest {
     void reset_clears_all_captures_and_responders() {
       var ctx = new MockMcpToolContext();
       ctx.sendProgress(1, 1);
-      ctx.info("l", "m");
+      ctx.logger("l").info("m");
       ctx.elicit(new ElicitRequestFormParams("form", "q", null, null, null));
       ctx.sample("s");
       ctx.elicitResponse(new ElicitResult(ElicitAction.DECLINE, null));
