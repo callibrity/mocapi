@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.server.tools;
 
+import com.callibrity.mocapi.api.sampling.CreateMessageRequestConfig;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.model.CreateMessageRequestParams;
 import com.callibrity.mocapi.model.CreateMessageResult;
@@ -26,8 +27,10 @@ import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.ProgressNotificationParams;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.sampling.CreateMessageRequestBuilder;
 import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
+import java.util.function.Consumer;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ValueNode;
 
@@ -41,16 +44,34 @@ public class DefaultMcpToolContext implements McpToolContext {
   private final ObjectMapper objectMapper;
   private final ValueNode progressToken;
   private final McpResponseCorrelationService correlationService;
+  private final McpToolsService toolsService;
 
   public DefaultMcpToolContext(
       McpTransport transport,
       ObjectMapper objectMapper,
       ValueNode progressToken,
       McpResponseCorrelationService correlationService) {
+    this(transport, objectMapper, progressToken, correlationService, null);
+  }
+
+  public DefaultMcpToolContext(
+      McpTransport transport,
+      ObjectMapper objectMapper,
+      ValueNode progressToken,
+      McpResponseCorrelationService correlationService,
+      McpToolsService toolsService) {
     this.transport = transport;
     this.objectMapper = objectMapper;
     this.progressToken = progressToken;
     this.correlationService = correlationService;
+    this.toolsService = toolsService;
+  }
+
+  @Override
+  public CreateMessageResult sample(Consumer<CreateMessageRequestConfig> customizer) {
+    var builder = new CreateMessageRequestBuilder(toolsService);
+    customizer.accept(builder);
+    return sample(builder.build());
   }
 
   @Override

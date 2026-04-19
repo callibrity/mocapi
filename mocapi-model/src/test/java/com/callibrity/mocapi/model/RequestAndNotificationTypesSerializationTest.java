@@ -198,7 +198,7 @@ class RequestAndNotificationTypesSerializationTest {
               List.of(new SamplingMessage(Role.USER, null)),
               null,
               "You are helpful",
-              "thisServer",
+              IncludeContext.THIS_SERVER,
               0.7,
               1024,
               null,

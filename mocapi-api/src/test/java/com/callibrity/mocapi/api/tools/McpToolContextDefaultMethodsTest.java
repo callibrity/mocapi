@@ -41,6 +41,7 @@ class McpToolContextDefaultMethodsTest {
   static class CapturingContext implements McpToolContext {
     final List<LogEntry> entries = new ArrayList<>();
     ElicitRequestFormParams lastElicitParams;
+    CreateMessageRequestParams lastSampleParams;
 
     @Override
     public void sendProgress(long progress, long total) {
@@ -60,7 +61,21 @@ class McpToolContextDefaultMethodsTest {
 
     @Override
     public CreateMessageResult sample(CreateMessageRequestParams params) {
-      throw new UnsupportedOperationException("Not under test");
+      lastSampleParams = params;
+      return new CreateMessageResult(
+          com.callibrity.mocapi.model.Role.ASSISTANT,
+          new com.callibrity.mocapi.model.TextContent("ok", null),
+          null,
+          null);
+    }
+
+    @Override
+    public CreateMessageResult sample(
+        java.util.function.Consumer<com.callibrity.mocapi.api.sampling.CreateMessageRequestConfig>
+            customizer) {
+      throw new UnsupportedOperationException(
+          "Fluent sample(Consumer) is exercised in the server module where the concrete "
+              + "CreateMessageRequestConfig implementation lives.");
     }
   }
 

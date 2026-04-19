@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.api.tools;
 
 import com.callibrity.mocapi.api.elicitation.RequestedSchemaBuilder;
+import com.callibrity.mocapi.api.sampling.CreateMessageRequestConfig;
 import com.callibrity.mocapi.model.CreateMessageRequestParams;
 import com.callibrity.mocapi.model.CreateMessageResult;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
@@ -168,4 +169,43 @@ public interface McpToolContext {
    * @return the client's sampling result
    */
   CreateMessageResult sample(CreateMessageRequestParams params);
+
+  /**
+   * Shortcut for a simple one-shot sampling request with a single user message. Uses the default
+   * {@code maxTokens} ({@value CreateMessageRequestConfig#DEFAULT_MAX_TOKENS}) and no other
+   * overrides — the client picks the model, temperature, etc.
+   *
+   * <pre>{@code
+   * CreateMessageResult result = ctx.sample("Summarize the above in one sentence.");
+   * }</pre>
+   *
+   * @param userMessage the user-role text prompt
+   * @return the client's sampling result
+   */
+  default CreateMessageResult sample(String userMessage) {
+    return sample(b -> b.userMessage(userMessage));
+  }
+
+  /**
+   * Sends a sampling request built via a fluent {@link CreateMessageRequestConfig}. Only {@code
+   * messages} and {@code maxTokens} are required per the MCP spec; {@code maxTokens} defaults to
+   * {@value CreateMessageRequestConfig#DEFAULT_MAX_TOKENS}. Example:
+   *
+   * <pre>{@code
+   * CreateMessageResult result = ctx.sample(b -> b
+   *     .userMessage("Explain this code")
+   *     .systemPrompt("You are a code reviewer.")
+   *     .maxTokens(500)
+   *     .intelligencePriority(0.8)
+   *     .preferModel("claude-3-sonnet"));
+   * }</pre>
+   *
+   * <p>Implementations provide the concrete builder (the runtime's server-aware one wires up the
+   * tool registry so {@link CreateMessageRequestConfig#tool(String)} and {@link
+   * CreateMessageRequestConfig#allServerTools()} work).
+   *
+   * @param customizer configures the request via {@link CreateMessageRequestConfig}
+   * @return the client's sampling result
+   */
+  CreateMessageResult sample(Consumer<CreateMessageRequestConfig> customizer);
 }

@@ -86,6 +86,16 @@ public class McpToolsService extends PaginatedService<McpTool, Tool> {
     return paginate(params, ListToolsResult::new);
   }
 
+  /** Returns the full {@link Tool} descriptor for a registered tool, or {@code null} if none. */
+  public Tool findToolDescriptor(String name) {
+    return findByName(name).map(McpTool::descriptor).orElse(null);
+  }
+
+  /** Returns every registered tool descriptor, sorted by name. */
+  public List<Tool> allToolDescriptors() {
+    return allDescriptors();
+  }
+
   @JsonRpcMethod(TOOLS_CALL)
   public CallToolResult callTool(@JsonRpcParams CallToolRequestParams params) {
     String name = params.name();
@@ -102,7 +112,7 @@ public class McpToolsService extends PaginatedService<McpTool, Tool> {
     McpTransport transport = McpTransport.CURRENT.isBound() ? McpTransport.CURRENT.get() : null;
     ValueNode progressToken = params.meta() != null ? params.meta().progressToken() : null;
     DefaultMcpToolContext ctx =
-        new DefaultMcpToolContext(transport, objectMapper, progressToken, correlationService);
+        new DefaultMcpToolContext(transport, objectMapper, progressToken, correlationService, this);
 
     try {
       Object result = ScopedValue.where(McpToolContext.CURRENT, ctx).call(() -> tool.call(args));

@@ -23,6 +23,7 @@ import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -63,6 +64,16 @@ public abstract class PaginatedService<T, D> {
                 new JsonRpcException(
                     JsonRpcProtocol.INVALID_PARAMS,
                     String.format("%s %s not found.", entityName, name)));
+  }
+
+  /** Non-throwing variant of {@link #lookup(String)}. Returns empty if no item with that name. */
+  public Optional<T> findByName(String name) {
+    return ofNullable(items.get(name));
+  }
+
+  /** Returns all registered descriptors, sorted by the configured comparator. */
+  public List<D> allDescriptors() {
+    return sortedDescriptors;
   }
 
   protected <R> R paginate(
