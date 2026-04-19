@@ -26,6 +26,9 @@ import com.callibrity.mocapi.model.PromptArgument;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
+import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.guards.Guard;
+import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +63,7 @@ class McpPromptsServiceTest {
               description,
               List.of(new PromptMessage(Role.USER, new TextContent(name + ": " + arg1, null))));
         },
+        List.of(),
         List.of());
   }
 
@@ -165,6 +169,61 @@ class McpPromptsServiceTest {
     assertThatThrownBy(() -> service.listPrompts(params))
         .isInstanceOf(JsonRpcException.class)
         .hasMessageContaining("Invalid cursor");
+  }
+
+  private static GetPromptHandler guardedHandler(String name, Guard guard) {
+    Prompt descriptor = new Prompt(name, name, name + " desc", null, List.of());
+    return new GetPromptHandler(
+        descriptor,
+        null,
+        null,
+        args -> new GetPromptResult(name, List.of()),
+        List.of(),
+        List.of(guard));
+  }
+
+  @Test
+  void denied_get_throws_json_rpc_forbidden_with_reason() {
+    var guarded =
+        new McpPromptsService(
+            List.of(guardedHandler("blocked", () -> new GuardDecision.Deny("nope"))));
+    assertThatThrownBy(
+            () -> guarded.getPrompt(new GetPromptRequestParams("blocked", Map.of(), null)))
+        .isInstanceOf(JsonRpcException.class)
+        .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
+        .hasMessageContaining("Forbidden")
+        .hasMessageContaining("nope");
+  }
+
+  @Test
+  void denied_prompt_is_absent_from_list() {
+    var guarded =
+        new McpPromptsService(
+            List.of(
+                guardedHandler("visible", () -> new GuardDecision.Allow()),
+                guardedHandler("hidden", () -> new GuardDecision.Deny("no"))));
+    var names = guarded.listPrompts(null).prompts().stream().map(Prompt::name).toList();
+    assertThat(names).contains("visible").doesNotContain("hidden");
+  }
+
+  @Test
+  void mixed_guards_with_one_deny_hides_and_rejects() {
+    var handler = guardedHandler("mixed", () -> new GuardDecision.Deny("x"));
+    // Add a second guard that allows — spec says any deny wins
+    var withExtra =
+        new GetPromptHandler(
+            handler.descriptor(),
+            null,
+            null,
+            args -> new GetPromptResult("mixed", List.of()),
+            List.of(),
+            List.of(() -> new GuardDecision.Allow(), () -> new GuardDecision.Deny("blocked")));
+    var guarded = new McpPromptsService(List.of(withExtra));
+
+    assertThat(guarded.listPrompts(null).prompts()).isEmpty();
+    assertThatThrownBy(() -> guarded.getPrompt(new GetPromptRequestParams("mixed", Map.of(), null)))
+        .isInstanceOf(JsonRpcException.class)
+        .hasMessageContaining("blocked");
   }
 
   @Test

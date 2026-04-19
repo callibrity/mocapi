@@ -240,6 +240,6 @@ class ToolsCallComplianceTest {
   private static CallToolHandler makeTool(
       String name, ObjectNode inputSchema, java.util.function.Function<JsonNode, Object> fn) {
     var descriptor = new Tool(name, null, name, inputSchema, null);
-    return new CallToolHandler(descriptor, null, null, fn::apply);
+    return new CallToolHandler(descriptor, null, null, fn::apply, java.util.List.of());
   }
 }

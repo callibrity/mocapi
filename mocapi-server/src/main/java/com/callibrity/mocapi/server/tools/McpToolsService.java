@@ -25,14 +25,19 @@ import com.callibrity.mocapi.model.ListToolsResult;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.guards.GuardDecision;
+import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -74,6 +79,11 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
     this.correlationService = correlationService;
   }
 
+  @Override
+  protected Predicate<CallToolHandler> visibilityFilter() {
+    return handler -> Guards.allows(handler.guards());
+  }
+
   @JsonRpcMethod(TOOLS_LIST)
   public ListToolsResult listTools(@JsonRpcParams PaginatedRequestParams params) {
     return paginate(params, ListToolsResult::new);
@@ -96,6 +106,10 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
     JsonNode args =
         params.arguments() != null ? params.arguments() : objectMapper.createObjectNode();
     CallToolHandler handler = lookup(name);
+    GuardDecision decision = Guards.evaluate(handler.guards());
+    if (decision instanceof GuardDecision.Deny deny) {
+      throw new JsonRpcException(JsonRpcErrorCodes.FORBIDDEN, "Forbidden: " + deny.reason());
+    }
     return invokeTool(name, handler, args, params);
   }
 

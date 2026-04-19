@@ -26,11 +26,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
  * Base class for MCP services that manage a named collection with cursor-based pagination and
- * lookup-by-name.
+ * lookup-by-name. Subclasses may supply a {@link Predicate} visibility filter (e.g. per-request
+ * guard evaluation) that is applied to list and pagination operations; lookup is unfiltered and
+ * always returns the handler if present by name.
  *
  * @param <T> the item type (e.g., CallToolHandler, GetPromptHandler)
  * @param <D> the descriptor type (e.g., Tool, Prompt)
@@ -40,7 +43,8 @@ public abstract class PaginatedService<T, D> {
   public static final int DEFAULT_PAGE_SIZE = 50;
 
   private final Map<String, T> items;
-  private final List<D> sortedDescriptors;
+  private final List<T> sortedItems;
+  private final Function<T, D> descriptorExtractor;
   private final int pageSize;
   private final String entityName;
 
@@ -52,7 +56,9 @@ public abstract class PaginatedService<T, D> {
       String entityName,
       int pageSize) {
     this.items = allItems.stream().collect(Collectors.toMap(keyExtractor, t -> t));
-    this.sortedDescriptors = allItems.stream().map(descriptorExtractor).sorted(comparator).toList();
+    this.sortedItems =
+        allItems.stream().sorted(Comparator.comparing(descriptorExtractor, comparator)).toList();
+    this.descriptorExtractor = descriptorExtractor;
     this.entityName = entityName;
     this.pageSize = pageSize;
   }
@@ -71,14 +77,23 @@ public abstract class PaginatedService<T, D> {
     return ofNullable(items.get(name));
   }
 
-  /** Returns all registered descriptors, sorted by the configured comparator. */
+  /**
+   * Subclasses override to restrict visibility (e.g., evaluate guards against the current caller).
+   * Default: everything is visible.
+   */
+  protected Predicate<T> visibilityFilter() {
+    return item -> true;
+  }
+
+  /** Returns visible descriptors in the configured sort order. */
   public List<D> allDescriptors() {
-    return sortedDescriptors;
+    Predicate<T> filter = visibilityFilter();
+    return sortedItems.stream().filter(filter).map(descriptorExtractor).toList();
   }
 
   protected <R> R paginate(
       PaginatedRequestParams params, BiFunction<List<D>, String, R> resultCtor) {
-    return Cursors.paginate(sortedDescriptors, params, pageSize, resultCtor);
+    return Cursors.paginate(allDescriptors(), params, pageSize, resultCtor);
   }
 
   public boolean isEmpty() {

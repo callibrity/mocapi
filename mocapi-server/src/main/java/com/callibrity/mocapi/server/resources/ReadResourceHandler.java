@@ -17,7 +17,9 @@ package com.callibrity.mocapi.server.resources;
 
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
+import com.callibrity.mocapi.server.guards.Guard;
 import java.lang.reflect.Method;
+import java.util.List;
 import org.jwcarman.methodical.MethodInvoker;
 
 /**
@@ -31,13 +33,23 @@ public final class ReadResourceHandler {
   private final Method method;
   private final Object bean;
   private final MethodInvoker<Object> invoker;
+  private final List<Guard> guards;
 
   public ReadResourceHandler(
-      Resource descriptor, Method method, Object bean, MethodInvoker<Object> invoker) {
+      Resource descriptor,
+      Method method,
+      Object bean,
+      MethodInvoker<Object> invoker,
+      List<Guard> guards) {
     this.descriptor = descriptor;
     this.method = method;
     this.bean = bean;
     this.invoker = invoker;
+    this.guards = List.copyOf(guards);
+  }
+
+  public List<Guard> guards() {
+    return guards;
   }
 
   public Resource descriptor() {

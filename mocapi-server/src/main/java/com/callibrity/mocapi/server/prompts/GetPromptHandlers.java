@@ -25,6 +25,7 @@ import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptArgument;
 import com.callibrity.mocapi.server.completions.CompletionCandidate;
 import com.callibrity.mocapi.server.completions.CompletionCandidates;
+import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.tools.schema.Parameters;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -72,7 +73,8 @@ public final class GetPromptHandlers {
     Prompt descriptor = new Prompt(name, title, description, null, argumentsOf(method));
     MutableConfig config = new MutableConfig(descriptor, method, bean, interceptors);
     customizers.forEach(c -> c.customize(config));
-    List<MethodInterceptor<? super Map<String, String>>> chain = config.freeze();
+    List<MethodInterceptor<? super Map<String, String>>> chain = config.freezeInterceptors();
+    List<Guard> guards = config.freezeGuards();
     MethodInvoker<Map<String, String>> invoker =
         invokerFactory.create(
             method,
@@ -82,7 +84,7 @@ public final class GetPromptHandlers {
               resolvers.forEach(cfg::resolver);
               chain.forEach(cfg::interceptor);
             });
-    return new GetPromptHandler(descriptor, method, bean, invoker, candidatesOf(method));
+    return new GetPromptHandler(descriptor, method, bean, invoker, candidatesOf(method), guards);
   }
 
   private static final class MutableConfig implements GetPromptHandlerConfig {
@@ -90,6 +92,7 @@ public final class GetPromptHandlers {
     private final Method method;
     private final Object bean;
     private final List<MethodInterceptor<? super Map<String, String>>> interceptors;
+    private final List<Guard> guards = new ArrayList<>();
 
     MutableConfig(
         Prompt descriptor,
@@ -124,8 +127,18 @@ public final class GetPromptHandlers {
       return this;
     }
 
-    List<MethodInterceptor<? super Map<String, String>>> freeze() {
+    @Override
+    public GetPromptHandlerConfig guard(Guard guard) {
+      guards.add(guard);
+      return this;
+    }
+
+    List<MethodInterceptor<? super Map<String, String>>> freezeInterceptors() {
       return List.copyOf(interceptors);
+    }
+
+    List<Guard> freezeGuards() {
+      return List.copyOf(guards);
     }
   }
 

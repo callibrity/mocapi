@@ -38,6 +38,19 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- **Guard SPI** (`com.callibrity.mocapi.server.guards`). Plugins attach
+  per-handler `Guard`s via the existing `*HandlerCustomizer` beans; a
+  guard's `check()` returns `Allow` or `Deny(reason)`. Evaluation is AND
+  with short-circuit on first `Deny`. A denied guard both hides the
+  handler from list operations (`tools/list`, `prompts/list`,
+  `resources/list`, `resources/templates/list`) and rejects invocation
+  with JSON-RPC code `-32003` (`JsonRpcErrorCodes.FORBIDDEN`) and message
+  `"Forbidden: <reason>"`. The SPI carries no framework coupling — guard
+  implementations reach into their own auth model (Spring Security,
+  `McpSession.CURRENT`, a plain `ScopedValue`, …). See
+  [docs/guards.md](docs/guards.md); the reference Spring Security
+  implementation ships separately as `mocapi-spring-security-guards`.
+
 - New module `mocapi-actuator-spring-boot-starter`: a Spring Boot
   Actuator endpoint at `/actuator/mcp` that returns a read-only
   inventory of every MCP tool / prompt / resource / resource-template

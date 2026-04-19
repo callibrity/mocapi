@@ -63,6 +63,7 @@ class PromptsListComplianceTest {
                   new PromptMessage(
                       Role.USER, new TextContent("Hello " + typed.get("name"), null))));
         },
+        List.of(),
         List.of());
   }
 

@@ -23,6 +23,9 @@ import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplate;
+import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.guards.GuardDecision;
+import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -45,8 +48,8 @@ public class McpResourcesService {
 
   private final Map<String, ReadResourceHandler> resources;
   private final Map<UriTemplate, ReadResourceTemplateHandler> templates;
-  private final List<Resource> sortedResourceDescriptors;
-  private final List<ResourceTemplate> sortedTemplateDescriptors;
+  private final List<ReadResourceHandler> sortedResources;
+  private final List<ReadResourceTemplateHandler> sortedTemplates;
   private final int pageSize;
 
   public McpResourcesService(
@@ -68,11 +71,8 @@ public class McpResourcesService {
                       throw new IllegalArgumentException("Duplicate resource URI: " + a.uri());
                     },
                     LinkedHashMap::new));
-    this.sortedResourceDescriptors =
-        handlers.stream()
-            .map(ReadResourceHandler::descriptor)
-            .sorted(Comparator.comparing(Resource::uri))
-            .toList();
+    this.sortedResources =
+        handlers.stream().sorted(Comparator.comparing(ReadResourceHandler::uri)).toList();
 
     var templatesByString =
         templateHandlers.stream()
@@ -88,24 +88,23 @@ public class McpResourcesService {
     this.templates = new LinkedHashMap<>();
     templatesByString.forEach(
         (uriTemplate, handler) -> this.templates.put(new UriTemplate(uriTemplate), handler));
-    this.sortedTemplateDescriptors =
+    this.sortedTemplates =
         templateHandlers.stream()
-            .map(ReadResourceTemplateHandler::descriptor)
-            .sorted(Comparator.comparing(ResourceTemplate::uriTemplate))
+            .sorted(Comparator.comparing(ReadResourceTemplateHandler::uriTemplate))
             .toList();
     this.pageSize = pageSize;
   }
 
   @JsonRpcMethod(McpMethods.RESOURCES_LIST)
   public ListResourcesResult listResources(@JsonRpcParams PaginatedRequestParams params) {
-    return Cursors.paginate(sortedResourceDescriptors, params, pageSize, ListResourcesResult::new);
+    return Cursors.paginate(allResourceDescriptors(), params, pageSize, ListResourcesResult::new);
   }
 
   @JsonRpcMethod(McpMethods.RESOURCES_TEMPLATES_LIST)
   public ListResourceTemplatesResult listResourceTemplates(
       @JsonRpcParams PaginatedRequestParams params) {
     return Cursors.paginate(
-        sortedTemplateDescriptors, params, pageSize, ListResourceTemplatesResult::new);
+        allResourceTemplateDescriptors(), params, pageSize, ListResourceTemplatesResult::new);
   }
 
   @JsonRpcMethod(McpMethods.RESOURCES_READ)
@@ -115,12 +114,21 @@ public class McpResourcesService {
 
     ReadResourceHandler exact = resources.get(uri);
     if (exact != null) {
+      GuardDecision decision = Guards.evaluate(exact.guards());
+      if (decision instanceof GuardDecision.Deny deny) {
+        throw new JsonRpcException(JsonRpcErrorCodes.FORBIDDEN, "Forbidden: " + deny.reason());
+      }
       return exact.read();
     }
 
     for (var entry : templates.entrySet()) {
       if (entry.getKey().matches(uri)) {
-        return entry.getValue().read(entry.getKey().match(uri));
+        ReadResourceTemplateHandler handler = entry.getValue();
+        GuardDecision decision = Guards.evaluate(handler.guards());
+        if (decision instanceof GuardDecision.Deny deny) {
+          throw new JsonRpcException(JsonRpcErrorCodes.FORBIDDEN, "Forbidden: " + deny.reason());
+        }
+        return handler.read(entry.getKey().match(uri));
       }
     }
 
@@ -132,13 +140,25 @@ public class McpResourcesService {
     return resources.isEmpty() && templates.isEmpty();
   }
 
-  /** Returns every registered resource descriptor, sorted by URI. */
+  /**
+   * Returns visible resource descriptors in sorted URI order. Handlers whose guards deny for the
+   * current caller are filtered out.
+   */
   public List<Resource> allResourceDescriptors() {
-    return sortedResourceDescriptors;
+    return sortedResources.stream()
+        .filter(h -> Guards.allows(h.guards()))
+        .map(ReadResourceHandler::descriptor)
+        .toList();
   }
 
-  /** Returns every registered resource-template descriptor, sorted by URI template. */
+  /**
+   * Returns visible resource-template descriptors in sorted URI-template order. Handlers whose
+   * guards deny for the current caller are filtered out.
+   */
   public List<ResourceTemplate> allResourceTemplateDescriptors() {
-    return sortedTemplateDescriptors;
+    return sortedTemplates.stream()
+        .filter(h -> Guards.allows(h.guards()))
+        .map(ReadResourceTemplateHandler::descriptor)
+        .toList();
   }
 }

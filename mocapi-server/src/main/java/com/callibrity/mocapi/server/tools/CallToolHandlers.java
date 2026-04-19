@@ -23,6 +23,7 @@ import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
@@ -78,7 +79,8 @@ public final class CallToolHandlers {
     Schema compiledInputSchema = compile(inputSchema);
     MutableConfig config = new MutableConfig(descriptor, method, bean, interceptors);
     customizers.forEach(c -> c.customize(config));
-    List<MethodInterceptor<? super JsonNode>> chain = config.freeze();
+    List<MethodInterceptor<? super JsonNode>> chain = config.freezeInterceptors();
+    List<Guard> guards = config.freezeGuards();
     MethodInvoker<JsonNode> invoker =
         invokerFactory.create(
             method,
@@ -89,7 +91,7 @@ public final class CallToolHandlers {
               chain.forEach(cfg::interceptor);
               cfg.interceptor(new InputSchemaValidatingInterceptor(compiledInputSchema));
             });
-    return new CallToolHandler(descriptor, method, bean, invoker);
+    return new CallToolHandler(descriptor, method, bean, invoker, guards);
   }
 
   private static final class MutableConfig implements CallToolHandlerConfig {
@@ -97,6 +99,7 @@ public final class CallToolHandlers {
     private final Method method;
     private final Object bean;
     private final List<MethodInterceptor<? super JsonNode>> interceptors;
+    private final List<Guard> guards = new ArrayList<>();
 
     MutableConfig(
         Tool descriptor,
@@ -130,8 +133,18 @@ public final class CallToolHandlers {
       return this;
     }
 
-    List<MethodInterceptor<? super JsonNode>> freeze() {
+    @Override
+    public CallToolHandlerConfig guard(Guard guard) {
+      guards.add(guard);
+      return this;
+    }
+
+    List<MethodInterceptor<? super JsonNode>> freezeInterceptors() {
       return List.copyOf(interceptors);
+    }
+
+    List<Guard> freezeGuards() {
+      return List.copyOf(guards);
     }
   }
 

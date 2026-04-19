@@ -74,7 +74,8 @@ class ToolsCallInteractiveComplianceTest {
               ctx.log(LoggingLevel.INFO, "interactive", "Processing");
               ctx.sendProgress(2, 2);
               return Map.of("done", true);
-            });
+            },
+            List.of());
 
     var contextCheckDescriptor =
         new Tool("context-check", null, "Checks context", inputSchema, null);
@@ -83,7 +84,8 @@ class ToolsCallInteractiveComplianceTest {
             contextCheckDescriptor,
             null,
             null,
-            arguments -> Map.of("hasContext", McpToolContext.CURRENT.isBound()));
+            arguments -> Map.of("hasContext", McpToolContext.CURRENT.isBound()),
+            List.of());
 
     sessionStore = inMemorySessionStore();
     var toolsService =

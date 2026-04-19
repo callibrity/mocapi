@@ -58,8 +58,8 @@ class ResourcesReadComplianceTest {
             ignored ->
                 new ReadResourceResult(
                     List.of(
-                        new TextResourceContents(
-                            "file:///readme.md", "text/markdown", "# Hello"))));
+                        new TextResourceContents("file:///readme.md", "text/markdown", "# Hello"))),
+            List.of());
 
     ReadResourceHandler blobResource =
         new ReadResourceHandler(
@@ -71,7 +71,8 @@ class ResourcesReadComplianceTest {
                   Base64.getEncoder().encodeToString(new byte[] {(byte) 0x89, 0x50, 0x4E, 0x47});
               return new ReadResourceResult(
                   List.of(new BlobResourceContents("file:///image.png", "image/png", data)));
-            });
+            },
+            List.of());
 
     var service = new McpResourcesService(List.of(textResource, blobResource), List.of());
 

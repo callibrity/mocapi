@@ -71,6 +71,7 @@ class PromptsGetComplianceTest {
                   "Greeting",
                   List.of(new PromptMessage(Role.USER, new TextContent("Hello " + name, null))));
             },
+            List.of(),
             List.of());
 
     var service = new McpPromptsService(List.of(greetHandler));

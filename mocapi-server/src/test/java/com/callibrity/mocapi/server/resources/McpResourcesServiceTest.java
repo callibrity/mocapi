@@ -24,6 +24,9 @@ import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.TextResourceContents;
+import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.guards.Guard;
+import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -46,7 +49,8 @@ class McpResourcesServiceTest {
         null,
         ignored ->
             new ReadResourceResult(
-                List.of(new TextResourceContents(uri, mimeType, "content of " + uri))));
+                List.of(new TextResourceContents(uri, mimeType, "content of " + uri))),
+        List.of());
   }
 
   private static ReadResourceTemplateHandler templateHandler(
@@ -59,6 +63,7 @@ class McpResourcesServiceTest {
         vars ->
             new ReadResourceResult(
                 List.of(new TextResourceContents(uriTemplate, mimeType, "template " + vars))),
+        List.of(),
         List.of());
   }
 
@@ -243,6 +248,73 @@ class McpResourcesServiceTest {
 
     assertThat(result.resources()).isEmpty();
     assertThat(result.nextCursor()).isNull();
+  }
+
+  private static ReadResourceHandler guardedHandler(String uri, Guard guard) {
+    return new ReadResourceHandler(
+        new Resource(uri, "g", "g", "text/plain"),
+        null,
+        null,
+        ignored -> new ReadResourceResult(List.of(new TextResourceContents(uri, "text/plain", ""))),
+        List.of(guard));
+  }
+
+  private static ReadResourceTemplateHandler guardedTemplateHandler(
+      String uriTemplate, Guard guard) {
+    return new ReadResourceTemplateHandler(
+        new ResourceTemplate(uriTemplate, "g", "g", "text/plain"),
+        null,
+        null,
+        vars ->
+            new ReadResourceResult(
+                List.of(new TextResourceContents(uriTemplate, "text/plain", ""))),
+        List.of(),
+        List.of(guard));
+  }
+
+  @Test
+  void denied_read_throws_json_rpc_forbidden_with_reason() {
+    var uri = "file:///secret";
+    var svc =
+        new McpResourcesService(
+            List.of(guardedHandler(uri, () -> new GuardDecision.Deny("no-access"))), List.of());
+    assertThatThrownBy(() -> svc.readResource(new ResourceRequestParams(uri, null)))
+        .isInstanceOf(JsonRpcException.class)
+        .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
+        .hasMessageContaining("Forbidden")
+        .hasMessageContaining("no-access");
+  }
+
+  @Test
+  void denied_template_read_throws_forbidden() {
+    var svc =
+        new McpResourcesService(
+            List.of(),
+            List.of(
+                guardedTemplateHandler("file:///{name}", () -> new GuardDecision.Deny("blocked"))));
+    assertThatThrownBy(() -> svc.readResource(new ResourceRequestParams("file:///anything", null)))
+        .isInstanceOf(JsonRpcException.class)
+        .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
+        .hasMessageContaining("blocked");
+  }
+
+  @Test
+  void denied_resource_and_template_are_absent_from_list() {
+    var svc =
+        new McpResourcesService(
+            List.of(
+                guardedHandler("file:///visible", () -> new GuardDecision.Allow()),
+                guardedHandler("file:///hidden", () -> new GuardDecision.Deny("x"))),
+            List.of(
+                guardedTemplateHandler("file:///tpl/{a}", () -> new GuardDecision.Allow()),
+                guardedTemplateHandler("file:///tpl2/{a}", () -> new GuardDecision.Deny("y"))));
+    var resourceUris = svc.listResources(null).resources().stream().map(Resource::uri).toList();
+    assertThat(resourceUris).contains("file:///visible").doesNotContain("file:///hidden");
+    var templateUris =
+        svc.listResourceTemplates(null).resourceTemplates().stream()
+            .map(ResourceTemplate::uriTemplate)
+            .toList();
+    assertThat(templateUris).contains("file:///tpl/{a}").doesNotContain("file:///tpl2/{a}");
   }
 
   @Test

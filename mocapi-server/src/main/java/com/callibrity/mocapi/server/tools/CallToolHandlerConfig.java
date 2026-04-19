@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.tools;
 
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.server.guards.Guard;
 import java.lang.reflect.Method;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
 import tools.jackson.databind.JsonNode;
@@ -23,7 +24,8 @@ import tools.jackson.databind.JsonNode;
 /**
  * Per-handler configuration view passed to each {@link CallToolHandlerCustomizer} while a {@link
  * CallToolHandler} is being built. Customizers may inspect the tool descriptor, target method, and
- * target bean and append {@link MethodInterceptor}s to the handler's invocation chain.
+ * target bean, append {@link MethodInterceptor}s to the handler's invocation chain, and attach
+ * {@link Guard}s that gate visibility and invocation.
  */
 public interface CallToolHandlerConfig {
 
@@ -34,4 +36,6 @@ public interface CallToolHandlerConfig {
   Object bean();
 
   CallToolHandlerConfig interceptor(MethodInterceptor<? super JsonNode> interceptor);
+
+  CallToolHandlerConfig guard(Guard guard);
 }

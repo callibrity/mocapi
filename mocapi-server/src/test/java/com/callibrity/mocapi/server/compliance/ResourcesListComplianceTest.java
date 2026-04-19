@@ -58,7 +58,8 @@ class ResourcesListComplianceTest {
             ignored ->
                 new ReadResourceResult(
                     List.of(
-                        new TextResourceContents("file:///readme.md", "text/markdown", "# Hi"))));
+                        new TextResourceContents("file:///readme.md", "text/markdown", "# Hi"))),
+            List.of());
 
     ReadResourceHandler configResource =
         new ReadResourceHandler(
@@ -68,8 +69,8 @@ class ResourcesListComplianceTest {
             ignored ->
                 new ReadResourceResult(
                     List.of(
-                        new TextResourceContents(
-                            "file:///config.json", "application/json", "{}"))));
+                        new TextResourceContents("file:///config.json", "application/json", "{}"))),
+            List.of());
 
     ReadResourceTemplateHandler userTemplate =
         new ReadResourceTemplateHandler(
@@ -84,6 +85,7 @@ class ResourcesListComplianceTest {
                             "users://" + pathVariables.get("userId") + "/profile",
                             "application/json",
                             "{}"))),
+            List.of(),
             List.of());
 
     var resourcesService =
@@ -176,7 +178,7 @@ class ResourcesListComplianceTest {
         null,
         null,
         ignored ->
-            new ReadResourceResult(
-                List.of(new TextResourceContents(uri, "text/plain", "content"))));
+            new ReadResourceResult(List.of(new TextResourceContents(uri, "text/plain", "content"))),
+        List.of());
   }
 }

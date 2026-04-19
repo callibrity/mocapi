@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server.resources;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.server.completions.CompletionCandidate;
+import com.callibrity.mocapi.server.guards.Guard;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
@@ -36,18 +37,25 @@ public final class ReadResourceTemplateHandler {
   private final Object bean;
   private final MethodInvoker<Map<String, String>> invoker;
   private final List<CompletionCandidate> completionCandidates;
+  private final List<Guard> guards;
 
   public ReadResourceTemplateHandler(
       ResourceTemplate descriptor,
       Method method,
       Object bean,
       MethodInvoker<Map<String, String>> invoker,
-      List<CompletionCandidate> completionCandidates) {
+      List<CompletionCandidate> completionCandidates,
+      List<Guard> guards) {
     this.descriptor = descriptor;
     this.method = method;
     this.bean = bean;
     this.invoker = invoker;
     this.completionCandidates = List.copyOf(completionCandidates);
+    this.guards = List.copyOf(guards);
+  }
+
+  public List<Guard> guards() {
+    return guards;
   }
 
   public ResourceTemplate descriptor() {

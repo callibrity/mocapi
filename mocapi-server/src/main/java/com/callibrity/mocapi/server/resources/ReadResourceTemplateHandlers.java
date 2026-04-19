@@ -24,6 +24,7 @@ import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.server.completions.CompletionCandidate;
 import com.callibrity.mocapi.server.completions.CompletionCandidates;
+import com.callibrity.mocapi.server.guards.Guard;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
@@ -68,7 +69,8 @@ public final class ReadResourceTemplateHandlers {
     ResourceTemplate descriptor = new ResourceTemplate(uriTemplate, name, description, mimeType);
     MutableConfig config = new MutableConfig(descriptor, method, bean, interceptors);
     customizers.forEach(c -> c.customize(config));
-    List<MethodInterceptor<? super Map<String, String>>> chain = config.freeze();
+    List<MethodInterceptor<? super Map<String, String>>> chain = config.freezeInterceptors();
+    List<Guard> guards = config.freezeGuards();
     MethodInvoker<Map<String, String>> invoker =
         invokerFactory.create(
             method,
@@ -78,7 +80,8 @@ public final class ReadResourceTemplateHandlers {
               resolvers.forEach(cfg::resolver);
               chain.forEach(cfg::interceptor);
             });
-    return new ReadResourceTemplateHandler(descriptor, method, bean, invoker, candidatesOf(method));
+    return new ReadResourceTemplateHandler(
+        descriptor, method, bean, invoker, candidatesOf(method), guards);
   }
 
   private static final class MutableConfig implements ReadResourceTemplateHandlerConfig {
@@ -86,6 +89,7 @@ public final class ReadResourceTemplateHandlers {
     private final Method method;
     private final Object bean;
     private final List<MethodInterceptor<? super Map<String, String>>> interceptors;
+    private final List<Guard> guards = new ArrayList<>();
 
     MutableConfig(
         ResourceTemplate descriptor,
@@ -120,8 +124,18 @@ public final class ReadResourceTemplateHandlers {
       return this;
     }
 
-    List<MethodInterceptor<? super Map<String, String>>> freeze() {
+    @Override
+    public ReadResourceTemplateHandlerConfig guard(Guard guard) {
+      guards.add(guard);
+      return this;
+    }
+
+    List<MethodInterceptor<? super Map<String, String>>> freezeInterceptors() {
       return List.copyOf(interceptors);
+    }
+
+    List<Guard> freezeGuards() {
+      return List.copyOf(guards);
     }
   }
 

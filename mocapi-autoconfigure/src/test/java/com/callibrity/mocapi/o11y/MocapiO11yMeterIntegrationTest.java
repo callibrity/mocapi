@@ -126,5 +126,10 @@ class MocapiO11yMeterIntegrationTest {
       interceptors.add(interceptor);
       return this;
     }
+
+    @Override
+    public CallToolHandlerConfig guard(com.callibrity.mocapi.server.guards.Guard guard) {
+      return this;
+    }
   }
 }

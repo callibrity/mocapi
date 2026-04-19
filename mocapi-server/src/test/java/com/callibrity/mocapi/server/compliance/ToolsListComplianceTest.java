@@ -178,7 +178,7 @@ class ToolsListComplianceTest {
   private static CallToolHandler simpleTool(
       String name, String description, ObjectNode inputSchema, ObjectNode outputSchema) {
     var descriptor = new Tool(name, null, description, inputSchema, outputSchema);
-    return new CallToolHandler(descriptor, null, null, args -> Map.of("echo", "ok"));
+    return new CallToolHandler(descriptor, null, null, args -> Map.of("echo", "ok"), List.of());
   }
 
   private static JsonNode findToolByName(JsonNode tools, String name) {

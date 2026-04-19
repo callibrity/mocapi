@@ -21,6 +21,7 @@ import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlerConfig;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerConfig;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerConfig;
@@ -151,6 +152,11 @@ class MocapiLoggingAutoConfigurationTest {
       interceptors.add(interceptor);
       return this;
     }
+
+    @Override
+    public CallToolHandlerConfig guard(Guard guard) {
+      return this;
+    }
   }
 
   private static final class StubPromptConfig implements GetPromptHandlerConfig {
@@ -183,6 +189,11 @@ class MocapiLoggingAutoConfigurationTest {
       interceptors.add(interceptor);
       return this;
     }
+
+    @Override
+    public GetPromptHandlerConfig guard(Guard guard) {
+      return this;
+    }
   }
 
   private static final class StubResourceConfig implements ReadResourceHandlerConfig {
@@ -211,6 +222,11 @@ class MocapiLoggingAutoConfigurationTest {
     @Override
     public ReadResourceHandlerConfig interceptor(MethodInterceptor<? super Object> interceptor) {
       interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceHandlerConfig guard(Guard guard) {
       return this;
     }
   }
@@ -244,6 +260,11 @@ class MocapiLoggingAutoConfigurationTest {
     public ReadResourceTemplateHandlerConfig interceptor(
         MethodInterceptor<? super Map<String, String>> interceptor) {
       interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceTemplateHandlerConfig guard(Guard guard) {
       return this;
     }
   }

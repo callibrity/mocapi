@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.prompts;
 
 import com.callibrity.mocapi.model.Prompt;
+import com.callibrity.mocapi.server.guards.Guard;
 import java.lang.reflect.Method;
 import java.util.Map;
 import org.jwcarman.methodical.intercept.MethodInterceptor;
@@ -23,7 +24,8 @@ import org.jwcarman.methodical.intercept.MethodInterceptor;
 /**
  * Per-handler configuration view passed to each {@link GetPromptHandlerCustomizer} while a {@link
  * GetPromptHandler} is being built. Customizers may inspect the prompt descriptor, target method,
- * and target bean and append {@link MethodInterceptor}s to the handler's invocation chain.
+ * and target bean, append {@link MethodInterceptor}s to the handler's invocation chain, and attach
+ * {@link Guard}s that gate visibility and invocation.
  */
 public interface GetPromptHandlerConfig {
 
@@ -34,4 +36,6 @@ public interface GetPromptHandlerConfig {
   Object bean();
 
   GetPromptHandlerConfig interceptor(MethodInterceptor<? super Map<String, String>> interceptor);
+
+  GetPromptHandlerConfig guard(Guard guard);
 }

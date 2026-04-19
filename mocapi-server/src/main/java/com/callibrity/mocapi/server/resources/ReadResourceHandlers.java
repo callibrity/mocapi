@@ -22,6 +22,7 @@ import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrNull;
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
+import com.callibrity.mocapi.server.guards.Guard;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,10 +58,11 @@ public final class ReadResourceHandlers {
     Resource descriptor = new Resource(uri, name, description, mimeType);
     MutableConfig config = new MutableConfig(descriptor, method, bean, interceptors);
     customizers.forEach(c -> c.customize(config));
-    List<MethodInterceptor<? super Object>> chain = config.freeze();
+    List<MethodInterceptor<? super Object>> chain = config.freezeInterceptors();
+    List<Guard> guards = config.freezeGuards();
     MethodInvoker<Object> invoker =
         invokerFactory.create(method, bean, Object.class, cfg -> chain.forEach(cfg::interceptor));
-    return new ReadResourceHandler(descriptor, method, bean, invoker);
+    return new ReadResourceHandler(descriptor, method, bean, invoker, guards);
   }
 
   private static final class MutableConfig implements ReadResourceHandlerConfig {
@@ -68,6 +70,7 @@ public final class ReadResourceHandlers {
     private final Method method;
     private final Object bean;
     private final List<MethodInterceptor<? super Object>> interceptors;
+    private final List<Guard> guards = new ArrayList<>();
 
     MutableConfig(
         Resource descriptor,
@@ -101,8 +104,18 @@ public final class ReadResourceHandlers {
       return this;
     }
 
-    List<MethodInterceptor<? super Object>> freeze() {
+    @Override
+    public ReadResourceHandlerConfig guard(Guard guard) {
+      guards.add(guard);
+      return this;
+    }
+
+    List<MethodInterceptor<? super Object>> freezeInterceptors() {
       return List.copyOf(interceptors);
+    }
+
+    List<Guard> freezeGuards() {
+      return List.copyOf(guards);
     }
   }
 

@@ -27,8 +27,11 @@ import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.RequestMeta;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.guards.Guard;
+import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.util.HelloTool;
@@ -319,6 +322,70 @@ class McpToolsServiceTest {
     assertThat(result.structuredContent()).isNull();
     assertThat(result.content()).hasSize(1);
     assertThat(((TextContent) result.content().getFirst()).text()).contains("just a string");
+  }
+
+  private List<CallToolHandler> createHandlersWithGuards(Object target, Guard... guards) {
+    return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpTool.class).stream()
+        .map(
+            m ->
+                CallToolHandlers.build(
+                    target,
+                    m,
+                    generator,
+                    invokerFactory,
+                    resolvers,
+                    List.of(),
+                    List.of(config -> java.util.Arrays.stream(guards).forEach(config::guard)),
+                    s -> s))
+        .toList();
+  }
+
+  @Test
+  void denied_call_throws_json_rpc_forbidden_with_reason() {
+    Guard deny = () -> new GuardDecision.Deny("no-scope");
+    var guardedService =
+        new McpToolsService(
+            createHandlersWithGuards(new HelloTool(), deny), mapper, correlationService);
+    var params =
+        new CallToolRequestParams(
+            "hello-tool.say-hello", mapper.createObjectNode().put("name", "X"), null, null);
+
+    assertThatThrownBy(() -> guardedService.callTool(params))
+        .isInstanceOf(JsonRpcException.class)
+        .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
+        .hasMessageContaining("Forbidden")
+        .hasMessageContaining("no-scope");
+  }
+
+  @Test
+  void denied_tool_is_absent_from_list() {
+    Guard allow = () -> new GuardDecision.Allow();
+    Guard deny = () -> new GuardDecision.Deny("hidden");
+    var handlers = new ArrayList<CallToolHandler>();
+    handlers.addAll(createHandlersWithGuards(new HelloTool(), allow));
+    handlers.addAll(createHandlersWithGuards(new VoidTool(), deny));
+    var guardedService = new McpToolsService(handlers, mapper, correlationService);
+
+    var names = guardedService.listTools(null).tools().stream().map(Tool::name).toList();
+    assertThat(names).contains("hello-tool.say-hello").doesNotContain("fire-and-forget");
+  }
+
+  @Test
+  void mixed_guards_with_one_deny_hides_and_rejects() {
+    Guard allow = () -> new GuardDecision.Allow();
+    Guard deny = () -> new GuardDecision.Deny("blocked");
+    var handlers = createHandlersWithGuards(new HelloTool(), allow, deny);
+    var guardedService = new McpToolsService(handlers, mapper, correlationService);
+
+    assertThat(guardedService.listTools(null).tools()).isEmpty();
+
+    var params =
+        new CallToolRequestParams(
+            "hello-tool.say-hello", mapper.createObjectNode().put("name", "X"), null, null);
+    assertThatThrownBy(() -> guardedService.callTool(params))
+        .isInstanceOf(JsonRpcException.class)
+        .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
+        .hasMessageContaining("blocked");
   }
 
   @Test

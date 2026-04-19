@@ -16,7 +16,9 @@
 package com.callibrity.mocapi.server.tools;
 
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.server.guards.Guard;
 import java.lang.reflect.Method;
+import java.util.List;
 import org.jwcarman.methodical.MethodInvoker;
 import tools.jackson.databind.JsonNode;
 
@@ -31,13 +33,23 @@ public final class CallToolHandler {
   private final Method method;
   private final Object bean;
   private final MethodInvoker<JsonNode> invoker;
+  private final List<Guard> guards;
 
   public CallToolHandler(
-      Tool descriptor, Method method, Object bean, MethodInvoker<JsonNode> invoker) {
+      Tool descriptor,
+      Method method,
+      Object bean,
+      MethodInvoker<JsonNode> invoker,
+      List<Guard> guards) {
     this.descriptor = descriptor;
     this.method = method;
     this.bean = bean;
     this.invoker = invoker;
+    this.guards = List.copyOf(guards);
+  }
+
+  public List<Guard> guards() {
+    return guards;
   }
 
   public Tool descriptor() {
