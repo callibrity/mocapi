@@ -39,7 +39,7 @@ Config is read-only on descriptor/method/bean (set at construction
 time, exposed via getters) and mutable for adding interceptors.
 
 ```java
-// mocapi-api — com.callibrity.mocapi.api.tools
+// mocapi-server — com.callibrity.mocapi.server.tools
 public interface CallToolHandlerConfig {
     Tool descriptor();
     Method method();
@@ -62,10 +62,23 @@ And analogs:
 | resource | `ReadResourceHandlerConfig` | `ReadResourceHandlerCustomizer` | `Resource` | `MethodInterceptor<? super Object>` |
 | resource_template | `ReadResourceTemplateHandlerConfig` | `ReadResourceTemplateHandlerCustomizer` | `ResourceTemplate` | `MethodInterceptor<? super Map<String, String>>` |
 
-All eight interfaces live in `mocapi-api` under the existing
-`com.callibrity.mocapi.api.tools`, `.prompts`, and `.resources`
-packages (next to the `@McpTool` / `@McpPrompt` / `@McpResource` /
-`@McpResourceTemplate` annotations).
+All eight interfaces live in `mocapi-server`, each co-located with
+the handler class it extends:
+
+- `com.callibrity.mocapi.server.tools` — `CallToolHandlerConfig`, `CallToolHandlerCustomizer`
+- `com.callibrity.mocapi.server.prompts` — `GetPromptHandlerConfig`, `GetPromptHandlerCustomizer`
+- `com.callibrity.mocapi.server.resources` — `ReadResourceHandlerConfig`, `ReadResourceHandlerCustomizer`, `ReadResourceTemplateHandlerConfig`, `ReadResourceTemplateHandlerCustomizer`
+
+**Why `mocapi-server` and not `mocapi-api`.** `mocapi-api` is the
+app-author surface — annotations (`@McpTool` etc.) and context
+interfaces that show up in user beans' method signatures. The
+customizer tier is an SPI for starter authors (observability,
+entitlements, rate-limiting); nobody writing a `@McpTool` method
+touches it. Third-party starters already depend on `mocapi-server`
+(per spec 179's "depend on `mocapi-server`, not a transport starter"
+rule), so `mocapi-server` is the audience's module. Co-locating the
+SPI with the `*Handlers` builders that invoke it keeps the contract
+close to the code, and keeps `mocapi-api` focused on its one job.
 
 ### Builder integration
 
@@ -160,18 +173,15 @@ default.
 
 ## Implementation notes
 
-- `mocapi-api` currently has no dependency on Methodical; the
-  customizer interfaces will add a transitive dependency on
-  `methodical-api` (the `MethodInterceptor` interface). Confirm
-  `methodical-api` is already a transitive of what `mocapi-api`
-  exposes and add it to `mocapi-api/pom.xml` as a `compile`-scoped
-  dependency if not. (It almost certainly isn't — `mocapi-api` today
-  only holds annotation types and context interfaces.)
+- `mocapi-server` already depends on `methodical-core` (transitively
+  via `mocapi-api`) and on `mocapi-model` for the descriptor types
+  (`Tool`, `Prompt`, `Resource`, `ResourceTemplate`). No new module
+  dependencies needed.
 - Config implementations are package-private in `mocapi-server` next
   to each `*Handlers` helper. They're mutable internally (growing the
   interceptor list) but once `*Handlers.build` returns, nothing holds
   a reference to the config — the mutable list is snapshot into the
   final interceptor chain when the `MethodInvoker` is built.
-- Spec 181 (`mocapi-o11y`, Micrometer Observation API) consumes this
-  SPI as its first real client. That spec will land immediately after
-  this one.
+- Spec 181 (MDC customizer migration) and spec 182 (`mocapi-o11y`,
+  Micrometer Observation API) are the first two consumers of this
+  SPI and land immediately after this one.

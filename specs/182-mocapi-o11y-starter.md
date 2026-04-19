@@ -189,11 +189,11 @@ customizers don't wire → no-op.
 
 `mocapi-o11y/pom.xml`:
 
-- `com.callibrity.mocapi:mocapi-api` (for the customizer SPI + `HandlerKinds`)
+- `com.callibrity.mocapi:mocapi-server` (for the customizer SPI +
+  descriptor types; `mocapi-api` and `methodical-core` come in
+  transitively)
 - `io.micrometer:micrometer-observation` (the Observation API —
   core-only; no metrics SDK, no tracing SDK pulled in)
-- `org.jwcarman.methodical:methodical-api` (transitive via
-  `mocapi-api`, already present)
 
 `mocapi-o11y-spring-boot-starter/pom.xml`:
 

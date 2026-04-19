@@ -93,8 +93,9 @@ public final class McpMdcInterceptor implements MethodInterceptor<Object> {
 autoconfig pulls names off each Config's descriptor directly
 (`config.descriptor().name()` for tools / prompts,
 `config.descriptor().uri()` for resources, `uriTemplate()` for
-templates). `HandlerKinds` stays in `mocapi-api` for other consumers
-(spec 182 o11y uses it) but no longer drives `mocapi-logging`.
+templates). `HandlerKinds` stays in `mocapi-api` — it remains useful
+for any downstream code that needs to classify a `Method` outside of
+a Config-carrying context — but no longer drives `mocapi-logging`.
 
 ### Autoconfig shape
 
