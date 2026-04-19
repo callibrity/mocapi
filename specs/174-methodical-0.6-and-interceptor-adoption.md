@@ -45,7 +45,59 @@ to match the new Methodical API.
 `2.7.0-SNAPSHOT` with a local `mvn install`-ed build and flip to the
 release in a follow-up commit.)
 
-### 2. Update the four `*Handlers#discover(...)` helpers
+### 2. Input schema validation becomes a per-handler interceptor
+
+Extract the `validateInput(name, args, tool)` logic from
+`McpToolsService` into a dedicated interceptor. Each `CallToolHandler`
+is built with its own input-schema-validating interceptor closed
+over that tool's compiled input schema, so there's no runtime
+lookup or shared state.
+
+**Input only** — we do *not* validate the handler's return value
+against the output schema. The output schema is descriptive metadata
+clients read from `tools/list`; the server trusts itself to produce
+conformant output, so no server-side enforcement there. Only input
+validation runs per call.
+
+New file
+`mocapi-server/src/main/java/com/callibrity/mocapi/server/tools/InputSchemaValidatingInterceptor.java`:
+
+```java
+final class InputSchemaValidatingInterceptor implements MethodInterceptor<JsonNode> {
+  private final Schema inputSchema;
+
+  InputSchemaValidatingInterceptor(Schema inputSchema) {
+    this.inputSchema = inputSchema;
+  }
+
+  @Override
+  public Object intercept(MethodInvocation<? extends JsonNode> invocation) {
+    var args = invocation.argument();
+    var failure = Validator.forSchema(inputSchema).validate(
+        new JsonParser(args.toString()).parse());
+    if (failure != null) {
+      throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, failure.getMessage());
+    }
+    return invocation.proceed();
+  }
+}
+```
+
+In `CallToolHandlers.discover(...)`, for each discovered tool:
+
+1. Compile the input schema from the descriptor's `inputSchema()`
+   JSON (this is what `McpToolsService` does today in
+   `getInputSchema`).
+2. Build `new InputSchemaValidatingInterceptor(compiledSchema)`.
+3. Include it in the interceptor list passed to the invoker
+   customizer — **innermost** (added last), so it runs closest to the
+   reflective call and after any ambient observability interceptors.
+
+Delete `McpToolsService.validateInput(...)` and `getInputSchema(...)`
+plus the `inputSchemas` cache field. `McpToolsService.callTool(...)`
+stops calling `validateInput` — the interceptor handles it.
+
+### 3. Update the four `*Handlers#discover(...)` helpers
 
 `CallToolHandlers`, `GetPromptHandlers`, `ReadResourceHandlers`,
 `ReadResourceTemplateHandlers` — all call `factory.create(...)` with
@@ -66,7 +118,7 @@ MethodInvoker<JsonNode> invoker = invokerFactory.create(
 
 Same shape for each kind, with the kind's argument type substituted.
 
-### 3. Autoconfig bean wiring
+### 4. Autoconfig bean wiring
 
 Each of the four handler autoconfigs autowires an optional
 `List<MethodInterceptor<? super T>>` and passes it into the
@@ -104,7 +156,7 @@ list: Methodical 0.6's factory no longer carries ambient resolvers,
 so the Jackson fallback that used to be factory-held now rides with
 the per-create resolver list.
 
-### 4. Ripcurl factory call sites
+### 5. Ripcurl factory call sites
 
 `mocapi-server/src/test/java/com/callibrity/mocapi/server/compliance/ComplianceTestSupport.java`:
 `new DefaultAnnotationJsonRpcMethodProviderFactory(MAPPER, invokerFactory)`
@@ -115,7 +167,7 @@ becomes
 method becomes `new DefaultMethodInvokerFactory()` (the new 0.6
 factory is stateless).
 
-### 5. Test constructor updates
+### 6. Test constructor updates
 
 Every test that constructs a `DefaultMethodInvokerFactory` with a
 list of resolvers (`new DefaultMethodInvokerFactory(List.of(...))`)
@@ -134,7 +186,7 @@ handler or helper under test. Files to touch:
 - Any remaining autoconfig-level tests that directly instantiate the
   factory.
 
-### 6. Resolver ordering
+### 7. Resolver ordering
 
 When the Jackson fallback resolver joins the per-invoker list, it
 has to come *after* any kind-specific resolver that also accepts
@@ -146,7 +198,7 @@ greedy. Order in `CallToolHandlers`:
 [McpToolContextResolver, McpToolParamsResolver, Jackson3ParameterResolver]
 ```
 
-### 7. Jakarta validation
+### 8. Jakarta validation
 
 `JakartaValidationIntegrationTest` currently asserts that Methodical
 0.5's `MethodValidatorFactory` and `JakartaMethodValidatorFactory`
@@ -171,6 +223,13 @@ actual validation behavior (Jakarta constraint violations surface as
 
 - [ ] Methodical bumped to `0.6.0`; ripcurl to `2.7.0` (or
       `2.7.0-SNAPSHOT` with a locally-installed build).
+- [ ] `InputSchemaValidatingInterceptor` added and attached as the
+      innermost interceptor per `CallToolHandler` in
+      `CallToolHandlers.discover(...)`. `McpToolsService.validateInput`,
+      `getInputSchema`, and the `inputSchemas` cache field are
+      removed.
+- [ ] No output-schema validation is introduced — handler return
+      values are not validated against the declared output schema.
 - [ ] All four `*Handlers#discover(...)` helpers use the new
       `Consumer<MethodInvokerConfig<A>>` customizer API.
 - [ ] All four helpers accept and thread a
