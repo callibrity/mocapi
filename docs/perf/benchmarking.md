@@ -30,29 +30,59 @@ docker run -d --rm --name jaeger \
     jaegertracing/all-in-one:latest
 ```
 
-Required deps in the in-memory example (already in
-`examples/example-autoconfigure/pom.xml`):
+### Temporary benchmarking deps
 
-- `mocapi-o11y` — observation interceptors + customizers.
-- `io.micrometer:micrometer-tracing-bridge-otel` — Micrometer → OTel
-  bridge.
-- `org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry`
-  — Spring Boot's Micrometer-tracing autoconfig.
-- `org.springframework.boot:spring-boot-starter-opentelemetry` — OTel
-  SDK autoconfig (actually creates the `Tracer` bean).
-- `io.opentelemetry:opentelemetry-exporter-otlp` — so spans ship
-  somewhere.
-- `org.springframework.boot:spring-boot-starter-actuator` — metrics
-  + health + our `/actuator/mcp` endpoint.
+The example modules ship minimal by default — no observability stack,
+no actuator, no tracing — because demo apps shouldn't pay for what
+they don't need. Add these to
+`examples/in-memory/pom.xml` **for the duration of the benchmarking
+run only**, then back them out when you're done:
 
-Required properties in
-`examples/in-memory/src/main/resources/application.properties`:
+```xml
+<!-- observation interceptors + customizers -->
+<dependency>
+    <groupId>com.callibrity.mocapi</groupId>
+    <artifactId>mocapi-o11y</artifactId>
+    <version>${project.version}</version>
+</dependency>
+
+<!-- metrics + actuator infrastructure -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+<dependency>
+    <groupId>com.callibrity.mocapi</groupId>
+    <artifactId>mocapi-actuator</artifactId>
+    <version>${project.version}</version>
+</dependency>
+
+<!-- tracing bridge + Spring Boot 4 OTel SDK autoconfig (3 artifacts) -->
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-tracing-bridge-otel</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-micrometer-tracing-opentelemetry</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-opentelemetry</artifactId>
+</dependency>
+
+<!-- OTLP exporter to ship spans to Jaeger -->
+<dependency>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-exporter-otlp</artifactId>
+</dependency>
+```
+
+And add these properties to
+`examples/in-memory/src/main/resources/application.properties`
+for the duration of the run:
 
 ```properties
-server.port=8080
-
-logging.level.com.callibrity.mocapi=INFO
-
 management.endpoints.web.exposure.include=*
 management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
 management.tracing.sampling.probability=1.0
@@ -61,9 +91,12 @@ management.tracing.sampling.probability=1.0
 # this the OtlpMeterRegistry logs 404s every minute. Metrics stay
 # readable via /actuator/metrics.
 management.otlp.metrics.export.enabled=false
-
-spring.application.name=mocapi-example-in-memory
 ```
+
+Revert both the pom addition and the properties block after the
+benchmarking session ends — the examples are intentionally lean, and
+the base `application.properties` should stay operational without
+any of this wired in.
 
 ## Workflow
 
