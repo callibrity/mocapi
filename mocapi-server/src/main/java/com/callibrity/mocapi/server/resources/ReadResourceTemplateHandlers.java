@@ -35,10 +35,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
+import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.MethodInvoker;
-import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
-import org.jwcarman.methodical.param.ParameterResolver;
+import org.jwcarman.methodical.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
 import org.springframework.core.convert.ConversionService;
 
@@ -61,7 +60,6 @@ public final class ReadResourceTemplateHandlers {
   public static ReadResourceTemplateHandler build(
       Object bean,
       Method method,
-      MethodInvokerFactory invokerFactory,
       ConversionService conversionService,
       List<ReadResourceTemplateHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
@@ -79,18 +77,14 @@ public final class ReadResourceTemplateHandlers {
     List<Guard> guards = config.freezeGuards();
     List<ParameterResolver<? super Map<String, String>>> resolvers =
         buildResolvers(conversionService, config.freezeResolvers());
-    MethodInvoker<Map<String, String>> invoker =
-        invokerFactory.create(
-            method,
-            bean,
-            VARS_TYPE,
-            cfg -> {
-              resolvers.forEach(cfg::resolver);
-              chain.forEach(cfg::interceptor);
-              if (!guards.isEmpty()) {
-                cfg.interceptor(new GuardEvaluationInterceptor(guards));
-              }
-            });
+    MethodInvoker.Builder<Map<String, String>> builder =
+        MethodInvoker.builder(method, bean, VARS_TYPE);
+    resolvers.forEach(builder::resolver);
+    chain.forEach(builder::interceptor);
+    if (!guards.isEmpty()) {
+      builder.interceptor(new GuardEvaluationInterceptor(guards));
+    }
+    MethodInvoker<Map<String, String>> invoker = builder.build();
     return new ReadResourceTemplateHandler(
         descriptor, method, bean, invoker, candidatesOf(method), guards);
   }

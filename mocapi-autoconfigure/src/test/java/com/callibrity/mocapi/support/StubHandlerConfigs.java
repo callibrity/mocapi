@@ -28,8 +28,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
-import org.jwcarman.methodical.param.ParameterResolver;
+import org.jwcarman.methodical.MethodInterceptor;
+import org.jwcarman.methodical.ParameterResolver;
 import tools.jackson.databind.JsonNode;
 
 /** Reusable stub handler configs for unit tests that drive per-handler customizer beans. */

@@ -18,8 +18,8 @@ package com.callibrity.mocapi.server.guards;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
-import org.jwcarman.methodical.intercept.MethodInvocation;
+import org.jwcarman.methodical.MethodInterceptor;
+import org.jwcarman.methodical.MethodInvocation;
 
 /**
  * MethodInvoker-chain interceptor that evaluates a handler's guard list at call time and aborts the

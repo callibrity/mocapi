@@ -34,11 +34,10 @@ import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
+import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.MethodInvoker;
-import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
+import org.jwcarman.methodical.ParameterResolver;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
-import org.jwcarman.methodical.param.ParameterResolver;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -66,7 +65,6 @@ public final class CallToolHandlers {
       Object bean,
       Method method,
       MethodSchemaGenerator generator,
-      MethodInvokerFactory invokerFactory,
       ObjectMapper objectMapper,
       List<CallToolHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
@@ -89,19 +87,14 @@ public final class CallToolHandlers {
     List<Guard> guards = config.freezeGuards();
     List<ParameterResolver<? super JsonNode>> resolvers =
         buildResolvers(objectMapper, config.freezeResolvers());
-    MethodInvoker<JsonNode> invoker =
-        invokerFactory.create(
-            method,
-            bean,
-            JsonNode.class,
-            cfg -> {
-              resolvers.forEach(cfg::resolver);
-              chain.forEach(cfg::interceptor);
-              if (!guards.isEmpty()) {
-                cfg.interceptor(new GuardEvaluationInterceptor(guards));
-              }
-              cfg.interceptor(new InputSchemaValidatingInterceptor(compiledInputSchema));
-            });
+    MethodInvoker.Builder<JsonNode> builder = MethodInvoker.builder(method, bean, JsonNode.class);
+    resolvers.forEach(builder::resolver);
+    chain.forEach(builder::interceptor);
+    if (!guards.isEmpty()) {
+      builder.interceptor(new GuardEvaluationInterceptor(guards));
+    }
+    builder.interceptor(new InputSchemaValidatingInterceptor(compiledInputSchema));
+    MethodInvoker<JsonNode> invoker = builder.build();
     return new CallToolHandler(descriptor, method, bean, invoker, guards);
   }
 

@@ -21,8 +21,8 @@ import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
 import com.github.erosb.jsonsKema.ValidationFailure;
 import com.github.erosb.jsonsKema.Validator;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
-import org.jwcarman.methodical.intercept.MethodInvocation;
+import org.jwcarman.methodical.MethodInterceptor;
+import org.jwcarman.methodical.MethodInvocation;
 import tools.jackson.databind.JsonNode;
 
 /**

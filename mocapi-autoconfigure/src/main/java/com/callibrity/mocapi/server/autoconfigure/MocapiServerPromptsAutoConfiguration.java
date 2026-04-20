@@ -24,7 +24,6 @@ import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jwcarman.methodical.MethodInvokerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -47,7 +46,6 @@ public class MocapiServerPromptsAutoConfiguration {
   @ConditionalOnMissingBean(McpPromptsService.class)
   public McpPromptsService mcpProtocolPromptsService(
       HandlerMethodsCache cache,
-      MethodInvokerFactory invokerFactory,
       ObjectProvider<ConversionService> conversionService,
       StringValueResolver mcpAnnotationValueResolver,
       McpCompletionsService completions,
@@ -64,7 +62,6 @@ public class MocapiServerPromptsAutoConfiguration {
                       GetPromptHandlers.build(
                           bm.bean(),
                           bm.method(),
-                          invokerFactory,
                           cs,
                           customizers,
                           mcpAnnotationValueResolver::resolveStringValue);

@@ -51,8 +51,6 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -66,17 +64,13 @@ class McpToolsServiceTest {
   private final ObjectMapper mapper = new ObjectMapper();
   private final DefaultMethodSchemaGenerator generator =
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
-  private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
   @Mock private McpResponseCorrelationService correlationService;
 
   private McpToolsService service;
 
   private List<CallToolHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpTool.class).stream()
-        .map(
-            m ->
-                CallToolHandlers.build(
-                    target, m, generator, invokerFactory, mapper, List.of(), s -> s))
+        .map(m -> CallToolHandlers.build(target, m, generator, mapper, List.of(), s -> s))
         .toList();
   }
 
@@ -326,7 +320,6 @@ class McpToolsServiceTest {
                     target,
                     m,
                     generator,
-                    invokerFactory,
                     mapper,
                     List.of(config -> java.util.Arrays.stream(guards).forEach(config::guard)),
                     s -> s))

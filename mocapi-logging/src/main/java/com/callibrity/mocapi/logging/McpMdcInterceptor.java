@@ -22,8 +22,8 @@ import static com.callibrity.mocapi.logging.McpMdcKeys.SESSION;
 import com.callibrity.mocapi.server.session.McpSession;
 import java.util.ArrayList;
 import java.util.List;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
-import org.jwcarman.methodical.intercept.MethodInvocation;
+import org.jwcarman.methodical.MethodInterceptor;
+import org.jwcarman.methodical.MethodInvocation;
 import org.slf4j.MDC;
 
 /**

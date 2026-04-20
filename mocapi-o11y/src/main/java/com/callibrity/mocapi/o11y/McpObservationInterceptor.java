@@ -17,8 +17,8 @@ package com.callibrity.mocapi.o11y;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
-import org.jwcarman.methodical.intercept.MethodInvocation;
+import org.jwcarman.methodical.MethodInterceptor;
+import org.jwcarman.methodical.MethodInvocation;
 
 /**
  * Wraps a single MCP handler invocation in a Micrometer {@link Observation}. One instance per

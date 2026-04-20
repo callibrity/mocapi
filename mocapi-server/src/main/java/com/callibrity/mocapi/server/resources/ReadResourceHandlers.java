@@ -28,10 +28,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
+import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.MethodInvoker;
-import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
-import org.jwcarman.methodical.param.ParameterResolver;
+import org.jwcarman.methodical.ParameterResolver;
 
 /**
  * Pure-Java factory that builds a single {@link ReadResourceHandler} from a {@code
@@ -50,7 +49,6 @@ public final class ReadResourceHandlers {
   public static ReadResourceHandler build(
       Object bean,
       Method method,
-      MethodInvokerFactory invokerFactory,
       List<ReadResourceHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
     validateReturnType(bean, method);
@@ -66,18 +64,13 @@ public final class ReadResourceHandlers {
     List<MethodInterceptor<? super Object>> chain = config.freezeInterceptors();
     List<Guard> guards = config.freezeGuards();
     List<ParameterResolver<? super Object>> resolvers = config.freezeResolvers();
-    MethodInvoker<Object> invoker =
-        invokerFactory.create(
-            method,
-            bean,
-            Object.class,
-            cfg -> {
-              resolvers.forEach(cfg::resolver);
-              chain.forEach(cfg::interceptor);
-              if (!guards.isEmpty()) {
-                cfg.interceptor(new GuardEvaluationInterceptor(guards));
-              }
-            });
+    MethodInvoker.Builder<Object> builder = MethodInvoker.builder(method, bean, Object.class);
+    resolvers.forEach(builder::resolver);
+    chain.forEach(builder::interceptor);
+    if (!guards.isEmpty()) {
+      builder.interceptor(new GuardEvaluationInterceptor(guards));
+    }
+    MethodInvoker<Object> invoker = builder.build();
     return new ReadResourceHandler(descriptor, method, bean, invoker, guards);
   }
 

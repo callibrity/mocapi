@@ -36,19 +36,15 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
-import org.jwcarman.methodical.param.ParameterInfo;
-import org.jwcarman.methodical.param.ParameterResolver;
+import org.jwcarman.methodical.ParameterInfo;
+import org.jwcarman.methodical.ParameterResolver;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ReadResourceHandlerTest {
 
-  private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
-
   private List<ReadResourceHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpResource.class).stream()
-        .map(m -> ReadResourceHandlers.build(target, m, invokerFactory, List.of(), s -> s))
+        .map(m -> ReadResourceHandlers.build(target, m, List.of(), s -> s))
         .toList();
   }
 
@@ -128,8 +124,7 @@ class ReadResourceHandlerTest {
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResource.class).getFirst();
 
-    var handler =
-        ReadResourceHandlers.build(bean, method, invokerFactory, List.of(customizer), s -> s);
+    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), s -> s);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();
@@ -149,8 +144,7 @@ class ReadResourceHandlerTest {
     ReadResourceHandlerCustomizer customizer =
         config -> config.resolver(new CurrentTenantResolver());
 
-    var handler =
-        ReadResourceHandlers.build(bean, method, invokerFactory, List.of(customizer), s -> s);
+    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), s -> s);
     var result = handler.read();
 
     var content = (TextResourceContents) result.contents().getFirst();
@@ -172,8 +166,7 @@ class ReadResourceHandlerTest {
         };
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResource.class).getFirst();
-    var handler =
-        ReadResourceHandlers.build(bean, method, invokerFactory, List.of(customizer), s -> s);
+    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), s -> s);
 
     assertThatThrownBy(handler::read)
         .isInstanceOf(JsonRpcException.class)

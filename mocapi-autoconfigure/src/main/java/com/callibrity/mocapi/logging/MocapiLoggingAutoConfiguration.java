@@ -20,7 +20,7 @@ import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
 import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
+import org.jwcarman.methodical.MethodInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;

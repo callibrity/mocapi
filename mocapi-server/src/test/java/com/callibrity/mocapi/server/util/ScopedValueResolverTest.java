@@ -22,7 +22,7 @@ import static org.mockito.Mockito.mock;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.param.ParameterInfo;
+import org.jwcarman.methodical.ParameterInfo;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ScopedValueResolverTest {

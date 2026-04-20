@@ -26,8 +26,8 @@ import java.lang.reflect.Parameter;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.methodical.ParameterInfo;
 import org.jwcarman.methodical.ParameterResolutionException;
-import org.jwcarman.methodical.param.ParameterInfo;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 

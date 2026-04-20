@@ -16,8 +16,8 @@
 package com.callibrity.mocapi.server.util;
 
 import java.util.Optional;
-import org.jwcarman.methodical.param.ParameterInfo;
-import org.jwcarman.methodical.param.ParameterResolver;
+import org.jwcarman.methodical.ParameterInfo;
+import org.jwcarman.methodical.ParameterResolver;
 
 /**
  * Abstract base for {@link ParameterResolver} implementations that resolve a method parameter from

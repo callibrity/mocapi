@@ -18,8 +18,8 @@ package com.callibrity.mocapi.server.resources;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.server.guards.Guard;
 import java.lang.reflect.Method;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
-import org.jwcarman.methodical.param.ParameterResolver;
+import org.jwcarman.methodical.MethodInterceptor;
+import org.jwcarman.methodical.ParameterResolver;
 
 /**
  * Per-handler configuration view passed to each {@link ReadResourceHandlerCustomizer} while a

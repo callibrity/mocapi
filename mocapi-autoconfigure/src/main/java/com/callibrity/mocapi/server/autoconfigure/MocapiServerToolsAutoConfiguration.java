@@ -26,7 +26,6 @@ import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jwcarman.methodical.MethodInvokerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -51,7 +50,6 @@ public class MocapiServerToolsAutoConfiguration {
   public McpToolsService mcpProtocolToolsService(
       HandlerMethodsCache cache,
       MethodSchemaGenerator generator,
-      MethodInvokerFactory invokerFactory,
       ObjectMapper objectMapper,
       McpResponseCorrelationService correlationService,
       @Autowired(required = false) List<CallToolHandlerCustomizer> toolCustomizers,
@@ -67,7 +65,6 @@ public class MocapiServerToolsAutoConfiguration {
                           bm.bean(),
                           bm.method(),
                           generator,
-                          invokerFactory,
                           objectMapper,
                           customizers,
                           mcpAnnotationValueResolver::resolveStringValue);

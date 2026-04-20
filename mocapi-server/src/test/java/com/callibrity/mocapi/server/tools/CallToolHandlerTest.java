@@ -41,11 +41,9 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
-import org.jwcarman.methodical.intercept.MethodInvocation;
-import org.jwcarman.methodical.param.ParameterInfo;
-import org.jwcarman.methodical.param.ParameterResolver;
+import org.jwcarman.methodical.MethodInvocation;
+import org.jwcarman.methodical.ParameterInfo;
+import org.jwcarman.methodical.ParameterResolver;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -53,16 +51,12 @@ import tools.jackson.databind.ObjectMapper;
 class CallToolHandlerTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
-  private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
   private final DefaultMethodSchemaGenerator generator =
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
 
   private List<CallToolHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpTool.class).stream()
-        .map(
-            m ->
-                CallToolHandlers.build(
-                    target, m, generator, invokerFactory, mapper, List.of(), s -> s))
+        .map(m -> CallToolHandlers.build(target, m, generator, mapper, List.of(), s -> s))
         .toList();
   }
 
@@ -149,8 +143,7 @@ class CallToolHandlerTest {
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
 
     var handler =
-        CallToolHandlers.build(
-            bean, method, generator, invokerFactory, mapper, List.of(customizer), s -> s);
+        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();
@@ -170,8 +163,7 @@ class CallToolHandlerTest {
     CallToolHandlerCustomizer customizer = config -> config.resolver(new CurrentTenantResolver());
 
     var handler =
-        CallToolHandlers.build(
-            bean, method, generator, invokerFactory, mapper, List.of(customizer), s -> s);
+        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s);
     var result = handler.call(mapper.createObjectNode());
 
     assertThat(mapper.valueToTree(result).get("tenant").stringValue()).isEqualTo("acme");
@@ -193,8 +185,7 @@ class CallToolHandlerTest {
                         : Optional.empty());
 
     var handler =
-        CallToolHandlers.build(
-            bean, method, generator, invokerFactory, mapper, List.of(customizer), s -> s);
+        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s);
     var result = handler.call(mapper.createObjectNode().put("input", "from-json"));
 
     assertThat(mapper.valueToTree(result).get("value").stringValue()).isEqualTo("from-resolver");
@@ -222,8 +213,7 @@ class CallToolHandlerTest {
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
     var handler =
-        CallToolHandlers.build(
-            bean, method, generator, invokerFactory, mapper, List.of(customizer), s -> s);
+        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s);
 
     // Invalid args (missing required "name") would trip schema validation — but guards evaluate
     // first, so we get FORBIDDEN rather than a schema error.
@@ -248,8 +238,7 @@ class CallToolHandlerTest {
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
     var handler =
-        CallToolHandlers.build(
-            bean, method, generator, invokerFactory, mapper, List.of(customizer), s -> s);
+        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s);
 
     var result = handler.call(mapper.createObjectNode().put("name", "World"));
     assertThat(result).isNotNull();

@@ -35,8 +35,6 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.substrate.atom.AtomFactory;
 import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -79,11 +77,6 @@ class ResourceServiceAutoConfigurationTest {
     @Bean
     JsonRpcDispatcher jsonRpcDispatcher() {
       return mock(JsonRpcDispatcher.class);
-    }
-
-    @Bean
-    MethodInvokerFactory methodInvokerFactory() {
-      return new DefaultMethodInvokerFactory();
     }
   }
 

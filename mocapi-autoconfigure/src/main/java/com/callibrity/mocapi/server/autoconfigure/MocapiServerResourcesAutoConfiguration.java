@@ -28,7 +28,6 @@ import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlers;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jwcarman.methodical.MethodInvokerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -51,7 +50,6 @@ public class MocapiServerResourcesAutoConfiguration {
   @ConditionalOnMissingBean(McpResourcesService.class)
   public McpResourcesService mcpProtocolResourcesService(
       HandlerMethodsCache cache,
-      MethodInvokerFactory invokerFactory,
       ObjectProvider<ConversionService> conversionService,
       StringValueResolver mcpAnnotationValueResolver,
       McpCompletionsService completions,
@@ -72,7 +70,6 @@ public class MocapiServerResourcesAutoConfiguration {
                       ReadResourceHandlers.build(
                           bm.bean(),
                           bm.method(),
-                          invokerFactory,
                           resourceCustoms,
                           mcpAnnotationValueResolver::resolveStringValue);
                   log.info(
@@ -90,7 +87,6 @@ public class MocapiServerResourcesAutoConfiguration {
                       ReadResourceTemplateHandlers.build(
                           bm.bean(),
                           bm.method(),
-                          invokerFactory,
                           cs,
                           templateCustoms,
                           mcpAnnotationValueResolver::resolveStringValue);

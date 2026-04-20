@@ -19,29 +19,34 @@ import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
+import jakarta.validation.Validator;
 import org.jwcarman.methodical.jakarta.JakartaValidationInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
 /**
- * Attaches the methodical {@link JakartaValidationInterceptor} to every MCP handler via the
- * per-handler customizer SPI. Activates when a {@link JakartaValidationInterceptor} bean is present
- * — methodical's own autoconfiguration registers one whenever a {@code
- * jakarta.validation.Validator} is on the classpath (typically via {@code
- * spring-boot-starter-validation}).
+ * Attaches a methodical {@link JakartaValidationInterceptor} to every MCP handler via the
+ * per-handler customizer SPI. Activates when a {@link Validator} bean is present — typically
+ * supplied by Spring Boot's {@code spring-boot-starter-validation}.
  */
-@AutoConfiguration(
-    afterName = "org.jwcarman.methodical.autoconfigure.JakartaValidationAutoConfiguration")
+@AutoConfiguration
 @ConditionalOnClass(JakartaValidationInterceptor.class)
-@ConditionalOnBean(JakartaValidationInterceptor.class)
+@ConditionalOnBean(Validator.class)
 public class MocapiJakartaValidationAutoConfiguration {
 
   private static final Logger log =
       LoggerFactory.getLogger(MocapiJakartaValidationAutoConfiguration.class);
+
+  @Bean
+  @ConditionalOnMissingBean
+  public JakartaValidationInterceptor jakartaValidationInterceptor(Validator validator) {
+    return new JakartaValidationInterceptor(validator);
+  }
 
   @Bean
   public CallToolHandlerCustomizer jakartaValidationToolCustomizer(

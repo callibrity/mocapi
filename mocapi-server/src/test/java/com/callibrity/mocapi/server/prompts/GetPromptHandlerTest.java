@@ -41,25 +41,19 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
-import org.jwcarman.methodical.param.ParameterInfo;
-import org.jwcarman.methodical.param.ParameterResolver;
+import org.jwcarman.methodical.ParameterInfo;
+import org.jwcarman.methodical.ParameterResolver;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class GetPromptHandlerTest {
 
-  private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
   private final ConversionService conversionService = DefaultConversionService.getSharedInstance();
 
   private List<GetPromptHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpPrompt.class).stream()
-        .map(
-            m ->
-                GetPromptHandlers.build(
-                    target, m, invokerFactory, conversionService, List.of(), s -> s))
+        .map(m -> GetPromptHandlers.build(target, m, conversionService, List.of(), s -> s))
         .toList();
   }
 
@@ -191,8 +185,7 @@ class GetPromptHandlerTest {
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpPrompt.class).getFirst();
 
     var handler =
-        GetPromptHandlers.build(
-            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+        GetPromptHandlers.build(bean, method, conversionService, List.of(customizer), s -> s);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();
@@ -212,8 +205,7 @@ class GetPromptHandlerTest {
     GetPromptHandlerCustomizer customizer = config -> config.resolver(new CurrentTenantResolver());
 
     var handler =
-        GetPromptHandlers.build(
-            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+        GetPromptHandlers.build(bean, method, conversionService, List.of(customizer), s -> s);
     var result = handler.get(Map.of());
 
     var content = (TextContent) result.messages().getFirst().content();
@@ -234,8 +226,7 @@ class GetPromptHandlerTest {
                         : Optional.empty());
 
     var handler =
-        GetPromptHandlers.build(
-            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+        GetPromptHandlers.build(bean, method, conversionService, List.of(customizer), s -> s);
     var result = handler.get(Map.of("value", "from-args"));
 
     var content = (TextContent) result.messages().getFirst().content();
@@ -289,8 +280,7 @@ class GetPromptHandlerTest {
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpPrompt.class).getFirst();
     var handler =
-        GetPromptHandlers.build(
-            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+        GetPromptHandlers.build(bean, method, conversionService, List.of(customizer), s -> s);
 
     var args = Map.of("value", "hi");
     assertThatThrownBy(() -> handler.get(args))

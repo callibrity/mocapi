@@ -53,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.reflect.MethodUtils;
-import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.mockito.ArgumentCaptor;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -72,8 +71,7 @@ final class ComplianceTestSupport {
   // --- Dispatcher ---
 
   static JsonRpcDispatcher buildDispatcher(Object... services) {
-    var invokerFactory = new DefaultMethodInvokerFactory();
-    // Ripcurl 2.8 always puts JsonRpcParamsResolver at the head of the chain and the
+    // Ripcurl always puts JsonRpcParamsResolver at the head of the chain and the
     // Jackson3ParameterResolver at the tail; mocapi's session/transport resolvers slot in between
     // via the customizer SPI.
     List<JsonRpcMethodHandlerCustomizer> customizers =
@@ -86,8 +84,7 @@ final class ComplianceTestSupport {
     for (Object service : services) {
       for (var method :
           MethodUtils.getMethodsListWithAnnotation(service.getClass(), JsonRpcMethod.class)) {
-        handlers.add(
-            JsonRpcMethodHandlers.build(service, method, MAPPER, invokerFactory, customizers));
+        handlers.add(JsonRpcMethodHandlers.build(service, method, MAPPER, customizers));
       }
     }
     return new DefaultJsonRpcDispatcher(handlers);

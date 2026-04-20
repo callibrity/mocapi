@@ -37,17 +37,14 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
-import org.jwcarman.methodical.param.ParameterInfo;
-import org.jwcarman.methodical.param.ParameterResolver;
+import org.jwcarman.methodical.ParameterInfo;
+import org.jwcarman.methodical.ParameterResolver;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ReadResourceTemplateHandlerTest {
 
-  private final MethodInvokerFactory invokerFactory = new DefaultMethodInvokerFactory();
   private final ConversionService conversionService = DefaultConversionService.getSharedInstance();
 
   private List<ReadResourceTemplateHandler> createHandlers(Object target) {
@@ -55,8 +52,7 @@ class ReadResourceTemplateHandlerTest {
         .stream()
         .map(
             m ->
-                ReadResourceTemplateHandlers.build(
-                    target, m, invokerFactory, conversionService, List.of(), s -> s))
+                ReadResourceTemplateHandlers.build(target, m, conversionService, List.of(), s -> s))
         .toList();
   }
 
@@ -171,7 +167,7 @@ class ReadResourceTemplateHandlerTest {
 
     var handler =
         ReadResourceTemplateHandlers.build(
-            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+            bean, method, conversionService, List.of(customizer), s -> s);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();
@@ -202,7 +198,7 @@ class ReadResourceTemplateHandlerTest {
 
     var handler =
         ReadResourceTemplateHandlers.build(
-            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+            bean, method, conversionService, List.of(customizer), s -> s);
     var result = handler.read(Map.of("id", "7"));
 
     var content = (TextResourceContents) result.contents().getFirst();
@@ -225,7 +221,7 @@ class ReadResourceTemplateHandlerTest {
 
     var handler =
         ReadResourceTemplateHandlers.build(
-            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+            bean, method, conversionService, List.of(customizer), s -> s);
     var result = handler.read(Map.of("value", "from-vars"));
 
     var content = (TextResourceContents) result.contents().getFirst();
@@ -283,7 +279,7 @@ class ReadResourceTemplateHandlerTest {
             .getFirst();
     var handler =
         ReadResourceTemplateHandlers.build(
-            bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
+            bean, method, conversionService, List.of(customizer), s -> s);
 
     var args = Map.of("name", "World");
     assertThatThrownBy(() -> handler.read(args))
