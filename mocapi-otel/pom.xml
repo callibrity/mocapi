@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright © 2025 Callibrity, Inc. (contactus@callibrity.com)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.callibrity.mocapi</groupId>
+        <artifactId>mocapi-parent</artifactId>
+        <version>0.12.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>mocapi-otel</artifactId>
+    <name>Mocapi - OpenTelemetry</name>
+    <description>Drop-in OpenTelemetry tracing for mocapi. Source-less dependency bundle: pulls mocapi-o11y (MCP handler observations + JSON-RPC observation enrichment via the McpObservationFilter) and Spring Boot 4's spring-boot-starter-opentelemetry (OpenTelemetry SDK, Micrometer Observation → OTel tracing bridge, and the autoconfig that wires them together). Add this module plus the exporter for your backend — opentelemetry-exporter-otlp for Jaeger/Tempo/Grafana, spring-cloud-azure-starter-monitor for Azure App Insights, a Datadog agent shim, etc. — and traces flow: http → jsonrpc.server (with rpc.* / jsonrpc.* / mcp.method.name / mcp.session.id attrs) → mcp.handler.execution (with gen_ai.tool.name / gen_ai.prompt.name / mcp.resource.uri attrs).</description>
+
+    <!--
+        Same pattern as mocapi-jakarta-validation: source-less, just declares the transitive
+        dependency set that lights up the OTel tracing path. The observation code lives in
+        mocapi-o11y + ripcurl-o11y; the OTel SDK and the Observation-to-OTel bridge come from
+        spring-boot-starter-opentelemetry. No backend exporter is bundled — that's deployment-
+        specific. No default properties are set — defaults like management.otlp.metrics.export.enabled
+        depend on which exporter the user wires, and mocapi shouldn't prejudge that choice.
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-o11y</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-opentelemetry</artifactId>
+        </dependency>
+    </dependencies>
+</project>

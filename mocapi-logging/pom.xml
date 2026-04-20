@@ -41,6 +41,11 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.callibrity.ripcurl</groupId>
+            <artifactId>ripcurl-core</artifactId>
+            <version>${ripcurl.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.jwcarman.methodical</groupId>
             <artifactId>methodical-core</artifactId>
             <version>${methodical.version}</version>

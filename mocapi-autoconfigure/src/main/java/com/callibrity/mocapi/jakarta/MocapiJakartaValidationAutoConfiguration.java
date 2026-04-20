@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
 /**
@@ -43,14 +42,8 @@ public class MocapiJakartaValidationAutoConfiguration {
       LoggerFactory.getLogger(MocapiJakartaValidationAutoConfiguration.class);
 
   @Bean
-  @ConditionalOnMissingBean
-  public JakartaValidationInterceptor jakartaValidationInterceptor(Validator validator) {
-    return new JakartaValidationInterceptor(validator);
-  }
-
-  @Bean
-  public CallToolHandlerCustomizer jakartaValidationToolCustomizer(
-      JakartaValidationInterceptor interceptor) {
+  public CallToolHandlerCustomizer jakartaValidationToolCustomizer(Validator validator) {
+    JakartaValidationInterceptor interceptor = new JakartaValidationInterceptor(validator);
     return config -> {
       config.interceptor(interceptor);
       log.info(
@@ -61,8 +54,8 @@ public class MocapiJakartaValidationAutoConfiguration {
   }
 
   @Bean
-  public GetPromptHandlerCustomizer jakartaValidationPromptCustomizer(
-      JakartaValidationInterceptor interceptor) {
+  public GetPromptHandlerCustomizer jakartaValidationPromptCustomizer(Validator validator) {
+    JakartaValidationInterceptor interceptor = new JakartaValidationInterceptor(validator);
     return config -> {
       config.interceptor(interceptor);
       log.info(
@@ -73,8 +66,8 @@ public class MocapiJakartaValidationAutoConfiguration {
   }
 
   @Bean
-  public ReadResourceHandlerCustomizer jakartaValidationResourceCustomizer(
-      JakartaValidationInterceptor interceptor) {
+  public ReadResourceHandlerCustomizer jakartaValidationResourceCustomizer(Validator validator) {
+    JakartaValidationInterceptor interceptor = new JakartaValidationInterceptor(validator);
     return config -> {
       config.interceptor(interceptor);
       log.info(
@@ -86,7 +79,8 @@ public class MocapiJakartaValidationAutoConfiguration {
 
   @Bean
   public ReadResourceTemplateHandlerCustomizer jakartaValidationResourceTemplateCustomizer(
-      JakartaValidationInterceptor interceptor) {
+      Validator validator) {
+    JakartaValidationInterceptor interceptor = new JakartaValidationInterceptor(validator);
     return config -> {
       config.interceptor(interceptor);
       log.info(

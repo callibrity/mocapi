@@ -21,6 +21,13 @@ import com.callibrity.ripcurl.core.JsonRpcResponse;
 
 public interface McpServer {
 
+  /**
+   * The MCP protocol version this server build implements. Individual sessions may negotiate an
+   * older version at initialize time; this is what the server advertises as its native version in
+   * responses and protocol-version headers.
+   */
+  String PROTOCOL_VERSION = "2025-11-25";
+
   McpContextResult createContext(String sessionId, String protocolVersion);
 
   void handleCall(McpContext context, JsonRpcCall call, McpTransport transport);

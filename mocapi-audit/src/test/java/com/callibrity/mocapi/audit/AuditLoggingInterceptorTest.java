@@ -23,6 +23,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.handler.HandlerKind;
 import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -67,7 +68,7 @@ class AuditLoggingInterceptorTest {
 
   @Test
   void emits_success_event_with_base_fields() {
-    var interceptor = newInterceptor("tool", "weather", false);
+    var interceptor = newInterceptor(HandlerKind.TOOL, "weather", false);
     interceptor.intercept(invocation(Map.of("city", "Cincinnati"), () -> "ok"));
 
     assertThat(appender.list).hasSize(1);
@@ -89,7 +90,7 @@ class AuditLoggingInterceptorTest {
 
   @Test
   void emits_session_id_when_session_is_bound() {
-    var interceptor = newInterceptor("tool", "weather", false);
+    var interceptor = newInterceptor(HandlerKind.TOOL, "weather", false);
     var session = new McpSession("session-42", "2025-11-25", null, null);
     ScopedValue.where(McpSession.CURRENT, session)
         .run(() -> interceptor.intercept(invocation(Map.of(), () -> "ok")));
@@ -100,7 +101,7 @@ class AuditLoggingInterceptorTest {
 
   @Test
   void classifies_forbidden() {
-    var interceptor = newInterceptor("tool", "wipe", false);
+    var interceptor = newInterceptor(HandlerKind.TOOL, "wipe", false);
     var invocation =
         invocation(
             Map.of(),
@@ -118,7 +119,7 @@ class AuditLoggingInterceptorTest {
 
   @Test
   void classifies_invalid_params() {
-    var interceptor = newInterceptor("tool", "weather", false);
+    var interceptor = newInterceptor(HandlerKind.TOOL, "weather", false);
     var invocation =
         invocation(
             Map.of(),
@@ -134,7 +135,7 @@ class AuditLoggingInterceptorTest {
 
   @Test
   void classifies_error_for_arbitrary_runtime_exception() {
-    var interceptor = newInterceptor("tool", "weather", false);
+    var interceptor = newInterceptor(HandlerKind.TOOL, "weather", false);
     var invocation =
         invocation(
             Map.of(),
@@ -152,7 +153,7 @@ class AuditLoggingInterceptorTest {
 
   @Test
   void emits_arguments_hash_only_when_opted_in() {
-    var interceptor = newInterceptor("tool", "weather", true);
+    var interceptor = newInterceptor(HandlerKind.TOOL, "weather", true);
     interceptor.intercept(invocation(Map.of("city", "Cincinnati"), () -> "ok"));
 
     Map<String, Object> kv = keyValues(appender.list.getFirst());
@@ -162,7 +163,7 @@ class AuditLoggingInterceptorTest {
 
   @Test
   void arguments_hash_is_stable_across_key_order() {
-    var interceptor = newInterceptor("tool", "weather", true);
+    var interceptor = newInterceptor(HandlerKind.TOOL, "weather", true);
     interceptor.intercept(
         invocation(MAPPER.createObjectNode().put("a", 1).put("b", 2).put("c", 3), () -> "ok"));
     interceptor.intercept(
@@ -175,7 +176,7 @@ class AuditLoggingInterceptorTest {
 
   @Test
   void arguments_hash_differs_for_different_payloads() {
-    var interceptor = newInterceptor("tool", "weather", true);
+    var interceptor = newInterceptor(HandlerKind.TOOL, "weather", true);
     interceptor.intercept(invocation(Map.of("city", "Cincinnati"), () -> "ok"));
     interceptor.intercept(invocation(Map.of("city", "Columbus"), () -> "ok"));
 
@@ -186,7 +187,7 @@ class AuditLoggingInterceptorTest {
 
   @Test
   void arguments_hash_includes_array_and_null_values() {
-    var interceptor = newInterceptor("tool", "weather", true);
+    var interceptor = newInterceptor(HandlerKind.TOOL, "weather", true);
     var node = MAPPER.createObjectNode();
     node.putArray("tags").add("a").add("b");
     node.putNull("note");
@@ -208,7 +209,7 @@ class AuditLoggingInterceptorTest {
           }
         };
     var interceptor =
-        new AuditLoggingInterceptor("tool", "weather", () -> "alice", true, boomMapper);
+        new AuditLoggingInterceptor(HandlerKind.TOOL, "weather", () -> "alice", true, boomMapper);
 
     interceptor.intercept(invocation(Map.of("city", "Cincinnati"), () -> "ok"));
 
@@ -222,7 +223,8 @@ class AuditLoggingInterceptorTest {
         () -> {
           throw new RuntimeException("provider exploded");
         };
-    var interceptor = new AuditLoggingInterceptor("tool", "weather", throwing, false, MAPPER);
+    var interceptor =
+        new AuditLoggingInterceptor(HandlerKind.TOOL, "weather", throwing, false, MAPPER);
     interceptor.intercept(invocation(Map.of(), () -> "ok"));
 
     Map<String, Object> kv = keyValues(appender.list.getFirst());
@@ -230,7 +232,7 @@ class AuditLoggingInterceptorTest {
   }
 
   private static AuditLoggingInterceptor newInterceptor(
-      String kind, String name, boolean hashArguments) {
+      HandlerKind kind, String name, boolean hashArguments) {
     return new AuditLoggingInterceptor(kind, name, () -> "alice", hashArguments, MAPPER);
   }
 

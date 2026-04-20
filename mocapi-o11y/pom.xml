@@ -36,6 +36,11 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.callibrity.ripcurl</groupId>
+            <artifactId>ripcurl-o11y</artifactId>
+            <version>${ripcurl.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.jwcarman.methodical</groupId>
             <artifactId>methodical-core</artifactId>
             <version>${methodical.version}</version>
@@ -43,6 +48,10 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-observation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-observation</artifactId>
         </dependency>
 
         <dependency>

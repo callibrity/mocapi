@@ -21,8 +21,11 @@ package com.callibrity.mocapi.logging;
  */
 public final class McpMdcKeys {
 
-  /** Current MCP session id; only set when a session is bound to the invocation. */
+  /** Current MCP session id; set when a session is bound to the invocation. */
   public static final String SESSION = "mcp.session";
+
+  /** MCP protocol version negotiated for the current session; set when a session is bound. */
+  public static final String PROTOCOL_VERSION = "mcp.protocol.version";
 
   /**
    * Handler kind — one of {@code tool} / {@code prompt} / {@code resource} / {@code
@@ -34,10 +37,17 @@ public final class McpMdcKeys {
   public static final String HANDLER_NAME = "mcp.handler.name";
 
   /**
-   * JSON-RPC request id. Reserved; not yet populated. A later spec wires a per-invocation scoped
-   * value that the interceptor can read to set this key.
+   * Simple name of the (AOP-unwrapped) Java class hosting the handler method. Useful for "jump to
+   * source" correlation from log output.
    */
-  public static final String REQUEST = "mcp.request";
+  public static final String HANDLER_CLASS = "mcp.handler.class";
+
+  /**
+   * JSON-RPC request id for the current call, read from the ripcurl dispatcher's bound {@code
+   * CURRENT_REQUEST} scoped value. Set only for JSON-RPC calls (not notifications, which carry no
+   * id) and only when a request is currently in flight.
+   */
+  public static final String REQUEST_ID = "mcp.request.id";
 
   private McpMdcKeys() {}
 }

@@ -18,6 +18,7 @@ package com.callibrity.mocapi.logging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.server.handler.HandlerKind;
 import com.callibrity.mocapi.server.session.McpSession;
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -39,7 +40,7 @@ class McpMdcInterceptorTest {
 
   @Test
   void sets_configured_kind_and_name_for_the_duration_of_proceed() throws Exception {
-    var interceptor = new McpMdcInterceptor("tool", "my-tool");
+    var interceptor = new McpMdcInterceptor(HandlerKind.TOOL, "my-tool", "Fixtures");
     var captured = invokeCapturingMdc(interceptor);
 
     assertThat(captured.get())
@@ -51,7 +52,7 @@ class McpMdcInterceptorTest {
 
   @Test
   void sets_session_key_when_session_is_bound() {
-    var interceptor = new McpMdcInterceptor("tool", "my-tool");
+    var interceptor = new McpMdcInterceptor(HandlerKind.TOOL, "my-tool", "Fixtures");
     var session = new McpSession("session-42", "2025-11-25", null, null);
     AtomicReference<String> seen = new AtomicReference<>();
 
@@ -80,7 +81,7 @@ class McpMdcInterceptorTest {
 
   @Test
   void omits_session_key_when_session_is_not_bound() {
-    var interceptor = new McpMdcInterceptor("tool", "my-tool");
+    var interceptor = new McpMdcInterceptor(HandlerKind.TOOL, "my-tool", "Fixtures");
     var captured = invokeCapturingMdc(interceptor);
 
     assertThat(captured.get().containsKey(McpMdcKeys.SESSION)).isFalse();
@@ -88,7 +89,7 @@ class McpMdcInterceptorTest {
 
   @Test
   void removes_keys_even_when_proceed_throws() throws Exception {
-    var interceptor = new McpMdcInterceptor("tool", "my-tool");
+    var interceptor = new McpMdcInterceptor(HandlerKind.TOOL, "my-tool", "Fixtures");
     var invocation =
         MethodInvocation.of(
             dummyMethod(),
@@ -109,7 +110,7 @@ class McpMdcInterceptorTest {
   @Test
   void preserves_pre_existing_mdc_entries() {
     MDC.put("upstream.trace", "abc-123");
-    var interceptor = new McpMdcInterceptor("tool", "my-tool");
+    var interceptor = new McpMdcInterceptor(HandlerKind.TOOL, "my-tool", "Fixtures");
 
     var captured = invokeCapturingMdc(interceptor);
 
@@ -119,7 +120,7 @@ class McpMdcInterceptorTest {
 
   @Test
   void omits_name_key_when_handler_name_is_blank() {
-    var interceptor = new McpMdcInterceptor("tool", "");
+    var interceptor = new McpMdcInterceptor(HandlerKind.TOOL, "", "Fixtures");
     var captured = invokeCapturingMdc(interceptor);
 
     assertThat(captured.get()).containsEntry(McpMdcKeys.HANDLER_KIND, "tool");
@@ -128,7 +129,7 @@ class McpMdcInterceptorTest {
 
   @Test
   void omits_name_key_when_handler_name_is_null() {
-    var interceptor = new McpMdcInterceptor("tool", null);
+    var interceptor = new McpMdcInterceptor(HandlerKind.TOOL, null, "Fixtures");
     var captured = invokeCapturingMdc(interceptor);
 
     assertThat(captured.get()).containsEntry(McpMdcKeys.HANDLER_KIND, "tool");
@@ -137,7 +138,7 @@ class McpMdcInterceptorTest {
 
   @Test
   void resource_kind_and_uri_render_as_handler_name() {
-    var interceptor = new McpMdcInterceptor("resource", "mem://hello");
+    var interceptor = new McpMdcInterceptor(HandlerKind.RESOURCE, "mem://hello", "Fixtures");
     var captured = invokeCapturingMdc(interceptor);
 
     assertThat(captured.get())
@@ -147,7 +148,8 @@ class McpMdcInterceptorTest {
 
   @Test
   void resource_template_kind_and_uri_template_render_as_handler_name() {
-    var interceptor = new McpMdcInterceptor("resource_template", "mem://item/{id}");
+    var interceptor =
+        new McpMdcInterceptor(HandlerKind.RESOURCE_TEMPLATE, "mem://item/{id}", "Fixtures");
     var captured = invokeCapturingMdc(interceptor);
 
     assertThat(captured.get())

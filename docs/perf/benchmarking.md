@@ -39,42 +39,24 @@ they don't need. Add these to
 run only**, then back them out when you're done:
 
 ```xml
-<!-- observation interceptors + customizers -->
+<!-- mocapi OTel bundle (pulls mocapi-o11y + spring-boot-starter-opentelemetry transitively) -->
 <dependency>
     <groupId>com.callibrity.mocapi</groupId>
-    <artifactId>mocapi-o11y</artifactId>
+    <artifactId>mocapi-otel</artifactId>
     <version>${project.version}</version>
 </dependency>
 
-<!-- metrics + actuator infrastructure -->
+<!-- OTLP exporter — Jaeger's OTLP receiver is what the baseline profile uses -->
 <dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-actuator</artifactId>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-exporter-otlp</artifactId>
 </dependency>
+
+<!-- /actuator/mcp + metrics endpoints (pulls spring-boot-starter-actuator transitively) -->
 <dependency>
     <groupId>com.callibrity.mocapi</groupId>
     <artifactId>mocapi-actuator</artifactId>
     <version>${project.version}</version>
-</dependency>
-
-<!-- tracing bridge + Spring Boot 4 OTel SDK autoconfig (3 artifacts) -->
-<dependency>
-    <groupId>io.micrometer</groupId>
-    <artifactId>micrometer-tracing-bridge-otel</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-micrometer-tracing-opentelemetry</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-opentelemetry</artifactId>
-</dependency>
-
-<!-- OTLP exporter to ship spans to Jaeger -->
-<dependency>
-    <groupId>io.opentelemetry</groupId>
-    <artifactId>opentelemetry-exporter-otlp</artifactId>
 </dependency>
 ```
 
@@ -87,9 +69,9 @@ management.endpoints.web.exposure.include=*
 management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
 management.tracing.sampling.probability=1.0
 
-# Disable OTLP metrics export — Jaeger only accepts traces, and without
-# this the OtlpMeterRegistry logs 404s every minute. Metrics stay
-# readable via /actuator/metrics.
+# Jaeger accepts OTLP traces at /v1/traces but rejects OTLP metrics at /v1/metrics.
+# mocapi-otel intentionally does not default this off (backends like Grafana Cloud accept
+# both), so set it explicitly for Jaeger-only setups.
 management.otlp.metrics.export.enabled=false
 ```
 
@@ -230,7 +212,7 @@ echo "GCs: $(jfr print --events jdk.GarbageCollection /tmp/mocapi-soak.jfr | gre
 Open `http://localhost:16686`, filter service `mocapi-example-in-memory`,
 set "Min Duration" to 100ms, limit 50. Any traces beyond your
 expected p99 are candidates for investigation. Drill into the
-waterfall — the child `mcp.tool` span vs parent `http post /mcp`
+waterfall — the child `mcp.server.operation` span vs parent `http post /mcp`
 span should be co-located with a tiny gap; if the gap is large,
 investigation belongs in the transport layer.
 
@@ -259,6 +241,14 @@ first entry is below as a reference point.
 | GC rate | 2.13 /sec |
 | Our code CPU share | 5.2 % |
 | Top CPU in our code | `McpObservationInterceptor.intercept` (31), `InputSchemaValidatingInterceptor.intercept` (20), `toCallToolResult` (12) |
+
+Note: the above baseline was captured with the pre-`mcp.server.operation`
+observation design (four handler-layer observations: `mcp.tool` / `mcp.prompt` /
+`mcp.resource` / `mcp.resource_template`). The current design uses a single
+JSON-RPC-layer `mcp.server.operation` observation with OTel MCP semconv
+attributes; top CPU method is now
+`McpOperationObservationInterceptor.intercept`. JFR CPU distribution may
+shift slightly on re-capture — that's expected, not a regression.
 
 ### CPU package distribution (what's normal)
 
@@ -312,8 +302,12 @@ changed workload shape.
   reason.
 - **OTLP metrics exporter 404s against Jaeger.** Jaeger's
   all-in-one accepts traces at `/v1/traces` but not metrics at
-  `/v1/metrics`. Set
-  `management.otlp.metrics.export.enabled=false` in dev properties.
+  `/v1/metrics`. `mocapi-otel` does **not** default
+  `management.otlp.metrics.export.enabled=false` — Grafana Cloud
+  and similar backends accept OTLP metrics fine, so silently
+  defaulting it off would break them. Set it explicitly in your
+  `application.properties` when targeting Jaeger (the baseline
+  properties snippet above includes it).
 - **Stale `~/.m2` pom resolution** after changing a mocapi
   version. If you bump a dep version in the reactor,
   `mvn install -DskipTests` on the affected modules before running

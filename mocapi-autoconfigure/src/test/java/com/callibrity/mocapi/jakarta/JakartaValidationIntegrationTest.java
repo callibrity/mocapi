@@ -36,7 +36,6 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.jakarta.JakartaValidationInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -96,7 +95,6 @@ class JakartaValidationIntegrationTest {
     @Test
     void all_three_legs_of_the_validation_chain_are_wired_up() {
       assertThat(context.getBeansOfType(Validator.class)).isNotEmpty();
-      assertThat(context.getBeansOfType(JakartaValidationInterceptor.class)).isNotEmpty();
       assertThat(context.getBeansOfType(ConstraintViolationExceptionTranslator.class)).isNotEmpty();
     }
 

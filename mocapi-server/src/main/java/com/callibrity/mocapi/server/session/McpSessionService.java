@@ -22,6 +22,7 @@ import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.McpEvent;
+import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
@@ -63,8 +64,7 @@ public class McpSessionService {
     create(session);
     McpTransport transport = McpTransport.CURRENT.get();
     transport.emit(new McpEvent.SessionInitialized(sessionId, params.protocolVersion()));
-    return new InitializeResult(
-        InitializeResult.PROTOCOL_VERSION, capabilities, serverInfo, instructions);
+    return new InitializeResult(McpServer.PROTOCOL_VERSION, capabilities, serverInfo, instructions);
   }
 
   /** Saves the session to the store and returns the session ID. */

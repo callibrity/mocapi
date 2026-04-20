@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.logging;
 
+import com.callibrity.mocapi.server.handler.HandlerKind;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
@@ -24,6 +25,7 @@ import org.jwcarman.methodical.MethodInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
@@ -32,7 +34,8 @@ import org.springframework.core.annotation.Order;
 /**
  * Autoconfiguration that attaches an {@link McpMdcInterceptor} to every MCP handler via the
  * per-handler customizer SPI. One customizer bean per handler kind bakes the descriptor's
- * name/uri/uriTemplate into the interceptor at build time, so the hot path does no reflection.
+ * name/uri/uriTemplate plus the bean's simple class name into the interceptor at build time, so the
+ * hot path does no reflection.
  */
 @AutoConfiguration
 @ConditionalOnClass({McpMdcInterceptor.class, MDC.class, MethodInterceptor.class, McpSession.class})
@@ -45,7 +48,8 @@ public class MocapiLoggingAutoConfiguration {
   public CallToolHandlerCustomizer mcpMdcToolCustomizer() {
     return config -> {
       var name = config.descriptor().name();
-      config.interceptor(new McpMdcInterceptor("tool", name));
+      var className = targetClassSimpleName(config.bean());
+      config.interceptor(new McpMdcInterceptor(HandlerKind.TOOL, name, className));
       log.info(
           "Attached {} interceptor to tool \"{}\"", McpMdcInterceptor.class.getSimpleName(), name);
     };
@@ -56,7 +60,8 @@ public class MocapiLoggingAutoConfiguration {
   public GetPromptHandlerCustomizer mcpMdcPromptCustomizer() {
     return config -> {
       var name = config.descriptor().name();
-      config.interceptor(new McpMdcInterceptor("prompt", name));
+      var className = targetClassSimpleName(config.bean());
+      config.interceptor(new McpMdcInterceptor(HandlerKind.PROMPT, name, className));
       log.info(
           "Attached {} interceptor to prompt \"{}\"",
           McpMdcInterceptor.class.getSimpleName(),
@@ -69,7 +74,8 @@ public class MocapiLoggingAutoConfiguration {
   public ReadResourceHandlerCustomizer mcpMdcResourceCustomizer() {
     return config -> {
       var uri = config.descriptor().uri();
-      config.interceptor(new McpMdcInterceptor("resource", uri));
+      var className = targetClassSimpleName(config.bean());
+      config.interceptor(new McpMdcInterceptor(HandlerKind.RESOURCE, uri, className));
       log.info(
           "Attached {} interceptor to resource \"{}\"",
           McpMdcInterceptor.class.getSimpleName(),
@@ -82,11 +88,17 @@ public class MocapiLoggingAutoConfiguration {
   public ReadResourceTemplateHandlerCustomizer mcpMdcResourceTemplateCustomizer() {
     return config -> {
       var uriTemplate = config.descriptor().uriTemplate();
-      config.interceptor(new McpMdcInterceptor("resource_template", uriTemplate));
+      var className = targetClassSimpleName(config.bean());
+      config.interceptor(
+          new McpMdcInterceptor(HandlerKind.RESOURCE_TEMPLATE, uriTemplate, className));
       log.info(
           "Attached {} interceptor to resource_template \"{}\"",
           McpMdcInterceptor.class.getSimpleName(),
           uriTemplate);
     };
+  }
+
+  private static String targetClassSimpleName(Object bean) {
+    return AopUtils.getTargetClass(bean).getSimpleName();
   }
 }

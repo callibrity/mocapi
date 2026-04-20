@@ -33,21 +33,20 @@ import jakarta.validation.executable.ExecutableValidator;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.jakarta.JakartaValidationInterceptor;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MocapiJakartaValidationAttachmentLogTest {
 
   private final MocapiJakartaValidationAutoConfiguration autoConfig =
       new MocapiJakartaValidationAutoConfiguration();
-  private final JakartaValidationInterceptor interceptor = newInterceptor();
+  private final Validator validator = newValidator();
 
   @Test
   void tool_customizer_logs_attachment() {
     var config = new StubToolConfig(new Tool("get-weather", null, null, null, null));
 
     try (var captor = LogCaptor.forClass(MocapiJakartaValidationAutoConfiguration.class)) {
-      autoConfig.jakartaValidationToolCustomizer(interceptor).customize(config);
+      autoConfig.jakartaValidationToolCustomizer(validator).customize(config);
       assertThat(captor.formattedMessages())
           .containsExactly(
               "Attached JakartaValidationInterceptor interceptor to tool \"get-weather\"");
@@ -59,7 +58,7 @@ class MocapiJakartaValidationAttachmentLogTest {
     var config = new StubPromptConfig(new Prompt("summarize", null, null, null, null));
 
     try (var captor = LogCaptor.forClass(MocapiJakartaValidationAutoConfiguration.class)) {
-      autoConfig.jakartaValidationPromptCustomizer(interceptor).customize(config);
+      autoConfig.jakartaValidationPromptCustomizer(validator).customize(config);
       assertThat(captor.formattedMessages())
           .containsExactly(
               "Attached JakartaValidationInterceptor interceptor to prompt \"summarize\"");
@@ -71,7 +70,7 @@ class MocapiJakartaValidationAttachmentLogTest {
     var config = new StubResourceConfig(new Resource("mem://hello", "hello", null, null));
 
     try (var captor = LogCaptor.forClass(MocapiJakartaValidationAutoConfiguration.class)) {
-      autoConfig.jakartaValidationResourceCustomizer(interceptor).customize(config);
+      autoConfig.jakartaValidationResourceCustomizer(validator).customize(config);
       assertThat(captor.formattedMessages())
           .containsExactly(
               "Attached JakartaValidationInterceptor interceptor to resource \"mem://hello\"");
@@ -84,16 +83,16 @@ class MocapiJakartaValidationAttachmentLogTest {
         new StubResourceTemplateConfig(new ResourceTemplate("mem://item/{id}", "item", null, null));
 
     try (var captor = LogCaptor.forClass(MocapiJakartaValidationAutoConfiguration.class)) {
-      autoConfig.jakartaValidationResourceTemplateCustomizer(interceptor).customize(config);
+      autoConfig.jakartaValidationResourceTemplateCustomizer(validator).customize(config);
       assertThat(captor.formattedMessages())
           .containsExactly(
               "Attached JakartaValidationInterceptor interceptor to resource_template \"mem://item/{id}\"");
     }
   }
 
-  private static JakartaValidationInterceptor newInterceptor() {
-    Validator validator = mock(Validator.class);
-    when(validator.forExecutables()).thenReturn(mock(ExecutableValidator.class));
-    return new JakartaValidationInterceptor(validator);
+  private static Validator newValidator() {
+    Validator v = mock(Validator.class);
+    when(v.forExecutables()).thenReturn(mock(ExecutableValidator.class));
+    return v;
   }
 }

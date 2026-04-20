@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.audit;
 
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.handler.HandlerKind;
 import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.util.Hashes;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
@@ -54,14 +55,14 @@ public final class AuditLoggingInterceptor implements MethodInterceptor<Object> 
 
   private final Logger log = LoggerFactory.getLogger("mocapi.audit");
 
-  private final String handlerKind;
+  private final HandlerKind handlerKind;
   private final String handlerName;
   private final AuditCallerIdentityProvider callerProvider;
   private final boolean hashArguments;
   private final ObjectMapper canonicalMapper;
 
   public AuditLoggingInterceptor(
-      String handlerKind,
+      HandlerKind handlerKind,
       String handlerName,
       AuditCallerIdentityProvider callerProvider,
       boolean hashArguments,
@@ -100,7 +101,7 @@ public final class AuditLoggingInterceptor implements MethodInterceptor<Object> 
           log.atInfo()
               .addKeyValue(AuditFieldKeys.CALLER, caller)
               .addKeyValue(AuditFieldKeys.SESSION_ID, sessionId)
-              .addKeyValue(AuditFieldKeys.HANDLER_KIND, handlerKind)
+              .addKeyValue(AuditFieldKeys.HANDLER_KIND, handlerKind.tag())
               .addKeyValue(AuditFieldKeys.HANDLER_NAME, handlerName)
               .addKeyValue(AuditFieldKeys.OUTCOME, outcome)
               .addKeyValue(AuditFieldKeys.DURATION_MS, durationMs);

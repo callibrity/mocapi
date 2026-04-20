@@ -20,7 +20,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.callibrity.mocapi.model.Implementation;
-import com.callibrity.mocapi.model.InitializeResult;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.DefaultMcpServer;
@@ -61,7 +60,7 @@ import tools.jackson.databind.node.JsonNodeFactory;
 /** Shared test infrastructure for MCP compliance tests. */
 final class ComplianceTestSupport {
 
-  static final String PROTOCOL_VERSION = InitializeResult.PROTOCOL_VERSION;
+  static final String PROTOCOL_VERSION = McpServer.PROTOCOL_VERSION;
   static final ObjectMapper MAPPER = new ObjectMapper();
 
   private static final AtomicInteger ID_COUNTER = new AtomicInteger(1);

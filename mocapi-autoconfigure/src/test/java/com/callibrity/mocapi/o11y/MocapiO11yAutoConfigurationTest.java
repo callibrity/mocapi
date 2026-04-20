@@ -38,11 +38,12 @@ class MocapiO11yAutoConfigurationTest {
           .withConfiguration(AutoConfigurations.of(MocapiO11yAutoConfiguration.class));
 
   @Test
-  void customizers_register_when_observation_registry_bean_is_present() {
+  void registers_filter_and_four_handler_customizers_when_observation_registry_is_present() {
     runner
         .withUserConfiguration(ObservationRegistryConfig.class)
         .run(
             context -> {
+              assertThat(context).hasSingleBean(McpObservationFilter.class);
               assertThat(context).hasSingleBean(CallToolHandlerCustomizer.class);
               assertThat(context).hasSingleBean(GetPromptHandlerCustomizer.class);
               assertThat(context).hasSingleBean(ReadResourceHandlerCustomizer.class);
@@ -51,13 +52,11 @@ class MocapiO11yAutoConfigurationTest {
   }
 
   @Test
-  void customizers_absent_when_no_observation_registry_bean() {
+  void inactive_when_no_observation_registry_bean_present() {
     runner.run(
         context -> {
+          assertThat(context).doesNotHaveBean(McpObservationFilter.class);
           assertThat(context).doesNotHaveBean(CallToolHandlerCustomizer.class);
-          assertThat(context).doesNotHaveBean(GetPromptHandlerCustomizer.class);
-          assertThat(context).doesNotHaveBean(ReadResourceHandlerCustomizer.class);
-          assertThat(context).doesNotHaveBean(ReadResourceTemplateHandlerCustomizer.class);
         });
   }
 

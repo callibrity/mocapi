@@ -6,6 +6,109 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- **Two-layer OpenTelemetry trace hierarchy with MCP / GenAI / JSON-RPC
+  semantic conventions.** Traces now carry two nested spans per handler
+  invocation:
+  - **Outer `jsonrpc.server`** — emitted by ripcurl's new `ripcurl-o11y`
+    module via a per-`@JsonRpcMethod` interceptor. Carries OpenTelemetry
+    RPC / JSON-RPC semconv attrs: `rpc.system.name=jsonrpc`,
+    `jsonrpc.protocol.version=2.0`, `jsonrpc.request.id` (from ripcurl's new
+    `JsonRpcDispatcher.CURRENT_REQUEST` `ScopedValue`), `rpc.response.status_code`
+    (`"OK"` on success, numeric JSON-RPC error code on failure), `error.type`.
+    mocapi-o11y enriches each one via a new `McpObservationFilter` that adds
+    `mcp.method.name`, `mcp.session.id`, `mcp.protocol.version` from the bound
+    `McpSession` / request envelope.
+  - **Inner `mcp.handler.execution`** — emitted by mocapi-o11y's new
+    `McpHandlerObservationInterceptor` for every tool / prompt / resource /
+    resource-template invocation. Carries `mcp.handler.kind` and the
+    kind-specific GenAI / MCP attrs: `gen_ai.operation.name=execute_tool` +
+    `gen_ai.tool.name` for tools; `gen_ai.prompt.name` for prompts;
+    `mcp.resource.uri` for resources. Only fires for methods that route
+    through a mocapi handler — dispatch-only methods (`tools/list`,
+    `initialize`, notifications) emit only the outer span.
+
+  Attributes align with the OTel MCP semconv
+  (https://opentelemetry.io/docs/specs/semconv/gen-ai/mcp/) and JSON-RPC
+  semconv (https://opentelemetry.io/docs/specs/semconv/rpc/json-rpc/).
+  Known gaps: span kind is the default `INTERNAL` on both spans rather than
+  `SERVER` (the ambient HTTP span already carries `SERVER` via Spring MVC);
+  `tool_error` for `CallToolResult.isError=true` is not yet emitted.
+- **`mocapi-otel` module.** Source-less dependency bundle pulling `mocapi-o11y`
+  plus `spring-boot-starter-opentelemetry` (Spring Boot 4's OTel SDK +
+  Micrometer Observation → OTel tracing bridge + autoconfig). Add this module
+  plus the exporter for your target backend — `opentelemetry-exporter-otlp`
+  for Jaeger / Tempo / Grafana, `spring-cloud-azure-starter-monitor` for
+  Azure App Insights, Datadog, etc. — and traces flow end-to-end. No default
+  properties are set: choices like `management.otlp.metrics.export.enabled`
+  are backend-specific and left to the consumer. Same source-less pattern as
+  `mocapi-jakarta-validation`. See [docs/otel.md](docs/otel.md).
+- **`HandlerKind` enum** (`com.callibrity.mocapi.server.handler.HandlerKind`).
+  Replaces the scattered string constants `"tool"` / `"prompt"` / `"resource"`
+  / `"resource_template"` used across mocapi-audit, mocapi-logging, and
+  mocapi-o11y as MDC values, metric labels, and span tag values. Lives in
+  `mocapi-server` (not `mocapi-api`) since it's an internal classification
+  consumed by cross-cutting feature modules, not something users writing
+  `@McpTool` / `@McpPrompt` / `@McpResource` / `@McpResourceTemplate` reference
+  in their code. Each enum value has a `tag()` method returning the stable
+  string form.
+
+### Changed
+
+- **Feature modules are now self-sufficient.** Adding a `mocapi-*` feature
+  module to a Spring Boot app is sufficient to activate the feature — no more
+  "also add `spring-boot-starter-X`" footnotes. Specifically:
+  - `mocapi-o11y` now transitively pulls `spring-boot-micrometer-observation`,
+    so an `ObservationRegistry` bean is always present when mocapi-o11y is on
+    the classpath (previously the autoconfig silently no-op'd unless the user
+    separately added Actuator or a tracing starter).
+  - `mocapi-actuator` now depends on `spring-boot-starter-actuator` (the
+    starter) instead of just `spring-boot-actuator` (the library), so the
+    `/actuator/mcp` endpoint actually serves over HTTP without additional
+    wiring.
+  - `mocapi-oauth2` drops its unused `spring-boot-starter-validation`
+    dependency (`@Validated` on `MocapiOAuth2Properties` had no constraint
+    annotations — dead weight).
+- **`MocapiJakartaValidationAutoConfiguration` no longer declares a shared
+  `JakartaValidationInterceptor` `@Bean`.** The interceptor is stateless; each
+  per-handler customizer now takes `Validator` directly and constructs a
+  local `JakartaValidationInterceptor` inline. One less bean in the context,
+  nothing functionally changes.
+
+### Breaking changes
+
+- **mocapi-o11y / mocapi-audit / mocapi-logging interceptor constructors take
+  `HandlerKind` instead of `String kind`.** Users constructing
+  `McpHandlerObservationInterceptor`, `McpMdcInterceptor`, or
+  `AuditLoggingInterceptor` directly (rare — normally attached via the
+  per-kind customizer beans in the matching autoconfig) must pass a
+  `HandlerKind` enum value (`HandlerKind.TOOL`, etc.) instead of the raw
+  string. Emitted tag / MDC / audit-field string values are unchanged.
+- **`McpObservationInterceptor` removed.** Replaced by the split
+  `JsonRpcObservationInterceptor` in ripcurl-o11y (JSON-RPC layer) plus
+  `McpHandlerObservationInterceptor` and `McpObservationFilter` in
+  mocapi-o11y (MCP layer). Direct consumers (rare) migrate to the new
+  types.
+- **Old `HandlerKinds` holder class removed from `mocapi-api`.** Replaced by
+  the `HandlerKind` enum in `mocapi-server`. No known user-facing callers
+  since `HandlerKinds` was an internal helper.
+
+### Requirements
+
+- **ripcurl `2.11.0`.** Adds:
+  - `JsonRpcDispatcher.CURRENT_REQUEST` `ScopedValue` bound by the dispatcher
+    during each call / notification — makes the full envelope (method, id,
+    version, params) readable from per-method interceptors and downstream
+    code.
+  - New `ripcurl-o11y` module with `JsonRpcObservationInterceptor` +
+    `RipCurlObservationAutoConfiguration`. Emits `jsonrpc.server`
+    observations carrying OTel JSON-RPC semconv attrs. Activates when
+    Micrometer's `ObservationRegistry` is present on the classpath.
+  mocapi-o11y's autoconfig now composes on top of ripcurl-o11y's observation:
+  the outer JSON-RPC span comes from ripcurl, mocapi adds MCP-specific
+  enrichment and the inner handler-layer span.
+
 ### Fixed
 
 - **GraalVM native-image AOT failure caused by static-final SLF4J

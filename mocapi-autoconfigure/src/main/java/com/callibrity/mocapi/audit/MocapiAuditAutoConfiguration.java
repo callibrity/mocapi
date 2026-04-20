@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.audit;
 
+import com.callibrity.mocapi.server.handler.HandlerKind;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
@@ -61,7 +62,7 @@ public class MocapiAuditAutoConfiguration {
       var name = config.descriptor().name();
       config.interceptor(
           new AuditLoggingInterceptor(
-              "tool", name, callerProvider, properties.isHashArguments(), objectMapper));
+              HandlerKind.TOOL, name, callerProvider, properties.isHashArguments(), objectMapper));
       log.info(
           "Attached {} interceptor to tool \"{}\"",
           AuditLoggingInterceptor.class.getSimpleName(),
@@ -79,7 +80,11 @@ public class MocapiAuditAutoConfiguration {
       var name = config.descriptor().name();
       config.interceptor(
           new AuditLoggingInterceptor(
-              "prompt", name, callerProvider, properties.isHashArguments(), objectMapper));
+              HandlerKind.PROMPT,
+              name,
+              callerProvider,
+              properties.isHashArguments(),
+              objectMapper));
       log.info(
           "Attached {} interceptor to prompt \"{}\"",
           AuditLoggingInterceptor.class.getSimpleName(),
@@ -97,7 +102,11 @@ public class MocapiAuditAutoConfiguration {
       var uri = config.descriptor().uri();
       config.interceptor(
           new AuditLoggingInterceptor(
-              "resource", uri, callerProvider, properties.isHashArguments(), objectMapper));
+              HandlerKind.RESOURCE,
+              uri,
+              callerProvider,
+              properties.isHashArguments(),
+              objectMapper));
       log.info(
           "Attached {} interceptor to resource \"{}\"",
           AuditLoggingInterceptor.class.getSimpleName(),
@@ -115,7 +124,7 @@ public class MocapiAuditAutoConfiguration {
       var uriTemplate = config.descriptor().uriTemplate();
       config.interceptor(
           new AuditLoggingInterceptor(
-              "resource_template",
+              HandlerKind.RESOURCE_TEMPLATE,
               uriTemplate,
               callerProvider,
               properties.isHashArguments(),

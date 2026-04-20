@@ -22,7 +22,4 @@ public record InitializeResult(
     String protocolVersion,
     ServerCapabilities capabilities,
     Implementation serverInfo,
-    String instructions) {
-
-  public static final String PROTOCOL_VERSION = "2025-11-25";
-}
+    String instructions) {}
