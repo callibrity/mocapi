@@ -6,6 +6,16 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-04-20
+
+### Fixed
+
+- **`mocapi-otel` added to `mocapi-bom`.** The module was added to the reactor
+  in 0.12.0 but missed in the BOM's `<dependencyManagement>` block, so users
+  importing the BOM had to specify `<version>` explicitly on `mocapi-otel`.
+  Now BOM-managed like every other published module. Pure BOM fix — no code
+  changes from 0.12.0.
+
 ## [0.12.0] - 2026-04-20
 
 ### Added
@@ -984,7 +994,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.12.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.12.1...HEAD
+[0.12.1]: https://github.com/callibrity/mocapi/releases/tag/0.12.1
 [0.12.0]: https://github.com/callibrity/mocapi/releases/tag/0.12.0
 [0.11.0]: https://github.com/callibrity/mocapi/releases/tag/0.11.0
 [0.10.0]: https://github.com/callibrity/mocapi/releases/tag/0.10.0
