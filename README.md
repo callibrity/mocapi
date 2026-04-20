@@ -40,7 +40,7 @@ Add the starter dependency:
 <dependency>
     <groupId>com.callibrity.mocapi</groupId>
     <artifactId>mocapi-streamable-http-spring-boot-starter</artifactId>
-    <version>0.11.0</version>
+    <version>0.12.0</version>
 </dependency>
 ```
 
@@ -52,7 +52,7 @@ If you depend on multiple mocapi artifacts (e.g., a starter plus one of the `moc
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
             <artifactId>mocapi-bom</artifactId>
-            <version>0.11.0</version>
+            <version>0.12.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -274,7 +274,7 @@ Mocapi was built primarily with [Claude Code](https://www.anthropic.com/claude-c
 
 The cycle: write a numbered Markdown spec under [`specs/`](specs/) describing a single focused change (breaking change, new module, bug fix, refactor — one thing at a time), let an autonomous Claude Code agent pick up the lowest-numbered spec, implement it end-to-end (code + tests + docs + commit), then move on to the next one. The human role is spec author, reviewer, and course-corrector — not typist. Iteration 180 doesn't know iteration 179 existed; it reads the spec and the current codebase from scratch.
 
-[`specs/done/`](specs/done) holds the 210+ specs that produced the 0.1.0 → 0.11.0 journey. They're the closest thing to a design diary this project has — each file captures the *why* of one change before it landed.
+[`specs/done/`](specs/done) holds the 210+ specs that produced the 0.1.0 → 0.12.0 journey. They're the closest thing to a design diary this project has — each file captures the *why* of one change before it landed.
 
 Things that made the loop work (and things that didn't) are captured under [`specs/backlog/`](specs/backlog) and in project-level Claude instructions (`CLAUDE.md`, `~/CLAUDE-ralph.md`). If you're trying this approach on your own project, those are probably more useful reading than the individual specs.
 

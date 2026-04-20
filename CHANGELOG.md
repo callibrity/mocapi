@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-04-20
+
 ### Added
 
 - **Two-layer OpenTelemetry trace hierarchy with MCP / GenAI / JSON-RPC
@@ -982,7 +984,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.11.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.12.0...HEAD
+[0.12.0]: https://github.com/callibrity/mocapi/releases/tag/0.12.0
 [0.11.0]: https://github.com/callibrity/mocapi/releases/tag/0.11.0
 [0.10.0]: https://github.com/callibrity/mocapi/releases/tag/0.10.0
 [0.9.0]: https://github.com/callibrity/mocapi/releases/tag/0.9.0
