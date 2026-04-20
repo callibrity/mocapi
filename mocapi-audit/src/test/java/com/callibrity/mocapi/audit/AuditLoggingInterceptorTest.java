@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvocation;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.KeyValuePair;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -181,6 +182,38 @@ class AuditLoggingInterceptorTest {
     String first = (String) keyValues(appender.list.get(0)).get(AuditFieldKeys.ARGUMENTS_HASH);
     String second = (String) keyValues(appender.list.get(1)).get(AuditFieldKeys.ARGUMENTS_HASH);
     assertThat(first).isNotEqualTo(second);
+  }
+
+  @Test
+  void arguments_hash_includes_array_and_null_values() {
+    var interceptor = newInterceptor("tool", "weather", true);
+    var node = MAPPER.createObjectNode();
+    node.putArray("tags").add("a").add("b");
+    node.putNull("note");
+
+    interceptor.intercept(invocation(node, () -> "ok"));
+
+    Map<String, Object> kv = keyValues(appender.list.getFirst());
+    String hash = (String) kv.get(AuditFieldKeys.ARGUMENTS_HASH);
+    assertThat(hash).isNotNull().startsWith("sha256:").hasSize("sha256:".length() + 64);
+  }
+
+  @Test
+  void arguments_hash_is_null_when_serialization_fails() {
+    ObjectMapper boomMapper =
+        new ObjectMapper() {
+          @Override
+          public JsonNode valueToTree(Object fromValue) {
+            throw new RuntimeException("cannot serialize");
+          }
+        };
+    var interceptor =
+        new AuditLoggingInterceptor("tool", "weather", () -> "alice", true, boomMapper);
+
+    interceptor.intercept(invocation(Map.of("city", "Cincinnati"), () -> "ok"));
+
+    Map<String, Object> kv = keyValues(appender.list.getFirst());
+    assertThat(kv).doesNotContainKey(AuditFieldKeys.ARGUMENTS_HASH);
   }
 
   @Test

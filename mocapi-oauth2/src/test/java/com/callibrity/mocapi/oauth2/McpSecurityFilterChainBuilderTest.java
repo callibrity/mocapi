@@ -27,7 +27,12 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
+import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 
@@ -95,5 +100,68 @@ class McpSecurityFilterChainBuilderTest {
     builder.build(http);
 
     verify(chainCustomizer).customize(any(HttpSecurity.class));
+  }
+
+  @Test
+  void build_executes_authorize_csrf_and_resource_server_lambdas() throws Exception {
+    HttpSecurity http = mock(HttpSecurity.class, Answers.RETURNS_DEEP_STUBS);
+    when(http.build()).thenReturn(mock(DefaultSecurityFilterChain.class));
+
+    ArgumentCaptor<
+            Customizer<
+                AuthorizeHttpRequestsConfigurer<HttpSecurity>
+                    .AuthorizationManagerRequestMatcherRegistry>>
+        authorizeCaptor = ArgumentCaptor.captor();
+    ArgumentCaptor<Customizer<CsrfConfigurer<HttpSecurity>>> csrfCaptor = ArgumentCaptor.captor();
+    ArgumentCaptor<Customizer<OAuth2ResourceServerConfigurer<HttpSecurity>>> rsCaptor =
+        ArgumentCaptor.captor();
+
+    MocapiOAuth2Properties properties =
+        new MocapiOAuth2Properties(
+            "https://api.example.com", List.of(), List.of(), null, null, null);
+    JwtDecoder jwtDecoder = mock(JwtDecoder.class);
+    Implementation impl = new Implementation("mocapi", "Mocapi", "1.0.0");
+
+    McpSecurityFilterChainBuilder builder =
+        new McpSecurityFilterChainBuilder(
+            properties,
+            jwtDecoder,
+            null,
+            List.of("https://api.example.com"),
+            "https://issuer.example.com",
+            impl,
+            List.of(),
+            List.of(),
+            MCP_ENDPOINT,
+            METADATA_PATH);
+
+    builder.build(http);
+
+    // The builder chains calls starting from http.securityMatcher(...), so the
+    // authorizeHttpRequests/csrf/oauth2ResourceServer calls land on the deep-stub result of
+    // securityMatcher, not on the root http mock.
+    HttpSecurity chained = http.securityMatcher(MCP_ENDPOINT + "/**", METADATA_PATH);
+    verify(chained).authorizeHttpRequests(authorizeCaptor.capture());
+    HttpSecurity afterAuthorize = chained.authorizeHttpRequests(authorizeCaptor.getValue());
+    verify(afterAuthorize).csrf(csrfCaptor.capture());
+    HttpSecurity afterCsrf = afterAuthorize.csrf(csrfCaptor.getValue());
+    verify(afterCsrf).oauth2ResourceServer(rsCaptor.capture());
+
+    // Execute each captured lambda against a deep-stub mock so its body runs (covering
+    // the lambda lines in McpSecurityFilterChainBuilder.build).
+    AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry
+        authRegistry =
+            mock(
+                AuthorizeHttpRequestsConfigurer.AuthorizationManagerRequestMatcherRegistry.class,
+                Answers.RETURNS_DEEP_STUBS);
+    authorizeCaptor.getValue().customize(authRegistry);
+
+    CsrfConfigurer<HttpSecurity> csrf = mock(CsrfConfigurer.class, Answers.RETURNS_DEEP_STUBS);
+    csrfCaptor.getValue().customize(csrf);
+    verify(csrf).disable();
+
+    OAuth2ResourceServerConfigurer<HttpSecurity> rs =
+        mock(OAuth2ResourceServerConfigurer.class, Answers.RETURNS_DEEP_STUBS);
+    rsCaptor.getValue().customize(rs);
   }
 }

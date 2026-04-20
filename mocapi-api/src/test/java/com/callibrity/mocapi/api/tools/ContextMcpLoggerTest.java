@@ -29,10 +29,16 @@ import com.callibrity.mocapi.model.TextContent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ContextMcpLoggerTest {
@@ -131,6 +137,106 @@ class ContextMcpLoggerTest {
       guarded.info("should not run: {}", counter.incrementAndGet());
     }
     assertThat(counter.get()).isEqualTo(1);
+  }
+
+  static Stream<Arguments> levelBindings() {
+    return Stream.of(
+        Arguments.of(
+            LoggingLevel.DEBUG,
+            (Function<McpLogger, Boolean>) McpLogger::isDebugEnabled,
+            (BiConsumer<McpLogger, String>) McpLogger::debug,
+            (BiConsumer<McpLogger, Object[]>) (log, args) -> log.debug("x {}", args)),
+        Arguments.of(
+            LoggingLevel.INFO,
+            (Function<McpLogger, Boolean>) McpLogger::isInfoEnabled,
+            (BiConsumer<McpLogger, String>) McpLogger::info,
+            (BiConsumer<McpLogger, Object[]>) (log, args) -> log.info("x {}", args)),
+        Arguments.of(
+            LoggingLevel.NOTICE,
+            (Function<McpLogger, Boolean>) McpLogger::isNoticeEnabled,
+            (BiConsumer<McpLogger, String>) McpLogger::notice,
+            (BiConsumer<McpLogger, Object[]>) (log, args) -> log.notice("x {}", args)),
+        Arguments.of(
+            LoggingLevel.WARNING,
+            (Function<McpLogger, Boolean>) McpLogger::isWarnEnabled,
+            (BiConsumer<McpLogger, String>) McpLogger::warn,
+            (BiConsumer<McpLogger, Object[]>) (log, args) -> log.warn("x {}", args)),
+        Arguments.of(
+            LoggingLevel.ERROR,
+            (Function<McpLogger, Boolean>) McpLogger::isErrorEnabled,
+            (BiConsumer<McpLogger, String>) McpLogger::error,
+            (BiConsumer<McpLogger, Object[]>) (log, args) -> log.error("x {}", args)),
+        Arguments.of(
+            LoggingLevel.CRITICAL,
+            (Function<McpLogger, Boolean>) McpLogger::isCriticalEnabled,
+            (BiConsumer<McpLogger, String>) McpLogger::critical,
+            (BiConsumer<McpLogger, Object[]>) (log, args) -> log.critical("x {}", args)),
+        Arguments.of(
+            LoggingLevel.ALERT,
+            (Function<McpLogger, Boolean>) McpLogger::isAlertEnabled,
+            (BiConsumer<McpLogger, String>) McpLogger::alert,
+            (BiConsumer<McpLogger, Object[]>) (log, args) -> log.alert("x {}", args)),
+        Arguments.of(
+            LoggingLevel.EMERGENCY,
+            (Function<McpLogger, Boolean>) McpLogger::isEmergencyEnabled,
+            (BiConsumer<McpLogger, String>) McpLogger::emergency,
+            (BiConsumer<McpLogger, Object[]>) (log, args) -> log.emergency("x {}", args)));
+  }
+
+  @ParameterizedTest
+  @MethodSource("levelBindings")
+  void enabled_check_reflects_ctx_threshold(
+      LoggingLevel level,
+      Function<McpLogger, Boolean> isEnabled,
+      BiConsumer<McpLogger, String> logMsg,
+      BiConsumer<McpLogger, Object[]> logFormat) {
+    var ctx = new CapturingContext();
+    ctx.threshold = level;
+    var log = ctx.logger("l");
+
+    assertThat(isEnabled.apply(log)).isTrue();
+
+    ctx.threshold = LoggingLevel.EMERGENCY;
+    if (level != LoggingLevel.EMERGENCY) {
+      assertThat(isEnabled.apply(log)).isFalse();
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("levelBindings")
+  void format_variant_substitutes_at_each_level(
+      LoggingLevel level,
+      Function<McpLogger, Boolean> isEnabled,
+      BiConsumer<McpLogger, String> logMsg,
+      BiConsumer<McpLogger, Object[]> logFormat) {
+    var ctx = new CapturingContext();
+    var log = ctx.logger("fmt");
+
+    logFormat.accept(log, new Object[] {"y"});
+
+    assertThat(ctx.entries).hasSize(1);
+    assertThat(ctx.entries.getFirst().level()).isEqualTo(level);
+    assertThat(ctx.entries.getFirst().message()).isEqualTo("x y");
+  }
+
+  @ParameterizedTest
+  @MethodSource("levelBindings")
+  void below_threshold_suppresses_every_level(
+      LoggingLevel level,
+      Function<McpLogger, Boolean> isEnabled,
+      BiConsumer<McpLogger, String> logMsg,
+      BiConsumer<McpLogger, Object[]> logFormat) {
+    var ctx = new CapturingContext();
+    ctx.threshold = LoggingLevel.EMERGENCY;
+    if (level == LoggingLevel.EMERGENCY) {
+      return;
+    }
+    var log = ctx.logger("gated");
+
+    logMsg.accept(log, "dropped");
+    logFormat.accept(log, new Object[] {"dropped"});
+
+    assertThat(ctx.entries).isEmpty();
   }
 
   @Test

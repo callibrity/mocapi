@@ -419,6 +419,125 @@ class StreamableHttpControllerTest {
   }
 
   @Nested
+  class DeleteValidation {
+
+    @Test
+    void deleteWithSessionIdRequiredReturns400() {
+      when(protocol.createContext(any(), any()))
+          .thenReturn(
+              new McpContextResult.SessionIdRequired(
+                  -32000, "Bad Request: MCP-Session-Id header is required"));
+
+      var response = controller.handleDelete("unknown", null, null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void deleteWithSessionNotFoundReturns404() {
+      when(protocol.createContext(any(), any()))
+          .thenReturn(new McpContextResult.SessionNotFound(-32001, "Session not found"));
+
+      var response = controller.handleDelete("unknown", null, null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void deleteWithProtocolVersionMismatchReturns400() {
+      when(protocol.createContext(any(), any()))
+          .thenReturn(
+              new McpContextResult.ProtocolVersionMismatch(-32002, "Protocol version mismatch"));
+
+      var response = controller.handleDelete("s1", "wrong-version", null);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Nested
+  class PostAsyncContextErrors {
+
+    @Test
+    void notificationWithSessionNotFoundReturns404() throws Exception {
+      when(protocol.createContext(any(), any()))
+          .thenReturn(new McpContextResult.SessionNotFound(-32001, "Session not found"));
+      ObjectNode notification = objectMapper.createObjectNode();
+      notification.put("jsonrpc", "2.0");
+      notification.put("method", "notifications/initialized");
+
+      var response = post(notification, null, "unknown", POST_ACCEPT, null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void notificationWithProtocolVersionMismatchReturns400() throws Exception {
+      when(protocol.createContext(any(), any()))
+          .thenReturn(
+              new McpContextResult.ProtocolVersionMismatch(-32002, "Protocol version mismatch"));
+      ObjectNode notification = objectMapper.createObjectNode();
+      notification.put("jsonrpc", "2.0");
+      notification.put("method", "notifications/initialized");
+
+      var response = post(notification, "wrong", "s1", POST_ACCEPT, null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Nested
+  class AcceptHeaderEdgeCases {
+
+    @Test
+    void postWithNullAcceptReturns406() throws Exception {
+      var response = post(callRequest("ping"), null, "s", null, null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
+    }
+
+    @Test
+    void postWithOnlySseAcceptReturns406() throws Exception {
+      var response = post(callRequest("ping"), null, "s", "text/event-stream", null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
+    }
+
+    @Test
+    void getWithNullAcceptReturns406() {
+      var response = controller.handleGet("s", null, null, null, null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
+    }
+
+    @Test
+    void getWithUnrelatedAcceptReturns406() {
+      var response = controller.handleGet("s", null, null, "application/xml", null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
+    }
+
+    @Test
+    void postAcceptsWhenExtraUnrelatedTypePrecedesJsonAndSse() throws Exception {
+      when(protocol.createContext(any(), any())).thenReturn(validContext("s1"));
+      doAnswer(
+              invocation -> {
+                McpTransport transport = invocation.getArgument(2);
+                transport.send(
+                    new JsonRpcResult(
+                        JsonNodeFactory.instance.objectNode(),
+                        JsonNodeFactory.instance.numberNode(1)));
+                return null;
+              })
+          .when(protocol)
+          .handleCall(any(), any(), any());
+
+      var response =
+          post(
+              callRequest("ping"),
+              null,
+              "s1",
+              "application/xml, application/json, text/event-stream, application/json",
+              null);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+  }
+
+  @Nested
   class ExceptionHandling {
 
     @Test
@@ -432,6 +551,23 @@ class StreamableHttpControllerTest {
       assertThat(response.getBody()).isNotNull();
       assertThat(response.getBody().toString()).contains("Parse error");
       assertThat(response.getBody().toString()).contains("Unexpected token");
+    }
+
+    @Test
+    void handleUnreadableBodyHandlesSelfReferentialCauseChain() {
+      var self =
+          new RuntimeException("self-cycle") {
+            @Override
+            public synchronized Throwable getCause() {
+              return this;
+            }
+          };
+      var ex = new HttpMessageNotReadableException("wrapper", self, null);
+
+      var response = controller.handleUnreadableBody(ex);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+      assertThat(response.getBody().toString()).contains("self-cycle");
     }
 
     @Test
