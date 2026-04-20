@@ -22,15 +22,16 @@ import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import java.util.Set;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Default {@link McpServer} that handles session lifecycle and JSON-RPC dispatch. */
-@Slf4j
 public class DefaultMcpServer implements McpServer {
 
   private static final Set<String> KNOWN_PROTOCOL_VERSIONS =
       Set.of("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05", "2024-10-07");
 
+  private final Logger log = LoggerFactory.getLogger(DefaultMcpServer.class);
   private final McpSessionService sessionService;
   private final JsonRpcDispatcher dispatcher;
   private final McpResponseCorrelationService correlationService;

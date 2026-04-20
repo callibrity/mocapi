@@ -16,15 +16,12 @@
 package com.callibrity.mocapi.transport.http.writer;
 
 import com.callibrity.ripcurl.core.JsonRpcMessage;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public final class ClosedMessageWriter implements MessageWriter {
   public static final MessageWriter INSTANCE = new ClosedMessageWriter();
 
   @Override
   public MessageWriter write(JsonRpcMessage msg) {
-    log.warn("Rejected write to Closed writer ({})", msg.getClass().getSimpleName());
     throw new IllegalStateException("Cannot write message to a closed response.");
   }
 }

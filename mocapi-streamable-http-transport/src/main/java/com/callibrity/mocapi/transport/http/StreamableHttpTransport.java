@@ -38,7 +38,7 @@ final class StreamableHttpTransport implements McpTransport {
 
   public static final String SESSION_ID_HEADER = "MCP-Session-Id";
 
-  private static final Logger log = LoggerFactory.getLogger(StreamableHttpTransport.class);
+  private final Logger log = LoggerFactory.getLogger(StreamableHttpTransport.class);
 
   private final CompletableFuture<ResponseEntity<Object>> response = new CompletableFuture<>();
   private final List<Consumer<ResponseEntity<Object>>> decorators = new ArrayList<>();

@@ -52,7 +52,7 @@ import tools.jackson.databind.node.JsonNodeFactory;
  */
 public final class StdioServer {
 
-  private static final Logger log = LoggerFactory.getLogger(StdioServer.class);
+  private final Logger log = LoggerFactory.getLogger(StdioServer.class);
 
   private final McpServer server;
   private final ObjectMapper objectMapper;

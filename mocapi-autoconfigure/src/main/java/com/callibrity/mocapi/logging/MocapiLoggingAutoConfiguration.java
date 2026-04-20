@@ -38,7 +38,7 @@ import org.springframework.core.annotation.Order;
 @ConditionalOnClass({McpMdcInterceptor.class, MDC.class, MethodInterceptor.class, McpSession.class})
 public class MocapiLoggingAutoConfiguration {
 
-  private static final Logger log = LoggerFactory.getLogger(MocapiLoggingAutoConfiguration.class);
+  private final Logger log = LoggerFactory.getLogger(MocapiLoggingAutoConfiguration.class);
 
   @Bean
   @Order(100)

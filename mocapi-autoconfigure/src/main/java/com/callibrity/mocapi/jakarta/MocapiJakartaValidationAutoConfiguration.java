@@ -39,7 +39,7 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnBean(Validator.class)
 public class MocapiJakartaValidationAutoConfiguration {
 
-  private static final Logger log =
+  private final Logger log =
       LoggerFactory.getLogger(MocapiJakartaValidationAutoConfiguration.class);
 
   @Bean

@@ -6,6 +6,34 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Fixed
+
+- **GraalVM native-image AOT failure caused by static-final SLF4J
+  loggers.** Spring Boot AOT pulls `@AutoConfiguration`-annotated
+  classes (and, transitively, classes their bean-factory methods
+  return) into GraalVM's build-time class-initialization pass. The
+  first `LoggerFactory.getLogger(...)` call inside any such class's
+  `<clinit>` runs before Logback's `SLF4JServiceProvider` has been
+  registered with Substrate's service-loader system, so SLF4J
+  falls back to `NOP_FallbackServiceProvider` and caches that
+  decision forever. The NOP instance then gets baked into the image
+  heap, and GraalVM rejects it because its class is
+  initialize-at-run-time. Converted every static-final Logger in
+  main sources — both explicit `private static final Logger` fields
+  and the ones Lombok generated via `@Slf4j` — to non-static
+  instance fields (or removed entirely, for the SSE writer chain
+  where the log lines were low-value trace noise on a hot path).
+  Constructor execution happens at runtime after Logback is fully
+  wired, so the NOP race no longer fires. Affects:
+  `MocapiServer{Tools,Prompts,Resources}AutoConfiguration`,
+  `MocapiAudit/Logging/O11y/JakartaValidation/SpringSecurityGuards`
+  `AutoConfiguration`, `DefaultMcpServer`,
+  `McpSessionService`, `McpPromptsService`, `McpResourcesService`,
+  `McpToolsService`, `McpLifecycleService`, `StdioServer`,
+  `StreamableHttpTransport`, `AuditLoggingInterceptor`, and the
+  three streamable-HTTP message writers (`Direct`, `Sse`, `Closed`
+  — the writers lose their loggers entirely).
+
 ## [0.11.0] - 2026-04-20
 
 ### Breaking changes

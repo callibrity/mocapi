@@ -34,14 +34,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriTemplate;
 
 /** Manages resource registration, lookup, pagination, and JSON-RPC dispatch. */
-@lombok.extern.slf4j.Slf4j
 public class McpResourcesService {
 
   public static final int DEFAULT_PAGE_SIZE = 50;
 
+  private final Logger log = LoggerFactory.getLogger(McpResourcesService.class);
   private final Map<String, ReadResourceHandler> resources;
   private final Map<UriTemplate, ReadResourceTemplateHandler> templates;
   private final List<ReadResourceHandler> sortedResources;

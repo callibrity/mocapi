@@ -43,7 +43,7 @@ import org.springframework.core.annotation.Order;
 @ConditionalOnBean(ObservationRegistry.class)
 public class MocapiO11yAutoConfiguration {
 
-  private static final Logger log = LoggerFactory.getLogger(MocapiO11yAutoConfiguration.class);
+  private final Logger log = LoggerFactory.getLogger(MocapiO11yAutoConfiguration.class);
 
   @Bean
   @Order(300)

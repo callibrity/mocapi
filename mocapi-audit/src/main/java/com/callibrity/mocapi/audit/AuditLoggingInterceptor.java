@@ -50,8 +50,9 @@ import tools.jackson.databind.node.ObjectNode;
  */
 public final class AuditLoggingInterceptor implements MethodInterceptor<Object> {
 
-  private static final Logger log = LoggerFactory.getLogger("mocapi.audit");
   private static final String EVENT_MESSAGE = "mcp.audit";
+
+  private final Logger log = LoggerFactory.getLogger("mocapi.audit");
 
   private final String handlerKind;
   private final String handlerName;

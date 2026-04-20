@@ -29,10 +29,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Manages prompt registration and JSON-RPC dispatch. */
-@lombok.extern.slf4j.Slf4j
 public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt> {
+
+  private final Logger log = LoggerFactory.getLogger(McpPromptsService.class);
 
   public McpPromptsService(List<GetPromptHandler> handlers) {
     this(handlers, DEFAULT_PAGE_SIZE);

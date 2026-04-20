@@ -36,7 +36,8 @@ import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -47,9 +48,9 @@ import tools.jackson.databind.node.ValueNode;
  * interceptor wired into each {@link CallToolHandler}'s invoker; see {@link
  * InputSchemaValidatingInterceptor}.
  */
-@Slf4j
 public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
 
+  private final Logger log = LoggerFactory.getLogger(McpToolsService.class);
   private final ObjectMapper objectMapper;
   private final McpResponseCorrelationService correlationService;
 

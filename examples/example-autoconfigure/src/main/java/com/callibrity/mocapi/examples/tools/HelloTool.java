@@ -17,11 +17,9 @@ package com.callibrity.mocapi.examples.tools;
 
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Component
-@Slf4j
 public class HelloTool {
 
   @McpTool(name = "hello", description = "Returns a greeting message")

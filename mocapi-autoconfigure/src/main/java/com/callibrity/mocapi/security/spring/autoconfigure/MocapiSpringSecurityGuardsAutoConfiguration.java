@@ -44,7 +44,7 @@ import org.springframework.security.core.Authentication;
 @ConditionalOnClass({ScopeGuard.class, Authentication.class})
 public class MocapiSpringSecurityGuardsAutoConfiguration {
 
-  private static final Logger log =
+  private final Logger log =
       LoggerFactory.getLogger(MocapiSpringSecurityGuardsAutoConfiguration.class);
 
   @Bean

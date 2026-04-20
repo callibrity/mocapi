@@ -22,15 +22,16 @@ import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handles MCP lifecycle notifications: {@code notifications/initialized}, {@code
  * notifications/cancelled}, and {@code notifications/roots/list_changed}.
  */
-@Slf4j
 public class McpLifecycleService {
 
+  private final Logger log = LoggerFactory.getLogger(McpLifecycleService.class);
   private final McpSessionService sessionService;
 
   public McpLifecycleService(McpSessionService sessionService) {

@@ -47,8 +47,9 @@ import tools.jackson.databind.ObjectMapper;
 @EnableConfigurationProperties(MocapiAuditProperties.class)
 public class MocapiAuditAutoConfiguration {
 
-  private static final Logger log = LoggerFactory.getLogger(MocapiAuditAutoConfiguration.class);
   private static final int ORDER = 200;
+
+  private final Logger log = LoggerFactory.getLogger(MocapiAuditAutoConfiguration.class);
 
   @Bean
   @Order(ORDER)

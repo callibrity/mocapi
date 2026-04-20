@@ -22,34 +22,24 @@ import com.callibrity.ripcurl.core.JsonRpcResponse;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 @RequiredArgsConstructor
-@Slf4j
 public final class DirectMessageWriter implements MessageWriter {
-
-  // ------------------------------ FIELDS ------------------------------
 
   private final Supplier<SseStream> sseStreamProvider;
   private final Consumer<ResponseEntity<Object>> responseConsumer;
-
-  // ------------------------ INTERFACE METHODS ------------------------
-
-  // --------------------- Interface MessageWriter ---------------------
 
   @Override
   public MessageWriter write(JsonRpcMessage msg) {
     return switch (msg) {
       case JsonRpcResponse resp -> {
-        log.trace("Direct → Closed (JSON response id={})", resp.id());
         responseConsumer.accept(
             ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resp));
         yield ClosedMessageWriter.INSTANCE;
       }
       case JsonRpcRequest req -> {
-        log.trace("Direct → SSE (first message type={})", req.getClass().getSimpleName());
         var stream = sseStreamProvider.get();
         responseConsumer.accept(
             ResponseEntity.ok()

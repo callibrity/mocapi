@@ -20,11 +20,9 @@ import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RequiredArgsConstructor
-@Slf4j
 public final class SseMessageWriter implements MessageWriter {
 
   private final SseStream sseStream;
@@ -33,12 +31,10 @@ public final class SseMessageWriter implements MessageWriter {
   public MessageWriter write(JsonRpcMessage msg) {
     return switch (msg) {
       case JsonRpcResponse resp -> {
-        log.trace("SSE → Closed (response id={})", resp.id());
         sseStream.write(resp);
         yield ClosedMessageWriter.INSTANCE;
       }
       case JsonRpcRequest req -> {
-        log.trace("SSE → SSE (publishing {})", req.getClass().getSimpleName());
         sseStream.write(req);
         yield this;
       }

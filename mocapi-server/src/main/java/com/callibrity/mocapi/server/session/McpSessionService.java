@@ -28,12 +28,13 @@ import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Orchestrates session lifecycle: create, find, delete, log-level updates, and initialize. */
-@Slf4j
 public class McpSessionService {
 
+  private final Logger log = LoggerFactory.getLogger(McpSessionService.class);
   private final McpSessionStore store;
   private final Duration ttl;
   private final Implementation serverInfo;
