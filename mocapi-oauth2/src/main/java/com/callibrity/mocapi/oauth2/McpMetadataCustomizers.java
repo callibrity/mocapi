@@ -27,9 +27,9 @@ import org.springframework.security.oauth2.server.resource.OAuth2ProtectedResour
  * 9728 claims) and then runs user-supplied {@link OAuth2ProtectedResourceMetadataCustomizer} beans
  * so they can override or extend the document.
  */
-public final class McpMetadataBuilderCustomizerFactory {
+public final class McpMetadataCustomizers {
 
-  private McpMetadataBuilderCustomizerFactory() {}
+  private McpMetadataCustomizers() {}
 
   /**
    * @param properties mocapi-oauth2 configuration
@@ -41,7 +41,7 @@ public final class McpMetadataBuilderCustomizerFactory {
    *     {@code null}
    * @param userCustomizers application-supplied customizers run after mocapi's defaults
    */
-  public static Consumer<OAuth2ProtectedResourceMetadata.Builder> create(
+  public static Consumer<OAuth2ProtectedResourceMetadata.Builder> of(
       MocapiOAuth2Properties properties,
       List<String> audiences,
       String springIssuerUri,

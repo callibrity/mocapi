@@ -87,7 +87,7 @@ public final class McpOAuth2SecurityFilterChainBuilder {
   @SuppressWarnings("java:S4502")
   public SecurityFilterChain build(HttpSecurity http) throws Exception {
     Consumer<OAuth2ProtectedResourceMetadata.Builder> builderCustomizer =
-        McpMetadataBuilderCustomizerFactory.create(
+        McpMetadataCustomizers.of(
             properties, audiences, springIssuerUri, mcpServerInfo, metadataCustomizers);
 
     http.securityMatcher(mcpEndpoint + "/**", metadataPath)

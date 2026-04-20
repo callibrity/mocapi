@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.server.resource.OAuth2ProtectedResourceMetadata;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class McpMetadataBuilderCustomizerFactoryTest {
+class McpMetadataCustomizersTest {
 
   private static final String RESOURCE = "https://api.example.com";
   private static final String ISSUER = "https://issuer.example.com";
@@ -165,8 +165,7 @@ class McpMetadataBuilderCustomizerFactoryTest {
       Implementation impl,
       List<OAuth2ProtectedResourceMetadataCustomizer> userCustomizers) {
     Consumer<OAuth2ProtectedResourceMetadata.Builder> customizer =
-        McpMetadataBuilderCustomizerFactory.create(
-            properties, audiences, springIssuerUri, impl, userCustomizers);
+        McpMetadataCustomizers.of(properties, audiences, springIssuerUri, impl, userCustomizers);
     OAuth2ProtectedResourceMetadata.Builder builder = OAuth2ProtectedResourceMetadata.builder();
     customizer.accept(builder);
     return builder.build().getClaims();
