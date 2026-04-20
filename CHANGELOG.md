@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-04-20
+
 ### Breaking changes
 
 - **Bean-level `MethodInterceptor` autowiring removed from handler
@@ -849,7 +851,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.10.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.11.0...HEAD
+[0.11.0]: https://github.com/callibrity/mocapi/releases/tag/0.11.0
 [0.10.0]: https://github.com/callibrity/mocapi/releases/tag/0.10.0
 [0.9.0]: https://github.com/callibrity/mocapi/releases/tag/0.9.0
 [0.8.0]: https://github.com/callibrity/mocapi/releases/tag/0.8.0
