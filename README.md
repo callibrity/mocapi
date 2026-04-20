@@ -266,6 +266,17 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 Apache License 2.0 -- see [LICENSE](LICENSE).
 
+## How Mocapi Was Built
+
+Mocapi was built primarily with [Claude Code](https://www.anthropic.com/claude-code), using a spec-driven, iterative workflow we call "the ralph loop" — one spec, one autonomous iteration, in strict numeric order.
+
+The cycle: write a numbered Markdown spec under [`specs/`](specs/) describing a single focused change (breaking change, new module, bug fix, refactor — one thing at a time), let an autonomous Claude Code agent pick up the lowest-numbered spec, implement it end-to-end (code + tests + docs + commit), then move on to the next one. The human role is spec author, reviewer, and course-corrector — not typist. Iteration 180 doesn't know iteration 179 existed; it reads the spec and the current codebase from scratch.
+
+[`specs/done/`](specs/done) holds the 210+ specs that produced the 0.1.0 → 0.11.0 journey. They're the closest thing to a design diary this project has — each file captures the *why* of one change before it landed.
+
+Things that made the loop work (and things that didn't) are captured under [`specs/backlog/`](specs/backlog) and in project-level Claude instructions (`CLAUDE.md`, `~/CLAUDE-ralph.md`). If you're trying this approach on your own project, those are probably more useful reading than the individual specs.
+
+
 ## What's in a Name?
 
 Mocapi is a made-up word that includes the letters MCP (Model Context Protocol). It's pronounced moh-cap-ee (/ˈmoʊˌkæpi/), like a friendly little robot who speaks protocol.
