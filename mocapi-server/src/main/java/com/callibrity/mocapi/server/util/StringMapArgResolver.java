@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.util;
 
 import java.util.Map;
+import java.util.Optional;
 import org.jwcarman.methodical.ParameterResolutionException;
 import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
@@ -43,29 +44,31 @@ public class StringMapArgResolver implements ParameterResolver<Map<String, Strin
   }
 
   @Override
-  public boolean supports(ParameterInfo info) {
-    return info.accepts(MAP_TYPE)
-        || conversionService.canConvert(String.class, info.resolvedType());
-  }
-
-  @Override
-  public Object resolve(ParameterInfo info, Map<String, String> arguments) {
-    var args = arguments == null ? Map.<String, String>of() : arguments;
+  public Optional<Binding<Map<String, String>>> bind(ParameterInfo info) {
     if (info.accepts(MAP_TYPE)) {
-      return args;
+      return Optional.of(arguments -> arguments == null ? Map.<String, String>of() : arguments);
     }
-    String raw = args.get(info.name());
-    if (raw == null) {
-      return null;
+    Class<?> targetType = info.resolvedType();
+    if (!conversionService.canConvert(String.class, targetType)) {
+      return Optional.empty();
     }
-    try {
-      return conversionService.convert(raw, info.resolvedType());
-    } catch (RuntimeException e) {
-      throw new ParameterResolutionException(
-          String.format(
-              "Unable to convert argument \"%s\" to %s: %s",
-              info.name(), info.resolvedType().getName(), e.getMessage()),
-          e);
-    }
+    String paramName = info.name();
+    return Optional.of(
+        arguments -> {
+          var args = arguments == null ? Map.<String, String>of() : arguments;
+          String raw = args.get(paramName);
+          if (raw == null) {
+            return null;
+          }
+          try {
+            return conversionService.convert(raw, targetType);
+          } catch (RuntimeException e) {
+            throw new ParameterResolutionException(
+                String.format(
+                    "Unable to convert argument \"%s\" to %s: %s",
+                    paramName, targetType.getName(), e.getMessage()),
+                e);
+          }
+        });
   }
 }

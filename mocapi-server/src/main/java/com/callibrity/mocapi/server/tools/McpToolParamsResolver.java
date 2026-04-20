@@ -16,12 +16,14 @@
 package com.callibrity.mocapi.server.tools;
 
 import com.callibrity.mocapi.api.tools.McpToolParams;
+import java.util.Optional;
 import org.jwcarman.methodical.ParameterResolutionException;
 import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectReader;
 
 /**
  * Resolves a tool method's {@code @McpToolParams}-annotated parameter by deserializing the incoming
@@ -36,23 +38,26 @@ public class McpToolParamsResolver implements ParameterResolver<JsonNode> {
   }
 
   @Override
-  public boolean supports(ParameterInfo info) {
-    return info.parameter().isAnnotationPresent(McpToolParams.class);
-  }
-
-  @Override
-  public Object resolve(ParameterInfo info, JsonNode arguments) {
-    if (arguments == null || arguments.isNull()) {
-      return null;
+  public Optional<Binding<JsonNode>> bind(ParameterInfo info) {
+    if (!info.parameter().isAnnotationPresent(McpToolParams.class)) {
+      return Optional.empty();
     }
-    try {
-      return mapper.readerFor(info.resolvedType()).readValue(mapper.treeAsTokens(arguments));
-    } catch (JacksonException e) {
-      throw new ParameterResolutionException(
-          String.format(
-              "Unable to deserialize @McpToolParams parameter \"%s\": %s",
-              info.name(), e.getMessage()),
-          e);
-    }
+    ObjectReader reader = mapper.readerFor(info.resolvedType());
+    String paramName = info.name();
+    return Optional.of(
+        arguments -> {
+          if (arguments == null || arguments.isNull()) {
+            return null;
+          }
+          try {
+            return reader.readValue(mapper.treeAsTokens(arguments));
+          } catch (JacksonException e) {
+            throw new ParameterResolutionException(
+                String.format(
+                    "Unable to deserialize @McpToolParams parameter \"%s\": %s",
+                    paramName, e.getMessage()),
+                e);
+          }
+        });
   }
 }

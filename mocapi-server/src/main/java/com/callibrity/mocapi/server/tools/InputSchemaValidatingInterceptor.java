@@ -42,6 +42,10 @@ final class InputSchemaValidatingInterceptor implements MethodInterceptor<JsonNo
   @Override
   public Object intercept(MethodInvocation<? extends JsonNode> invocation) {
     JsonNode args = invocation.argument();
+    // json-sKema 0.29's Validator is NOT thread-safe — its internal SchemaVisitor mutates a
+    // shared ArrayList that races under concurrent invocation. A fresh Validator per call is
+    // the safe contract until json-sKema ships a thread-safe implementation. Do NOT cache
+    // Validator.forSchema(...) at construction time.
     ValidationFailure failure =
         Validator.forSchema(inputSchema).validate(new JsonParser(args.toString()).parse());
     if (failure != null) {

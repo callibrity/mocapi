@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.server.util;
 
+import java.util.Optional;
 import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
 
@@ -45,12 +46,10 @@ public abstract class ScopedValueResolver<T> implements ParameterResolver<Object
   }
 
   @Override
-  public boolean supports(ParameterInfo info) {
-    return type.isAssignableFrom(info.resolvedType());
-  }
-
-  @Override
-  public Object resolve(ParameterInfo info, Object params) {
-    return scopedValue.isBound() ? scopedValue.get() : null;
+  public Optional<Binding<Object>> bind(ParameterInfo info) {
+    if (!type.isAssignableFrom(info.resolvedType())) {
+      return Optional.empty();
+    }
+    return Optional.of(argument -> scopedValue.isBound() ? scopedValue.get() : null);
   }
 }

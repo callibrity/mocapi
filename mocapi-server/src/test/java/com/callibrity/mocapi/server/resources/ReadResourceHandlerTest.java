@@ -30,6 +30,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -39,6 +40,7 @@ import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
+import org.jwcarman.methodical.param.ParameterResolver.Binding;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ReadResourceHandlerTest {
@@ -187,14 +189,12 @@ class ReadResourceHandlerTest {
 
   static final class CurrentTenantResolver implements ParameterResolver<Object> {
     @Override
-    public boolean supports(ParameterInfo info) {
-      return info.parameter().isAnnotationPresent(CurrentTenant.class)
-          && info.resolvedType() == String.class;
-    }
-
-    @Override
-    public Object resolve(ParameterInfo info, Object args) {
-      return "acme";
+    public Optional<Binding<Object>> bind(ParameterInfo info) {
+      if (!info.parameter().isAnnotationPresent(CurrentTenant.class)
+          || info.resolvedType() != String.class) {
+        return Optional.empty();
+      }
+      return Optional.of(args -> "acme");
     }
   }
 

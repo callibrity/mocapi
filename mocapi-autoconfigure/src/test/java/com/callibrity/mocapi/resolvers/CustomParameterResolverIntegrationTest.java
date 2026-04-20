@@ -29,6 +29,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
+import org.jwcarman.methodical.param.ParameterResolver.Binding;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -108,14 +110,12 @@ class CustomParameterResolverIntegrationTest {
 
   static final class CurrentTenantResolver implements ParameterResolver<JsonNode> {
     @Override
-    public boolean supports(ParameterInfo info) {
-      return info.parameter().isAnnotationPresent(CurrentTenant.class)
-          && info.resolvedType() == String.class;
-    }
-
-    @Override
-    public Object resolve(ParameterInfo info, JsonNode arguments) {
-      return CURRENT_TENANT.get();
+    public Optional<Binding<JsonNode>> bind(ParameterInfo info) {
+      if (!info.parameter().isAnnotationPresent(CurrentTenant.class)
+          || info.resolvedType() != String.class) {
+        return Optional.empty();
+      }
+      return Optional.of(arguments -> CURRENT_TENANT.get());
     }
   }
 

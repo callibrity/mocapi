@@ -111,7 +111,7 @@ public final class AuditLoggingInterceptor implements MethodInterceptor<Object> 
     try {
       String caller = callerProvider.currentCaller();
       return (caller == null || caller.isEmpty()) ? AuditCallerIdentityProvider.ANONYMOUS : caller;
-    } catch (RuntimeException e) {
+    } catch (RuntimeException _) {
       return AuditCallerIdentityProvider.ANONYMOUS;
     }
   }
@@ -141,7 +141,7 @@ public final class AuditLoggingInterceptor implements MethodInterceptor<Object> 
               .writer(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
               .writeValueAsBytes(canonical);
       return Hashes.sha256Of(bytes);
-    } catch (RuntimeException e) {
+    } catch (RuntimeException _) {
       return null;
     }
   }

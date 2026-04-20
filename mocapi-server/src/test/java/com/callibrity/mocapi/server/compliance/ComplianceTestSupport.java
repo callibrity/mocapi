@@ -42,16 +42,18 @@ import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
-import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
-import com.callibrity.ripcurl.core.annotation.JsonRpcParamsResolver;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandler;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerCustomizer;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlers;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import java.time.Duration;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
-import org.jwcarman.methodical.param.ParameterResolver;
 import org.mockito.ArgumentCaptor;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -71,15 +73,24 @@ final class ComplianceTestSupport {
 
   static JsonRpcDispatcher buildDispatcher(Object... services) {
     var invokerFactory = new DefaultMethodInvokerFactory();
-    List<ParameterResolver<? super JsonNode>> resolvers =
+    // Ripcurl 2.8 always puts JsonRpcParamsResolver at the head of the chain and the
+    // Jackson3ParameterResolver at the tail; mocapi's session/transport resolvers slot in between
+    // via the customizer SPI.
+    List<JsonRpcMethodHandlerCustomizer> customizers =
         List.of(
-            new McpSessionResolver(),
-            new McpTransportResolver(),
-            new JsonRpcParamsResolver(MAPPER));
-    var factory =
-        new DefaultAnnotationJsonRpcMethodProviderFactory(MAPPER, invokerFactory, resolvers);
-    var providers = Arrays.stream(services).map(factory::create).toList();
-    return new DefaultJsonRpcDispatcher(providers);
+            config -> {
+              config.resolver(new McpSessionResolver());
+              config.resolver(new McpTransportResolver());
+            });
+    List<JsonRpcMethodHandler> handlers = new ArrayList<>();
+    for (Object service : services) {
+      for (var method :
+          MethodUtils.getMethodsListWithAnnotation(service.getClass(), JsonRpcMethod.class)) {
+        handlers.add(
+            JsonRpcMethodHandlers.build(service, method, MAPPER, invokerFactory, customizers));
+      }
+    }
+    return new DefaultJsonRpcDispatcher(handlers);
   }
 
   // --- Session service ---

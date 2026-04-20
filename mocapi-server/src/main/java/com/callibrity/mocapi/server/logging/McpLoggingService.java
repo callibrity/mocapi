@@ -22,10 +22,8 @@ import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 
 /** Handles logging/setLevel by updating the session's log level via McpSessionService. */
-@JsonRpcService
 public class McpLoggingService {
 
   private final McpSessionService sessionService;

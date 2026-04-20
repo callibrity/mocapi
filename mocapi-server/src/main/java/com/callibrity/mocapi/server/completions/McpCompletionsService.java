@@ -25,7 +25,6 @@ import com.callibrity.mocapi.model.PromptReference;
 import com.callibrity.mocapi.model.ResourceTemplateReference;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +40,6 @@ import org.apache.commons.lang3.Strings;
  * <p>Non-enum arguments, unknown prompt names, and unknown resource templates all produce an empty
  * result — consistent with the MCP spec's "best effort" wording.
  */
-@JsonRpcService
 public class McpCompletionsService {
 
   /**

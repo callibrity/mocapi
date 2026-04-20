@@ -52,7 +52,7 @@ class McpToolParamsResolverTest {
     var param =
         getClass().getDeclaredMethod("methodWithAnnotated", TestParams.class).getParameters()[0];
     var info = paramInfo(param, TestParams.class);
-    assertThat(resolver.supports(info)).isTrue();
+    assertThat(resolver.bind(info)).isPresent();
   }
 
   @Test
@@ -60,7 +60,7 @@ class McpToolParamsResolverTest {
     var param =
         getClass().getDeclaredMethod("methodWithoutAnnotation", String.class).getParameters()[0];
     var info = paramInfo(param, String.class);
-    assertThat(resolver.supports(info)).isFalse();
+    assertThat(resolver.bind(info)).isEmpty();
   }
 
   @Test
@@ -68,9 +68,10 @@ class McpToolParamsResolverTest {
     var param =
         getClass().getDeclaredMethod("methodWithAnnotated", TestParams.class).getParameters()[0];
     var info = paramInfo(param, TestParams.class);
+    var binding = resolver.bind(info).orElseThrow();
     var json = mapper.createObjectNode().put("name", "Alice").put("age", 30);
 
-    var result = (TestParams) resolver.resolve(info, json);
+    var result = (TestParams) binding.resolve(json);
 
     assertThat(result.name()).isEqualTo("Alice");
     assertThat(result.age()).isEqualTo(30);
@@ -81,8 +82,9 @@ class McpToolParamsResolverTest {
     var param =
         getClass().getDeclaredMethod("methodWithAnnotated", TestParams.class).getParameters()[0];
     var info = paramInfo(param, TestParams.class);
+    var binding = resolver.bind(info).orElseThrow();
 
-    assertThat(resolver.resolve(info, null)).isNull();
+    assertThat(binding.resolve(null)).isNull();
   }
 
   @Test
@@ -90,8 +92,9 @@ class McpToolParamsResolverTest {
     var param =
         getClass().getDeclaredMethod("methodWithAnnotated", TestParams.class).getParameters()[0];
     var info = paramInfo(param, TestParams.class);
+    var binding = resolver.bind(info).orElseThrow();
 
-    assertThat(resolver.resolve(info, JsonNodeFactory.instance.nullNode())).isNull();
+    assertThat(binding.resolve(JsonNodeFactory.instance.nullNode())).isNull();
   }
 
   @Test
@@ -99,9 +102,10 @@ class McpToolParamsResolverTest {
     var param =
         getClass().getDeclaredMethod("methodWithAnnotated", TestParams.class).getParameters()[0];
     var info = paramInfo(param, TestParams.class);
+    var binding = resolver.bind(info).orElseThrow();
     var invalidJson = mapper.createObjectNode().put("name", "Alice").put("age", "not-a-number");
 
-    assertThatThrownBy(() -> resolver.resolve(info, invalidJson))
+    assertThatThrownBy(() -> binding.resolve(invalidJson))
         .isInstanceOf(ParameterResolutionException.class)
         .hasMessageContaining("@McpToolParams");
   }

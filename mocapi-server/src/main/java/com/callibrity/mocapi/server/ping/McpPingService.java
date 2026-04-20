@@ -18,10 +18,8 @@ package com.callibrity.mocapi.server.ping;
 import com.callibrity.mocapi.model.EmptyResult;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 
 /** Handles the ping method — returns an empty result. */
-@JsonRpcService
 public class McpPingService {
 
   @JsonRpcMethod(McpMethods.PING)

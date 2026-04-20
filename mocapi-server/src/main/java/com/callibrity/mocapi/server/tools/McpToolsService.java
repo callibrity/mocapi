@@ -32,7 +32,6 @@ import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.Comparator;
 import java.util.List;
@@ -49,7 +48,6 @@ import tools.jackson.databind.node.ValueNode;
  * InputSchemaValidatingInterceptor}.
  */
 @Slf4j
-@JsonRpcService
 public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
 
   private final ObjectMapper objectMapper;
@@ -135,15 +133,18 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
   }
 
   CallToolResult toCallToolResult(Object result) {
-    if (result instanceof CallToolResult callToolResult) {
-      return callToolResult;
-    }
-    JsonNode jsonResult = result != null ? objectMapper.valueToTree(result) : null;
-    ObjectNode structuredContent =
-        jsonResult != null && jsonResult.isObject() ? (ObjectNode) jsonResult : null;
-    String text = jsonResult != null ? jsonResult.toString() : "";
-    var textContent = new TextContent(text, null);
-    return new CallToolResult(List.of(textContent), null, structuredContent);
+    return switch (result) {
+      case null -> new CallToolResult(List.of(new TextContent("", null)), null, null);
+      case CallToolResult ctr -> ctr;
+      case JsonNode node -> toCallToolResult(node);
+      default -> toCallToolResult(objectMapper.valueToTree(result));
+    };
+  }
+
+  private static CallToolResult toCallToolResult(JsonNode node) {
+    ObjectNode structuredContent = node instanceof ObjectNode obj ? obj : null;
+    return new CallToolResult(
+        List.of(new TextContent(node.toString(), null)), null, structuredContent);
   }
 
   static CallToolResult toErrorCallToolResult(Throwable throwable) {

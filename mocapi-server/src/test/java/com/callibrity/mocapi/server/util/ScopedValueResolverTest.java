@@ -33,29 +33,33 @@ class ScopedValueResolverTest {
       new ScopedValueResolver<>(String.class, TEST_VALUE) {};
 
   @Test
-  void supports_matching_type() {
+  void binds_to_matching_type() {
     var info = mock(ParameterInfo.class);
     doReturn(String.class).when(info).resolvedType();
-    assertThat(resolver.supports(info)).isTrue();
+    assertThat(resolver.bind(info)).isPresent();
   }
 
   @Test
-  void does_not_support_non_matching_type() {
+  void does_not_bind_to_non_matching_type() {
     var info = mock(ParameterInfo.class);
     doReturn(Integer.class).when(info).resolvedType();
-    assertThat(resolver.supports(info)).isFalse();
+    assertThat(resolver.bind(info)).isEmpty();
   }
 
   @Test
   void resolves_value_when_bound() {
     var info = mock(ParameterInfo.class);
-    var result = ScopedValue.where(TEST_VALUE, "hello").call(() -> resolver.resolve(info, null));
+    doReturn(String.class).when(info).resolvedType();
+    var binding = resolver.bind(info).orElseThrow();
+    var result = ScopedValue.where(TEST_VALUE, "hello").call(() -> binding.resolve(null));
     assertThat(result).isEqualTo("hello");
   }
 
   @Test
   void returns_null_when_not_bound() {
     var info = mock(ParameterInfo.class);
-    assertThat(resolver.resolve(info, null)).isNull();
+    doReturn(String.class).when(info).resolvedType();
+    var binding = resolver.bind(info).orElseThrow();
+    assertThat(binding.resolve(null)).isNull();
   }
 }

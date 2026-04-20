@@ -31,6 +31,7 @@ import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -40,6 +41,7 @@ import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
+import org.jwcarman.methodical.param.ParameterResolver.Binding;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
 
@@ -217,17 +219,10 @@ class ReadResourceTemplateHandlerTest {
     ReadResourceTemplateHandlerCustomizer customizer =
         config ->
             config.resolver(
-                new ParameterResolver<Map<String, String>>() {
-                  @Override
-                  public boolean supports(ParameterInfo info) {
-                    return info.resolvedType() == String.class;
-                  }
-
-                  @Override
-                  public Object resolve(ParameterInfo info, Map<String, String> vars) {
-                    return "from-resolver";
-                  }
-                });
+                info ->
+                    info.resolvedType() == String.class
+                        ? Optional.of(vars -> "from-resolver")
+                        : Optional.empty());
 
     var handler =
         ReadResourceTemplateHandlers.build(
@@ -244,14 +239,12 @@ class ReadResourceTemplateHandlerTest {
 
   static final class CurrentTenantResolver implements ParameterResolver<Map<String, String>> {
     @Override
-    public boolean supports(ParameterInfo info) {
-      return info.parameter().isAnnotationPresent(CurrentTenant.class)
-          && info.resolvedType() == String.class;
-    }
-
-    @Override
-    public Object resolve(ParameterInfo info, Map<String, String> vars) {
-      return "acme";
+    public Optional<Binding<Map<String, String>>> bind(ParameterInfo info) {
+      if (!info.parameter().isAnnotationPresent(CurrentTenant.class)
+          || info.resolvedType() != String.class) {
+        return Optional.empty();
+      }
+      return Optional.of(vars -> "acme");
     }
   }
 

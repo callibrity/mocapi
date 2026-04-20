@@ -22,14 +22,12 @@ import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.session.McpSessionService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Handles MCP lifecycle notifications: {@code notifications/initialized}, {@code
  * notifications/cancelled}, and {@code notifications/roots/list_changed}.
  */
-@JsonRpcService
 @Slf4j
 public class McpLifecycleService {
 

@@ -32,7 +32,6 @@ import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import org.springframework.http.HttpHeaders;
@@ -249,13 +248,21 @@ public class StreamableHttpController {
 
   private static boolean acceptsJsonAndSse(String accept) {
     if (accept == null) return false;
-    var types = Set.copyOf(MediaType.parseMediaTypes(accept));
-    return types.contains(MediaType.APPLICATION_JSON)
-        && types.contains(MediaType.TEXT_EVENT_STREAM);
+    boolean json = false;
+    boolean sse = false;
+    for (MediaType t : MediaType.parseMediaTypes(accept)) {
+      if (!json && MediaType.APPLICATION_JSON.equals(t)) json = true;
+      if (!sse && MediaType.TEXT_EVENT_STREAM.equals(t)) sse = true;
+      if (json && sse) return true;
+    }
+    return false;
   }
 
   private static boolean acceptsSse(String accept) {
     if (accept == null) return false;
-    return Set.copyOf(MediaType.parseMediaTypes(accept)).contains(MediaType.TEXT_EVENT_STREAM);
+    for (MediaType t : MediaType.parseMediaTypes(accept)) {
+      if (MediaType.TEXT_EVENT_STREAM.equals(t)) return true;
+    }
+    return false;
   }
 }

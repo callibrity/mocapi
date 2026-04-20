@@ -25,14 +25,12 @@ import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
 /** Manages prompt registration and JSON-RPC dispatch. */
-@JsonRpcService
 @lombok.extern.slf4j.Slf4j
 public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt> {
 

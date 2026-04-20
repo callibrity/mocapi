@@ -64,92 +64,82 @@ class StringMapArgResolverTest {
   private final StringMapArgResolver resolver = new StringMapArgResolver(conversionService);
 
   @Test
-  void supports_string_parameter() {
-    assertThat(resolver.supports(paramInfo("stringArg", String.class))).isTrue();
+  void binds_string_parameter() {
+    assertThat(resolver.bind(paramInfo("stringArg", String.class))).isPresent();
   }
 
   @Test
-  void supports_convertible_parameter() {
-    assertThat(resolver.supports(paramInfo("intArg", int.class))).isTrue();
-    assertThat(resolver.supports(paramInfo("enumArg", Color.class))).isTrue();
+  void binds_convertible_parameter() {
+    assertThat(resolver.bind(paramInfo("intArg", int.class))).isPresent();
+    assertThat(resolver.bind(paramInfo("enumArg", Color.class))).isPresent();
   }
 
   @Test
-  void supports_map_parameter() {
-    assertThat(resolver.supports(paramInfo("mapArg", Map.class))).isTrue();
+  void binds_map_parameter() {
+    assertThat(resolver.bind(paramInfo("mapArg", Map.class))).isPresent();
   }
 
   @Test
-  void does_not_support_unconvertible_parameter() {
-    assertThat(resolver.supports(paramInfo("unsupportedArg", Unconvertible.class))).isFalse();
+  void does_not_bind_unconvertible_parameter() {
+    assertThat(resolver.bind(paramInfo("unsupportedArg", Unconvertible.class))).isEmpty();
   }
 
   @Test
   void resolves_whole_map_for_map_parameter() {
-    var info = paramInfo("mapArg", Map.class);
+    var binding = resolver.bind(paramInfo("mapArg", Map.class)).orElseThrow();
     var args = Map.of("a", "1", "b", "2");
 
-    Object resolved = resolver.resolve(info, args);
-
-    assertThat(resolved).isEqualTo(args);
+    assertThat(binding.resolve(args)).isEqualTo(args);
   }
 
   @Test
   void resolves_empty_map_for_map_parameter_when_arguments_are_null() {
-    var info = paramInfo("mapArg", Map.class);
+    var binding = resolver.bind(paramInfo("mapArg", Map.class)).orElseThrow();
 
-    Object resolved = resolver.resolve(info, null);
-
-    assertThat(resolved).isEqualTo(Map.of());
+    assertThat(binding.resolve(null)).isEqualTo(Map.of());
   }
 
   @Test
   void resolves_string_value_by_parameter_name() {
-    var info = paramInfo("stringArg", String.class);
+    var binding = resolver.bind(paramInfo("stringArg", String.class)).orElseThrow();
 
-    Object resolved = resolver.resolve(info, Map.of("name", "alice"));
-
-    assertThat(resolved).isEqualTo("alice");
+    assertThat(binding.resolve(Map.of("name", "alice"))).isEqualTo("alice");
   }
 
   @Test
   void converts_value_to_declared_type() {
-    var info = paramInfo("intArg", int.class);
+    var binding = resolver.bind(paramInfo("intArg", int.class)).orElseThrow();
 
-    Object resolved = resolver.resolve(info, Map.of("age", "42"));
-
-    assertThat(resolved).isEqualTo(42);
+    assertThat(binding.resolve(Map.of("age", "42"))).isEqualTo(42);
   }
 
   @Test
   void converts_value_to_enum() {
-    var info = paramInfo("enumArg", Color.class);
+    var binding = resolver.bind(paramInfo("enumArg", Color.class)).orElseThrow();
 
-    Object resolved = resolver.resolve(info, Map.of("color", "RED"));
-
-    assertThat(resolved).isEqualTo(Color.RED);
+    assertThat(binding.resolve(Map.of("color", "RED"))).isEqualTo(Color.RED);
   }
 
   @Test
   void returns_null_when_argument_missing() {
-    var info = paramInfo("stringArg", String.class);
+    var binding = resolver.bind(paramInfo("stringArg", String.class)).orElseThrow();
 
-    assertThat(resolver.resolve(info, Map.of())).isNull();
+    assertThat(binding.resolve(Map.of())).isNull();
   }
 
   @Test
   void returns_null_when_arguments_are_null_for_scalar_parameter() {
-    var info = paramInfo("stringArg", String.class);
+    var binding = resolver.bind(paramInfo("stringArg", String.class)).orElseThrow();
 
-    assertThat(resolver.resolve(info, null)).isNull();
+    assertThat(binding.resolve(null)).isNull();
   }
 
   @Test
   void wraps_conversion_failure_in_parameter_resolution_exception() {
-    var info = paramInfo("intArg", int.class);
+    var binding = resolver.bind(paramInfo("intArg", int.class)).orElseThrow();
 
     var args = Map.of("age", "not-a-number");
-    assertThatThrownBy(() -> resolver.resolve(info, args))
+    assertThatThrownBy(() -> binding.resolve(args))
         .isInstanceOf(ParameterResolutionException.class)
         .hasMessageContaining("age")
         .hasMessageContaining("int");

@@ -112,6 +112,22 @@ public class MocapiServerAutoConfiguration {
     return new McpTransportResolver();
   }
 
+  /**
+   * Attaches mocapi's ScopedValue-backed resolvers ({@link McpSessionResolver}, {@link
+   * McpTransportResolver}) to every ripcurl {@code @JsonRpcMethod} handler. Ripcurl 2.8 removed the
+   * blind {@code List<ParameterResolver<? super JsonNode>>} autowiring path; per-handler attachment
+   * via a customizer is the replacement contract.
+   */
+  @Bean
+  public com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerCustomizer
+      mocapiResolverCustomizer(
+          McpSessionResolver sessionResolver, McpTransportResolver transportResolver) {
+    return config -> {
+      config.resolver(sessionResolver);
+      config.resolver(transportResolver);
+    };
+  }
+
   @Bean
   @ConditionalOnMissingBean(McpCompletionsService.class)
   public McpCompletionsService mcpCompletionsService() {

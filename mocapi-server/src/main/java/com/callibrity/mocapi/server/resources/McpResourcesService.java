@@ -28,7 +28,6 @@ import com.callibrity.mocapi.server.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -38,7 +37,6 @@ import java.util.stream.Collectors;
 import org.springframework.web.util.UriTemplate;
 
 /** Manages resource registration, lookup, pagination, and JSON-RPC dispatch. */
-@JsonRpcService
 @lombok.extern.slf4j.Slf4j
 public class McpResourcesService {
 

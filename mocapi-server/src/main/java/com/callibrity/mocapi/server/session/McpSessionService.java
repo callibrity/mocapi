@@ -25,7 +25,6 @@ import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,7 +32,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /** Orchestrates session lifecycle: create, find, delete, log-level updates, and initialize. */
 @Slf4j
-@JsonRpcService
 public class McpSessionService {
 
   private final McpSessionStore store;
