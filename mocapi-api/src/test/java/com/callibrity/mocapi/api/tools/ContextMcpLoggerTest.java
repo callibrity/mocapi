@@ -45,7 +45,9 @@ class ContextMcpLoggerTest {
 
     /** No-op: progress notifications are not exercised by these tests. */
     @Override
-    public void sendProgress(long progress, long total) {}
+    public void sendProgress(long progress, long total) {
+      /* empty reflection target — see class javadoc. */
+    }
 
     @Override
     public void log(LoggingLevel level, String logger, String message) {

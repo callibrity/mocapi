@@ -167,7 +167,7 @@ class ContextPropagationTest {
         .handleCall(any(), any(), any());
 
     Observation outer = Observation.start("http.request", observationRegistry);
-    try (Observation.Scope _ = outer.openScope()) {
+    try (var _ = outer.openScope()) {
       invokeHandlerOnVt(controller).get(5, TimeUnit.SECONDS);
     } finally {
       outer.stop();

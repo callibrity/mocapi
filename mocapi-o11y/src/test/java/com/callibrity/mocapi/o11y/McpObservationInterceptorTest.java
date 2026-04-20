@@ -102,6 +102,8 @@ class McpObservationInterceptorTest {
 
   static class Fixtures {
     /** Dummy target method used only to obtain a {@link Method} handle for test invocations. */
-    public void target() {}
+    public void target() {
+      /* empty reflection target — see class javadoc. */
+    }
   }
 }
