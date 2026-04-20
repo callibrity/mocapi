@@ -67,7 +67,7 @@ public final class MocapiOAuth2ResourceResolver {
       return explicit;
     }
     if (audiences.size() == 1) {
-      return audiences.get(0);
+      return audiences.getFirst();
     }
     throw new IllegalStateException(
         String.format(

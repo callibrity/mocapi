@@ -40,9 +40,10 @@ class McpMetadataCustomizersTest {
     Map<String, Object> claims =
         applyAndBuild(properties, List.of(RESOURCE), ISSUER, null, List.of());
 
-    assertThat(claims).containsEntry("resource", RESOURCE);
-    assertThat(claims).containsEntry("authorization_servers", List.of(ISSUER));
-    assertThat(claims).containsEntry("scopes_supported", List.of("read", "write"));
+    assertThat(claims)
+        .containsEntry("resource", RESOURCE)
+        .containsEntry("authorization_servers", List.of(ISSUER))
+        .containsEntry("scopes_supported", List.of("read", "write"));
   }
 
   @Test

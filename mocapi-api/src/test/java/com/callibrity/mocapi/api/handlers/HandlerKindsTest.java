@@ -30,19 +30,37 @@ import org.junit.jupiter.api.Test;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class HandlerKindsTest {
 
+  // Reflection targets used by the tests below. They're invoked via
+  // Class.getDeclaredMethod("<name>") rather than called directly, so Sonar's unused-private
+  // and empty-method detectors don't see the usages; suppress both categories here.
+  @SuppressWarnings({"java:S1186", "java:S1144"})
   @McpTool(name = "my-tool")
-  private void toolMethod() {}
+  private void toolMethod() {
+    /* reflection target — see class comment */
+  }
 
+  @SuppressWarnings({"java:S1186", "java:S1144"})
   @McpPrompt(name = "my-prompt")
-  private void promptMethod() {}
+  private void promptMethod() {
+    /* reflection target — see class comment */
+  }
 
+  @SuppressWarnings({"java:S1186", "java:S1144"})
   @McpResource(uri = "mocapi://resource")
-  private void resourceMethod() {}
+  private void resourceMethod() {
+    /* reflection target — see class comment */
+  }
 
+  @SuppressWarnings({"java:S1186", "java:S1144"})
   @McpResourceTemplate(uriTemplate = "mocapi://template/{id}")
-  private void resourceTemplateMethod() {}
+  private void resourceTemplateMethod() {
+    /* reflection target — see class comment */
+  }
 
-  private void unannotatedMethod() {}
+  @SuppressWarnings({"java:S1186", "java:S1144"})
+  private void unannotatedMethod() {
+    /* reflection target — see class comment */
+  }
 
   @Test
   void kind_of_tool_method_is_tool() throws NoSuchMethodException {
