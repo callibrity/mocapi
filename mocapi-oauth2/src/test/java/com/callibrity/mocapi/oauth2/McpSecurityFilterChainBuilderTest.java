@@ -32,7 +32,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class McpOAuth2SecurityFilterChainBuilderTest {
+class McpSecurityFilterChainBuilderTest {
 
   private static final String MCP_ENDPOINT = "/mcp";
   private static final String METADATA_PATH = "/.well-known/oauth-protected-resource";
@@ -49,8 +49,8 @@ class McpOAuth2SecurityFilterChainBuilderTest {
     JwtDecoder jwtDecoder = mock(JwtDecoder.class);
     Implementation impl = new Implementation("mocapi", "Mocapi", "1.0.0");
 
-    McpOAuth2SecurityFilterChainBuilder builder =
-        new McpOAuth2SecurityFilterChainBuilder(
+    McpSecurityFilterChainBuilder builder =
+        new McpSecurityFilterChainBuilder(
             properties,
             jwtDecoder,
             null,
@@ -77,11 +77,10 @@ class McpOAuth2SecurityFilterChainBuilderTest {
     MocapiOAuth2Properties properties =
         new MocapiOAuth2Properties(
             "https://api.example.com", List.of(), List.of(), null, null, null);
-    MocapiOAuth2SecurityFilterChainCustomizer chainCustomizer =
-        mock(MocapiOAuth2SecurityFilterChainCustomizer.class);
+    McpSecurityFilterChainCustomizer chainCustomizer = mock(McpSecurityFilterChainCustomizer.class);
 
-    McpOAuth2SecurityFilterChainBuilder builder =
-        new McpOAuth2SecurityFilterChainBuilder(
+    McpSecurityFilterChainBuilder builder =
+        new McpSecurityFilterChainBuilder(
             properties,
             mock(JwtDecoder.class),
             null,

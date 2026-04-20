@@ -46,7 +46,7 @@ import org.springframework.validation.annotation.Validated;
  *     spring.security.oauth2.resourceserver.jwt.issuer-uri} so single-IdP setups don't have to
  *     restate the value. Set explicitly to federate across multiple authorization servers.
  * @param scopes scopes the resource server advertises as supported. Informational; enforcement is
- *     the caller's responsibility via {@link MocapiOAuth2SecurityFilterChainCustomizer}.
+ *     the caller's responsibility via {@link McpSecurityFilterChainCustomizer}.
  * @param resourceDocumentation URL of human-readable developer documentation for the resource (RFC
  *     9728 §2 {@code resource_documentation}). Optional.
  * @param resourcePolicyUri URL of a policy document describing how access tokens and data are

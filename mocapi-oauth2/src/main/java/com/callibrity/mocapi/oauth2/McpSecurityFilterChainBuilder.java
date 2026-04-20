@@ -36,7 +36,7 @@ import org.springframework.security.web.SecurityFilterChain;
  * #build(HttpSecurity)} time, matching Spring's own {@link
  * org.springframework.security.config.annotation.web.HttpSecurityBuilder} pattern.
  */
-public final class McpOAuth2SecurityFilterChainBuilder {
+public final class McpSecurityFilterChainBuilder {
 
   private final MocapiOAuth2Properties properties;
   private final JwtDecoder jwtDecoder;
@@ -45,7 +45,7 @@ public final class McpOAuth2SecurityFilterChainBuilder {
   private final String springIssuerUri;
   private final Implementation mcpServerInfo;
   private final List<OAuth2ProtectedResourceMetadataCustomizer> metadataCustomizers;
-  private final List<MocapiOAuth2SecurityFilterChainCustomizer> chainCustomizers;
+  private final List<McpSecurityFilterChainCustomizer> chainCustomizers;
   private final String mcpEndpoint;
   private final String metadataPath;
 
@@ -55,7 +55,7 @@ public final class McpOAuth2SecurityFilterChainBuilder {
   // Splitting into parameter objects would hide the dependency graph the autoconfig already
   // assembles directly. Keep the explicit list; let autoconfig be the one place that wires it.
   @SuppressWarnings("java:S107")
-  public McpOAuth2SecurityFilterChainBuilder(
+  public McpSecurityFilterChainBuilder(
       MocapiOAuth2Properties properties,
       JwtDecoder jwtDecoder,
       OpaqueTokenIntrospector opaqueTokenIntrospector,
@@ -63,7 +63,7 @@ public final class McpOAuth2SecurityFilterChainBuilder {
       String springIssuerUri,
       Implementation mcpServerInfo,
       List<OAuth2ProtectedResourceMetadataCustomizer> metadataCustomizers,
-      List<MocapiOAuth2SecurityFilterChainCustomizer> chainCustomizers,
+      List<McpSecurityFilterChainCustomizer> chainCustomizers,
       String mcpEndpoint,
       String metadataPath) {
     this.properties = properties;
@@ -102,7 +102,7 @@ public final class McpOAuth2SecurityFilterChainBuilder {
                   prm -> prm.protectedResourceMetadataCustomizer(builderCustomizer));
             });
 
-    for (MocapiOAuth2SecurityFilterChainCustomizer customizer : chainCustomizers) {
+    for (McpSecurityFilterChainCustomizer customizer : chainCustomizers) {
       customizer.customize(http);
     }
     return http.build();

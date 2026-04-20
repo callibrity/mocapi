@@ -280,7 +280,7 @@ class MocapiOAuth2AutoConfigurationTest {
     }
 
     @Bean
-    MocapiOAuth2SecurityFilterChainCustomizer headerStampingCustomizer() {
+    McpSecurityFilterChainCustomizer headerStampingCustomizer() {
       // Layer an extra filter onto the chain that tags every response. Cheap proof the
       // customizer actually reaches HttpSecurity during chain construction. Placed before
       // HeaderWriterFilter so it runs at the very top of the chain — ahead of both the

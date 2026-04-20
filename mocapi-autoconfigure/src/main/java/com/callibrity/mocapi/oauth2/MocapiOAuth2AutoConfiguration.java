@@ -35,9 +35,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
 import org.springframework.security.web.SecurityFilterChain;
 
-/**
- * Autoconfig for mocapi-oauth2: fail-fast checks plus {@link McpOAuth2SecurityFilterChainBuilder}.
- */
+/** Autoconfig for mocapi-oauth2: fail-fast checks plus {@link McpSecurityFilterChainBuilder}. */
 @AutoConfiguration(after = OAuth2ResourceServerAutoConfiguration.class)
 @ConditionalOnClass({OAuth2ProtectedResourceMetadataCustomizer.class, HttpSecurity.class})
 @EnableConfigurationProperties(MocapiOAuth2Properties.class)
@@ -70,10 +68,10 @@ public class MocapiOAuth2AutoConfiguration {
       ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties,
       ObjectProvider<Implementation> mcpServerInfo,
       ObjectProvider<OAuth2ProtectedResourceMetadataCustomizer> metadataCustomizers,
-      ObjectProvider<MocapiOAuth2SecurityFilterChainCustomizer> chainCustomizers,
+      ObjectProvider<McpSecurityFilterChainCustomizer> chainCustomizers,
       @Value("${mocapi.endpoint:/mcp}") String mcpEndpoint)
       throws Exception {
-    return new McpOAuth2SecurityFilterChainBuilder(
+    return new McpSecurityFilterChainBuilder(
             properties,
             jwtDecoder.getIfAvailable(),
             opaqueTokenIntrospector.getIfAvailable(),

@@ -27,7 +27,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
  * applied, so user rules compose on top of (and can override) the built-ins.
  */
 @FunctionalInterface
-public interface MocapiOAuth2SecurityFilterChainCustomizer {
+public interface McpSecurityFilterChainCustomizer {
 
   /**
    * Mutate the given {@link HttpSecurity} configuration before the chain is built.
