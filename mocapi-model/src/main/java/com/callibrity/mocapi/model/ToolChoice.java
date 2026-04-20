@@ -64,6 +64,10 @@ public sealed interface ToolChoice permits ToolChoice.Auto, ToolChoice.None, Too
     throw new IllegalArgumentException("Unrecognized toolChoice payload: " + json);
   }
 
+  // MCP protocol sentinel value. The "auto" tool-choice is a well-known string constant in
+  // the MCP 2025-11-25 spec; using a singleton avoids redundant allocations while preserving
+  // pattern-match compatibility with the sealed-interface shape.
+  @SuppressWarnings("java:S6548")
   final class Auto implements ToolChoice {
     static final Auto INSTANCE = new Auto();
 
@@ -75,6 +79,8 @@ public sealed interface ToolChoice permits ToolChoice.Auto, ToolChoice.None, Too
     }
   }
 
+  // MCP protocol sentinel value. See Auto above for rationale.
+  @SuppressWarnings("java:S6548")
   final class None implements ToolChoice {
     static final None INSTANCE = new None();
 

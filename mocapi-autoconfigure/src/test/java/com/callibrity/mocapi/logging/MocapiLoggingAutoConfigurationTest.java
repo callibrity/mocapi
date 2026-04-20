@@ -55,8 +55,9 @@ class MocapiLoggingAutoConfigurationTest {
     autoConfig.mcpMdcToolCustomizer().customize(config);
 
     var captured = runFirstInterceptor(config.interceptors);
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("tool");
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("my-tool");
+    assertThat(captured.get())
+        .containsEntry(McpMdcKeys.HANDLER_KIND, "tool")
+        .containsEntry(McpMdcKeys.HANDLER_NAME, "my-tool");
   }
 
   @Test
@@ -66,8 +67,9 @@ class MocapiLoggingAutoConfigurationTest {
     autoConfig.mcpMdcPromptCustomizer().customize(config);
 
     var captured = runFirstInterceptor(config.interceptors);
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("prompt");
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("my-prompt");
+    assertThat(captured.get())
+        .containsEntry(McpMdcKeys.HANDLER_KIND, "prompt")
+        .containsEntry(McpMdcKeys.HANDLER_NAME, "my-prompt");
   }
 
   @Test
@@ -77,8 +79,9 @@ class MocapiLoggingAutoConfigurationTest {
     autoConfig.mcpMdcResourceCustomizer().customize(config);
 
     var captured = runFirstInterceptor(config.interceptors);
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("resource");
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("mem://hello");
+    assertThat(captured.get())
+        .containsEntry(McpMdcKeys.HANDLER_KIND, "resource")
+        .containsEntry(McpMdcKeys.HANDLER_NAME, "mem://hello");
   }
 
   @Test
@@ -89,8 +92,9 @@ class MocapiLoggingAutoConfigurationTest {
     autoConfig.mcpMdcResourceTemplateCustomizer().customize(config);
 
     var captured = runFirstInterceptor(config.interceptors);
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("resource_template");
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("mem://item/{id}");
+    assertThat(captured.get())
+        .containsEntry(McpMdcKeys.HANDLER_KIND, "resource_template")
+        .containsEntry(McpMdcKeys.HANDLER_NAME, "mem://item/{id}");
   }
 
   @Test

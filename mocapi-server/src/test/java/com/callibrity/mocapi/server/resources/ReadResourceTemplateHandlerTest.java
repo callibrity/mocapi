@@ -41,7 +41,6 @@ import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
-import org.jwcarman.methodical.param.ParameterResolver.Binding;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
 
@@ -239,7 +238,7 @@ class ReadResourceTemplateHandlerTest {
 
   static final class CurrentTenantResolver implements ParameterResolver<Map<String, String>> {
     @Override
-    public Optional<Binding<Map<String, String>>> bind(ParameterInfo info) {
+    public Optional<ParameterResolver.Binding<Map<String, String>>> bind(ParameterInfo info) {
       if (!info.parameter().isAnnotationPresent(CurrentTenant.class)
           || info.resolvedType() != String.class) {
         return Optional.empty();
@@ -286,7 +285,8 @@ class ReadResourceTemplateHandlerTest {
         ReadResourceTemplateHandlers.build(
             bean, method, invokerFactory, conversionService, List.of(customizer), s -> s);
 
-    assertThatThrownBy(() -> handler.read(Map.of("name", "World")))
+    var args = Map.of("name", "World");
+    assertThatThrownBy(() -> handler.read(args))
         .isInstanceOf(JsonRpcException.class)
         .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
         .hasMessageContaining("no-access");

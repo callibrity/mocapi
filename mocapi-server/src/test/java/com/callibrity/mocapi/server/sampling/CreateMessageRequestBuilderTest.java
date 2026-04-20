@@ -258,9 +258,9 @@ class CreateMessageRequestBuilderTest {
   void tool_by_name_throws_when_service_returns_null() {
     when(toolsService.findToolDescriptor("nope")).thenReturn(null);
 
-    var builder = new CreateMessageRequestBuilder(toolsService);
+    var builder = new CreateMessageRequestBuilder(toolsService).userMessage("hi");
 
-    assertThatThrownBy(() -> builder.userMessage("hi").tool("nope"))
+    assertThatThrownBy(() -> builder.tool("nope"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("No tool registered with name: nope");
   }

@@ -76,8 +76,7 @@ class SpringSecurityGuardsIntegrationTest {
     var response = dispatcher.dispatch(listToolsCall());
     assertThat(response).isInstanceOf(JsonRpcResult.class);
     var names = ((JsonRpcResult) response).result().path("tools").toString();
-    assertThat(names).doesNotContain("\"admin-only\"");
-    assertThat(names).contains("\"public\"");
+    assertThat(names).doesNotContain("\"admin-only\"").contains("\"public\"");
   }
 
   @Test

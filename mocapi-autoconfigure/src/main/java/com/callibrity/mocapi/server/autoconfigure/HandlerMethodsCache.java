@@ -60,21 +60,9 @@ public record HandlerMethodsCache(
     Map<Class<? extends Annotation>, List<BeanMethod>> map = new LinkedHashMap<>();
     for (String beanName : beanFactory.getBeanNamesForType(Object.class, false, false)) {
       Class<?> declaredType = beanFactory.getType(beanName, false);
-      if (declaredType == null) {
-        continue;
-      }
-      Class<?> userType = ClassUtils.getUserClass(declaredType);
-      if (!hostsAnyAnnotation(userType, annotationTypes)) {
-        continue;
-      }
-      Object bean = beanFactory.getBean(beanName);
-      Class<?> targetClass = AopUtils.getTargetClass(bean);
-      for (Class<? extends Annotation> annotationType : annotationTypes) {
-        for (Method method :
-            MethodUtils.getMethodsListWithAnnotation(targetClass, annotationType)) {
-          map.computeIfAbsent(annotationType, k -> new ArrayList<>())
-              .add(new BeanMethod(beanName, bean, method));
-        }
+      if (declaredType != null
+          && hostsAnyAnnotation(ClassUtils.getUserClass(declaredType), annotationTypes)) {
+        collectBeanMethods(beanFactory, beanName, annotationTypes, map);
       }
     }
     Map<Class<? extends Annotation>, List<BeanMethod>> sorted = new LinkedHashMap<>();
@@ -86,6 +74,21 @@ public record HandlerMethodsCache(
           sorted.put(annotationType, List.copyOf(entries));
         });
     return new HandlerMethodsCache(sorted);
+  }
+
+  private static void collectBeanMethods(
+      ConfigurableListableBeanFactory beanFactory,
+      String beanName,
+      List<Class<? extends Annotation>> annotationTypes,
+      Map<Class<? extends Annotation>, List<BeanMethod>> map) {
+    Object bean = beanFactory.getBean(beanName);
+    Class<?> targetClass = AopUtils.getTargetClass(bean);
+    for (Class<? extends Annotation> annotationType : annotationTypes) {
+      for (Method method : MethodUtils.getMethodsListWithAnnotation(targetClass, annotationType)) {
+        map.computeIfAbsent(annotationType, k -> new ArrayList<>())
+            .add(new BeanMethod(beanName, bean, method));
+      }
+    }
   }
 
   private static boolean hostsAnyAnnotation(

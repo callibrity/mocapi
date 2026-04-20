@@ -30,16 +30,20 @@ class SpringSecurityGuardsTest {
 
   static class Fixture {
 
+    /** Fixture target annotated with {@link RequiresScope} only. */
     @RequiresScope("admin:write")
     public void scopeOnly() {}
 
+    /** Fixture target annotated with {@link RequiresRole} only. */
     @RequiresRole("ADMIN")
     public void roleOnly() {}
 
+    /** Fixture target annotated with both {@link RequiresScope} and {@link RequiresRole}. */
     @RequiresScope("admin:write")
     @RequiresRole("ADMIN")
     public void both() {}
 
+    /** Fixture target with no security annotations. */
     public void neither() {}
   }
 

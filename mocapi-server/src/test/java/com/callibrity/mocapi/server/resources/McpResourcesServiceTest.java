@@ -271,18 +271,15 @@ class McpResourcesServiceTest {
         List.of(guard));
   }
 
-  // Call-time denial (guardedHandler + readResource) moved to GuardEvaluationInterceptor;
-  // covered by GuardEvaluationInterceptorTest and the per-kind chain-ordering tests.
-
   @Test
   void denied_resource_and_template_are_absent_from_list() {
     var svc =
         new McpResourcesService(
             List.of(
-                guardedHandler("file:///visible", () -> new GuardDecision.Allow()),
+                guardedHandler("file:///visible", GuardDecision.Allow::new),
                 guardedHandler("file:///hidden", () -> new GuardDecision.Deny("x"))),
             List.of(
-                guardedTemplateHandler("file:///tpl/{a}", () -> new GuardDecision.Allow()),
+                guardedTemplateHandler("file:///tpl/{a}", GuardDecision.Allow::new),
                 guardedTemplateHandler("file:///tpl2/{a}", () -> new GuardDecision.Deny("y"))));
     var resourceUris = svc.listResources(null).resources().stream().map(Resource::uri).toList();
     assertThat(resourceUris).contains("file:///visible").doesNotContain("file:///hidden");

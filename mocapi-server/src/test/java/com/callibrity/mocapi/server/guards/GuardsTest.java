@@ -34,8 +34,8 @@ class GuardsTest {
 
   @Test
   void all_allow_returns_allow() {
-    Guard a = () -> new GuardDecision.Allow();
-    Guard b = () -> new GuardDecision.Allow();
+    Guard a = GuardDecision.Allow::new;
+    Guard b = GuardDecision.Allow::new;
     assertThat(Guards.evaluate(List.of(a, b))).isInstanceOf(GuardDecision.Allow.class);
   }
 
@@ -55,7 +55,7 @@ class GuardsTest {
 
   @Test
   void deny_after_allow_returns_that_deny() {
-    Guard allow = () -> new GuardDecision.Allow();
+    Guard allow = GuardDecision.Allow::new;
     Guard deny = () -> new GuardDecision.Deny("rejected");
     GuardDecision decision = Guards.evaluate(List.of(allow, deny));
     assertThat(decision).isEqualTo(new GuardDecision.Deny("rejected"));

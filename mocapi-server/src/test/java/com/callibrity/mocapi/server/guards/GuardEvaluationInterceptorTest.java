@@ -34,7 +34,7 @@ class GuardEvaluationInterceptorTest {
   @Test
   void single_allow_guard_proceeds() {
     AtomicInteger proceeds = new AtomicInteger();
-    var interceptor = new GuardEvaluationInterceptor(List.of(() -> new GuardDecision.Allow()));
+    var interceptor = new GuardEvaluationInterceptor(List.of(GuardDecision.Allow::new));
 
     Object result = interceptor.intercept(invocation(proceeds, "ok"));
 
@@ -46,8 +46,9 @@ class GuardEvaluationInterceptorTest {
   void single_deny_guard_throws_forbidden_with_reason() {
     AtomicInteger proceeds = new AtomicInteger();
     var interceptor = new GuardEvaluationInterceptor(List.of(() -> new GuardDecision.Deny("nope")));
+    var invocation = invocation(proceeds, "never");
 
-    assertThatThrownBy(() -> interceptor.intercept(invocation(proceeds, "never")))
+    assertThatThrownBy(() -> interceptor.intercept(invocation))
         .isInstanceOf(JsonRpcException.class)
         .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
         .hasMessageContaining("Forbidden")
@@ -71,9 +72,10 @@ class GuardEvaluationInterceptorTest {
     AtomicInteger proceeds = new AtomicInteger();
     var interceptor =
         new GuardEvaluationInterceptor(
-            List.of(() -> new GuardDecision.Deny("blocked"), () -> new GuardDecision.Allow()));
+            List.of(() -> new GuardDecision.Deny("blocked"), GuardDecision.Allow::new));
+    var invocation = invocation(proceeds, "never");
 
-    assertThatThrownBy(() -> interceptor.intercept(invocation(proceeds, "never")))
+    assertThatThrownBy(() -> interceptor.intercept(invocation))
         .isInstanceOf(JsonRpcException.class)
         .hasMessageContaining("blocked");
     assertThat(proceeds.get()).isZero();

@@ -40,7 +40,6 @@ import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
-import org.jwcarman.methodical.param.ParameterResolver.Binding;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ReadResourceHandlerTest {
@@ -189,7 +188,7 @@ class ReadResourceHandlerTest {
 
   static final class CurrentTenantResolver implements ParameterResolver<Object> {
     @Override
-    public Optional<Binding<Object>> bind(ParameterInfo info) {
+    public Optional<ParameterResolver.Binding<Object>> bind(ParameterInfo info) {
       if (!info.parameter().isAnnotationPresent(CurrentTenant.class)
           || info.resolvedType() != String.class) {
         return Optional.empty();

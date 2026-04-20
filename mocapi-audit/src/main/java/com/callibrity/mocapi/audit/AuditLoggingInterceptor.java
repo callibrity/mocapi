@@ -83,7 +83,13 @@ public final class AuditLoggingInterceptor implements MethodInterceptor<Object> 
     Throwable failure = null;
     try {
       return invocation.proceed();
-    } catch (RuntimeException | Error t) {
+    } catch (
+    // An audit interceptor's compliance contract is to record EVERY outcome, including
+    // JVM-level faults (OOM, StackOverflow) so the "what happened" record survives the
+    // process crash that follows. Catching Error is intentional here — we record and
+    // rethrow without swallowing. Sonar's S1181 "don't catch Error" rule is the right
+    // default for application code but doesn't apply to audit instrumentation.
+    @SuppressWarnings("java:S1181") RuntimeException | Error t) {
       outcome = classifyOutcome(t);
       failure = t;
       throw t;

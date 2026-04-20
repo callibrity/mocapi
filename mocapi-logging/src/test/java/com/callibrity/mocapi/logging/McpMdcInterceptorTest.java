@@ -42,14 +42,15 @@ class McpMdcInterceptorTest {
     var interceptor = new McpMdcInterceptor("tool", "my-tool");
     var captured = invokeCapturingMdc(interceptor);
 
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("tool");
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("my-tool");
+    assertThat(captured.get())
+        .containsEntry(McpMdcKeys.HANDLER_KIND, "tool")
+        .containsEntry(McpMdcKeys.HANDLER_NAME, "my-tool");
     assertThat(MDC.get(McpMdcKeys.HANDLER_KIND)).isNull();
     assertThat(MDC.get(McpMdcKeys.HANDLER_NAME)).isNull();
   }
 
   @Test
-  void sets_session_key_when_session_is_bound() throws Exception {
+  void sets_session_key_when_session_is_bound() {
     var interceptor = new McpMdcInterceptor("tool", "my-tool");
     var session = new McpSession("session-42", "2025-11-25", null, null);
     AtomicReference<String> seen = new AtomicReference<>();
@@ -78,7 +79,7 @@ class McpMdcInterceptorTest {
   }
 
   @Test
-  void omits_session_key_when_session_is_not_bound() throws Exception {
+  void omits_session_key_when_session_is_not_bound() {
     var interceptor = new McpMdcInterceptor("tool", "my-tool");
     var captured = invokeCapturingMdc(interceptor);
 
@@ -106,50 +107,52 @@ class McpMdcInterceptorTest {
   }
 
   @Test
-  void preserves_pre_existing_mdc_entries() throws Exception {
+  void preserves_pre_existing_mdc_entries() {
     MDC.put("upstream.trace", "abc-123");
     var interceptor = new McpMdcInterceptor("tool", "my-tool");
 
     var captured = invokeCapturingMdc(interceptor);
 
-    assertThat(captured.get().get("upstream.trace")).isEqualTo("abc-123");
+    assertThat(captured.get()).containsEntry("upstream.trace", "abc-123");
     assertThat(MDC.get("upstream.trace")).isEqualTo("abc-123");
   }
 
   @Test
-  void omits_name_key_when_handler_name_is_blank() throws Exception {
+  void omits_name_key_when_handler_name_is_blank() {
     var interceptor = new McpMdcInterceptor("tool", "");
     var captured = invokeCapturingMdc(interceptor);
 
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("tool");
+    assertThat(captured.get()).containsEntry(McpMdcKeys.HANDLER_KIND, "tool");
     assertThat(captured.get().containsKey(McpMdcKeys.HANDLER_NAME)).isFalse();
   }
 
   @Test
-  void omits_name_key_when_handler_name_is_null() throws Exception {
+  void omits_name_key_when_handler_name_is_null() {
     var interceptor = new McpMdcInterceptor("tool", null);
     var captured = invokeCapturingMdc(interceptor);
 
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("tool");
+    assertThat(captured.get()).containsEntry(McpMdcKeys.HANDLER_KIND, "tool");
     assertThat(captured.get().containsKey(McpMdcKeys.HANDLER_NAME)).isFalse();
   }
 
   @Test
-  void resource_kind_and_uri_render_as_handler_name() throws Exception {
+  void resource_kind_and_uri_render_as_handler_name() {
     var interceptor = new McpMdcInterceptor("resource", "mem://hello");
     var captured = invokeCapturingMdc(interceptor);
 
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("resource");
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("mem://hello");
+    assertThat(captured.get())
+        .containsEntry(McpMdcKeys.HANDLER_KIND, "resource")
+        .containsEntry(McpMdcKeys.HANDLER_NAME, "mem://hello");
   }
 
   @Test
-  void resource_template_kind_and_uri_template_render_as_handler_name() throws Exception {
+  void resource_template_kind_and_uri_template_render_as_handler_name() {
     var interceptor = new McpMdcInterceptor("resource_template", "mem://item/{id}");
     var captured = invokeCapturingMdc(interceptor);
 
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_KIND)).isEqualTo("resource_template");
-    assertThat(captured.get().get(McpMdcKeys.HANDLER_NAME)).isEqualTo("mem://item/{id}");
+    assertThat(captured.get())
+        .containsEntry(McpMdcKeys.HANDLER_KIND, "resource_template")
+        .containsEntry(McpMdcKeys.HANDLER_NAME, "mem://item/{id}");
   }
 
   private AtomicReference<Map<String, String>> invokeCapturingMdc(McpMdcInterceptor interceptor) {
@@ -177,6 +180,7 @@ class McpMdcInterceptorTest {
   }
 
   static class Fixtures {
+    /** Dummy target method used only to obtain a {@link Method} handle for test invocations. */
     public void target() {}
   }
 }

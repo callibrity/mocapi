@@ -73,15 +73,16 @@ class AuditLoggingInterceptorTest {
     var event = appender.list.getFirst();
     assertThat(event.getMessage()).isEqualTo("mcp.audit");
     Map<String, Object> kv = keyValues(event);
-    assertThat(kv).containsEntry(AuditFieldKeys.CALLER, "alice");
-    assertThat(kv).containsEntry(AuditFieldKeys.HANDLER_KIND, "tool");
-    assertThat(kv).containsEntry(AuditFieldKeys.HANDLER_NAME, "weather");
-    assertThat(kv).containsEntry(AuditFieldKeys.OUTCOME, "success");
-    assertThat(kv).containsKey(AuditFieldKeys.DURATION_MS);
+    assertThat(kv)
+        .containsEntry(AuditFieldKeys.CALLER, "alice")
+        .containsEntry(AuditFieldKeys.HANDLER_KIND, "tool")
+        .containsEntry(AuditFieldKeys.HANDLER_NAME, "weather")
+        .containsEntry(AuditFieldKeys.OUTCOME, "success")
+        .containsKey(AuditFieldKeys.DURATION_MS)
+        .doesNotContainKey(AuditFieldKeys.ARGUMENTS_HASH)
+        .doesNotContainKey(AuditFieldKeys.ERROR_CLASS)
+        .containsKey(AuditFieldKeys.SESSION_ID);
     assertThat((Long) kv.get(AuditFieldKeys.DURATION_MS)).isGreaterThanOrEqualTo(0L);
-    assertThat(kv).doesNotContainKey(AuditFieldKeys.ARGUMENTS_HASH);
-    assertThat(kv).doesNotContainKey(AuditFieldKeys.ERROR_CLASS);
-    assertThat(kv).containsKey(AuditFieldKeys.SESSION_ID);
     assertThat(kv.get(AuditFieldKeys.SESSION_ID)).isNull();
   }
 
@@ -99,34 +100,31 @@ class AuditLoggingInterceptorTest {
   @Test
   void classifies_forbidden() {
     var interceptor = newInterceptor("tool", "wipe", false);
-    assertThatThrownBy(
-            () ->
-                interceptor.intercept(
-                    invocation(
-                        Map.of(),
-                        () -> {
-                          throw new JsonRpcException(
-                              JsonRpcErrorCodes.FORBIDDEN, "Forbidden: nope");
-                        })))
+    var invocation =
+        invocation(
+            Map.of(),
+            () -> {
+              throw new JsonRpcException(JsonRpcErrorCodes.FORBIDDEN, "Forbidden: nope");
+            });
+    assertThatThrownBy(() -> interceptor.intercept(invocation))
         .isInstanceOf(JsonRpcException.class);
 
     Map<String, Object> kv = keyValues(appender.list.getFirst());
-    assertThat(kv).containsEntry(AuditFieldKeys.OUTCOME, "forbidden");
-    assertThat(kv).containsEntry(AuditFieldKeys.ERROR_CLASS, "JsonRpcException");
+    assertThat(kv)
+        .containsEntry(AuditFieldKeys.OUTCOME, "forbidden")
+        .containsEntry(AuditFieldKeys.ERROR_CLASS, "JsonRpcException");
   }
 
   @Test
   void classifies_invalid_params() {
     var interceptor = newInterceptor("tool", "weather", false);
-    assertThatThrownBy(
-            () ->
-                interceptor.intercept(
-                    invocation(
-                        Map.of(),
-                        () -> {
-                          throw new JsonRpcException(
-                              JsonRpcProtocol.INVALID_PARAMS, "missing city");
-                        })))
+    var invocation =
+        invocation(
+            Map.of(),
+            () -> {
+              throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "missing city");
+            });
+    assertThatThrownBy(() -> interceptor.intercept(invocation))
         .isInstanceOf(JsonRpcException.class);
 
     Map<String, Object> kv = keyValues(appender.list.getFirst());
@@ -136,19 +134,19 @@ class AuditLoggingInterceptorTest {
   @Test
   void classifies_error_for_arbitrary_runtime_exception() {
     var interceptor = newInterceptor("tool", "weather", false);
-    assertThatThrownBy(
-            () ->
-                interceptor.intercept(
-                    invocation(
-                        Map.of(),
-                        () -> {
-                          throw new IllegalStateException("boom");
-                        })))
+    var invocation =
+        invocation(
+            Map.of(),
+            () -> {
+              throw new IllegalStateException("boom");
+            });
+    assertThatThrownBy(() -> interceptor.intercept(invocation))
         .isInstanceOf(IllegalStateException.class);
 
     Map<String, Object> kv = keyValues(appender.list.getFirst());
-    assertThat(kv).containsEntry(AuditFieldKeys.OUTCOME, "error");
-    assertThat(kv).containsEntry(AuditFieldKeys.ERROR_CLASS, "IllegalStateException");
+    assertThat(kv)
+        .containsEntry(AuditFieldKeys.OUTCOME, "error")
+        .containsEntry(AuditFieldKeys.ERROR_CLASS, "IllegalStateException");
   }
 
   @Test
@@ -158,8 +156,7 @@ class AuditLoggingInterceptorTest {
 
     Map<String, Object> kv = keyValues(appender.list.getFirst());
     String hash = (String) kv.get(AuditFieldKeys.ARGUMENTS_HASH);
-    assertThat(hash).isNotNull().startsWith("sha256:");
-    assertThat(hash).hasSize("sha256:".length() + 64);
+    assertThat(hash).isNotNull().startsWith("sha256:").hasSize("sha256:".length() + 64);
   }
 
   @Test

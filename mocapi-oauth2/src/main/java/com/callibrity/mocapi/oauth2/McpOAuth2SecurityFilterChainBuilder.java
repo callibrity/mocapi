@@ -49,6 +49,12 @@ public final class McpOAuth2SecurityFilterChainBuilder {
   private final String mcpEndpoint;
   private final String metadataPath;
 
+  // The 10 parameters aren't a design smell so much as the Spring Security OAuth2 resource-
+  // server API surface refracted through a single builder: token decoders (JWT + opaque),
+  // audience validation inputs, metadata-document inputs, and filter-chain customization hooks.
+  // Splitting into parameter objects would hide the dependency graph the autoconfig already
+  // assembles directly. Keep the explicit list; let autoconfig be the one place that wires it.
+  @SuppressWarnings("java:S107")
   public McpOAuth2SecurityFilterChainBuilder(
       MocapiOAuth2Properties properties,
       JwtDecoder jwtDecoder,

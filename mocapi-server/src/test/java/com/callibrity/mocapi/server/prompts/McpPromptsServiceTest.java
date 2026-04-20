@@ -186,7 +186,7 @@ class McpPromptsServiceTest {
     var guarded =
         new McpPromptsService(
             List.of(
-                guardedHandler("visible", () -> new GuardDecision.Allow()),
+                guardedHandler("visible", GuardDecision.Allow::new),
                 guardedHandler("hidden", () -> new GuardDecision.Deny("no"))));
     var names = guarded.listPrompts(null).prompts().stream().map(Prompt::name).toList();
     assertThat(names).contains("visible").doesNotContain("hidden");
@@ -204,7 +204,7 @@ class McpPromptsServiceTest {
             null,
             args -> new GetPromptResult("mixed", List.of()),
             List.of(),
-            List.of(() -> new GuardDecision.Allow(), () -> new GuardDecision.Deny("blocked")));
+            List.of(GuardDecision.Allow::new, () -> new GuardDecision.Deny("blocked")));
     var guarded = new McpPromptsService(List.of(handler));
 
     assertThat(guarded.listPrompts(null).prompts()).isEmpty();

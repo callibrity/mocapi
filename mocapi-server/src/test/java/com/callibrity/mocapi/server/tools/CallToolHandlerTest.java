@@ -43,9 +43,9 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
+import org.jwcarman.methodical.intercept.MethodInvocation;
 import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
-import org.jwcarman.methodical.param.ParameterResolver.Binding;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -227,7 +227,8 @@ class CallToolHandlerTest {
 
     // Invalid args (missing required "name") would trip schema validation — but guards evaluate
     // first, so we get FORBIDDEN rather than a schema error.
-    assertThatThrownBy(() -> handler.call(mapper.createObjectNode()))
+    var args = mapper.createObjectNode();
+    assertThatThrownBy(() -> handler.call(args))
         .isInstanceOf(JsonRpcException.class)
         .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
         .hasMessageContaining("no-scope");
@@ -241,14 +242,9 @@ class CallToolHandlerTest {
   @Test
   void no_guards_means_no_guard_interceptor_overhead() {
     var bean = new HelloTool();
-    CallToolHandlerCustomizer customizer =
-        config ->
-            config.interceptor(
-                invocation -> {
-                  // Guard list is empty, so GuardEvaluationInterceptor should not be wired in.
-                  // We can only assert indirectly: the call succeeds with no denial.
-                  return invocation.proceed();
-                });
+    // Guard list is empty, so GuardEvaluationInterceptor should not be wired in.
+    // We can only assert indirectly: the call succeeds with no denial.
+    CallToolHandlerCustomizer customizer = config -> config.interceptor(MethodInvocation::proceed);
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
     var handler =
@@ -265,7 +261,7 @@ class CallToolHandlerTest {
 
   static final class CurrentTenantResolver implements ParameterResolver<JsonNode> {
     @Override
-    public Optional<Binding<JsonNode>> bind(ParameterInfo info) {
+    public Optional<ParameterResolver.Binding<JsonNode>> bind(ParameterInfo info) {
       if (!info.parameter().isAnnotationPresent(CurrentTenant.class)
           || info.resolvedType() != String.class) {
         return Optional.empty();

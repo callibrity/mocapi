@@ -352,7 +352,7 @@ class McpToolsServiceTest {
 
   @Test
   void denied_tool_is_absent_from_list() {
-    Guard allow = () -> new GuardDecision.Allow();
+    Guard allow = GuardDecision.Allow::new;
     Guard deny = () -> new GuardDecision.Deny("hidden");
     var handlers = new ArrayList<CallToolHandler>();
     handlers.addAll(createHandlersWithGuards(new HelloTool(), allow));
@@ -365,7 +365,7 @@ class McpToolsServiceTest {
 
   @Test
   void mixed_guards_with_one_deny_hides_and_rejects() {
-    Guard allow = () -> new GuardDecision.Allow();
+    Guard allow = GuardDecision.Allow::new;
     Guard deny = () -> new GuardDecision.Deny("blocked");
     var handlers = createHandlersWithGuards(new HelloTool(), allow, deny);
     var guardedService = new McpToolsService(handlers, mapper, correlationService);

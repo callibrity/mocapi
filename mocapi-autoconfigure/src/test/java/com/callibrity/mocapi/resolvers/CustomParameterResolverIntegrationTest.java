@@ -37,7 +37,6 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.param.ParameterInfo;
 import org.jwcarman.methodical.param.ParameterResolver;
-import org.jwcarman.methodical.param.ParameterResolver.Binding;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -110,7 +109,7 @@ class CustomParameterResolverIntegrationTest {
 
   static final class CurrentTenantResolver implements ParameterResolver<JsonNode> {
     @Override
-    public Optional<Binding<JsonNode>> bind(ParameterInfo info) {
+    public Optional<ParameterResolver.Binding<JsonNode>> bind(ParameterInfo info) {
       if (!info.parameter().isAnnotationPresent(CurrentTenant.class)
           || info.resolvedType() != String.class) {
         return Optional.empty();

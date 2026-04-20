@@ -123,16 +123,20 @@ class MocapiSpringSecurityGuardsAttachmentLogTest {
   }
 
   static final class Fixture {
+    /** Fixture target annotated with {@link RequiresScope} only. */
     @RequiresScope("read")
     void scoped() {}
 
+    /** Fixture target annotated with {@link RequiresRole} only. */
     @RequiresRole("USER")
     void roled() {}
 
+    /** Fixture target annotated with both {@link RequiresScope} and {@link RequiresRole}. */
     @RequiresScope("read")
     @RequiresRole("USER")
     void scopedAndRoled() {}
 
+    /** Fixture target with no security annotations. */
     void plain() {}
   }
 }

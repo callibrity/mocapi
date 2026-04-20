@@ -43,6 +43,7 @@ class ContextMcpLoggerTest {
     final List<LogEntry> entries = new ArrayList<>();
     LoggingLevel threshold = LoggingLevel.DEBUG;
 
+    /** No-op: progress notifications are not exercised by these tests. */
     @Override
     public void sendProgress(long progress, long total) {}
 

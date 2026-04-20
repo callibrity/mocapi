@@ -125,7 +125,7 @@ class AuditIntegrationTest {
     ObjectNode params = objectMapper.createObjectNode();
     params.put("name", name);
     ObjectNode arguments = params.putObject("arguments");
-    args.forEach((k, v) -> arguments.putPOJO(k, v));
+    args.forEach(arguments::putPOJO);
     return new JsonRpcCall(
         JsonRpcProtocol.VERSION, McpMethods.TOOLS_CALL, params, IntNode.valueOf(1));
   }

@@ -26,7 +26,6 @@ public class HelloTool {
 
   @McpTool(name = "hello", description = "Returns a greeting message")
   public HelloResponse sayHello(String name) {
-    // log.info("Saying hello to " + name);
     return new HelloResponse(String.format("Hello, %s!", name));
   }
 

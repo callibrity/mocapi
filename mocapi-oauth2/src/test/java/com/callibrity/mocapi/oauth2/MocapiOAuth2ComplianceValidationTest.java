@@ -52,7 +52,8 @@ class MocapiOAuth2ComplianceValidationTest {
 
   @Test
   void fails_when_both_jwt_decoder_and_opaque_introspector_are_missing() {
-    assertThatThrownBy(() -> MocapiOAuth2Compliance.validate(null, null, List.of("mcp-test")))
+    var audiences = List.of("mcp-test");
+    assertThatThrownBy(() -> MocapiOAuth2Compliance.validate(null, null, audiences))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("neither JwtDecoder nor OpaqueTokenIntrospector");
   }
@@ -60,7 +61,8 @@ class MocapiOAuth2ComplianceValidationTest {
   @Test
   void fails_when_audiences_list_is_empty() {
     JwtDecoder jwt = mock(JwtDecoder.class);
-    assertThatThrownBy(() -> MocapiOAuth2Compliance.validate(jwt, null, List.of()))
+    var audiences = List.<String>of();
+    assertThatThrownBy(() -> MocapiOAuth2Compliance.validate(jwt, null, audiences))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("audiences");
   }
