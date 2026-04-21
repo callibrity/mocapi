@@ -29,7 +29,7 @@ import org.springframework.security.oauth2.server.resource.OAuth2ProtectedResour
  * override mocapi-supplied defaults.
  */
 @FunctionalInterface
-public interface OAuth2ProtectedResourceMetadataCustomizer {
+public interface McpProtectedResourceMetadataCustomizer {
 
   /**
    * Mutate the given builder before {@link OAuth2ProtectedResourceMetadata.Builder#build()} is

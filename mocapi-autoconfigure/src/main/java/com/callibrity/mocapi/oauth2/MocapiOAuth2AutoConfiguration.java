@@ -37,7 +37,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 /** Autoconfig for mocapi-oauth2: fail-fast checks plus {@link McpSecurityFilterChainBuilder}. */
 @AutoConfiguration(after = OAuth2ResourceServerAutoConfiguration.class)
-@ConditionalOnClass({OAuth2ProtectedResourceMetadataCustomizer.class, HttpSecurity.class})
+@ConditionalOnClass({McpProtectedResourceMetadataCustomizer.class, HttpSecurity.class})
 @EnableConfigurationProperties(MocapiOAuth2Properties.class)
 @PropertySource("classpath:mocapi-oauth2-defaults.properties")
 public class MocapiOAuth2AutoConfiguration {
@@ -67,7 +67,7 @@ public class MocapiOAuth2AutoConfiguration {
       ObjectProvider<OpaqueTokenIntrospector> opaqueTokenIntrospector,
       ObjectProvider<OAuth2ResourceServerProperties> springResourceServerProperties,
       ObjectProvider<Implementation> mcpServerInfo,
-      ObjectProvider<OAuth2ProtectedResourceMetadataCustomizer> metadataCustomizers,
+      ObjectProvider<McpProtectedResourceMetadataCustomizer> metadataCustomizers,
       ObjectProvider<McpSecurityFilterChainCustomizer> chainCustomizers,
       @Value("${mocapi.endpoint:/mcp}") String mcpEndpoint)
       throws Exception {

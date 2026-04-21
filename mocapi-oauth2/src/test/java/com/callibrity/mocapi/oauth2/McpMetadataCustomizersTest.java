@@ -114,7 +114,7 @@ class McpMetadataCustomizersTest {
   @Test
   void user_supplied_customizers_run_after_defaults() {
     MocapiOAuth2Properties properties = emptyProps();
-    OAuth2ProtectedResourceMetadataCustomizer userCustomizer =
+    McpProtectedResourceMetadataCustomizer userCustomizer =
         builder -> builder.claim("custom_claim", "value");
 
     Map<String, Object> claims =
@@ -126,7 +126,7 @@ class McpMetadataCustomizersTest {
   @Test
   void user_customizers_can_override_mocapi_defaults() {
     MocapiOAuth2Properties properties = emptyProps();
-    OAuth2ProtectedResourceMetadataCustomizer userCustomizer =
+    McpProtectedResourceMetadataCustomizer userCustomizer =
         builder -> builder.resource("https://override.example.com");
 
     Map<String, Object> claims =
@@ -164,7 +164,7 @@ class McpMetadataCustomizersTest {
       List<String> audiences,
       String springIssuerUri,
       Implementation impl,
-      List<OAuth2ProtectedResourceMetadataCustomizer> userCustomizers) {
+      List<McpProtectedResourceMetadataCustomizer> userCustomizers) {
     Consumer<OAuth2ProtectedResourceMetadata.Builder> customizer =
         McpMetadataCustomizers.of(properties, audiences, springIssuerUri, impl, userCustomizers);
     OAuth2ProtectedResourceMetadata.Builder builder = OAuth2ProtectedResourceMetadata.builder();

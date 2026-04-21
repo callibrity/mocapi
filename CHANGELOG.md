@@ -6,6 +6,15 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Breaking changes
+
+- **`OAuth2ProtectedResourceMetadataCustomizer` renamed to
+  `McpProtectedResourceMetadataCustomizer`.** Drops the redundant `OAuth2`
+  prefix (the class lives in `com.callibrity.mocapi.oauth2`) and matches the
+  naming cadence of the other mocapi-oauth2 SPI types (`McpSecurityFilterChainBuilder`,
+  `McpSecurityFilterChainCustomizer`). Users implementing this interface
+  must rename their class references; semantics unchanged.
+
 ## [0.12.1] - 2026-04-20
 
 ### Fixed

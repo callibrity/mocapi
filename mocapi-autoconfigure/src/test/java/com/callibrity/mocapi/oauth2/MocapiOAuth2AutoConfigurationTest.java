@@ -275,7 +275,7 @@ class MocapiOAuth2AutoConfigurationTest {
 
   static class CustomizerConfig {
     @Bean
-    OAuth2ProtectedResourceMetadataCustomizer customClaimCustomizer() {
+    McpProtectedResourceMetadataCustomizer customClaimCustomizer() {
       return builder -> builder.claim("custom_claim", "custom_value");
     }
 

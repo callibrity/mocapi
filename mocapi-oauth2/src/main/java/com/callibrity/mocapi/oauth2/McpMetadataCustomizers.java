@@ -24,8 +24,8 @@ import org.springframework.security.oauth2.server.resource.OAuth2ProtectedResour
  * Builds the {@link Consumer} that populates Spring Security's {@link
  * OAuth2ProtectedResourceMetadata.Builder} with mocapi's defaults (resolved resource,
  * authorization-servers fallback, scopes, resource-name from {@link Implementation}, optional RFC
- * 9728 claims) and then runs user-supplied {@link OAuth2ProtectedResourceMetadataCustomizer} beans
- * so they can override or extend the document.
+ * 9728 claims) and then runs user-supplied {@link McpProtectedResourceMetadataCustomizer} beans so
+ * they can override or extend the document.
  */
 public final class McpMetadataCustomizers {
 
@@ -46,7 +46,7 @@ public final class McpMetadataCustomizers {
       List<String> audiences,
       String springIssuerUri,
       Implementation mcpServerInfo,
-      List<OAuth2ProtectedResourceMetadataCustomizer> userCustomizers) {
+      List<McpProtectedResourceMetadataCustomizer> userCustomizers) {
     String resolvedResource = MocapiOAuth2ResourceResolver.resolve(properties, audiences);
     List<String> authorizationServers =
         MocapiOAuth2ResourceResolver.authorizationServers(properties, springIssuerUri);

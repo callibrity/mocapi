@@ -44,7 +44,7 @@ public final class McpSecurityFilterChainBuilder {
   private final List<String> audiences;
   private final String springIssuerUri;
   private final Implementation mcpServerInfo;
-  private final List<OAuth2ProtectedResourceMetadataCustomizer> metadataCustomizers;
+  private final List<McpProtectedResourceMetadataCustomizer> metadataCustomizers;
   private final List<McpSecurityFilterChainCustomizer> chainCustomizers;
   private final String mcpEndpoint;
   private final String metadataPath;
@@ -62,7 +62,7 @@ public final class McpSecurityFilterChainBuilder {
       List<String> audiences,
       String springIssuerUri,
       Implementation mcpServerInfo,
-      List<OAuth2ProtectedResourceMetadataCustomizer> metadataCustomizers,
+      List<McpProtectedResourceMetadataCustomizer> metadataCustomizers,
       List<McpSecurityFilterChainCustomizer> chainCustomizers,
       String mcpEndpoint,
       String metadataPath) {
