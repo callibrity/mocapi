@@ -74,6 +74,33 @@ class DefaultMcpToolContextTest {
   }
 
   @Test
+  void five_arg_constructor_uses_default_handler_name_of_mcp() {
+    var transport = mock(McpTransport.class);
+    var toolsService = mock(McpToolsService.class);
+    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService, toolsService);
+
+    assertThat(ctx.handlerName()).isEqualTo("mcp");
+  }
+
+  @Test
+  void sample_builder_overload_wires_tools_service_and_delegates_to_correlation() {
+    var transport = mock(McpTransport.class);
+    var toolsService = mock(McpToolsService.class);
+    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService, toolsService);
+    var expected = mock(CreateMessageResult.class);
+    when(correlationService.sendAndAwait(
+            eq(McpMethods.SAMPLING_CREATE_MESSAGE),
+            any(CreateMessageRequestParams.class),
+            eq(CreateMessageResult.class),
+            any(McpTransport.class)))
+        .thenReturn(expected);
+
+    var actual = ctx.sample(cfg -> cfg.systemPrompt("you are a test").userMessage("hello"));
+
+    assertThat(actual).isSameAs(expected);
+  }
+
+  @Test
   void send_progress_with_null_token_is_no_op() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);

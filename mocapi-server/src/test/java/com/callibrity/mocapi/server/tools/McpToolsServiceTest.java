@@ -303,6 +303,34 @@ class McpToolsServiceTest {
   }
 
   @Test
+  void to_call_tool_result_wraps_raw_json_node_without_extra_serialization() {
+    var node = mapper.createObjectNode().put("already", "a-node");
+    var result = service.toCallToolResult(node);
+    assertThat(result.structuredContent()).isEqualTo(node);
+    assertThat(((TextContent) result.content().getFirst()).text()).contains("\"already\"");
+  }
+
+  @Test
+  void find_tool_descriptor_returns_descriptor_for_known_name() {
+    var descriptor = service.findToolDescriptor("hello-tool.say-hello");
+    assertThat(descriptor).isNotNull();
+    assertThat(descriptor.name()).isEqualTo("hello-tool.say-hello");
+  }
+
+  @Test
+  void find_tool_descriptor_returns_null_for_unknown_name() {
+    assertThat(service.findToolDescriptor("no-such-tool")).isNull();
+  }
+
+  @Test
+  void all_tool_descriptors_returns_every_registered_tool_sorted_by_name() {
+    assertThat(service.allToolDescriptors())
+        .isNotEmpty()
+        .extracting(com.callibrity.mocapi.model.Tool::name)
+        .isSorted();
+  }
+
+  @Test
   void to_call_tool_result_with_non_object_result_has_null_structured_content() {
     var result = service.toCallToolResult("just a string");
 
