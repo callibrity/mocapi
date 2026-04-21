@@ -77,29 +77,28 @@ public abstract class PaginatedService<T, D> {
     return ofNullable(items.get(name));
   }
 
-  /**
-   * Subclasses override to restrict visibility (e.g., evaluate guards against the current caller).
-   * Default: everything is visible.
-   */
-  protected Predicate<T> visibilityFilter() {
-    return item -> true;
-  }
-
-  /** Returns visible descriptors in the configured sort order. */
-  public List<D> allDescriptors() {
-    Predicate<T> filter = visibilityFilter();
-    return sortedItems.stream().filter(filter).map(descriptorExtractor).toList();
-  }
-
-  /** Returns visible handler items in the configured sort order. */
+  /** Returns every registered handler item in the configured sort order. Unfiltered. */
   public List<T> allItems() {
-    Predicate<T> filter = visibilityFilter();
-    return sortedItems.stream().filter(filter).toList();
+    return sortedItems;
   }
 
+  /** Returns every registered descriptor in the configured sort order. Unfiltered. */
+  public List<D> allDescriptors() {
+    return sortedItems.stream().map(descriptorExtractor).toList();
+  }
+
+  /**
+   * Paginate the items visible to the current caller. {@code visibilityFilter} is applied by the
+   * subclass at the MCP list entry point so filtering is an explicit, per-call-site concern rather
+   * than a cross-cutting default.
+   */
   protected <R> R paginate(
-      PaginatedRequestParams params, BiFunction<List<D>, String, R> resultCtor) {
-    return Cursors.paginate(allDescriptors(), params, pageSize, resultCtor);
+      Predicate<T> visibilityFilter,
+      PaginatedRequestParams params,
+      BiFunction<List<D>, String, R> resultCtor) {
+    List<D> visibleDescriptors =
+        sortedItems.stream().filter(visibilityFilter).map(descriptorExtractor).toList();
+    return Cursors.paginate(visibleDescriptors, params, pageSize, resultCtor);
   }
 
   public boolean isEmpty() {

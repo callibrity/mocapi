@@ -35,7 +35,6 @@ import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.Comparator;
 import java.util.List;
-import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -77,14 +76,9 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
     this.correlationService = correlationService;
   }
 
-  @Override
-  protected Predicate<CallToolHandler> visibilityFilter() {
-    return handler -> Guards.allows(handler.guards());
-  }
-
   @JsonRpcMethod(TOOLS_LIST)
   public ListToolsResult listTools(@JsonRpcParams PaginatedRequestParams params) {
-    return paginate(params, ListToolsResult::new);
+    return paginate(h -> Guards.allows(h.guards()), params, ListToolsResult::new);
   }
 
   /** Returns the full {@link Tool} descriptor for a registered tool, or {@code null} if none. */

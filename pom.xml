@@ -85,7 +85,7 @@
         <codec.version>0.1.0</codec.version>
         <jmustache.version>1.15</jmustache.version>
         <json-skema.version>0.29.0</json-skema.version>
-        <methodical.version>0.9.1-SNAPSHOT</methodical.version>
+        <methodical.version>0.9.1</methodical.version>
         <odyssey.version>0.10.0</odyssey.version>
         <ripcurl.version>2.11.0</ripcurl.version>
         <spring-boot.version>4.0.5</spring-boot.version>

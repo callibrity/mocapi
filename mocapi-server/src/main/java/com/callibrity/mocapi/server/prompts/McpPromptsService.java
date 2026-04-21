@@ -28,7 +28,6 @@ import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,14 +50,9 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
         pageSize);
   }
 
-  @Override
-  protected Predicate<GetPromptHandler> visibilityFilter() {
-    return handler -> Guards.allows(handler.guards());
-  }
-
   @JsonRpcMethod(McpMethods.PROMPTS_LIST)
   public ListPromptsResult listPrompts(@JsonRpcParams PaginatedRequestParams params) {
-    return paginate(params, ListPromptsResult::new);
+    return paginate(h -> Guards.allows(h.guards()), params, ListPromptsResult::new);
   }
 
   @JsonRpcMethod(McpMethods.PROMPTS_GET)

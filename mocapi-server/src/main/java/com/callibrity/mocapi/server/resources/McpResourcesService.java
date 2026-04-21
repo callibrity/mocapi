@@ -95,14 +95,23 @@ public class McpResourcesService {
 
   @JsonRpcMethod(McpMethods.RESOURCES_LIST)
   public ListResourcesResult listResources(@JsonRpcParams PaginatedRequestParams params) {
-    return Cursors.paginate(allResourceDescriptors(), params, pageSize, ListResourcesResult::new);
+    List<Resource> visible =
+        sortedResources.stream()
+            .filter(h -> Guards.allows(h.guards()))
+            .map(ReadResourceHandler::descriptor)
+            .toList();
+    return Cursors.paginate(visible, params, pageSize, ListResourcesResult::new);
   }
 
   @JsonRpcMethod(McpMethods.RESOURCES_TEMPLATES_LIST)
   public ListResourceTemplatesResult listResourceTemplates(
       @JsonRpcParams PaginatedRequestParams params) {
-    return Cursors.paginate(
-        allResourceTemplateDescriptors(), params, pageSize, ListResourceTemplatesResult::new);
+    List<ResourceTemplate> visible =
+        sortedTemplates.stream()
+            .filter(h -> Guards.allows(h.guards()))
+            .map(ReadResourceTemplateHandler::descriptor)
+            .toList();
+    return Cursors.paginate(visible, params, pageSize, ListResourceTemplatesResult::new);
   }
 
   @JsonRpcMethod(McpMethods.RESOURCES_READ)
@@ -130,35 +139,15 @@ public class McpResourcesService {
     return resources.isEmpty() && templates.isEmpty();
   }
 
-  /**
-   * Returns visible resource descriptors in sorted URI order. Handlers whose guards deny for the
-   * current caller are filtered out.
-   */
-  public List<Resource> allResourceDescriptors() {
-    return sortedResources.stream()
-        .filter(h -> Guards.allows(h.guards()))
-        .map(ReadResourceHandler::descriptor)
-        .toList();
-  }
-
-  /**
-   * Returns visible resource-template descriptors in sorted URI-template order. Handlers whose
-   * guards deny for the current caller are filtered out.
-   */
-  public List<ResourceTemplate> allResourceTemplateDescriptors() {
-    return sortedTemplates.stream()
-        .filter(h -> Guards.allows(h.guards()))
-        .map(ReadResourceTemplateHandler::descriptor)
-        .toList();
-  }
-
-  /** Returns visible resource handlers in sorted URI order. */
+  /** Returns every registered resource handler in sorted URI order. Unfiltered. */
   public List<ReadResourceHandler> allResourceHandlers() {
-    return sortedResources.stream().filter(h -> Guards.allows(h.guards())).toList();
+    return sortedResources;
   }
 
-  /** Returns visible resource-template handlers in sorted URI-template order. */
+  /**
+   * Returns every registered resource-template handler in sorted URI-template order. Unfiltered.
+   */
   public List<ReadResourceTemplateHandler> allResourceTemplateHandlers() {
-    return sortedTemplates.stream().filter(h -> Guards.allows(h.guards())).toList();
+    return sortedTemplates;
   }
 }
