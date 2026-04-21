@@ -25,11 +25,8 @@ import com.callibrity.mocapi.model.CreateMessageRequestParams;
 import com.callibrity.mocapi.model.CreateMessageResult;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.ElicitResult;
-import com.callibrity.mocapi.model.LoggingLevel;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -40,93 +37,33 @@ import org.mockito.ArgumentMatchers;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpToolContextDefaultMethodsTest {
 
-  record LogEntry(LoggingLevel level, String logger, String message) {}
+  /** Base test double: no-op everywhere except what the individual test needs. */
+  abstract static class StubContext implements McpToolContext {
+    @Override
+    public String handlerName() {
+      return "mcp";
+    }
 
-  static class CapturingContext implements McpToolContext {
-    final List<LogEntry> entries = new ArrayList<>();
-    ElicitRequestFormParams lastElicitParams;
-    CreateMessageRequestParams lastSampleParams;
+    @Override
+    public McpLogger logger(String name) {
+      throw new UnsupportedOperationException("logger not exercised");
+    }
 
     @Override
     public void sendProgress(long progress, long total) {
-      // Not under test — only default methods are exercised here
-    }
-
-    @Override
-    public void log(LoggingLevel level, String logger, String message) {
-      entries.add(new LogEntry(level, logger, message));
-    }
-
-    @Override
-    public ElicitResult elicit(ElicitRequestFormParams params) {
-      lastElicitParams = params;
-      return new ElicitResult(com.callibrity.mocapi.model.ElicitAction.ACCEPT, null);
-    }
-
-    @Override
-    public CreateMessageResult sample(CreateMessageRequestParams params) {
-      lastSampleParams = params;
-      return new CreateMessageResult(
-          com.callibrity.mocapi.model.Role.ASSISTANT,
-          new com.callibrity.mocapi.model.TextContent("ok", null),
-          null,
-          null);
-    }
-
-    @Override
-    public CreateMessageResult sample(
-        java.util.function.Consumer<com.callibrity.mocapi.api.sampling.CreateMessageRequestConfig>
-            customizer) {
-      throw new UnsupportedOperationException(
-          "Fluent sample(Consumer) is exercised in the server module where the concrete "
-              + "CreateMessageRequestConfig implementation lives.");
-    }
-  }
-
-  @Nested
-  class Logger_factory {
-    @Test
-    void logger_routes_parameterized_message_to_log() {
-      var ctx = new CapturingContext();
-
-      ctx.logger("catalog").info("processed {} in {}ms", 42, 17);
-
-      assertThat(ctx.entries).hasSize(1);
-      assertThat(ctx.entries.getFirst().level()).isEqualTo(LoggingLevel.INFO);
-      assertThat(ctx.entries.getFirst().logger()).isEqualTo("catalog");
-      assertThat(ctx.entries.getFirst().message()).isEqualTo("processed 42 in 17ms");
-    }
-
-    @Test
-    void default_handler_name_is_mcp() {
-      var ctx = new CapturingContext();
-
-      ctx.logger().warn("careful");
-
-      assertThat(ctx.entries).hasSize(1);
-      assertThat(ctx.entries.getFirst().logger()).isEqualTo("mcp");
+      // not under test
     }
   }
 
   @Nested
   class Sample_shortcuts {
 
-    static class FluentSampleContext implements McpToolContext {
+    static class FluentSampleContext extends StubContext {
       final CreateMessageResult nextResult;
       Consumer<CreateMessageRequestConfig> lastCustomizer;
 
       FluentSampleContext(CreateMessageResult nextResult) {
         this.nextResult = nextResult;
-      }
-
-      @Override
-      public void sendProgress(long progress, long total) {
-        // Not under test
-      }
-
-      @Override
-      public void log(LoggingLevel level, String logger, String message) {
-        // Not under test
       }
 
       @Override
@@ -163,7 +100,6 @@ class McpToolContextDefaultMethodsTest {
 
       assertThat(returned).isSameAs(result);
       assertThat(ctx.lastCustomizer).isNotNull();
-      // Replay the customizer on a fresh mock to verify the user message was set.
       CreateMessageRequestConfig spy = mock(CreateMessageRequestConfig.class);
       when(spy.userMessage(ArgumentMatchers.anyString())).thenReturn(spy);
       ctx.lastCustomizer.accept(spy);
@@ -187,9 +123,30 @@ class McpToolContextDefaultMethodsTest {
 
   @Nested
   class Fluent_elicit {
+
+    static class CapturingElicitContext extends StubContext {
+      ElicitRequestFormParams lastElicitParams;
+
+      @Override
+      public ElicitResult elicit(ElicitRequestFormParams params) {
+        lastElicitParams = params;
+        return new ElicitResult(com.callibrity.mocapi.model.ElicitAction.ACCEPT, null);
+      }
+
+      @Override
+      public CreateMessageResult sample(CreateMessageRequestParams params) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public CreateMessageResult sample(Consumer<CreateMessageRequestConfig> customizer) {
+        throw new UnsupportedOperationException();
+      }
+    }
+
     @Test
     void fluent_elicit_builds_schema_and_delegates_to_elicit() {
-      var ctx = new CapturingContext();
+      var ctx = new CapturingElicitContext();
 
       ctx.elicit(
           "Enter your info",
@@ -205,7 +162,7 @@ class McpToolContextDefaultMethodsTest {
 
     @Test
     void fluent_elicit_with_optional_field_excludes_from_required() {
-      var ctx = new CapturingContext();
+      var ctx = new CapturingElicitContext();
 
       ctx.elicit(
           "Optional test",
@@ -215,6 +172,46 @@ class McpToolContextDefaultMethodsTest {
                   .string("optional", "Optional", s -> s.optional()));
 
       assertThat(ctx.lastElicitParams.requestedSchema().required()).containsExactly("required");
+    }
+  }
+
+  @Nested
+  class Logger_shortcut {
+    @Test
+    void no_arg_logger_uses_handler_name() {
+      var captured = new java.util.concurrent.atomic.AtomicReference<String>();
+      McpToolContext ctx =
+          new StubContext() {
+            @Override
+            public String handlerName() {
+              return "greet-tool";
+            }
+
+            @Override
+            public McpLogger logger(String name) {
+              captured.set(name);
+              return mock(McpLogger.class);
+            }
+
+            @Override
+            public ElicitResult elicit(ElicitRequestFormParams params) {
+              throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public CreateMessageResult sample(CreateMessageRequestParams params) {
+              throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public CreateMessageResult sample(Consumer<CreateMessageRequestConfig> customizer) {
+              throw new UnsupportedOperationException();
+            }
+          };
+
+      ctx.logger();
+
+      assertThat(captured.get()).isEqualTo("greet-tool");
     }
   }
 }

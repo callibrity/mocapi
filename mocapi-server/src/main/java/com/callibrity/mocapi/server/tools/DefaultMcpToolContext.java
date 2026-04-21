@@ -16,19 +16,17 @@
 package com.callibrity.mocapi.server.tools;
 
 import com.callibrity.mocapi.api.sampling.CreateMessageRequestConfig;
+import com.callibrity.mocapi.api.tools.McpLogger;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.model.CreateMessageRequestParams;
 import com.callibrity.mocapi.model.CreateMessageResult;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.ElicitResult;
-import com.callibrity.mocapi.model.LoggingLevel;
-import com.callibrity.mocapi.model.LoggingMessageNotificationParams;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.ProgressNotificationParams;
 import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.sampling.CreateMessageRequestBuilder;
-import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import java.util.function.Consumer;
 import tools.jackson.databind.ObjectMapper;
@@ -85,11 +83,8 @@ public class DefaultMcpToolContext implements McpToolContext {
   }
 
   @Override
-  public boolean isEnabled(LoggingLevel level) {
-    if (McpSession.CURRENT.isBound()) {
-      return level.ordinal() >= McpSession.CURRENT.get().logLevel().ordinal();
-    }
-    return true;
+  public McpLogger logger(String name) {
+    return new DefaultMcpLogger(transport, objectMapper, name);
   }
 
   @Override
@@ -108,20 +103,6 @@ public class DefaultMcpToolContext implements McpToolContext {
     transport.send(
         new JsonRpcNotification(
             "2.0", McpMethods.NOTIFICATIONS_PROGRESS, objectMapper.valueToTree(params)));
-  }
-
-  @Override
-  public void log(LoggingLevel level, String logger, String message) {
-    if (McpSession.CURRENT.isBound()) {
-      McpSession session = McpSession.CURRENT.get();
-      if (level.ordinal() < session.logLevel().ordinal()) {
-        return;
-      }
-    }
-    var params = new LoggingMessageNotificationParams(level, logger, message, null);
-    transport.send(
-        new JsonRpcNotification(
-            "2.0", McpMethods.NOTIFICATIONS_MESSAGE, objectMapper.valueToTree(params)));
   }
 
   @Override

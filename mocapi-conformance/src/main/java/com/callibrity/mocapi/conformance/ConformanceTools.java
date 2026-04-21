@@ -306,20 +306,12 @@ public class ConformanceTools {
       name = TEST_TOOL_WITH_LOGGING,
       description = "Sends log messages during execution for conformance testing")
   public CallToolResult withLogging(McpToolContext ctx) throws InterruptedException {
-    ctx.log(
-        com.callibrity.mocapi.model.LoggingLevel.INFO,
-        TEST_TOOL_WITH_LOGGING,
-        "Tool execution started");
+    var logger = ctx.logger(TEST_TOOL_WITH_LOGGING);
+    logger.info("Tool execution started");
     Thread.sleep(50);
-    ctx.log(
-        com.callibrity.mocapi.model.LoggingLevel.INFO,
-        TEST_TOOL_WITH_LOGGING,
-        "Tool processing data");
+    logger.info("Tool processing data");
     Thread.sleep(50);
-    ctx.log(
-        com.callibrity.mocapi.model.LoggingLevel.INFO,
-        TEST_TOOL_WITH_LOGGING,
-        "Tool execution completed");
+    logger.info("Tool execution completed");
     return new CallToolResult(
         List.of(new TextContent("Logging test completed successfully", null)), null, null);
   }

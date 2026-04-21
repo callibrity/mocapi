@@ -21,7 +21,6 @@ import com.callibrity.mocapi.model.CreateMessageRequestParams;
 import com.callibrity.mocapi.model.CreateMessageResult;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.ElicitResult;
-import com.callibrity.mocapi.model.LoggingLevel;
 import java.util.function.Consumer;
 
 /**
@@ -43,47 +42,21 @@ public interface McpToolContext {
   void sendProgress(long progress, long total);
 
   /**
-   * Sends a log notification to the client. Messages below the session's current log level are
-   * silently dropped.
-   *
-   * @param level the log level
-   * @param logger the logger name
-   * @param message the log message
-   */
-  void log(LoggingLevel level, String logger, String message);
-
-  /**
-   * Returns true if a message logged at {@code level} would be forwarded to the client. Default
-   * implementations (test doubles, programmatic callers) permit every level; the runtime
-   * implementation consults the bound session's log level.
-   *
-   * @param level the candidate log level
-   * @return whether the level is currently enabled
-   */
-  default boolean isEnabled(LoggingLevel level) {
-    return true;
-  }
-
-  /**
    * Returns the name of the handler currently executing (the {@code @McpTool} name, or the prompt /
-   * resource name). Implementations that don't know (test doubles, programmatic callers) return
-   * {@code "mcp"}.
+   * resource name).
    *
    * @return the current handler name
    */
-  default String handlerName() {
-    return "mcp";
-  }
+  String handlerName();
 
   /**
-   * Returns an {@link McpLogger} that publishes messages under {@code name}.
+   * Returns an {@link McpLogger} that publishes messages under {@code name}. Messages below the
+   * session's current log level are silently dropped by the logger.
    *
    * @param name the logger name
    * @return a logger bound to this context
    */
-  default McpLogger logger(String name) {
-    return new ContextMcpLogger(this, name);
-  }
+  McpLogger logger(String name);
 
   /**
    * Returns an {@link McpLogger} named after the handler currently executing (see {@link

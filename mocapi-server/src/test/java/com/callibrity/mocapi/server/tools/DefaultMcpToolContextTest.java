@@ -111,11 +111,11 @@ class DefaultMcpToolContextTest {
   }
 
   @Test
-  void log_sends_notification_through_transport() {
+  void logger_info_sends_notification_through_transport() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
 
-    ctx.log(LoggingLevel.INFO, "test-logger", "hello");
+    ctx.logger("test-logger").info("hello");
 
     var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
     verify(transport).send(captor.capture());
@@ -127,25 +127,23 @@ class DefaultMcpToolContextTest {
   }
 
   @Test
-  void log_below_session_level_is_dropped() {
+  void logger_drops_messages_below_session_log_level() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.WARNING);
 
-    ScopedValue.where(McpSession.CURRENT, session)
-        .run(() -> ctx.log(LoggingLevel.DEBUG, "test", "dropped"));
+    ScopedValue.where(McpSession.CURRENT, session).run(() -> ctx.logger("test").debug("dropped"));
 
     verifyNoInteractions(transport);
   }
 
   @Test
-  void log_at_or_above_session_level_is_sent() {
+  void logger_sends_messages_at_or_above_session_log_level() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.WARNING);
 
-    ScopedValue.where(McpSession.CURRENT, session)
-        .run(() -> ctx.log(LoggingLevel.ERROR, "test", "sent"));
+    ScopedValue.where(McpSession.CURRENT, session).run(() -> ctx.logger("test").error("sent"));
 
     var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
     verify(transport).send(captor.capture());
@@ -233,26 +231,28 @@ class DefaultMcpToolContextTest {
   }
 
   @Test
-  void is_enabled_below_session_level_returns_false() {
+  void logger_is_enabled_respects_session_log_level() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
     var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.WARNING);
+    var logger = ctx.logger("test");
 
     ScopedValue.where(McpSession.CURRENT, session)
         .run(
             () -> {
-              assertThat(ctx.isEnabled(LoggingLevel.DEBUG)).isFalse();
-              assertThat(ctx.isEnabled(LoggingLevel.WARNING)).isTrue();
-              assertThat(ctx.isEnabled(LoggingLevel.ERROR)).isTrue();
+              assertThat(logger.isDebugEnabled()).isFalse();
+              assertThat(logger.isWarnEnabled()).isTrue();
+              assertThat(logger.isErrorEnabled()).isTrue();
             });
   }
 
   @Test
-  void is_enabled_without_session_permits_everything() {
+  void logger_is_enabled_permits_everything_when_no_session_is_bound() {
     var transport = mock(McpTransport.class);
     var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
+    var logger = ctx.logger("test");
 
-    assertThat(ctx.isEnabled(LoggingLevel.DEBUG)).isTrue();
-    assertThat(ctx.isEnabled(LoggingLevel.EMERGENCY)).isTrue();
+    assertThat(logger.isDebugEnabled()).isTrue();
+    assertThat(logger.isEmergencyEnabled()).isTrue();
   }
 }

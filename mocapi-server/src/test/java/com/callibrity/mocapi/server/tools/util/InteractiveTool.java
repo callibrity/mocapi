@@ -17,7 +17,6 @@ package com.callibrity.mocapi.server.tools.util;
 
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
-import com.callibrity.mocapi.model.LoggingLevel;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +26,7 @@ public class InteractiveTool {
   public HelloResponse greet(
       @Schema(description = "The name to greet") String name, McpToolContext ctx) {
     ctx.sendProgress(1, 2);
-    ctx.log(LoggingLevel.INFO, "interactive-greet", "Processing " + name);
+    ctx.logger("interactive-greet").info("Processing {}", name);
     ctx.sendProgress(2, 2);
     return new HelloResponse(String.format("Hello, %s!", name));
   }

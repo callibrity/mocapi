@@ -71,7 +71,7 @@ class ToolsCallInteractiveComplianceTest {
             arguments -> {
               McpToolContext ctx = McpToolContext.CURRENT.get();
               ctx.sendProgress(1, 2);
-              ctx.log(LoggingLevel.INFO, "interactive", "Processing");
+              ctx.logger("interactive").info("Processing");
               ctx.sendProgress(2, 2);
               return Map.of("done", true);
             },

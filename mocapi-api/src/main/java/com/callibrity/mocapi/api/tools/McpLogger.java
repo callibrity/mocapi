@@ -15,82 +15,126 @@
  */
 package com.callibrity.mocapi.api.tools;
 
+import com.callibrity.mocapi.model.LoggingLevel;
+import org.slf4j.helpers.MessageFormatter;
+
 /**
  * SLF4J-shaped logger that routes messages through the current {@link McpToolContext}. Obtain via
  * {@link McpToolContext#logger(String)} or {@link McpToolContext#logger()}. Parameterized-format
  * overloads use SLF4J's {@code {}} placeholder syntax.
+ *
+ * <p>Implementers only need to provide {@link #isEnabled(LoggingLevel)} and {@link
+ * #log(LoggingLevel, String)}; the per-level {@code isXxxEnabled()} / {@code xxx(...)} methods are
+ * defaults that delegate to those two.
  */
 public interface McpLogger {
 
-  /** Returns true if DEBUG-level messages will be forwarded to the client. */
-  boolean isDebugEnabled();
+  /** Returns true if messages at {@code level} would be forwarded to the client. */
+  boolean isEnabled(LoggingLevel level);
 
-  /** Returns true if INFO-level messages will be forwarded to the client. */
-  boolean isInfoEnabled();
+  /**
+   * Forwards {@code message} at {@code level} to the client. Implementers should short-circuit
+   * internally when {@link #isEnabled(LoggingLevel)} is false.
+   */
+  void log(LoggingLevel level, String message);
 
-  /** Returns true if NOTICE-level messages will be forwarded to the client. */
-  boolean isNoticeEnabled();
+  default boolean isDebugEnabled() {
+    return isEnabled(LoggingLevel.DEBUG);
+  }
 
-  /** Returns true if WARNING-level messages will be forwarded to the client. */
-  boolean isWarnEnabled();
+  default boolean isInfoEnabled() {
+    return isEnabled(LoggingLevel.INFO);
+  }
 
-  /** Returns true if ERROR-level messages will be forwarded to the client. */
-  boolean isErrorEnabled();
+  default boolean isNoticeEnabled() {
+    return isEnabled(LoggingLevel.NOTICE);
+  }
 
-  /** Returns true if CRITICAL-level messages will be forwarded to the client. */
-  boolean isCriticalEnabled();
+  default boolean isWarnEnabled() {
+    return isEnabled(LoggingLevel.WARNING);
+  }
 
-  /** Returns true if ALERT-level messages will be forwarded to the client. */
-  boolean isAlertEnabled();
+  default boolean isErrorEnabled() {
+    return isEnabled(LoggingLevel.ERROR);
+  }
 
-  /** Returns true if EMERGENCY-level messages will be forwarded to the client. */
-  boolean isEmergencyEnabled();
+  default boolean isCriticalEnabled() {
+    return isEnabled(LoggingLevel.CRITICAL);
+  }
 
-  /** Logs a DEBUG-level message. */
-  void debug(String message);
+  default boolean isAlertEnabled() {
+    return isEnabled(LoggingLevel.ALERT);
+  }
 
-  /** Logs a DEBUG-level message, formatting {@code {}} placeholders in {@code format}. */
-  void debug(String format, Object... args);
+  default boolean isEmergencyEnabled() {
+    return isEnabled(LoggingLevel.EMERGENCY);
+  }
 
-  /** Logs an INFO-level message. */
-  void info(String message);
+  default void debug(String message) {
+    log(LoggingLevel.DEBUG, message);
+  }
 
-  /** Logs an INFO-level message, formatting {@code {}} placeholders in {@code format}. */
-  void info(String format, Object... args);
+  default void debug(String format, Object... args) {
+    if (isDebugEnabled()) log(LoggingLevel.DEBUG, format(format, args));
+  }
 
-  /** Logs a NOTICE-level message. */
-  void notice(String message);
+  default void info(String message) {
+    log(LoggingLevel.INFO, message);
+  }
 
-  /** Logs a NOTICE-level message, formatting {@code {}} placeholders in {@code format}. */
-  void notice(String format, Object... args);
+  default void info(String format, Object... args) {
+    if (isInfoEnabled()) log(LoggingLevel.INFO, format(format, args));
+  }
 
-  /** Logs a WARNING-level message. */
-  void warn(String message);
+  default void notice(String message) {
+    log(LoggingLevel.NOTICE, message);
+  }
 
-  /** Logs a WARNING-level message, formatting {@code {}} placeholders in {@code format}. */
-  void warn(String format, Object... args);
+  default void notice(String format, Object... args) {
+    if (isNoticeEnabled()) log(LoggingLevel.NOTICE, format(format, args));
+  }
 
-  /** Logs an ERROR-level message. */
-  void error(String message);
+  default void warn(String message) {
+    log(LoggingLevel.WARNING, message);
+  }
 
-  /** Logs an ERROR-level message, formatting {@code {}} placeholders in {@code format}. */
-  void error(String format, Object... args);
+  default void warn(String format, Object... args) {
+    if (isWarnEnabled()) log(LoggingLevel.WARNING, format(format, args));
+  }
 
-  /** Logs a CRITICAL-level message. */
-  void critical(String message);
+  default void error(String message) {
+    log(LoggingLevel.ERROR, message);
+  }
 
-  /** Logs a CRITICAL-level message, formatting {@code {}} placeholders in {@code format}. */
-  void critical(String format, Object... args);
+  default void error(String format, Object... args) {
+    if (isErrorEnabled()) log(LoggingLevel.ERROR, format(format, args));
+  }
 
-  /** Logs an ALERT-level message. */
-  void alert(String message);
+  default void critical(String message) {
+    log(LoggingLevel.CRITICAL, message);
+  }
 
-  /** Logs an ALERT-level message, formatting {@code {}} placeholders in {@code format}. */
-  void alert(String format, Object... args);
+  default void critical(String format, Object... args) {
+    if (isCriticalEnabled()) log(LoggingLevel.CRITICAL, format(format, args));
+  }
 
-  /** Logs an EMERGENCY-level message. */
-  void emergency(String message);
+  default void alert(String message) {
+    log(LoggingLevel.ALERT, message);
+  }
 
-  /** Logs an EMERGENCY-level message, formatting {@code {}} placeholders in {@code format}. */
-  void emergency(String format, Object... args);
+  default void alert(String format, Object... args) {
+    if (isAlertEnabled()) log(LoggingLevel.ALERT, format(format, args));
+  }
+
+  default void emergency(String message) {
+    log(LoggingLevel.EMERGENCY, message);
+  }
+
+  default void emergency(String format, Object... args) {
+    if (isEmergencyEnabled()) log(LoggingLevel.EMERGENCY, format(format, args));
+  }
+
+  private static String format(String pattern, Object... args) {
+    return MessageFormatter.arrayFormat(pattern, args).getMessage();
+  }
 }
