@@ -23,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.callibrity.mocapi.oauth2.metadata.McpMetadataCustomizer;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Nested;
@@ -275,17 +276,16 @@ class MocapiOAuth2AutoConfigurationTest {
 
   static class CustomizerConfig {
     @Bean
-    McpProtectedResourceMetadataCustomizer customClaimCustomizer() {
+    McpMetadataCustomizer customClaimCustomizer() {
       return builder -> builder.claim("custom_claim", "custom_value");
     }
 
+    // Exercises the metadata chain customizer SPI — the test request hits
+    // /.well-known/oauth-protected-resource which routes through the metadata filter chain.
+    // Placed before HeaderWriterFilter so it runs at the very top of the chain, ahead of the
+    // OAuth2ProtectedResourceMetadataFilter which short-circuits the well-known response.
     @Bean
-    McpSecurityFilterChainCustomizer headerStampingCustomizer() {
-      // Layer an extra filter onto the chain that tags every response. Cheap proof the
-      // customizer actually reaches HttpSecurity during chain construction. Placed before
-      // HeaderWriterFilter so it runs at the very top of the chain — ahead of both the
-      // OAuth2ProtectedResourceMetadataFilter (which short-circuits the well-known response)
-      // and the bearer-token authentication filters (which short-circuit on 401).
+    McpMetadataFilterChainCustomizer metadataHeaderStampingCustomizer() {
       return http ->
           http.addFilterBefore(
               (request, response, chain) -> {

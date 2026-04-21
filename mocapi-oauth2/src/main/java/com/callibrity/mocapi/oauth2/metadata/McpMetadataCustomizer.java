@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.oauth2;
+package com.callibrity.mocapi.oauth2.metadata;
 
 import org.springframework.security.oauth2.server.resource.OAuth2ProtectedResourceMetadata;
 
@@ -29,7 +29,7 @@ import org.springframework.security.oauth2.server.resource.OAuth2ProtectedResour
  * override mocapi-supplied defaults.
  */
 @FunctionalInterface
-public interface McpProtectedResourceMetadataCustomizer {
+public interface McpMetadataCustomizer {
 
   /**
    * Mutate the given builder before {@link OAuth2ProtectedResourceMetadata.Builder#build()} is
