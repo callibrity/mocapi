@@ -23,6 +23,7 @@ import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.guards.GuardDecision;
+import com.callibrity.mocapi.server.handler.HandlerKind;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.util.HelloTool;
 import com.callibrity.mocapi.server.tools.util.InteractiveTool;
@@ -74,6 +75,17 @@ class CallToolHandlerTest {
     assertThat(handler.name()).isEqualTo("hello-tool.say-hello");
     assertThat(handler.method().getName()).isEqualTo("sayHello");
     assertThat(handler.bean()).isInstanceOf(HelloTool.class);
+  }
+
+  @Test
+  void describe_flattens_kind_declaring_class_method_and_interceptors_from_invoker() {
+    var handler = createHandlers(new HelloTool()).getFirst();
+    var descriptor = handler.describe();
+    assertThat(descriptor.kind()).isEqualTo(HandlerKind.TOOL);
+    assertThat(descriptor.declaringClassName()).isEqualTo(HelloTool.class.getName());
+    assertThat(descriptor.methodName()).isEqualTo("sayHello");
+    assertThat(descriptor.interceptors())
+        .contains("Validates tool arguments against the tool's JSON schema");
   }
 
   @Test

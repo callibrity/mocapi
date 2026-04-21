@@ -83,6 +83,11 @@ class ScopeGuardTest {
   }
 
   @Test
+  void toString_describes_required_scopes_sorted() {
+    assertThat(new ScopeGuard("zeta", "alpha").toString()).isEqualTo("RequiresScope(alpha,zeta)");
+  }
+
+  @Test
   void allows_when_all_required_scopes_present() {
     setAuthentication(authenticatedWith("SCOPE_admin:write", "SCOPE_audit:read", "SCOPE_extra"));
     GuardDecision decision = new ScopeGuard("admin:write", "audit:read").check();

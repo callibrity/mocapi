@@ -54,15 +54,12 @@ public class McpActuatorEndpoint {
 
   @ReadOperation
   public McpActuatorSnapshot snapshot() {
-    var toolInfos = tools.allDescriptors().stream().map(McpActuatorSnapshots::toToolInfo).toList();
-    var promptInfos =
-        prompts.allDescriptors().stream().map(McpActuatorSnapshots::toPromptInfo).toList();
+    var toolInfos = tools.allItems().stream().map(McpActuatorSnapshots::toToolInfo).toList();
+    var promptInfos = prompts.allItems().stream().map(McpActuatorSnapshots::toPromptInfo).toList();
     var resourceInfos =
-        resources.allResourceDescriptors().stream()
-            .map(McpActuatorSnapshots::toResourceInfo)
-            .toList();
+        resources.allResourceHandlers().stream().map(McpActuatorSnapshots::toResourceInfo).toList();
     var templateInfos =
-        resources.allResourceTemplateDescriptors().stream()
+        resources.allResourceTemplateHandlers().stream()
             .map(McpActuatorSnapshots::toResourceTemplateInfo)
             .toList();
 

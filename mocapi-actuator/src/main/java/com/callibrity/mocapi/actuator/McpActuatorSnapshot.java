@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.actuator;
 
+import com.callibrity.mocapi.server.handler.HandlerDescriptor;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
@@ -43,19 +44,29 @@ public record McpActuatorSnapshot(
       String title,
       String description,
       String inputSchemaDigest,
-      String outputSchemaDigest) {}
+      String outputSchemaDigest,
+      HandlerDescriptor handler) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record PromptInfo(
-      String name, String title, String description, List<PromptArgumentInfo> arguments) {}
+      String name,
+      String title,
+      String description,
+      List<PromptArgumentInfo> arguments,
+      HandlerDescriptor handler) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record PromptArgumentInfo(String name, Boolean required) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record ResourceInfo(String uri, String name, String description, String mimeType) {}
+  public record ResourceInfo(
+      String uri, String name, String description, String mimeType, HandlerDescriptor handler) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record ResourceTemplateInfo(
-      String uriTemplate, String name, String description, String mimeType) {}
+      String uriTemplate,
+      String name,
+      String description,
+      String mimeType,
+      HandlerDescriptor handler) {}
 }

@@ -210,6 +210,12 @@ class McpMdcInterceptorTest {
         .containsEntry(McpMdcKeys.HANDLER_NAME, "mem://item/{id}");
   }
 
+  @Test
+  void toString_describes_role_with_handler_kind_and_name() {
+    assertThat(new McpMdcInterceptor(HandlerKind.TOOL, "weather", "Fixtures").toString())
+        .isEqualTo("Stamps SLF4J MDC correlation keys for tool 'weather'");
+  }
+
   private AtomicReference<Map<String, String>> invokeCapturingMdc(McpMdcInterceptor interceptor) {
     AtomicReference<Map<String, String>> captured = new AtomicReference<>();
     interceptor.intercept(

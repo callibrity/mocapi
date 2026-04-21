@@ -19,6 +19,8 @@ import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.server.completions.CompletionCandidate;
 import com.callibrity.mocapi.server.guards.Guard;
+import com.callibrity.mocapi.server.handler.HandlerDescriptor;
+import com.callibrity.mocapi.server.handler.HandlerKind;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
@@ -85,5 +87,11 @@ public final class ReadResourceTemplateHandler {
   /** Dispatches the {@code resources/read} call for the given path-variable bindings. */
   public ReadResourceResult read(Map<String, String> pathVariables) {
     return (ReadResourceResult) invoker.invoke(pathVariables == null ? Map.of() : pathVariables);
+  }
+
+  public HandlerDescriptor describe() {
+    MethodInvoker.Descriptor d = invoker.describe();
+    return new HandlerDescriptor(
+        HandlerKind.RESOURCE_TEMPLATE, d.declaringClassName(), d.methodName(), d.interceptors());
   }
 }

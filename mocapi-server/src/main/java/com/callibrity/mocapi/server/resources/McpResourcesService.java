@@ -151,4 +151,14 @@ public class McpResourcesService {
         .map(ReadResourceTemplateHandler::descriptor)
         .toList();
   }
+
+  /** Returns visible resource handlers in sorted URI order. */
+  public List<ReadResourceHandler> allResourceHandlers() {
+    return sortedResources.stream().filter(h -> Guards.allows(h.guards())).toList();
+  }
+
+  /** Returns visible resource-template handlers in sorted URI-template order. */
+  public List<ReadResourceTemplateHandler> allResourceTemplateHandlers() {
+    return sortedTemplates.stream().filter(h -> Guards.allows(h.guards())).toList();
+  }
 }

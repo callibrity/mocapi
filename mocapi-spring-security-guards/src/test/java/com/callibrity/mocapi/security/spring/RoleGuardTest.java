@@ -81,6 +81,11 @@ class RoleGuardTest {
   }
 
   @Test
+  void toString_describes_required_roles_sorted_without_prefix() {
+    assertThat(new RoleGuard("OPS", "ROLE_ADMIN").toString()).isEqualTo("RequiresRole(ADMIN,OPS)");
+  }
+
+  @Test
   void accepts_bare_and_prefixed_role_values_interchangeably() {
     setAuthentication(authenticatedWith("ROLE_ADMIN"));
     assertThat(new RoleGuard("ADMIN").check()).isInstanceOf(Allow.class);

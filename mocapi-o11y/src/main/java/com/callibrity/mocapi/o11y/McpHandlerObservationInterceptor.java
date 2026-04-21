@@ -93,4 +93,15 @@ public final class McpHandlerObservationInterceptor implements MethodInterceptor
       observation.stop();
     }
   }
+
+  @Override
+  public String toString() {
+    return "Records Micrometer '"
+        + OBSERVATION_NAME
+        + "' observations (OpenTelemetry MCP semconv) for "
+        + kind.tag()
+        + " '"
+        + targetName
+        + "'";
+  }
 }

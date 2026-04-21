@@ -25,8 +25,14 @@ import com.callibrity.mocapi.model.PromptArgument;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.server.handler.HandlerDescriptor;
+import com.callibrity.mocapi.server.handler.HandlerKind;
+import com.callibrity.mocapi.server.prompts.GetPromptHandler;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
+import com.callibrity.mocapi.server.resources.ReadResourceHandler;
+import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
+import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -56,13 +62,36 @@ class McpActuatorEndpointTest {
     ResourceTemplate template =
         new ResourceTemplate("docs://pages/{slug}", "Page", "Doc page", "text/markdown");
 
+    CallToolHandler toolHandler =
+        toolHandler(
+            tool,
+            new HandlerDescriptor(
+                HandlerKind.TOOL,
+                "com.example.WeatherTool",
+                "getWeather",
+                List.of("Validates tool arguments against the tool's JSON schema")));
+    GetPromptHandler promptHandler =
+        promptHandler(
+            prompt,
+            new HandlerDescriptor(
+                HandlerKind.PROMPT, "com.example.SummarizePrompt", "summarize", List.of()));
+    ReadResourceHandler resourceHandler =
+        resourceHandler(
+            resource,
+            new HandlerDescriptor(HandlerKind.RESOURCE, "com.example.Docs", "readme", List.of()));
+    ReadResourceTemplateHandler templateHandler =
+        templateHandler(
+            template,
+            new HandlerDescriptor(
+                HandlerKind.RESOURCE_TEMPLATE, "com.example.Docs", "page", List.of()));
+
     McpToolsService tools = mock(McpToolsService.class);
-    when(tools.allDescriptors()).thenReturn(List.of(tool));
+    when(tools.allItems()).thenReturn(List.of(toolHandler));
     McpPromptsService prompts = mock(McpPromptsService.class);
-    when(prompts.allDescriptors()).thenReturn(List.of(prompt));
+    when(prompts.allItems()).thenReturn(List.of(promptHandler));
     McpResourcesService resources = mock(McpResourcesService.class);
-    when(resources.allResourceDescriptors()).thenReturn(List.of(resource));
-    when(resources.allResourceTemplateDescriptors()).thenReturn(List.of(template));
+    when(resources.allResourceHandlers()).thenReturn(List.of(resourceHandler));
+    when(resources.allResourceTemplateHandlers()).thenReturn(List.of(templateHandler));
 
     var endpoint =
         new McpActuatorEndpoint(
@@ -88,6 +117,11 @@ class McpActuatorEndpointTest {
     assertThat(toolInfo.outputSchemaDigest())
         .startsWith("sha256:")
         .hasSize("sha256:".length() + 64);
+    assertThat(toolInfo.handler().kind()).isEqualTo(HandlerKind.TOOL);
+    assertThat(toolInfo.handler().declaringClassName()).isEqualTo("com.example.WeatherTool");
+    assertThat(toolInfo.handler().methodName()).isEqualTo("getWeather");
+    assertThat(toolInfo.handler().interceptors())
+        .containsExactly("Validates tool arguments against the tool's JSON schema");
 
     assertThat(snapshot.prompts()).hasSize(1);
     var promptInfo = snapshot.prompts().getFirst();
@@ -95,25 +129,33 @@ class McpActuatorEndpointTest {
     assertThat(promptInfo.arguments()).hasSize(1);
     assertThat(promptInfo.arguments().getFirst().name()).isEqualTo("text");
     assertThat(promptInfo.arguments().getFirst().required()).isTrue();
+    assertThat(promptInfo.handler().kind()).isEqualTo(HandlerKind.PROMPT);
+    assertThat(promptInfo.handler().methodName()).isEqualTo("summarize");
 
     assertThat(snapshot.resources()).hasSize(1);
-    assertThat(snapshot.resources().getFirst().uri()).isEqualTo("docs://readme");
+    var resourceInfo = snapshot.resources().getFirst();
+    assertThat(resourceInfo.uri()).isEqualTo("docs://readme");
+    assertThat(resourceInfo.handler().kind()).isEqualTo(HandlerKind.RESOURCE);
 
     assertThat(snapshot.resourceTemplates()).hasSize(1);
-    assertThat(snapshot.resourceTemplates().getFirst().uriTemplate())
-        .isEqualTo("docs://pages/{slug}");
+    var templateInfo = snapshot.resourceTemplates().getFirst();
+    assertThat(templateInfo.uriTemplate()).isEqualTo("docs://pages/{slug}");
+    assertThat(templateInfo.handler().kind()).isEqualTo(HandlerKind.RESOURCE_TEMPLATE);
   }
 
   @Test
   void snapshot_omits_digest_when_schema_is_null() {
     Tool tool = new Tool("no_schema", null, null, null, null);
+    CallToolHandler toolHandler =
+        toolHandler(tool, new HandlerDescriptor(HandlerKind.TOOL, "com.example.X", "m", List.of()));
+
     McpToolsService tools = mock(McpToolsService.class);
-    when(tools.allDescriptors()).thenReturn(List.of(tool));
+    when(tools.allItems()).thenReturn(List.of(toolHandler));
     McpPromptsService prompts = mock(McpPromptsService.class);
-    when(prompts.allDescriptors()).thenReturn(List.of());
+    when(prompts.allItems()).thenReturn(List.of());
     McpResourcesService resources = mock(McpResourcesService.class);
-    when(resources.allResourceDescriptors()).thenReturn(List.of());
-    when(resources.allResourceTemplateDescriptors()).thenReturn(List.of());
+    when(resources.allResourceHandlers()).thenReturn(List.of());
+    when(resources.allResourceTemplateHandlers()).thenReturn(List.of());
 
     var endpoint =
         new McpActuatorEndpoint(
@@ -132,5 +174,35 @@ class McpActuatorEndpointTest {
     ObjectNode b = MAPPER.createObjectNode().put("type", "object");
     assertThat(McpActuatorSnapshots.schemaDigest(a))
         .isEqualTo(McpActuatorSnapshots.schemaDigest(b));
+  }
+
+  private static CallToolHandler toolHandler(Tool tool, HandlerDescriptor descriptor) {
+    CallToolHandler handler = mock(CallToolHandler.class);
+    when(handler.descriptor()).thenReturn(tool);
+    when(handler.describe()).thenReturn(descriptor);
+    return handler;
+  }
+
+  private static GetPromptHandler promptHandler(Prompt prompt, HandlerDescriptor descriptor) {
+    GetPromptHandler handler = mock(GetPromptHandler.class);
+    when(handler.descriptor()).thenReturn(prompt);
+    when(handler.describe()).thenReturn(descriptor);
+    return handler;
+  }
+
+  private static ReadResourceHandler resourceHandler(
+      Resource resource, HandlerDescriptor descriptor) {
+    ReadResourceHandler handler = mock(ReadResourceHandler.class);
+    when(handler.descriptor()).thenReturn(resource);
+    when(handler.describe()).thenReturn(descriptor);
+    return handler;
+  }
+
+  private static ReadResourceTemplateHandler templateHandler(
+      ResourceTemplate template, HandlerDescriptor descriptor) {
+    ReadResourceTemplateHandler handler = mock(ReadResourceTemplateHandler.class);
+    when(handler.descriptor()).thenReturn(template);
+    when(handler.describe()).thenReturn(descriptor);
+    return handler;
   }
 }

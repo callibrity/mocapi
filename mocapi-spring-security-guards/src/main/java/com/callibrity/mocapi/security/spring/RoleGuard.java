@@ -23,6 +23,7 @@ import com.callibrity.mocapi.server.guards.GuardDecision.Allow;
 import com.callibrity.mocapi.server.guards.GuardDecision.Deny;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.TreeSet;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -63,5 +64,14 @@ public final class RoleGuard implements Guard {
       return new Deny("insufficient role");
     }
     return new Allow();
+  }
+
+  @Override
+  public String toString() {
+    TreeSet<String> roles = new TreeSet<>();
+    for (String authority : allowedAuthorities) {
+      roles.add(authority.substring(ROLE_PREFIX.length()));
+    }
+    return "RequiresRole(" + String.join(",", roles) + ")";
   }
 }

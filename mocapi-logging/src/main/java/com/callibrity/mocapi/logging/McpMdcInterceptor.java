@@ -115,4 +115,13 @@ public final class McpMdcInterceptor implements MethodInterceptor<Object> {
   private static String blankToNull(String value) {
     return (value == null || value.isEmpty()) ? null : value;
   }
+
+  @Override
+  public String toString() {
+    return "Stamps SLF4J MDC correlation keys for "
+        + (handlerKind == null ? "null" : handlerKind.tag())
+        + " '"
+        + handlerName
+        + "'";
+  }
 }

@@ -177,4 +177,13 @@ public final class AuditLoggingInterceptor implements MethodInterceptor<Object> 
     }
     return node;
   }
+
+  @Override
+  public String toString() {
+    return "Emits structured audit events on logger 'mocapi.audit' for "
+        + handlerKind.tag()
+        + " '"
+        + handlerName
+        + "'";
+  }
 }

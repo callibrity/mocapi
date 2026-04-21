@@ -48,4 +48,17 @@ public final class GuardEvaluationInterceptor implements MethodInterceptor<Objec
     }
     return invocation.proceed();
   }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder("Evaluates guards [");
+    for (int i = 0; i < guards.size(); i++) {
+      if (i > 0) {
+        sb.append(", ");
+      }
+      sb.append(guards.get(i));
+    }
+    sb.append("] and rejects denied calls with JSON-RPC -32003 Forbidden");
+    return sb.toString();
+  }
 }

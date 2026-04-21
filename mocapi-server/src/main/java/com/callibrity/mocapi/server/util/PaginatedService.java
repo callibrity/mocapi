@@ -91,6 +91,12 @@ public abstract class PaginatedService<T, D> {
     return sortedItems.stream().filter(filter).map(descriptorExtractor).toList();
   }
 
+  /** Returns visible handler items in the configured sort order. */
+  public List<T> allItems() {
+    Predicate<T> filter = visibilityFilter();
+    return sortedItems.stream().filter(filter).toList();
+  }
+
   protected <R> R paginate(
       PaginatedRequestParams params, BiFunction<List<D>, String, R> resultCtor) {
     return Cursors.paginate(allDescriptors(), params, pageSize, resultCtor);

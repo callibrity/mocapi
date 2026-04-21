@@ -17,6 +17,8 @@ package com.callibrity.mocapi.server.tools;
 
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.guards.Guard;
+import com.callibrity.mocapi.server.handler.HandlerDescriptor;
+import com.callibrity.mocapi.server.handler.HandlerKind;
 import java.lang.reflect.Method;
 import java.util.List;
 import org.jwcarman.methodical.MethodInvoker;
@@ -74,5 +76,11 @@ public final class CallToolHandler {
    */
   public Object call(JsonNode arguments) {
     return invoker.invoke(arguments);
+  }
+
+  public HandlerDescriptor describe() {
+    MethodInvoker.Descriptor d = invoker.describe();
+    return new HandlerDescriptor(
+        HandlerKind.TOOL, d.declaringClassName(), d.methodName(), d.interceptors());
   }
 }

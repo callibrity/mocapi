@@ -81,6 +81,33 @@ class GuardEvaluationInterceptorTest {
     assertThat(proceeds.get()).isZero();
   }
 
+  @Test
+  void toString_enumerates_guards_by_description() {
+    Guard first = new NamedGuard("A");
+    Guard second = new NamedGuard("B");
+    assertThat(new GuardEvaluationInterceptor(List.of(first, second)).toString())
+        .isEqualTo(
+            "Evaluates guards [A, B] and rejects denied calls with JSON-RPC -32003 Forbidden");
+  }
+
+  @Test
+  void toString_with_no_guards_still_describes_role() {
+    assertThat(new GuardEvaluationInterceptor(List.of()).toString())
+        .isEqualTo("Evaluates guards [] and rejects denied calls with JSON-RPC -32003 Forbidden");
+  }
+
+  private record NamedGuard(String label) implements Guard {
+    @Override
+    public GuardDecision check() {
+      return new GuardDecision.Allow();
+    }
+
+    @Override
+    public String toString() {
+      return label;
+    }
+  }
+
   private static MethodInvocation<Object> invocation(AtomicInteger proceeds, Object returnValue) {
     return MethodInvocation.of(
         dummyMethod(),

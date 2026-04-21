@@ -19,6 +19,8 @@ import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.server.completions.CompletionCandidate;
 import com.callibrity.mocapi.server.guards.Guard;
+import com.callibrity.mocapi.server.handler.HandlerDescriptor;
+import com.callibrity.mocapi.server.handler.HandlerKind;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
@@ -84,5 +86,11 @@ public final class GetPromptHandler {
   /** Dispatches the {@code prompts/get} call with the given arguments. */
   public GetPromptResult get(Map<String, String> arguments) {
     return (GetPromptResult) invoker.invoke(arguments == null ? Map.of() : arguments);
+  }
+
+  public HandlerDescriptor describe() {
+    MethodInvoker.Descriptor d = invoker.describe();
+    return new HandlerDescriptor(
+        HandlerKind.PROMPT, d.declaringClassName(), d.methodName(), d.interceptors());
   }
 }

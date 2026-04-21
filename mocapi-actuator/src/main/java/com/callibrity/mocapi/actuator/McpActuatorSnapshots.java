@@ -24,42 +24,60 @@ import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.server.prompts.GetPromptHandler;
+import com.callibrity.mocapi.server.resources.ReadResourceHandler;
+import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
+import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.util.Hashes;
 import java.util.List;
 import tools.jackson.databind.node.ObjectNode;
 
-/** Pure mapping helpers from mocapi descriptor records to the actuator snapshot shape. */
+/** Pure mapping helpers from mocapi handlers to the actuator snapshot shape. */
 final class McpActuatorSnapshots {
 
   private McpActuatorSnapshots() {}
 
-  static ToolInfo toToolInfo(Tool tool) {
+  static ToolInfo toToolInfo(CallToolHandler handler) {
+    Tool tool = handler.descriptor();
     return new ToolInfo(
         tool.name(),
         tool.title(),
         tool.description(),
         schemaDigest(tool.inputSchema()),
-        schemaDigest(tool.outputSchema()));
+        schemaDigest(tool.outputSchema()),
+        handler.describe());
   }
 
-  static PromptInfo toPromptInfo(Prompt prompt) {
+  static PromptInfo toPromptInfo(GetPromptHandler handler) {
+    Prompt prompt = handler.descriptor();
     List<PromptArgumentInfo> arguments =
         prompt.arguments() == null
             ? null
             : prompt.arguments().stream()
                 .map(a -> new PromptArgumentInfo(a.name(), a.required()))
                 .toList();
-    return new PromptInfo(prompt.name(), prompt.title(), prompt.description(), arguments);
+    return new PromptInfo(
+        prompt.name(), prompt.title(), prompt.description(), arguments, handler.describe());
   }
 
-  static ResourceInfo toResourceInfo(Resource resource) {
+  static ResourceInfo toResourceInfo(ReadResourceHandler handler) {
+    Resource resource = handler.descriptor();
     return new ResourceInfo(
-        resource.uri(), resource.name(), resource.description(), resource.mimeType());
+        resource.uri(),
+        resource.name(),
+        resource.description(),
+        resource.mimeType(),
+        handler.describe());
   }
 
-  static ResourceTemplateInfo toResourceTemplateInfo(ResourceTemplate template) {
+  static ResourceTemplateInfo toResourceTemplateInfo(ReadResourceTemplateHandler handler) {
+    ResourceTemplate template = handler.descriptor();
     return new ResourceTemplateInfo(
-        template.uriTemplate(), template.name(), template.description(), template.mimeType());
+        template.uriTemplate(),
+        template.name(),
+        template.description(),
+        template.mimeType(),
+        handler.describe());
   }
 
   // SHA-256 of the schema's JSON rendering. ObjectNode.toString() produces the same key ordering

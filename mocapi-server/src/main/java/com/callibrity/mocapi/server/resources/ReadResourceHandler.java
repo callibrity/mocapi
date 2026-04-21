@@ -18,6 +18,8 @@ package com.callibrity.mocapi.server.resources;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.server.guards.Guard;
+import com.callibrity.mocapi.server.handler.HandlerDescriptor;
+import com.callibrity.mocapi.server.handler.HandlerKind;
 import java.lang.reflect.Method;
 import java.util.List;
 import org.jwcarman.methodical.MethodInvoker;
@@ -71,5 +73,11 @@ public final class ReadResourceHandler {
   /** Dispatches the {@code resources/read} call. */
   public ReadResourceResult read() {
     return (ReadResourceResult) invoker.invoke(null);
+  }
+
+  public HandlerDescriptor describe() {
+    MethodInvoker.Descriptor d = invoker.describe();
+    return new HandlerDescriptor(
+        HandlerKind.RESOURCE, d.declaringClassName(), d.methodName(), d.interceptors());
   }
 }

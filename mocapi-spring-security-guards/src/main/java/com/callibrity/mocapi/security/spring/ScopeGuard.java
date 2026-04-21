@@ -66,4 +66,9 @@ public final class ScopeGuard implements Guard {
     }
     return new Allow();
   }
+
+  @Override
+  public String toString() {
+    return "RequiresScope(" + String.join(",", new TreeSet<>(requiredScopes)) + ")";
+  }
 }

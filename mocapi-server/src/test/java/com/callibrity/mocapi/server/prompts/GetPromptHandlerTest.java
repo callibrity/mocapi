@@ -25,6 +25,7 @@ import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.guards.GuardDecision;
+import com.callibrity.mocapi.server.handler.HandlerKind;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
@@ -109,6 +110,16 @@ class GetPromptHandlerTest {
     assertThat(handler.name()).isEqualTo("summarize");
     assertThat(handler.method().getName()).isEqualTo("summarize");
     assertThat(handler.bean()).isInstanceOf(SummarizePrompt.class);
+  }
+
+  @Test
+  void describe_flattens_kind_declaring_class_method_and_interceptors_from_invoker() {
+    var handler = createHandlers(new SummarizePrompt()).getFirst();
+    var descriptor = handler.describe();
+    assertThat(descriptor.kind()).isEqualTo(HandlerKind.PROMPT);
+    assertThat(descriptor.declaringClassName()).isEqualTo(SummarizePrompt.class.getName());
+    assertThat(descriptor.methodName()).isEqualTo("summarize");
+    assertThat(descriptor.interceptors()).isNotNull();
   }
 
   @Test

@@ -29,8 +29,14 @@ import com.callibrity.mocapi.server.autoconfigure.MocapiServerPromptsAutoConfigu
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerResourcesAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerToolsAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.SubstrateOrderingAutoConfiguration;
+import com.callibrity.mocapi.server.handler.HandlerDescriptor;
+import com.callibrity.mocapi.server.handler.HandlerKind;
+import com.callibrity.mocapi.server.prompts.GetPromptHandler;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
+import com.callibrity.mocapi.server.resources.ReadResourceHandler;
+import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
+import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.transport.http.StreamableHttpAutoConfiguration;
 import com.callibrity.mocapi.transport.stdio.StdioAutoConfiguration;
@@ -67,26 +73,44 @@ public class ActuatorMockMvcTestApp {
 
   @Bean
   McpToolsService toolsService() {
+    CallToolHandler handler = mock(CallToolHandler.class);
+    when(handler.descriptor()).thenReturn(new Tool("sample_tool", "Sample", "desc", null, null));
+    when(handler.describe())
+        .thenReturn(
+            new HandlerDescriptor(HandlerKind.TOOL, "com.example.Sample", "run", List.of()));
     McpToolsService m = mock(McpToolsService.class);
-    when(m.allDescriptors())
-        .thenReturn(List.of(new Tool("sample_tool", "Sample", "desc", null, null)));
+    when(m.allItems()).thenReturn(List.of(handler));
     return m;
   }
 
   @Bean
   McpPromptsService promptsService() {
+    GetPromptHandler handler = mock(GetPromptHandler.class);
+    when(handler.descriptor()).thenReturn(new Prompt("sample_prompt", null, null, null, null));
+    when(handler.describe())
+        .thenReturn(
+            new HandlerDescriptor(HandlerKind.PROMPT, "com.example.Sample", "run", List.of()));
     McpPromptsService m = mock(McpPromptsService.class);
-    when(m.allDescriptors())
-        .thenReturn(List.of(new Prompt("sample_prompt", null, null, null, null)));
+    when(m.allItems()).thenReturn(List.of(handler));
     return m;
   }
 
   @Bean
   McpResourcesService resourcesService() {
+    ReadResourceHandler resource = mock(ReadResourceHandler.class);
+    when(resource.descriptor()).thenReturn(new Resource("docs://a", "a", null, null));
+    when(resource.describe())
+        .thenReturn(
+            new HandlerDescriptor(HandlerKind.RESOURCE, "com.example.Sample", "run", List.of()));
+    ReadResourceTemplateHandler template = mock(ReadResourceTemplateHandler.class);
+    when(template.descriptor()).thenReturn(new ResourceTemplate("docs://{x}", "x", null, null));
+    when(template.describe())
+        .thenReturn(
+            new HandlerDescriptor(
+                HandlerKind.RESOURCE_TEMPLATE, "com.example.Sample", "run", List.of()));
     McpResourcesService m = mock(McpResourcesService.class);
-    when(m.allResourceDescriptors()).thenReturn(List.of(new Resource("docs://a", "a", null, null)));
-    when(m.allResourceTemplateDescriptors())
-        .thenReturn(List.of(new ResourceTemplate("docs://{x}", "x", null, null)));
+    when(m.allResourceHandlers()).thenReturn(List.of(resource));
+    when(m.allResourceTemplateHandlers()).thenReturn(List.of(template));
     return m;
   }
 }

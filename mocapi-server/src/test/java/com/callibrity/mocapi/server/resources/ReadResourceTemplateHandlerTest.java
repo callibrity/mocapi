@@ -23,6 +23,7 @@ import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.guards.GuardDecision;
+import com.callibrity.mocapi.server.handler.HandlerKind;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -104,6 +105,16 @@ class ReadResourceTemplateHandlerTest {
     assertThat(handler.descriptor().mimeType()).isEqualTo("text/plain");
     assertThat(handler.method().getName()).isEqualTo("item");
     assertThat(handler.bean()).isInstanceOf(Fixture.class);
+  }
+
+  @Test
+  void describe_flattens_kind_declaring_class_method_and_interceptors_from_invoker() {
+    var handler = createHandlers(new Fixture()).getFirst();
+    var descriptor = handler.describe();
+    assertThat(descriptor.kind()).isEqualTo(HandlerKind.RESOURCE_TEMPLATE);
+    assertThat(descriptor.declaringClassName()).isEqualTo(Fixture.class.getName());
+    assertThat(descriptor.methodName()).isEqualTo("item");
+    assertThat(descriptor.interceptors()).isNotNull();
   }
 
   @Test
