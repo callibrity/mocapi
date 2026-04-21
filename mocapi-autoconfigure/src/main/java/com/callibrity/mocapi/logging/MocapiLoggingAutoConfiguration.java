@@ -49,7 +49,7 @@ public class MocapiLoggingAutoConfiguration {
     return config -> {
       var name = config.descriptor().name();
       var className = targetClassSimpleName(config.bean());
-      config.interceptor(new McpMdcInterceptor(HandlerKind.TOOL, name, className));
+      config.correlationInterceptor(new McpMdcInterceptor(HandlerKind.TOOL, name, className));
       log.info(
           "Attached {} interceptor to tool \"{}\"", McpMdcInterceptor.class.getSimpleName(), name);
     };
@@ -61,7 +61,7 @@ public class MocapiLoggingAutoConfiguration {
     return config -> {
       var name = config.descriptor().name();
       var className = targetClassSimpleName(config.bean());
-      config.interceptor(new McpMdcInterceptor(HandlerKind.PROMPT, name, className));
+      config.correlationInterceptor(new McpMdcInterceptor(HandlerKind.PROMPT, name, className));
       log.info(
           "Attached {} interceptor to prompt \"{}\"",
           McpMdcInterceptor.class.getSimpleName(),
@@ -75,7 +75,7 @@ public class MocapiLoggingAutoConfiguration {
     return config -> {
       var uri = config.descriptor().uri();
       var className = targetClassSimpleName(config.bean());
-      config.interceptor(new McpMdcInterceptor(HandlerKind.RESOURCE, uri, className));
+      config.correlationInterceptor(new McpMdcInterceptor(HandlerKind.RESOURCE, uri, className));
       log.info(
           "Attached {} interceptor to resource \"{}\"",
           McpMdcInterceptor.class.getSimpleName(),
@@ -89,7 +89,7 @@ public class MocapiLoggingAutoConfiguration {
     return config -> {
       var uriTemplate = config.descriptor().uriTemplate();
       var className = targetClassSimpleName(config.bean());
-      config.interceptor(
+      config.correlationInterceptor(
           new McpMdcInterceptor(HandlerKind.RESOURCE_TEMPLATE, uriTemplate, className));
       log.info(
           "Attached {} interceptor to resource_template \"{}\"",

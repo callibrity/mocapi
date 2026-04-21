@@ -70,7 +70,7 @@ public class MocapiO11yAutoConfiguration {
   public CallToolHandlerCustomizer mcpToolHandlerObservationCustomizer(
       ObservationRegistry registry) {
     return config ->
-        config.interceptor(
+        config.observationInterceptor(
             new McpHandlerObservationInterceptor(
                 registry, HandlerKind.TOOL, config.descriptor().name()));
   }
@@ -80,7 +80,7 @@ public class MocapiO11yAutoConfiguration {
   public GetPromptHandlerCustomizer mcpPromptHandlerObservationCustomizer(
       ObservationRegistry registry) {
     return config ->
-        config.interceptor(
+        config.observationInterceptor(
             new McpHandlerObservationInterceptor(
                 registry, HandlerKind.PROMPT, config.descriptor().name()));
   }
@@ -90,7 +90,7 @@ public class MocapiO11yAutoConfiguration {
   public ReadResourceHandlerCustomizer mcpResourceHandlerObservationCustomizer(
       ObservationRegistry registry) {
     return config ->
-        config.interceptor(
+        config.observationInterceptor(
             new McpHandlerObservationInterceptor(
                 registry, HandlerKind.RESOURCE, config.descriptor().uri()));
   }
@@ -100,7 +100,7 @@ public class MocapiO11yAutoConfiguration {
   public ReadResourceTemplateHandlerCustomizer mcpResourceTemplateHandlerObservationCustomizer(
       ObservationRegistry registry) {
     return config ->
-        config.interceptor(
+        config.observationInterceptor(
             new McpHandlerObservationInterceptor(
                 registry, HandlerKind.RESOURCE_TEMPLATE, config.descriptor().uriTemplate()));
   }

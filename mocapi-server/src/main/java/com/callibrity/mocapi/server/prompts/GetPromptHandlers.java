@@ -77,17 +77,20 @@ public final class GetPromptHandlers {
     Prompt descriptor = new Prompt(name, title, description, null, argumentsOf(method));
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
-    List<MethodInterceptor<? super Map<String, String>>> chain = config.freezeInterceptors();
-    List<Guard> guards = config.freezeGuards();
+    List<Guard> guards = config.guards();
     List<ParameterResolver<? super Map<String, String>>> resolvers =
-        buildResolvers(conversionService, config.freezeResolvers());
+        buildResolvers(conversionService, config.resolvers());
     MethodInvoker.Builder<Map<String, String>> builder =
         MethodInvoker.builder(method, bean, ARGS_TYPE);
     resolvers.forEach(builder::resolver);
-    chain.forEach(builder::interceptor);
+    config.correlation().forEach(builder::interceptor);
+    config.observation().forEach(builder::interceptor);
+    config.audit().forEach(builder::interceptor);
     if (!guards.isEmpty()) {
       builder.interceptor(new GuardEvaluationInterceptor(guards));
     }
+    config.validation().forEach(builder::interceptor);
+    config.invocation().forEach(builder::interceptor);
     MethodInvoker<Map<String, String>> invoker = builder.build();
     return new GetPromptHandler(descriptor, method, bean, invoker, candidatesOf(method), guards);
   }
@@ -104,7 +107,14 @@ public final class GetPromptHandlers {
     private final Prompt descriptor;
     private final Method method;
     private final Object bean;
-    private final List<MethodInterceptor<? super Map<String, String>>> interceptors =
+    private final List<MethodInterceptor<? super Map<String, String>>> correlation =
+        new ArrayList<>();
+    private final List<MethodInterceptor<? super Map<String, String>>> observation =
+        new ArrayList<>();
+    private final List<MethodInterceptor<? super Map<String, String>>> audit = new ArrayList<>();
+    private final List<MethodInterceptor<? super Map<String, String>>> validation =
+        new ArrayList<>();
+    private final List<MethodInterceptor<? super Map<String, String>>> invocation =
         new ArrayList<>();
     private final List<Guard> guards = new ArrayList<>();
     private final List<ParameterResolver<? super Map<String, String>>> resolvers =
@@ -132,9 +142,37 @@ public final class GetPromptHandlers {
     }
 
     @Override
-    public GetPromptHandlerConfig interceptor(
+    public GetPromptHandlerConfig correlationInterceptor(
         MethodInterceptor<? super Map<String, String>> interceptor) {
-      interceptors.add(interceptor);
+      correlation.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public GetPromptHandlerConfig observationInterceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      observation.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public GetPromptHandlerConfig auditInterceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      audit.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public GetPromptHandlerConfig validationInterceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      validation.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public GetPromptHandlerConfig invocationInterceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      invocation.add(interceptor);
       return this;
     }
 
@@ -151,16 +189,32 @@ public final class GetPromptHandlers {
       return this;
     }
 
-    List<MethodInterceptor<? super Map<String, String>>> freezeInterceptors() {
-      return List.copyOf(interceptors);
+    List<MethodInterceptor<? super Map<String, String>>> correlation() {
+      return correlation;
     }
 
-    List<Guard> freezeGuards() {
-      return List.copyOf(guards);
+    List<MethodInterceptor<? super Map<String, String>>> observation() {
+      return observation;
     }
 
-    List<ParameterResolver<? super Map<String, String>>> freezeResolvers() {
-      return List.copyOf(resolvers);
+    List<MethodInterceptor<? super Map<String, String>>> audit() {
+      return audit;
+    }
+
+    List<MethodInterceptor<? super Map<String, String>>> validation() {
+      return validation;
+    }
+
+    List<MethodInterceptor<? super Map<String, String>>> invocation() {
+      return invocation;
+    }
+
+    List<Guard> guards() {
+      return guards;
+    }
+
+    List<ParameterResolver<? super Map<String, String>>> resolvers() {
+      return resolvers;
     }
   }
 

@@ -61,15 +61,18 @@ public final class ReadResourceHandlers {
     Resource descriptor = new Resource(uri, name, description, mimeType);
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
-    List<MethodInterceptor<? super Object>> chain = config.freezeInterceptors();
-    List<Guard> guards = config.freezeGuards();
-    List<ParameterResolver<? super Object>> resolvers = config.freezeResolvers();
+    List<Guard> guards = config.guards();
+    List<ParameterResolver<? super Object>> resolvers = config.resolvers();
     MethodInvoker.Builder<Object> builder = MethodInvoker.builder(method, bean, Object.class);
     resolvers.forEach(builder::resolver);
-    chain.forEach(builder::interceptor);
+    config.correlation().forEach(builder::interceptor);
+    config.observation().forEach(builder::interceptor);
+    config.audit().forEach(builder::interceptor);
     if (!guards.isEmpty()) {
       builder.interceptor(new GuardEvaluationInterceptor(guards));
     }
+    config.validation().forEach(builder::interceptor);
+    config.invocation().forEach(builder::interceptor);
     MethodInvoker<Object> invoker = builder.build();
     return new ReadResourceHandler(descriptor, method, bean, invoker, guards);
   }
@@ -78,7 +81,11 @@ public final class ReadResourceHandlers {
     private final Resource descriptor;
     private final Method method;
     private final Object bean;
-    private final List<MethodInterceptor<? super Object>> interceptors = new ArrayList<>();
+    private final List<MethodInterceptor<? super Object>> correlation = new ArrayList<>();
+    private final List<MethodInterceptor<? super Object>> observation = new ArrayList<>();
+    private final List<MethodInterceptor<? super Object>> audit = new ArrayList<>();
+    private final List<MethodInterceptor<? super Object>> validation = new ArrayList<>();
+    private final List<MethodInterceptor<? super Object>> invocation = new ArrayList<>();
     private final List<Guard> guards = new ArrayList<>();
     private final List<ParameterResolver<? super Object>> resolvers = new ArrayList<>();
 
@@ -104,8 +111,37 @@ public final class ReadResourceHandlers {
     }
 
     @Override
-    public ReadResourceHandlerConfig interceptor(MethodInterceptor<? super Object> interceptor) {
-      interceptors.add(interceptor);
+    public ReadResourceHandlerConfig correlationInterceptor(
+        MethodInterceptor<? super Object> interceptor) {
+      correlation.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceHandlerConfig observationInterceptor(
+        MethodInterceptor<? super Object> interceptor) {
+      observation.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceHandlerConfig auditInterceptor(
+        MethodInterceptor<? super Object> interceptor) {
+      audit.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceHandlerConfig validationInterceptor(
+        MethodInterceptor<? super Object> interceptor) {
+      validation.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceHandlerConfig invocationInterceptor(
+        MethodInterceptor<? super Object> interceptor) {
+      invocation.add(interceptor);
       return this;
     }
 
@@ -121,16 +157,32 @@ public final class ReadResourceHandlers {
       return this;
     }
 
-    List<MethodInterceptor<? super Object>> freezeInterceptors() {
-      return List.copyOf(interceptors);
+    List<MethodInterceptor<? super Object>> correlation() {
+      return correlation;
     }
 
-    List<Guard> freezeGuards() {
-      return List.copyOf(guards);
+    List<MethodInterceptor<? super Object>> observation() {
+      return observation;
     }
 
-    List<ParameterResolver<? super Object>> freezeResolvers() {
-      return List.copyOf(resolvers);
+    List<MethodInterceptor<? super Object>> audit() {
+      return audit;
+    }
+
+    List<MethodInterceptor<? super Object>> validation() {
+      return validation;
+    }
+
+    List<MethodInterceptor<? super Object>> invocation() {
+      return invocation;
+    }
+
+    List<Guard> guards() {
+      return guards;
+    }
+
+    List<ParameterResolver<? super Object>> resolvers() {
+      return resolvers;
     }
   }
 

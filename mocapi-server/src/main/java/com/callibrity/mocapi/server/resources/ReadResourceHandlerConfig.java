@@ -36,7 +36,20 @@ public interface ReadResourceHandlerConfig {
 
   Object bean();
 
-  ReadResourceHandlerConfig interceptor(MethodInterceptor<? super Object> interceptor);
+  /** Adds an interceptor to the CORRELATION stratum. */
+  ReadResourceHandlerConfig correlationInterceptor(MethodInterceptor<? super Object> interceptor);
+
+  /** Adds an interceptor to the OBSERVATION stratum. */
+  ReadResourceHandlerConfig observationInterceptor(MethodInterceptor<? super Object> interceptor);
+
+  /** Adds an interceptor to the AUDIT stratum. */
+  ReadResourceHandlerConfig auditInterceptor(MethodInterceptor<? super Object> interceptor);
+
+  /** Adds an interceptor to the VALIDATION stratum. */
+  ReadResourceHandlerConfig validationInterceptor(MethodInterceptor<? super Object> interceptor);
+
+  /** Adds an interceptor to the INVOCATION stratum. */
+  ReadResourceHandlerConfig invocationInterceptor(MethodInterceptor<? super Object> interceptor);
 
   ReadResourceHandlerConfig guard(Guard guard);
 

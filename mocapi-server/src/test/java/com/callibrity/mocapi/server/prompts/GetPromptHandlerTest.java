@@ -186,7 +186,7 @@ class GetPromptHandlerTest {
     GetPromptHandlerCustomizer customizer =
         config -> {
           captured.add(config);
-          config.interceptor(
+          config.observationInterceptor(
               invocation -> {
                 hits.incrementAndGet();
                 return invocation.proceed();
@@ -281,7 +281,7 @@ class GetPromptHandlerTest {
     var customizerHits = new AtomicInteger();
     GetPromptHandlerCustomizer customizer =
         config -> {
-          config.interceptor(
+          config.observationInterceptor(
               invocation -> {
                 customizerHits.incrementAndGet();
                 return invocation.proceed();

@@ -83,17 +83,21 @@ public final class CallToolHandlers {
     Schema compiledInputSchema = compile(inputSchema);
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
-    List<MethodInterceptor<? super JsonNode>> chain = config.freezeInterceptors();
-    List<Guard> guards = config.freezeGuards();
+    List<Guard> guards = config.guards();
     List<ParameterResolver<? super JsonNode>> resolvers =
-        buildResolvers(objectMapper, config.freezeResolvers());
+        buildResolvers(objectMapper, config.resolvers());
     MethodInvoker.Builder<JsonNode> builder = MethodInvoker.builder(method, bean, JsonNode.class);
     resolvers.forEach(builder::resolver);
-    chain.forEach(builder::interceptor);
+    // Assemble the interceptor chain outer → inner by stratum.
+    config.correlation().forEach(builder::interceptor);
+    config.observation().forEach(builder::interceptor);
+    config.audit().forEach(builder::interceptor);
     if (!guards.isEmpty()) {
       builder.interceptor(new GuardEvaluationInterceptor(guards));
     }
     builder.interceptor(new InputSchemaValidatingInterceptor(compiledInputSchema));
+    config.validation().forEach(builder::interceptor);
+    config.invocation().forEach(builder::interceptor);
     MethodInvoker<JsonNode> invoker = builder.build();
     return new CallToolHandler(descriptor, method, bean, invoker, guards);
   }
@@ -112,7 +116,11 @@ public final class CallToolHandlers {
     private final Tool descriptor;
     private final Method method;
     private final Object bean;
-    private final List<MethodInterceptor<? super JsonNode>> interceptors = new ArrayList<>();
+    private final List<MethodInterceptor<? super JsonNode>> correlation = new ArrayList<>();
+    private final List<MethodInterceptor<? super JsonNode>> observation = new ArrayList<>();
+    private final List<MethodInterceptor<? super JsonNode>> audit = new ArrayList<>();
+    private final List<MethodInterceptor<? super JsonNode>> validation = new ArrayList<>();
+    private final List<MethodInterceptor<? super JsonNode>> invocation = new ArrayList<>();
     private final List<Guard> guards = new ArrayList<>();
     private final List<ParameterResolver<? super JsonNode>> resolvers = new ArrayList<>();
 
@@ -138,8 +146,36 @@ public final class CallToolHandlers {
     }
 
     @Override
-    public CallToolHandlerConfig interceptor(MethodInterceptor<? super JsonNode> interceptor) {
-      interceptors.add(interceptor);
+    public CallToolHandlerConfig correlationInterceptor(
+        MethodInterceptor<? super JsonNode> interceptor) {
+      correlation.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public CallToolHandlerConfig observationInterceptor(
+        MethodInterceptor<? super JsonNode> interceptor) {
+      observation.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public CallToolHandlerConfig auditInterceptor(MethodInterceptor<? super JsonNode> interceptor) {
+      audit.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public CallToolHandlerConfig validationInterceptor(
+        MethodInterceptor<? super JsonNode> interceptor) {
+      validation.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public CallToolHandlerConfig invocationInterceptor(
+        MethodInterceptor<? super JsonNode> interceptor) {
+      invocation.add(interceptor);
       return this;
     }
 
@@ -155,16 +191,32 @@ public final class CallToolHandlers {
       return this;
     }
 
-    List<MethodInterceptor<? super JsonNode>> freezeInterceptors() {
-      return List.copyOf(interceptors);
+    List<MethodInterceptor<? super JsonNode>> correlation() {
+      return correlation;
     }
 
-    List<Guard> freezeGuards() {
-      return List.copyOf(guards);
+    List<MethodInterceptor<? super JsonNode>> observation() {
+      return observation;
     }
 
-    List<ParameterResolver<? super JsonNode>> freezeResolvers() {
-      return List.copyOf(resolvers);
+    List<MethodInterceptor<? super JsonNode>> audit() {
+      return audit;
+    }
+
+    List<MethodInterceptor<? super JsonNode>> validation() {
+      return validation;
+    }
+
+    List<MethodInterceptor<? super JsonNode>> invocation() {
+      return invocation;
+    }
+
+    List<Guard> guards() {
+      return guards;
+    }
+
+    List<ParameterResolver<? super JsonNode>> resolvers() {
+      return resolvers;
     }
   }
 

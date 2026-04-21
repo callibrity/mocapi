@@ -145,7 +145,7 @@ class CallToolHandlerTest {
     CallToolHandlerCustomizer customizer =
         config -> {
           captured.add(config);
-          config.interceptor(
+          config.observationInterceptor(
               invocation -> {
                 hits.incrementAndGet();
                 return invocation.proceed();
@@ -210,13 +210,13 @@ class CallToolHandlerTest {
     var bodyHits = new AtomicInteger();
     CallToolHandlerCustomizer customizer =
         config -> {
-          config.interceptor(
+          config.observationInterceptor(
               invocation -> {
                 customizerHits.incrementAndGet();
                 return invocation.proceed();
               });
           config.guard(() -> new GuardDecision.Deny("no-scope"));
-          config.interceptor(
+          config.observationInterceptor(
               invocation -> {
                 bodyHits.incrementAndGet();
                 return invocation.proceed();
@@ -246,7 +246,8 @@ class CallToolHandlerTest {
     var bean = new HelloTool();
     // Guard list is empty, so GuardEvaluationInterceptor should not be wired in.
     // We can only assert indirectly: the call succeeds with no denial.
-    CallToolHandlerCustomizer customizer = config -> config.interceptor(MethodInvocation::proceed);
+    CallToolHandlerCustomizer customizer =
+        config -> config.observationInterceptor(MethodInvocation::proceed);
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
     var handler =

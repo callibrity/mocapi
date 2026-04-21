@@ -166,7 +166,7 @@ class ReadResourceTemplateHandlerTest {
     ReadResourceTemplateHandlerCustomizer customizer =
         config -> {
           captured.add(config);
-          config.interceptor(
+          config.observationInterceptor(
               invocation -> {
                 hits.incrementAndGet();
                 return invocation.proceed();
@@ -278,7 +278,7 @@ class ReadResourceTemplateHandlerTest {
     var customizerHits = new AtomicInteger();
     ReadResourceTemplateHandlerCustomizer customizer =
         config -> {
-          config.interceptor(
+          config.observationInterceptor(
               invocation -> {
                 customizerHits.incrementAndGet();
                 return invocation.proceed();

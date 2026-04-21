@@ -37,7 +37,24 @@ public interface ReadResourceTemplateHandlerConfig {
 
   Object bean();
 
-  ReadResourceTemplateHandlerConfig interceptor(
+  /** Adds an interceptor to the CORRELATION stratum. */
+  ReadResourceTemplateHandlerConfig correlationInterceptor(
+      MethodInterceptor<? super Map<String, String>> interceptor);
+
+  /** Adds an interceptor to the OBSERVATION stratum. */
+  ReadResourceTemplateHandlerConfig observationInterceptor(
+      MethodInterceptor<? super Map<String, String>> interceptor);
+
+  /** Adds an interceptor to the AUDIT stratum. */
+  ReadResourceTemplateHandlerConfig auditInterceptor(
+      MethodInterceptor<? super Map<String, String>> interceptor);
+
+  /** Adds an interceptor to the VALIDATION stratum. */
+  ReadResourceTemplateHandlerConfig validationInterceptor(
+      MethodInterceptor<? super Map<String, String>> interceptor);
+
+  /** Adds an interceptor to the INVOCATION stratum. */
+  ReadResourceTemplateHandlerConfig invocationInterceptor(
       MethodInterceptor<? super Map<String, String>> interceptor);
 
   ReadResourceTemplateHandlerConfig guard(Guard guard);

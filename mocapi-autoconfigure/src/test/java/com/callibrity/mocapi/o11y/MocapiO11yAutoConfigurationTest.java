@@ -79,7 +79,7 @@ class MocapiO11yAutoConfigurationTest {
 
               customizer.customize(config);
 
-              verify(config).interceptor(any(MethodInterceptor.class));
+              verify(config).observationInterceptor(any(MethodInterceptor.class));
             });
   }
 
@@ -98,7 +98,7 @@ class MocapiO11yAutoConfigurationTest {
 
               customizer.customize(config);
 
-              verify(config).interceptor(any(MethodInterceptor.class));
+              verify(config).observationInterceptor(any(MethodInterceptor.class));
             });
   }
 
@@ -116,7 +116,7 @@ class MocapiO11yAutoConfigurationTest {
 
               customizer.customize(config);
 
-              verify(config).interceptor(any(MethodInterceptor.class));
+              verify(config).observationInterceptor(any(MethodInterceptor.class));
             });
   }
 
@@ -135,7 +135,7 @@ class MocapiO11yAutoConfigurationTest {
 
               customizer.customize(config);
 
-              verify(config).interceptor(any(MethodInterceptor.class));
+              verify(config).observationInterceptor(any(MethodInterceptor.class));
             });
   }
 

@@ -32,7 +32,11 @@ import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.ParameterResolver;
 import tools.jackson.databind.JsonNode;
 
-/** Reusable stub handler configs for unit tests that drive per-handler customizer beans. */
+/**
+ * Reusable stub handler configs for unit tests that drive per-handler customizer beans. Each stub
+ * exposes a flattened {@code interceptors} list (all strata concatenated in outer-to-inner order)
+ * so existing tests that only care "was something attached?" stay simple.
+ */
 public final class StubHandlerConfigs {
 
   private StubHandlerConfigs() {}
@@ -76,7 +80,35 @@ public final class StubHandlerConfigs {
     }
 
     @Override
-    public CallToolHandlerConfig interceptor(MethodInterceptor<? super JsonNode> interceptor) {
+    public CallToolHandlerConfig correlationInterceptor(
+        MethodInterceptor<? super JsonNode> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public CallToolHandlerConfig observationInterceptor(
+        MethodInterceptor<? super JsonNode> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public CallToolHandlerConfig auditInterceptor(MethodInterceptor<? super JsonNode> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public CallToolHandlerConfig validationInterceptor(
+        MethodInterceptor<? super JsonNode> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public CallToolHandlerConfig invocationInterceptor(
+        MethodInterceptor<? super JsonNode> interceptor) {
       interceptors.add(interceptor);
       return this;
     }
@@ -125,7 +157,35 @@ public final class StubHandlerConfigs {
     }
 
     @Override
-    public GetPromptHandlerConfig interceptor(
+    public GetPromptHandlerConfig correlationInterceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public GetPromptHandlerConfig observationInterceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public GetPromptHandlerConfig auditInterceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public GetPromptHandlerConfig validationInterceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public GetPromptHandlerConfig invocationInterceptor(
         MethodInterceptor<? super Map<String, String>> interceptor) {
       interceptors.add(interceptor);
       return this;
@@ -175,7 +235,36 @@ public final class StubHandlerConfigs {
     }
 
     @Override
-    public ReadResourceHandlerConfig interceptor(MethodInterceptor<? super Object> interceptor) {
+    public ReadResourceHandlerConfig correlationInterceptor(
+        MethodInterceptor<? super Object> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceHandlerConfig observationInterceptor(
+        MethodInterceptor<? super Object> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceHandlerConfig auditInterceptor(
+        MethodInterceptor<? super Object> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceHandlerConfig validationInterceptor(
+        MethodInterceptor<? super Object> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceHandlerConfig invocationInterceptor(
+        MethodInterceptor<? super Object> interceptor) {
       interceptors.add(interceptor);
       return this;
     }
@@ -225,7 +314,35 @@ public final class StubHandlerConfigs {
     }
 
     @Override
-    public ReadResourceTemplateHandlerConfig interceptor(
+    public ReadResourceTemplateHandlerConfig correlationInterceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceTemplateHandlerConfig observationInterceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceTemplateHandlerConfig auditInterceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceTemplateHandlerConfig validationInterceptor(
+        MethodInterceptor<? super Map<String, String>> interceptor) {
+      interceptors.add(interceptor);
+      return this;
+    }
+
+    @Override
+    public ReadResourceTemplateHandlerConfig invocationInterceptor(
         MethodInterceptor<? super Map<String, String>> interceptor) {
       interceptors.add(interceptor);
       return this;

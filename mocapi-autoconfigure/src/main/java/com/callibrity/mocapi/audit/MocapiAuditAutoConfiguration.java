@@ -60,7 +60,7 @@ public class MocapiAuditAutoConfiguration {
       ObjectMapper objectMapper) {
     return config -> {
       var name = config.descriptor().name();
-      config.interceptor(
+      config.auditInterceptor(
           new AuditLoggingInterceptor(
               HandlerKind.TOOL, name, callerProvider, properties.isHashArguments(), objectMapper));
       log.info(
@@ -78,7 +78,7 @@ public class MocapiAuditAutoConfiguration {
       ObjectMapper objectMapper) {
     return config -> {
       var name = config.descriptor().name();
-      config.interceptor(
+      config.auditInterceptor(
           new AuditLoggingInterceptor(
               HandlerKind.PROMPT,
               name,
@@ -100,7 +100,7 @@ public class MocapiAuditAutoConfiguration {
       ObjectMapper objectMapper) {
     return config -> {
       var uri = config.descriptor().uri();
-      config.interceptor(
+      config.auditInterceptor(
           new AuditLoggingInterceptor(
               HandlerKind.RESOURCE,
               uri,
@@ -122,7 +122,7 @@ public class MocapiAuditAutoConfiguration {
       ObjectMapper objectMapper) {
     return config -> {
       var uriTemplate = config.descriptor().uriTemplate();
-      config.interceptor(
+      config.auditInterceptor(
           new AuditLoggingInterceptor(
               HandlerKind.RESOURCE_TEMPLATE,
               uriTemplate,

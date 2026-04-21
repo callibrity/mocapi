@@ -45,7 +45,7 @@ public class MocapiJakartaValidationAutoConfiguration {
   public CallToolHandlerCustomizer jakartaValidationToolCustomizer(Validator validator) {
     JakartaValidationInterceptor interceptor = new JakartaValidationInterceptor(validator);
     return config -> {
-      config.interceptor(interceptor);
+      config.validationInterceptor(interceptor);
       log.info(
           "Attached {} interceptor to tool \"{}\"",
           JakartaValidationInterceptor.class.getSimpleName(),
@@ -57,7 +57,7 @@ public class MocapiJakartaValidationAutoConfiguration {
   public GetPromptHandlerCustomizer jakartaValidationPromptCustomizer(Validator validator) {
     JakartaValidationInterceptor interceptor = new JakartaValidationInterceptor(validator);
     return config -> {
-      config.interceptor(interceptor);
+      config.validationInterceptor(interceptor);
       log.info(
           "Attached {} interceptor to prompt \"{}\"",
           JakartaValidationInterceptor.class.getSimpleName(),
@@ -69,7 +69,7 @@ public class MocapiJakartaValidationAutoConfiguration {
   public ReadResourceHandlerCustomizer jakartaValidationResourceCustomizer(Validator validator) {
     JakartaValidationInterceptor interceptor = new JakartaValidationInterceptor(validator);
     return config -> {
-      config.interceptor(interceptor);
+      config.validationInterceptor(interceptor);
       log.info(
           "Attached {} interceptor to resource \"{}\"",
           JakartaValidationInterceptor.class.getSimpleName(),
@@ -82,7 +82,7 @@ public class MocapiJakartaValidationAutoConfiguration {
       Validator validator) {
     JakartaValidationInterceptor interceptor = new JakartaValidationInterceptor(validator);
     return config -> {
-      config.interceptor(interceptor);
+      config.validationInterceptor(interceptor);
       log.info(
           "Attached {} interceptor to resource_template \"{}\"",
           JakartaValidationInterceptor.class.getSimpleName(),

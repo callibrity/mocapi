@@ -37,7 +37,25 @@ public interface GetPromptHandlerConfig {
 
   Object bean();
 
-  GetPromptHandlerConfig interceptor(MethodInterceptor<? super Map<String, String>> interceptor);
+  /** Adds an interceptor to the CORRELATION stratum. */
+  GetPromptHandlerConfig correlationInterceptor(
+      MethodInterceptor<? super Map<String, String>> interceptor);
+
+  /** Adds an interceptor to the OBSERVATION stratum. */
+  GetPromptHandlerConfig observationInterceptor(
+      MethodInterceptor<? super Map<String, String>> interceptor);
+
+  /** Adds an interceptor to the AUDIT stratum. */
+  GetPromptHandlerConfig auditInterceptor(
+      MethodInterceptor<? super Map<String, String>> interceptor);
+
+  /** Adds an interceptor to the VALIDATION stratum. */
+  GetPromptHandlerConfig validationInterceptor(
+      MethodInterceptor<? super Map<String, String>> interceptor);
+
+  /** Adds an interceptor to the INVOCATION stratum. */
+  GetPromptHandlerConfig invocationInterceptor(
+      MethodInterceptor<? super Map<String, String>> interceptor);
 
   GetPromptHandlerConfig guard(Guard guard);
 

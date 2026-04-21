@@ -24,10 +24,24 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * Per-handler configuration view passed to each {@link CallToolHandlerCustomizer} while a {@link
- * CallToolHandler} is being built. Customizers may inspect the tool descriptor, target method, and
- * target bean, append {@link MethodInterceptor}s to the handler's invocation chain, attach {@link
- * Guard}s that gate visibility and invocation, and register additional {@link ParameterResolver}s
- * that supply values for bespoke parameter types.
+ * CallToolHandler} is being built. Customizers inspect the tool descriptor, target method, and
+ * target bean, and contribute {@link MethodInterceptor}s to one of several named strata so the
+ * handler builder can assemble them in a stable outer-to-inner order:
+ *
+ * <ol>
+ *   <li>{@link #correlationInterceptor correlation} — MDC, request id propagation
+ *   <li>{@link #observationInterceptor observation} — traces, metrics
+ *   <li>{@link #auditInterceptor audit} — persistent record of each attempt
+ *   <li>AUTHORIZATION — {@link #guard(Guard) guards}, wired by the builder into a single evaluation
+ *       interceptor so denied calls short-circuit with {@code -32003}
+ *   <li>VALIDATION — the tool's compiled input JSON schema (wired by the builder), followed by any
+ *       customizer-contributed {@link #validationInterceptor validation} interceptors
+ *   <li>{@link #invocationInterceptor invocation} — escape hatch that wraps the reflective call
+ *       (retries, timeouts)
+ * </ol>
+ *
+ * <p>Within one stratum, customizer contributions land in the order their customizer beans are
+ * consulted; that matches Spring's {@code @Order} sort when running inside an application context.
  */
 public interface CallToolHandlerConfig {
 
@@ -37,7 +51,24 @@ public interface CallToolHandlerConfig {
 
   Object bean();
 
-  CallToolHandlerConfig interceptor(MethodInterceptor<? super JsonNode> interceptor);
+  /** Adds an interceptor to the CORRELATION stratum (MDC, request-id propagation). */
+  CallToolHandlerConfig correlationInterceptor(MethodInterceptor<? super JsonNode> interceptor);
+
+  /** Adds an interceptor to the OBSERVATION stratum (spans, metrics). */
+  CallToolHandlerConfig observationInterceptor(MethodInterceptor<? super JsonNode> interceptor);
+
+  /** Adds an interceptor to the AUDIT stratum (structured outcome record per attempt). */
+  CallToolHandlerConfig auditInterceptor(MethodInterceptor<? super JsonNode> interceptor);
+
+  /**
+   * Adds an interceptor to the VALIDATION stratum (semantic validation — Jakarta Bean Validation,
+   * cross-field checks). Runs after the tool's JSON input-schema check, so a JSON-schema miss
+   * short-circuits before semantic validation fires.
+   */
+  CallToolHandlerConfig validationInterceptor(MethodInterceptor<? super JsonNode> interceptor);
+
+  /** Adds an interceptor to the INVOCATION stratum (innermost — retries, timeouts). */
+  CallToolHandlerConfig invocationInterceptor(MethodInterceptor<? super JsonNode> interceptor);
 
   CallToolHandlerConfig guard(Guard guard);
 
