@@ -115,7 +115,7 @@ interceptors nest in a defensible way around user interceptors:
 |---|---|---|
 | 100 | `mocapi-logging` | `McpMdcInterceptor` |
 | 200 | `mocapi-audit` | `AuditLoggingInterceptor` |
-| 300 | `mocapi-o11y` | `McpObservationInterceptor` |
+| 300 | `mocapi-o11y` | `McpHandlerObservationInterceptor` |
 | (default) | user code | (yours) |
 
 The outermost interceptors (lowest `@Order`) see every invocation,
@@ -171,14 +171,31 @@ Reference for what's already at work before you add your own:
 |---|---|
 | `mocapi-server` | (baseline — the handlers themselves, plus `InputSchemaValidatingInterceptor` for tools and the `GuardEvaluationInterceptor` when guards are attached) |
 | `mocapi-logging` | `McpMdcInterceptor` per handler kind |
-| `mocapi-o11y` | `McpObservationInterceptor` per handler kind |
+| `mocapi-o11y` | `McpHandlerObservationInterceptor` per handler kind (plus `McpObservationFilter` enriching the outer `jsonrpc.server` observation — see below) |
 | `mocapi-audit` | `AuditLoggingInterceptor` per handler kind |
 | `mocapi-jakarta-validation` | Methodical's `JakartaValidationInterceptor` per handler kind |
 | `mocapi-spring-security-guards` | `ScopeGuard` / `RoleGuard` when `@RequiresScope` / `@RequiresRole` present |
+| `mocapi-oauth2` | Two `SecurityFilterChain` beans (metadata chain + MCP chain), an `McpTokenStrategy` (`JwtMcpTokenStrategy` or `OpaqueTokenMcpTokenStrategy` depending on which Spring Boot wired), and five `McpMetadataCustomizer` beans populating the RFC 9728 metadata document (`ResourceMetadataCustomizer`, `AuthorizationServersMetadataCustomizer`, `ScopesSupportedMetadataCustomizer`, `ResourceNameMetadataCustomizer`, `ClaimsMetadataCustomizer`). See [authorization.md](authorization.md). |
 
 Every one of these is a few lines of `@Bean` declaration —
 mocapi-autoconfigure. Crack any module's source to see the
 pattern in isolation; it's the same shape everywhere.
+
+## Customizers beyond the handler level
+
+The `*HandlerCustomizer` SPIs above attach to individual MCP handlers. A
+few other customizer SPIs live at coarser layers — JSON-RPC method
+dispatch, and the HTTP security filter chains for the OAuth2 module.
+They're listed here so all the extension points are discoverable from one
+page; each has deeper coverage in its own module doc.
+
+| SPI | Where it attaches | Use it to | Doc |
+|---|---|---|---|
+| `JsonRpcMethodHandlerCustomizer` | Every `@JsonRpcMethod` on the dispatcher (ripcurl) | Wrap the outer JSON-RPC dispatch with interceptors. Used by `mocapi-o11y` to emit the `jsonrpc.server` observation. | [observability.md](observability.md) |
+| `McpFilterChainCustomizer` | The `SecurityFilterChain` serving `/mcp/**` | Require specific scopes on top of authentication, add CORS to the MCP endpoint, install a rate-limit filter. | [authorization.md](authorization.md) |
+| `McpMetadataFilterChainCustomizer` | The `SecurityFilterChain` serving `/.well-known/oauth-protected-resource` | HTTP-layer tweaks only — CORS for browser clients, security headers, rate limiting. The auth policy of this chain is frozen at `permitAll` by RFC 9728. | [authorization.md](authorization.md) |
+| `McpMetadataCustomizer` | The RFC 9728 protected-resource metadata document | Set or override any field on the metadata JSON — `resource`, `authorization_servers`, `scopes_supported`, or custom extension claims. | [authorization.md](authorization.md#customizing-the-metadata-document) |
+| `McpTokenStrategy` | The `oauth2ResourceServer` DSL on both filter chains | Swap the bearer-token validation mode. `JwtMcpTokenStrategy` and `OpaqueTokenMcpTokenStrategy` are the built-ins; register a `@Primary McpTokenStrategy` bean to replace them. | [authorization.md](authorization.md#swapping-the-token-strategy) |
 
 ## Non-goals
 

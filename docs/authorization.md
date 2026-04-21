@@ -109,36 +109,169 @@ That's the whole setup. Starting your Spring Boot application brings up:
 | Metadata document content (`resource`, `authorization_servers`, `scopes_supported`, etc.) | mocapi, from `mocapi.oauth2.*` with fallback to `jwt.issuer-uri` |
 | `SecurityFilterChain` scoped to the MCP endpoint + metadata path | mocapi |
 
-## Advanced: Customizers
+## Filter chain architecture
 
-Two extension points are available.
+`mocapi-oauth2` registers **two** `SecurityFilterChain` beans, not one.
+Each chain owns a distinct URL space, has its own authorization policy,
+and exposes its own customizer SPI.
 
-### `OAuth2ProtectedResourceMetadataCustomizer`
+| Bean name | `@Order` | Matches | Policy | Customizer SPI |
+|---|---|---|---|---|
+| `mcpMetadataFilterChain` | `HIGHEST_PRECEDENCE` | `/.well-known/oauth-protected-resource` | `permitAll` (RFC 9728 §3) | `McpMetadataFilterChainCustomizer` |
+| `mcpFilterChain` | `HIGHEST_PRECEDENCE + 10` | `${mocapi.endpoint:/mcp}` and `${mocapi.endpoint:/mcp}/**` | `authenticated` | `McpFilterChainCustomizer` |
 
-Add arbitrary claims to the metadata document:
+CSRF is disabled on both (MCP is stateless bearer-token, not cookie auth).
+Both chains wire the same `McpTokenStrategy` into Spring's
+`oauth2ResourceServer` DSL — the metadata chain uses it only to satisfy
+the DSL (which refuses to build without a bearer-token format declared);
+the MCP chain uses it to actually validate incoming tokens.
+
+The chains are split because they have genuinely different
+responsibilities. The metadata chain serves a public discovery document
+— clients fetch it **before** they have a token to find out which
+authorization server to use. Requiring auth there would be a chicken-
+and-egg violation of RFC 9728. Keeping it on its own chain with its own
+customizer surface means tweaks to the MCP auth policy (like "require
+scope `mcp.write`") can't accidentally lock the metadata document.
+
+## Customizing the MCP chain
+
+`McpFilterChainCustomizer` mutates the `HttpSecurity` for `mcpFilterChain`
+after mocapi has applied its defaults (securityMatcher, authenticated,
+CSRF disabled, `oauth2ResourceServer`). Use it to require specific scopes
+on top of authentication, add CORS to the MCP endpoint, install a
+rate-limit filter, etc.
 
 ```java
 @Bean
-OAuth2ProtectedResourceMetadataCustomizer tlsBoundTokenAdvertisement() {
+McpFilterChainCustomizer requireScope() {
+    return http -> http.authorizeHttpRequests(auth ->
+        auth.anyRequest().hasAuthority("SCOPE_mcp.read"));
+}
+```
+
+Multiple `McpFilterChainCustomizer` beans compose in Spring's natural
+order. They run **after** mocapi's defaults, so user rules layer on top
+of (and can override) the built-ins.
+
+## Customizing the metadata chain
+
+`McpMetadataFilterChainCustomizer` targets the metadata chain. Typical
+uses: permit CORS so browser-based MCP clients can fetch the metadata
+document, add security headers, or front the endpoint with a rate
+limiter.
+
+```java
+@Bean
+McpMetadataFilterChainCustomizer metadataCors() {
+    return http -> http.cors(cors -> cors.configurationSource(request -> {
+        var config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("https://app.example.com"));
+        config.setAllowedMethods(List.of("GET", "HEAD"));
+        return config;
+    }));
+}
+```
+
+**Don't touch `authorizeHttpRequests` on this chain.** RFC 9728 §3
+requires the metadata document to be fetchable without authentication,
+and mocapi freezes the policy at `permitAll` for that reason. This
+customizer is for HTTP-layer concerns (CORS, headers, logging, rate
+limiting) — not for auth policy.
+
+## Swapping the token strategy
+
+`McpTokenStrategy` is the SPI that configures Spring's
+`oauth2ResourceServer` DSL with a bearer-token format. Mocapi ships two
+implementations, selected automatically by `@ConditionalOnBean`:
+
+- `JwtMcpTokenStrategy` — activates when Spring Boot wired a `JwtDecoder`
+  (i.e. `spring.security.oauth2.resourceserver.jwt.*` is set).
+- `OpaqueTokenMcpTokenStrategy` — activates when Spring Boot wired an
+  `OpaqueTokenIntrospector` (i.e. `spring.security.oauth2.resourceserver.opaquetoken.*`
+  is set). Internally wraps the introspector in an audience-checking
+  delegate so the MCP-mandated `aud` validation still runs.
+
+To replace both with a custom strategy — for a hypothetical future
+token format, or to plug in a mock for testing — register a `@Primary`
+bean:
+
+```java
+@Bean
+@Primary
+McpTokenStrategy customStrategy() {
+    return rs -> rs.jwt(jwt -> jwt.decoder(myCustomDecoder()));
+}
+```
+
+The same instance is applied to both the metadata and MCP chains, so
+there's exactly one place to swap validation behavior.
+
+## Customizing the metadata document
+
+The RFC 9728 metadata document served at
+`/.well-known/oauth-protected-resource` is assembled by a list of
+`McpMetadataCustomizer` beans. Mocapi ships five baseline customizers,
+each responsible for one facet:
+
+| Customizer | Field(s) it sets | Source |
+|---|---|---|
+| `ResourceMetadataCustomizer` | `resource` | `mocapi.oauth2.resource`, or the single `jwt.audiences` entry when unset |
+| `AuthorizationServersMetadataCustomizer` | `authorization_servers` | `mocapi.oauth2.authorization-servers`, or `jwt.issuer-uri` fallback |
+| `ScopesSupportedMetadataCustomizer` | `scopes_supported` | `mocapi.oauth2.scopes` |
+| `ResourceNameMetadataCustomizer` | `resource_name` | `Implementation.title()`, falling back to `Implementation.name()` (i.e. `mocapi.server-title` / `mocapi.server-name`) |
+| `ClaimsMetadataCustomizer` | `resource_documentation`, `resource_policy_uri`, `resource_tos_uri` | the matching `mocapi.oauth2.*` properties; only emits a claim when the property is set |
+
+### Adding a custom claim
+
+Register a `@Bean McpMetadataCustomizer`. Default `@Order` runs it after
+the five baseline customizers, so you see (and can overwrite) whatever
+they set.
+
+```java
+@Bean
+McpMetadataCustomizer tlsBoundTokenAdvertisement() {
     return builder -> builder.tlsClientCertificateBoundAccessTokens(true);
 }
 ```
 
-Multiple customizers compose. They run after mocapi's defaults are populated from properties, so they can override field values or add new ones.
+### Overriding a baseline facet
 
-### `MocapiOAuth2SecurityFilterChainCustomizer`
+Two approaches, pick whichever fits:
 
-Layer additional authorization rules on top of mocapi's default chain:
+1. **Register a later-`@Order` `McpMetadataCustomizer`** that mutates
+   the field you want to change. Mocapi's baselines use
+   `@Order(HIGHEST_PRECEDENCE)`, so any customizer with a later order
+   (including the default) runs after them and wins:
 
-```java
-@Bean
-MocapiOAuth2SecurityFilterChainCustomizer requireScope() {
-    return http -> http.authorizeHttpRequests(auth ->
-        auth.requestMatchers("/mcp/**").hasAuthority("SCOPE_mcp.read"));
-}
-```
+   ```java
+   @Bean
+   @Order(0)
+   McpMetadataCustomizer overrideResourceName() {
+       return builder -> builder.resourceName("My Custom Name");
+   }
+   ```
 
-Mocapi's chain already has `.authenticated()` + `oauth2ResourceServer(rs -> rs.jwt(...))` applied. Customizers run last, so you can layer scope checks, `hasAuthority(...)` rules, CORS, etc., without redeclaring the whole chain.
+2. **Register a `@Primary` replacement** for the specific baseline bean
+   type (e.g. `@Primary ResourceNameMetadataCustomizer`). The autoconfig
+   uses `@ConditionalOnMissingBean` on each baseline, so your bean
+   replaces it entirely and mocapi's default never registers:
+
+   ```java
+   @Bean
+   @Primary
+   ResourceNameMetadataCustomizer myResourceName() {
+       return new ResourceNameMetadataCustomizer(/* ... */) {
+           @Override
+           public void customize(OAuth2ProtectedResourceMetadata.Builder builder) {
+               builder.resourceName("My Custom Name");
+           }
+       };
+   }
+   ```
+
+   Use this when you want to take over a facet completely, including its
+   property-reading constructor logic.
 
 ## Opaque tokens
 

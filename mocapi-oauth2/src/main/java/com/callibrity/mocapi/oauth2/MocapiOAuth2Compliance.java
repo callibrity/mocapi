@@ -44,7 +44,7 @@ public final class MocapiOAuth2Compliance {
    *       confused-deputy token reuse across MCP servers. Spring Boot auto-wires the {@code aud}
    *       validator only when this property is set, so an empty list silently skips enforcement.
    *       The same property is reused for both JWT and opaque-token modes (see {@link
-   *       AudienceCheckingOpaqueTokenIntrospector}).
+   *       com.callibrity.mocapi.oauth2.token.AudienceCheckingOpaqueTokenIntrospector}).
    * </ul>
    *
    * @param jwtDecoder the resolved decoder bean, or {@code null} if none is registered

@@ -6,14 +6,62 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- **`McpTokenStrategy` SPI** (`com.callibrity.mocapi.oauth2.token`). Abstracts
+  the bearer-token validation mode applied to both mocapi-oauth2 security
+  filter chains. Ships with `JwtMcpTokenStrategy` and
+  `OpaqueTokenMcpTokenStrategy` built-ins, selected automatically by
+  `@ConditionalOnBean` on `JwtDecoder` / `OpaqueTokenIntrospector`. Register
+  a `@Primary McpTokenStrategy` bean to swap the validation mode wholesale.
+- **Facet-based `McpMetadataCustomizer` baselines.** The five fields mocapi
+  populates on the RFC 9728 metadata document are now each owned by a
+  dedicated, independently-overridable bean: `ResourceMetadataCustomizer`,
+  `AuthorizationServersMetadataCustomizer`, `ScopesSupportedMetadataCustomizer`,
+  `ResourceNameMetadataCustomizer`, `ClaimsMetadataCustomizer`. Each
+  baseline is gated by `@ConditionalOnMissingBean`, so registering a
+  `@Primary` replacement takes over that facet entirely; registering an
+  additional `McpMetadataCustomizer` with a later `@Order` composes on top.
+
 ### Breaking changes
 
-- **`OAuth2ProtectedResourceMetadataCustomizer` renamed to
-  `McpProtectedResourceMetadataCustomizer`.** Drops the redundant `OAuth2`
-  prefix (the class lives in `com.callibrity.mocapi.oauth2`) and matches the
-  naming cadence of the other mocapi-oauth2 SPI types (`McpSecurityFilterChainBuilder`,
-  `McpSecurityFilterChainCustomizer`). Users implementing this interface
-  must rename their class references; semantics unchanged.
+- **mocapi-oauth2 filter chain split.** The single combined
+  `SecurityFilterChain` is now two separate beans: `mcpMetadataFilterChain`
+  (`@Order(HIGHEST_PRECEDENCE)`, matches
+  `/.well-known/oauth-protected-resource`, `permitAll` per RFC 9728) and
+  `mcpFilterChain` (`@Order(HIGHEST_PRECEDENCE + 10)`, matches
+  `${mocapi.endpoint:/mcp}` + `/**`, `authenticated`). Users layering
+  custom rules should pick the right chain's customizer SPI rather than
+  declaring their own chain.
+- **SPI renames.** Old names removed; users implementing these interfaces
+  must update imports and references:
+  - `OAuth2ProtectedResourceMetadataCustomizer` → `McpMetadataCustomizer`
+    (also moved to `com.callibrity.mocapi.oauth2.metadata`)
+  - `McpSecurityFilterChainCustomizer` → `McpFilterChainCustomizer`
+  - `McpSecurityFilterChainBuilder` deleted — replaced by the static
+    factories `McpFilterChains.createMcpMetadataFilterChain(http, config)`
+    and `McpFilterChains.createMcpFilterChain(http, config)`. The
+    `HttpSecurity` target is passed separately; audiences / issuer URI
+    are now read by the metadata facet customizers directly from
+    `OAuth2ResourceServerProperties` rather than being threaded through
+    the builder.
+- **New `McpFilterChainCustomizer` SPI for the MCP chain** and
+  **`McpMetadataFilterChainCustomizer` SPI for the metadata chain**. The
+  metadata-chain customizer is scoped to HTTP-layer concerns (CORS,
+  headers, rate limiting) — its auth policy is frozen at `permitAll` by
+  RFC 9728. Use the MCP-chain customizer for scope / role / CORS rules on
+  `/mcp/**`.
+- **`McpMetadataCustomizers.of(...)` helper removed.** The five facet
+  customizers replace it; there is no longer a single helper that
+  constructs the baseline list. Users who called this directly (rare —
+  typically only the autoconfig did) should register the five facet
+  beans individually or rely on the autoconfig's registrations.
+- **Package split for `mocapi-oauth2`.** Token strategies moved to
+  `com.callibrity.mocapi.oauth2.token`; metadata customizers moved to
+  `com.callibrity.mocapi.oauth2.metadata`. The chain factory
+  (`McpFilterChains`), config records, chain customizer SPIs, and
+  properties stay in `com.callibrity.mocapi.oauth2`. Import paths change
+  accordingly.
 
 ## [0.12.1] - 2026-04-20
 
