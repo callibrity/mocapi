@@ -233,8 +233,8 @@ class AuditLoggingInterceptorTest {
 
   @Test
   void toString_describes_role_with_handler_kind_and_name() {
-    assertThat(newInterceptor(HandlerKind.TOOL, "weather", false).toString())
-        .isEqualTo("Emits structured audit events on logger 'mocapi.audit' for tool 'weather'");
+    assertThat(newInterceptor(HandlerKind.TOOL, "weather", false))
+        .hasToString("Emits structured audit events on logger 'mocapi.audit' for tool 'weather'");
   }
 
   private static AuditLoggingInterceptor newInterceptor(

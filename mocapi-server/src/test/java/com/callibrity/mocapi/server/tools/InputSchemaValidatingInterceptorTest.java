@@ -26,7 +26,7 @@ class InputSchemaValidatingInterceptorTest {
 
   @Test
   void toString_describes_role() {
-    assertThat(new InputSchemaValidatingInterceptor(null).toString())
-        .isEqualTo("Validates tool arguments against the tool's input JSON schema");
+    assertThat(new InputSchemaValidatingInterceptor(null))
+        .hasToString("Validates tool arguments against the tool's input JSON schema");
   }
 }

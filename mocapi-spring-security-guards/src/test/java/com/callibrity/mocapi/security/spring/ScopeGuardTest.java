@@ -84,7 +84,7 @@ class ScopeGuardTest {
 
   @Test
   void toString_describes_required_scopes_sorted() {
-    assertThat(new ScopeGuard("zeta", "alpha").toString()).isEqualTo("RequiresScope(alpha,zeta)");
+    assertThat(new ScopeGuard("zeta", "alpha")).hasToString("RequiresScope(alpha,zeta)");
   }
 
   @Test

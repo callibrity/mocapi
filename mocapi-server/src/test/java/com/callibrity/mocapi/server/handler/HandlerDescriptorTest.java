@@ -35,9 +35,9 @@ class HandlerDescriptorTest {
 
     source.add("mutated");
 
-    assertThat(descriptor.interceptors()).containsExactly("one");
-    assertThatThrownBy(() -> descriptor.interceptors().add("nope"))
-        .isInstanceOf(UnsupportedOperationException.class);
+    var frozen = descriptor.interceptors();
+    assertThat(frozen).containsExactly("one");
+    assertThatThrownBy(() -> frozen.add("nope")).isInstanceOf(UnsupportedOperationException.class);
   }
 
   @Test

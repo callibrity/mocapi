@@ -47,7 +47,69 @@ class McpActuatorEndpointTest {
   private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
   @Test
-  void snapshot_reports_server_info_counts_and_descriptors() {
+  void snapshot_reports_server_info() {
+    McpActuatorSnapshot snapshot = fullFixtureSnapshot();
+    assertThat(snapshot.server().name()).isEqualTo("mocapi");
+    assertThat(snapshot.server().version()).isEqualTo("1.2.3");
+    assertThat(snapshot.server().protocolVersion()).isEqualTo("2025-11-25");
+  }
+
+  @Test
+  void snapshot_reports_counts_per_handler_kind() {
+    McpActuatorSnapshot snapshot = fullFixtureSnapshot();
+    assertThat(snapshot.counts().tools()).isEqualTo(1);
+    assertThat(snapshot.counts().prompts()).isEqualTo(1);
+    assertThat(snapshot.counts().resources()).isEqualTo(1);
+    assertThat(snapshot.counts().resourceTemplates()).isEqualTo(1);
+  }
+
+  @Test
+  void snapshot_tool_entry_includes_descriptor_digests_and_handler_descriptor() {
+    McpActuatorSnapshot snapshot = fullFixtureSnapshot();
+    assertThat(snapshot.tools()).hasSize(1);
+    var toolInfo = snapshot.tools().getFirst();
+    assertThat(toolInfo.name()).isEqualTo("get_weather");
+    assertThat(toolInfo.title()).isEqualTo("Get Weather");
+    assertThat(toolInfo.description()).isEqualTo("Weather tool");
+    assertThat(toolInfo.inputSchemaDigest()).startsWith("sha256:").hasSize("sha256:".length() + 64);
+    assertThat(toolInfo.outputSchemaDigest())
+        .startsWith("sha256:")
+        .hasSize("sha256:".length() + 64);
+    assertThat(toolInfo.handler().kind()).isEqualTo(HandlerKind.TOOL);
+    assertThat(toolInfo.handler().declaringClassName()).isEqualTo("com.example.WeatherTool");
+    assertThat(toolInfo.handler().methodName()).isEqualTo("getWeather");
+    assertThat(toolInfo.handler().interceptors())
+        .containsExactly("Validates tool arguments against the tool's input JSON schema");
+  }
+
+  @Test
+  void snapshot_prompt_entry_includes_arguments_and_handler_descriptor() {
+    McpActuatorSnapshot snapshot = fullFixtureSnapshot();
+    assertThat(snapshot.prompts()).hasSize(1);
+    var promptInfo = snapshot.prompts().getFirst();
+    assertThat(promptInfo.name()).isEqualTo("summarize");
+    assertThat(promptInfo.arguments()).hasSize(1);
+    assertThat(promptInfo.arguments().getFirst().name()).isEqualTo("text");
+    assertThat(promptInfo.arguments().getFirst().required()).isTrue();
+    assertThat(promptInfo.handler().kind()).isEqualTo(HandlerKind.PROMPT);
+    assertThat(promptInfo.handler().methodName()).isEqualTo("summarize");
+  }
+
+  @Test
+  void snapshot_resource_and_resource_template_entries_include_handler_descriptors() {
+    McpActuatorSnapshot snapshot = fullFixtureSnapshot();
+    assertThat(snapshot.resources()).hasSize(1);
+    var resourceInfo = snapshot.resources().getFirst();
+    assertThat(resourceInfo.uri()).isEqualTo("docs://readme");
+    assertThat(resourceInfo.handler().kind()).isEqualTo(HandlerKind.RESOURCE);
+
+    assertThat(snapshot.resourceTemplates()).hasSize(1);
+    var templateInfo = snapshot.resourceTemplates().getFirst();
+    assertThat(templateInfo.uriTemplate()).isEqualTo("docs://pages/{slug}");
+    assertThat(templateInfo.handler().kind()).isEqualTo(HandlerKind.RESOURCE_TEMPLATE);
+  }
+
+  private static McpActuatorSnapshot fullFixtureSnapshot() {
     ObjectNode inputSchema = MAPPER.createObjectNode().put("type", "object");
     ObjectNode outputSchema = MAPPER.createObjectNode().put("type", "string");
     Tool tool = new Tool("get_weather", "Get Weather", "Weather tool", inputSchema, outputSchema);
@@ -96,51 +158,7 @@ class McpActuatorEndpointTest {
     var endpoint =
         new McpActuatorEndpoint(
             new Implementation("mocapi", "Mocapi", "1.2.3"), tools, prompts, resources);
-
-    McpActuatorSnapshot snapshot = endpoint.snapshot();
-
-    assertThat(snapshot.server().name()).isEqualTo("mocapi");
-    assertThat(snapshot.server().version()).isEqualTo("1.2.3");
-    assertThat(snapshot.server().protocolVersion()).isEqualTo("2025-11-25");
-
-    assertThat(snapshot.counts().tools()).isEqualTo(1);
-    assertThat(snapshot.counts().prompts()).isEqualTo(1);
-    assertThat(snapshot.counts().resources()).isEqualTo(1);
-    assertThat(snapshot.counts().resourceTemplates()).isEqualTo(1);
-
-    assertThat(snapshot.tools()).hasSize(1);
-    var toolInfo = snapshot.tools().getFirst();
-    assertThat(toolInfo.name()).isEqualTo("get_weather");
-    assertThat(toolInfo.title()).isEqualTo("Get Weather");
-    assertThat(toolInfo.description()).isEqualTo("Weather tool");
-    assertThat(toolInfo.inputSchemaDigest()).startsWith("sha256:").hasSize("sha256:".length() + 64);
-    assertThat(toolInfo.outputSchemaDigest())
-        .startsWith("sha256:")
-        .hasSize("sha256:".length() + 64);
-    assertThat(toolInfo.handler().kind()).isEqualTo(HandlerKind.TOOL);
-    assertThat(toolInfo.handler().declaringClassName()).isEqualTo("com.example.WeatherTool");
-    assertThat(toolInfo.handler().methodName()).isEqualTo("getWeather");
-    assertThat(toolInfo.handler().interceptors())
-        .containsExactly("Validates tool arguments against the tool's input JSON schema");
-
-    assertThat(snapshot.prompts()).hasSize(1);
-    var promptInfo = snapshot.prompts().getFirst();
-    assertThat(promptInfo.name()).isEqualTo("summarize");
-    assertThat(promptInfo.arguments()).hasSize(1);
-    assertThat(promptInfo.arguments().getFirst().name()).isEqualTo("text");
-    assertThat(promptInfo.arguments().getFirst().required()).isTrue();
-    assertThat(promptInfo.handler().kind()).isEqualTo(HandlerKind.PROMPT);
-    assertThat(promptInfo.handler().methodName()).isEqualTo("summarize");
-
-    assertThat(snapshot.resources()).hasSize(1);
-    var resourceInfo = snapshot.resources().getFirst();
-    assertThat(resourceInfo.uri()).isEqualTo("docs://readme");
-    assertThat(resourceInfo.handler().kind()).isEqualTo(HandlerKind.RESOURCE);
-
-    assertThat(snapshot.resourceTemplates()).hasSize(1);
-    var templateInfo = snapshot.resourceTemplates().getFirst();
-    assertThat(templateInfo.uriTemplate()).isEqualTo("docs://pages/{slug}");
-    assertThat(templateInfo.handler().kind()).isEqualTo(HandlerKind.RESOURCE_TEMPLATE);
+    return endpoint.snapshot();
   }
 
   @Test

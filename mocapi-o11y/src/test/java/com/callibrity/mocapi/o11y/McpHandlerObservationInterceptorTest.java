@@ -113,8 +113,8 @@ class McpHandlerObservationInterceptorTest {
   @Test
   void toString_describes_role_with_handler_kind_and_target_name() {
     var interceptor = new McpHandlerObservationInterceptor(registry, HandlerKind.TOOL, "weather");
-    org.assertj.core.api.Assertions.assertThat(interceptor.toString())
-        .isEqualTo(
+    org.assertj.core.api.Assertions.assertThat(interceptor)
+        .hasToString(
             "Records Micrometer 'mcp.handler.execution' observations"
                 + " (OpenTelemetry MCP semconv) for tool 'weather'");
   }

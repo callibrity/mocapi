@@ -82,7 +82,7 @@ class RoleGuardTest {
 
   @Test
   void toString_describes_required_roles_sorted_without_prefix() {
-    assertThat(new RoleGuard("OPS", "ROLE_ADMIN").toString()).isEqualTo("RequiresRole(ADMIN,OPS)");
+    assertThat(new RoleGuard("OPS", "ROLE_ADMIN")).hasToString("RequiresRole(ADMIN,OPS)");
   }
 
   @Test
