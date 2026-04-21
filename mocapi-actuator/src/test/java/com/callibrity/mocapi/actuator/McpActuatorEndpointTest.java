@@ -69,7 +69,7 @@ class McpActuatorEndpointTest {
                 HandlerKind.TOOL,
                 "com.example.WeatherTool",
                 "getWeather",
-                List.of("Validates tool arguments against the tool's JSON schema")));
+                List.of("Validates tool arguments against the tool's input JSON schema")));
     GetPromptHandler promptHandler =
         promptHandler(
             prompt,
@@ -121,7 +121,7 @@ class McpActuatorEndpointTest {
     assertThat(toolInfo.handler().declaringClassName()).isEqualTo("com.example.WeatherTool");
     assertThat(toolInfo.handler().methodName()).isEqualTo("getWeather");
     assertThat(toolInfo.handler().interceptors())
-        .containsExactly("Validates tool arguments against the tool's JSON schema");
+        .containsExactly("Validates tool arguments against the tool's input JSON schema");
 
     assertThat(snapshot.prompts()).hasSize(1);
     var promptInfo = snapshot.prompts().getFirst();

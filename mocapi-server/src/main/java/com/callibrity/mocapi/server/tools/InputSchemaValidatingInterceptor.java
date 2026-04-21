@@ -56,6 +56,6 @@ final class InputSchemaValidatingInterceptor implements MethodInterceptor<JsonNo
 
   @Override
   public String toString() {
-    return "Validates tool arguments against the tool's JSON schema";
+    return "Validates tool arguments against the tool's input JSON schema";
   }
 }

@@ -85,7 +85,7 @@ class CallToolHandlerTest {
     assertThat(descriptor.declaringClassName()).isEqualTo(HelloTool.class.getName());
     assertThat(descriptor.methodName()).isEqualTo("sayHello");
     assertThat(descriptor.interceptors())
-        .contains("Validates tool arguments against the tool's JSON schema");
+        .contains("Validates tool arguments against the tool's input JSON schema");
   }
 
   @Test
