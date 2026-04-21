@@ -6,8 +6,34 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-04-21
+
 ### Added
 
+- **Handler introspection on `/actuator/mcp`.** Each tool / prompt /
+  resource / resource-template entry now carries a `handler` block with
+  `kind`, `declaringClassName`, `methodName`, and `interceptors` — the
+  outer-to-inner `toString` sequence of every interceptor wrapping the
+  reflective call. Reading the list top-to-bottom reconstructs the
+  stratum chain on that handler. Backed by a new public
+  `HandlerDescriptor` record and a `describe()` method on each handler
+  type. Counts and lists are now **unfiltered** — the actuator endpoint
+  reflects every registered handler regardless of per-caller guard
+  visibility, matching the operator-view intent (filtering still applies
+  to the MCP-protocol `tools/list` etc.).
+- **Interceptor strata API.** Each `*HandlerConfig` gains five typed
+  add methods — `correlationInterceptor`, `observationInterceptor`,
+  `auditInterceptor`, `validationInterceptor`, `invocationInterceptor` —
+  and the handler builder assembles the chain in a stable outer-to-inner
+  order: CORRELATION → OBSERVATION → AUDIT → AUTHORIZATION (guards) →
+  VALIDATION (JSON schema + semantic) → INVOCATION. Customizers declare
+  intent instead of negotiating `@Order` numbers around a generic
+  `interceptor(...)` bucket. See `docs/customizers.md`.
+- **`toString()` on every mocapi interceptor and guard.** Rendered into
+  the `/actuator/mcp` `interceptors` list. `McpMdcInterceptor` reads as
+  "Stamps SLF4J MDC correlation keys for tool 'weather'",
+  `GuardEvaluationInterceptor` as "Evaluates guards [RequiresScope(…)]
+  and rejects denied calls with JSON-RPC -32003 Forbidden", etc.
 - **`McpTokenStrategy` SPI** (`com.callibrity.mocapi.oauth2.token`). Abstracts
   the bearer-token validation mode applied to both mocapi-oauth2 security
   filter chains. Ships with `JwtMcpTokenStrategy` and
@@ -23,8 +49,51 @@ All notable changes to this project are documented in this file. The format is b
   `@Primary` replacement takes over that facet entirely; registering an
   additional `McpMetadataCustomizer` with a later `@Order` composes on top.
 
+### Changed
+
+- **`mocapi-bom` re-exports `methodical-bom`.** Consumers that import
+  `mocapi-bom` now automatically get the Methodical version mocapi was
+  built against. Prevents transitive pins (e.g. ripcurl's) from forcing
+  a stale `methodical-core` onto the classpath and causing
+  `NoSuchMethodError` at runtime.
+- **`McpLogger` interface compressed.** Two abstract methods
+  (`isEnabled(LoggingLevel)` and `log(LoggingLevel, String)`) plus default
+  per-level shortcuts (`info`, `warn`, `isDebugEnabled`, …). Implementers
+  provide the two abstract methods and every SLF4J-shaped shortcut comes
+  along for free.
+
 ### Breaking changes
 
+- **`McpToolContext.log(...)` and `isEnabled(LoggingLevel)` removed.**
+  Use `ctx.logger(name).info("...")` (or `.warn`, `.error`, etc.) in
+  place of `ctx.log(LEVEL, "name", "msg")`, and
+  `ctx.logger(name).isDebugEnabled()` in place of
+  `ctx.isEnabled(LoggingLevel.DEBUG)`. The logger's `log(level, message)`
+  is still available for dynamic-level call sites.
+- **`McpToolContext.handlerName()` and `logger(String)` are now abstract.**
+  The `"mcp"` / auto-constructed defaults are gone. Custom
+  `McpToolContext` implementations (typically test doubles) must supply
+  both. The runtime `DefaultMcpToolContext` continues to wire both
+  correctly; real-world users are rarely affected.
+- **`ContextMcpLogger` removed from `mocapi-api`.** The logger
+  implementation is now `DefaultMcpLogger` in
+  `com.callibrity.mocapi.server.tools` (mocapi-server). It holds the
+  transport + object mapper directly instead of bouncing back through the
+  context. `McpLogger` stays in `mocapi-api` as the SPI.
+- **Per-handler `*HandlerConfig.interceptor(...)` removed.** Customizers
+  that added a generic interceptor must pick a stratum — `correlationInterceptor`,
+  `observationInterceptor`, `auditInterceptor`, `validationInterceptor`, or
+  `invocationInterceptor` — according to the concern they represent. See
+  `docs/customizers.md#strata` for the mapping.
+- **`McpToolsService` / `McpPromptsService` / `McpResourcesService`
+  accessor semantics.** `allDescriptors()` / `allResourceDescriptors()` /
+  `allResourceTemplateDescriptors()` are now **unfiltered** (every
+  registered handler's descriptor). Per-caller guard visibility is still
+  applied, but only by the MCP-list endpoint methods themselves
+  (`listTools`, `listPrompts`, `listResources`, `listResourceTemplates`),
+  not by the accessors. The `visibilityFilter()` hook on
+  `PaginatedService` is gone; subclasses pass a `Predicate<T>` to the new
+  `paginate(Predicate, params, resultCtor)` overload.
 - **mocapi-oauth2 filter chain split.** The single combined
   `SecurityFilterChain` is now two separate beans: `mcpMetadataFilterChain`
   (`@Order(HIGHEST_PRECEDENCE)`, matches
@@ -62,6 +131,30 @@ All notable changes to this project are documented in this file. The format is b
   (`McpFilterChains`), config records, chain customizer SPIs, and
   properties stay in `com.callibrity.mocapi.oauth2`. Import paths change
   accordingly.
+
+### Documentation
+
+- `docs/customizers.md` rewritten around the stratum model; the old
+  `@Order`-based ordering section replaced with the six strata
+  (CORRELATION, OBSERVATION, AUDIT, AUTHORIZATION, VALIDATION,
+  INVOCATION) and their add methods.
+- `docs/actuator.md` snapshot JSON updated to show the `handler` block
+  per handler; counts re-documented as unfiltered operator view.
+- `docs/interactive-guide.md` logging section updated: `ctx.log(level,
+  name, msg)` no longer exists — examples show `ctx.logger(name).info(...)`
+  and `logger.log(level, message)` for dynamic-level call sites.
+- `docs/handlers.md` / `docs/audit.md` / `docs/parameter-resolvers.md`
+  cross-linked to the new stratum section.
+- README toned down ("enterprise-grade" / "production-grade" /
+  "batteries included" removed) to match actual project maturity; adds
+  a pre-1.0 status note.
+
+### Requirements
+
+- Methodical 0.8.0 → 0.9.2 (adds `MethodInvoker.describe()` which
+  `HandlerDescriptor` reads; default-method shape keeps `MethodInvoker`
+  a functional interface, so existing lambda-based test code still
+  compiles).
 
 ## [0.12.1] - 2026-04-20
 
@@ -1051,7 +1144,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.12.1...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.13.0...HEAD
+[0.13.0]: https://github.com/callibrity/mocapi/releases/tag/0.13.0
 [0.12.1]: https://github.com/callibrity/mocapi/releases/tag/0.12.1
 [0.12.0]: https://github.com/callibrity/mocapi/releases/tag/0.12.0
 [0.11.0]: https://github.com/callibrity/mocapi/releases/tag/0.11.0

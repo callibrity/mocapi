@@ -42,7 +42,7 @@ curl -s localhost:8080/actuator/mcp | jq
 {
   "server": {
     "name": "mocapi",
-    "version": "0.12.1",
+    "version": "0.13.0",
     "protocolVersion": "2025-11-25"
   },
   "counts": {
@@ -57,7 +57,19 @@ curl -s localhost:8080/actuator/mcp | jq
       "title": "Get Weather",
       "description": "Returns current weather for a ZIP code",
       "inputSchemaDigest": "sha256:a3f2...",
-      "outputSchemaDigest": "sha256:9c41..."
+      "outputSchemaDigest": "sha256:9c41...",
+      "handler": {
+        "kind": "TOOL",
+        "declaringClassName": "com.example.tools.WeatherTool",
+        "methodName": "getWeather",
+        "interceptors": [
+          "Stamps SLF4J MDC correlation keys for tool 'get_weather'",
+          "Records Micrometer 'mcp.handler.execution' observations (OpenTelemetry MCP semconv) for tool 'get_weather'",
+          "Evaluates guards [RequiresScope(weather:read)] and rejects denied calls with JSON-RPC -32003 Forbidden",
+          "Validates tool arguments against the tool's input JSON schema",
+          "Validates method parameters and return value against Jakarta Bean Validation constraints"
+        ]
+      }
     }
   ],
   "prompts": [
@@ -65,7 +77,13 @@ curl -s localhost:8080/actuator/mcp | jq
       "name": "summarize",
       "title": "Summarize",
       "description": "Summarize arbitrary text",
-      "arguments": [ { "name": "text", "required": true } ]
+      "arguments": [ { "name": "text", "required": true } ],
+      "handler": {
+        "kind": "PROMPT",
+        "declaringClassName": "com.example.prompts.SummarizePrompt",
+        "methodName": "summarize",
+        "interceptors": []
+      }
     }
   ],
   "resources": [
@@ -73,7 +91,13 @@ curl -s localhost:8080/actuator/mcp | jq
       "uri": "docs://readme",
       "name": "README",
       "description": "Project README",
-      "mimeType": "text/markdown"
+      "mimeType": "text/markdown",
+      "handler": {
+        "kind": "RESOURCE",
+        "declaringClassName": "com.example.docs.DocsResource",
+        "methodName": "readme",
+        "interceptors": []
+      }
     }
   ],
   "resourceTemplates": [
@@ -81,7 +105,13 @@ curl -s localhost:8080/actuator/mcp | jq
       "uriTemplate": "docs://pages/{slug}",
       "name": "Page",
       "description": "Documentation page by slug",
-      "mimeType": "text/markdown"
+      "mimeType": "text/markdown",
+      "handler": {
+        "kind": "RESOURCE_TEMPLATE",
+        "declaringClassName": "com.example.docs.DocsResource",
+        "methodName": "page",
+        "interceptors": []
+      }
     }
   ]
 }
@@ -92,12 +122,21 @@ curl -s localhost:8080/actuator/mcp | jq
 **Included:**
 
 - Server `name` / `version` / `protocolVersion`.
-- Per-kind descriptor counts.
+- Per-kind descriptor counts. **The counts reflect every registered
+  handler, ignoring per-caller guard visibility** — this endpoint is
+  an operator view. MCP clients see only handlers their guards allow
+  via `tools/list` etc.
 - Per-handler name, title, description.
 - Tool `inputSchemaDigest` / `outputSchemaDigest` (SHA-256 of the
   canonical JSON schema, hex-encoded, prefixed `sha256:`).
 - Prompt `arguments` list (name + required flag per arg).
 - Resource `mimeType`.
+- Per-handler `handler` block: `kind`, `declaringClassName`,
+  `methodName`, and `interceptors` — the outer-to-inner toString
+  sequence of every interceptor wrapping the reflective call. Reading
+  the list top to bottom reconstructs the stratum chain (CORRELATION
+  → OBSERVATION → AUDIT → AUTHORIZATION → VALIDATION → INVOCATION).
+  See [`customizers.md`](customizers.md#strata) for the stratum model.
 
 **Deliberately not included:**
 

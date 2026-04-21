@@ -40,7 +40,7 @@ Add the starter dependency:
 <dependency>
     <groupId>com.callibrity.mocapi</groupId>
     <artifactId>mocapi-streamable-http-spring-boot-starter</artifactId>
-    <version>0.12.1</version>
+    <version>0.13.0</version>
 </dependency>
 ```
 
@@ -52,7 +52,7 @@ If you depend on multiple mocapi artifacts (e.g., a starter plus one of the `moc
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
             <artifactId>mocapi-bom</artifactId>
-            <version>0.12.1</version>
+            <version>0.13.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>

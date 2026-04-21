@@ -49,12 +49,15 @@ a name explicitly:
 ctx.logger().info("Processing started");
 ```
 
-For rare cases you can still call the general `log` method with an explicit level:
+Every level has a shortcut: `debug`, `info`, `notice`, `warn`, `error`, `critical`,
+`alert`, `emergency`. If you need to pick the level dynamically, call `log(level,
+message)` directly:
 
 ```java
 import com.callibrity.mocapi.model.LoggingLevel;
 
-ctx.log(LoggingLevel.NOTICE, "my-tool", "Something noteworthy");
+LoggingLevel level = urgent ? LoggingLevel.ALERT : LoggingLevel.INFO;
+ctx.logger("my-tool").log(level, "Something noteworthy");
 ```
 
 Log messages are filtered by the session's log level. The client sets this via `logging/setLevel`. Messages below the session's level are silently dropped.
