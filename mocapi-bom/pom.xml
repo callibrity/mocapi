@@ -32,6 +32,18 @@
 
     <dependencyManagement>
         <dependencies>
+            <!--
+                Re-export the methodical BOM so downstream consumers that import mocapi-bom get a
+                methodical version aligned with what mocapi was built against. Prevents transitive
+                pins (e.g. ripcurl's) from forcing a stale methodical-core onto the classpath.
+            -->
+            <dependency>
+                <groupId>org.jwcarman.methodical</groupId>
+                <artifactId>methodical-bom</artifactId>
+                <version>${methodical.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>com.callibrity.mocapi</groupId>
                 <artifactId>mocapi-api</artifactId>
