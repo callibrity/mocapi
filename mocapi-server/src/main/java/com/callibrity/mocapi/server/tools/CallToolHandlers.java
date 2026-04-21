@@ -25,6 +25,7 @@ import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardEvaluationInterceptor;
+import com.callibrity.mocapi.server.handler.MutableHandlerState;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
@@ -83,23 +84,23 @@ public final class CallToolHandlers {
     Schema compiledInputSchema = compile(inputSchema);
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
-    List<Guard> guards = config.guards();
+    MutableHandlerState<JsonNode> state = config.state;
     List<ParameterResolver<? super JsonNode>> resolvers =
-        buildResolvers(objectMapper, config.resolvers());
+        buildResolvers(objectMapper, state.resolvers);
     MethodInvoker.Builder<JsonNode> builder = MethodInvoker.builder(method, bean, JsonNode.class);
     resolvers.forEach(builder::resolver);
     // Assemble the interceptor chain outer → inner by stratum.
-    config.correlation().forEach(builder::interceptor);
-    config.observation().forEach(builder::interceptor);
-    config.audit().forEach(builder::interceptor);
-    if (!guards.isEmpty()) {
-      builder.interceptor(new GuardEvaluationInterceptor(guards));
+    state.correlation.forEach(builder::interceptor);
+    state.observation.forEach(builder::interceptor);
+    state.audit.forEach(builder::interceptor);
+    if (!state.guards.isEmpty()) {
+      builder.interceptor(new GuardEvaluationInterceptor(state.guards));
     }
     builder.interceptor(new InputSchemaValidatingInterceptor(compiledInputSchema));
-    config.validation().forEach(builder::interceptor);
-    config.invocation().forEach(builder::interceptor);
+    state.validation.forEach(builder::interceptor);
+    state.invocation.forEach(builder::interceptor);
     MethodInvoker<JsonNode> invoker = builder.build();
-    return new CallToolHandler(descriptor, method, bean, invoker, guards);
+    return new CallToolHandler(descriptor, method, bean, invoker, List.copyOf(state.guards));
   }
 
   private static List<ParameterResolver<? super JsonNode>> buildResolvers(
@@ -116,13 +117,7 @@ public final class CallToolHandlers {
     private final Tool descriptor;
     private final Method method;
     private final Object bean;
-    private final List<MethodInterceptor<? super JsonNode>> correlation = new ArrayList<>();
-    private final List<MethodInterceptor<? super JsonNode>> observation = new ArrayList<>();
-    private final List<MethodInterceptor<? super JsonNode>> audit = new ArrayList<>();
-    private final List<MethodInterceptor<? super JsonNode>> validation = new ArrayList<>();
-    private final List<MethodInterceptor<? super JsonNode>> invocation = new ArrayList<>();
-    private final List<Guard> guards = new ArrayList<>();
-    private final List<ParameterResolver<? super JsonNode>> resolvers = new ArrayList<>();
+    final MutableHandlerState<JsonNode> state = new MutableHandlerState<>();
 
     MutableConfig(Tool descriptor, Method method, Object bean) {
       this.descriptor = descriptor;
@@ -148,75 +143,47 @@ public final class CallToolHandlers {
     @Override
     public CallToolHandlerConfig correlationInterceptor(
         MethodInterceptor<? super JsonNode> interceptor) {
-      correlation.add(interceptor);
+      state.correlation.add(interceptor);
       return this;
     }
 
     @Override
     public CallToolHandlerConfig observationInterceptor(
         MethodInterceptor<? super JsonNode> interceptor) {
-      observation.add(interceptor);
+      state.observation.add(interceptor);
       return this;
     }
 
     @Override
     public CallToolHandlerConfig auditInterceptor(MethodInterceptor<? super JsonNode> interceptor) {
-      audit.add(interceptor);
+      state.audit.add(interceptor);
       return this;
     }
 
     @Override
     public CallToolHandlerConfig validationInterceptor(
         MethodInterceptor<? super JsonNode> interceptor) {
-      validation.add(interceptor);
+      state.validation.add(interceptor);
       return this;
     }
 
     @Override
     public CallToolHandlerConfig invocationInterceptor(
         MethodInterceptor<? super JsonNode> interceptor) {
-      invocation.add(interceptor);
+      state.invocation.add(interceptor);
       return this;
     }
 
     @Override
     public CallToolHandlerConfig guard(Guard guard) {
-      guards.add(guard);
+      state.guards.add(guard);
       return this;
     }
 
     @Override
     public CallToolHandlerConfig resolver(ParameterResolver<? super JsonNode> resolver) {
-      resolvers.add(resolver);
+      state.resolvers.add(resolver);
       return this;
-    }
-
-    List<MethodInterceptor<? super JsonNode>> correlation() {
-      return correlation;
-    }
-
-    List<MethodInterceptor<? super JsonNode>> observation() {
-      return observation;
-    }
-
-    List<MethodInterceptor<? super JsonNode>> audit() {
-      return audit;
-    }
-
-    List<MethodInterceptor<? super JsonNode>> validation() {
-      return validation;
-    }
-
-    List<MethodInterceptor<? super JsonNode>> invocation() {
-      return invocation;
-    }
-
-    List<Guard> guards() {
-      return guards;
-    }
-
-    List<ParameterResolver<? super JsonNode>> resolvers() {
-      return resolvers;
     }
   }
 

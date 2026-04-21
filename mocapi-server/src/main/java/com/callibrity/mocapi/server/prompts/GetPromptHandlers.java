@@ -27,6 +27,7 @@ import com.callibrity.mocapi.server.completions.CompletionCandidate;
 import com.callibrity.mocapi.server.completions.CompletionCandidates;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardEvaluationInterceptor;
+import com.callibrity.mocapi.server.handler.MutableHandlerState;
 import com.callibrity.mocapi.server.tools.schema.Parameters;
 import com.callibrity.mocapi.server.util.StringMapArgResolver;
 import java.lang.reflect.Method;
@@ -77,22 +78,23 @@ public final class GetPromptHandlers {
     Prompt descriptor = new Prompt(name, title, description, null, argumentsOf(method));
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
-    List<Guard> guards = config.guards();
+    MutableHandlerState<Map<String, String>> state = config.state;
     List<ParameterResolver<? super Map<String, String>>> resolvers =
-        buildResolvers(conversionService, config.resolvers());
+        buildResolvers(conversionService, state.resolvers);
     MethodInvoker.Builder<Map<String, String>> builder =
         MethodInvoker.builder(method, bean, ARGS_TYPE);
     resolvers.forEach(builder::resolver);
-    config.correlation().forEach(builder::interceptor);
-    config.observation().forEach(builder::interceptor);
-    config.audit().forEach(builder::interceptor);
-    if (!guards.isEmpty()) {
-      builder.interceptor(new GuardEvaluationInterceptor(guards));
+    state.correlation.forEach(builder::interceptor);
+    state.observation.forEach(builder::interceptor);
+    state.audit.forEach(builder::interceptor);
+    if (!state.guards.isEmpty()) {
+      builder.interceptor(new GuardEvaluationInterceptor(state.guards));
     }
-    config.validation().forEach(builder::interceptor);
-    config.invocation().forEach(builder::interceptor);
+    state.validation.forEach(builder::interceptor);
+    state.invocation.forEach(builder::interceptor);
     MethodInvoker<Map<String, String>> invoker = builder.build();
-    return new GetPromptHandler(descriptor, method, bean, invoker, candidatesOf(method), guards);
+    return new GetPromptHandler(
+        descriptor, method, bean, invoker, candidatesOf(method), List.copyOf(state.guards));
   }
 
   private static List<ParameterResolver<? super Map<String, String>>> buildResolvers(
@@ -107,18 +109,7 @@ public final class GetPromptHandlers {
     private final Prompt descriptor;
     private final Method method;
     private final Object bean;
-    private final List<MethodInterceptor<? super Map<String, String>>> correlation =
-        new ArrayList<>();
-    private final List<MethodInterceptor<? super Map<String, String>>> observation =
-        new ArrayList<>();
-    private final List<MethodInterceptor<? super Map<String, String>>> audit = new ArrayList<>();
-    private final List<MethodInterceptor<? super Map<String, String>>> validation =
-        new ArrayList<>();
-    private final List<MethodInterceptor<? super Map<String, String>>> invocation =
-        new ArrayList<>();
-    private final List<Guard> guards = new ArrayList<>();
-    private final List<ParameterResolver<? super Map<String, String>>> resolvers =
-        new ArrayList<>();
+    final MutableHandlerState<Map<String, String>> state = new MutableHandlerState<>();
 
     MutableConfig(Prompt descriptor, Method method, Object bean) {
       this.descriptor = descriptor;
@@ -144,77 +135,49 @@ public final class GetPromptHandlers {
     @Override
     public GetPromptHandlerConfig correlationInterceptor(
         MethodInterceptor<? super Map<String, String>> interceptor) {
-      correlation.add(interceptor);
+      state.correlation.add(interceptor);
       return this;
     }
 
     @Override
     public GetPromptHandlerConfig observationInterceptor(
         MethodInterceptor<? super Map<String, String>> interceptor) {
-      observation.add(interceptor);
+      state.observation.add(interceptor);
       return this;
     }
 
     @Override
     public GetPromptHandlerConfig auditInterceptor(
         MethodInterceptor<? super Map<String, String>> interceptor) {
-      audit.add(interceptor);
+      state.audit.add(interceptor);
       return this;
     }
 
     @Override
     public GetPromptHandlerConfig validationInterceptor(
         MethodInterceptor<? super Map<String, String>> interceptor) {
-      validation.add(interceptor);
+      state.validation.add(interceptor);
       return this;
     }
 
     @Override
     public GetPromptHandlerConfig invocationInterceptor(
         MethodInterceptor<? super Map<String, String>> interceptor) {
-      invocation.add(interceptor);
+      state.invocation.add(interceptor);
       return this;
     }
 
     @Override
     public GetPromptHandlerConfig guard(Guard guard) {
-      guards.add(guard);
+      state.guards.add(guard);
       return this;
     }
 
     @Override
     public GetPromptHandlerConfig resolver(
         ParameterResolver<? super Map<String, String>> resolver) {
-      resolvers.add(resolver);
+      state.resolvers.add(resolver);
       return this;
-    }
-
-    List<MethodInterceptor<? super Map<String, String>>> correlation() {
-      return correlation;
-    }
-
-    List<MethodInterceptor<? super Map<String, String>>> observation() {
-      return observation;
-    }
-
-    List<MethodInterceptor<? super Map<String, String>>> audit() {
-      return audit;
-    }
-
-    List<MethodInterceptor<? super Map<String, String>>> validation() {
-      return validation;
-    }
-
-    List<MethodInterceptor<? super Map<String, String>>> invocation() {
-      return invocation;
-    }
-
-    List<Guard> guards() {
-      return guards;
-    }
-
-    List<ParameterResolver<? super Map<String, String>>> resolvers() {
-      return resolvers;
     }
   }
 

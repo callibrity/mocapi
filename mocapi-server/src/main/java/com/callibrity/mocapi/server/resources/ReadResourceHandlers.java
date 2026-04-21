@@ -24,8 +24,8 @@ import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardEvaluationInterceptor;
+import com.callibrity.mocapi.server.handler.MutableHandlerState;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 import org.jwcarman.methodical.MethodInterceptor;
@@ -61,33 +61,26 @@ public final class ReadResourceHandlers {
     Resource descriptor = new Resource(uri, name, description, mimeType);
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
-    List<Guard> guards = config.guards();
-    List<ParameterResolver<? super Object>> resolvers = config.resolvers();
+    MutableHandlerState<Object> state = config.state;
     MethodInvoker.Builder<Object> builder = MethodInvoker.builder(method, bean, Object.class);
-    resolvers.forEach(builder::resolver);
-    config.correlation().forEach(builder::interceptor);
-    config.observation().forEach(builder::interceptor);
-    config.audit().forEach(builder::interceptor);
-    if (!guards.isEmpty()) {
-      builder.interceptor(new GuardEvaluationInterceptor(guards));
+    state.resolvers.forEach(builder::resolver);
+    state.correlation.forEach(builder::interceptor);
+    state.observation.forEach(builder::interceptor);
+    state.audit.forEach(builder::interceptor);
+    if (!state.guards.isEmpty()) {
+      builder.interceptor(new GuardEvaluationInterceptor(state.guards));
     }
-    config.validation().forEach(builder::interceptor);
-    config.invocation().forEach(builder::interceptor);
+    state.validation.forEach(builder::interceptor);
+    state.invocation.forEach(builder::interceptor);
     MethodInvoker<Object> invoker = builder.build();
-    return new ReadResourceHandler(descriptor, method, bean, invoker, guards);
+    return new ReadResourceHandler(descriptor, method, bean, invoker, List.copyOf(state.guards));
   }
 
   private static final class MutableConfig implements ReadResourceHandlerConfig {
     private final Resource descriptor;
     private final Method method;
     private final Object bean;
-    private final List<MethodInterceptor<? super Object>> correlation = new ArrayList<>();
-    private final List<MethodInterceptor<? super Object>> observation = new ArrayList<>();
-    private final List<MethodInterceptor<? super Object>> audit = new ArrayList<>();
-    private final List<MethodInterceptor<? super Object>> validation = new ArrayList<>();
-    private final List<MethodInterceptor<? super Object>> invocation = new ArrayList<>();
-    private final List<Guard> guards = new ArrayList<>();
-    private final List<ParameterResolver<? super Object>> resolvers = new ArrayList<>();
+    final MutableHandlerState<Object> state = new MutableHandlerState<>();
 
     MutableConfig(Resource descriptor, Method method, Object bean) {
       this.descriptor = descriptor;
@@ -113,76 +106,48 @@ public final class ReadResourceHandlers {
     @Override
     public ReadResourceHandlerConfig correlationInterceptor(
         MethodInterceptor<? super Object> interceptor) {
-      correlation.add(interceptor);
+      state.correlation.add(interceptor);
       return this;
     }
 
     @Override
     public ReadResourceHandlerConfig observationInterceptor(
         MethodInterceptor<? super Object> interceptor) {
-      observation.add(interceptor);
+      state.observation.add(interceptor);
       return this;
     }
 
     @Override
     public ReadResourceHandlerConfig auditInterceptor(
         MethodInterceptor<? super Object> interceptor) {
-      audit.add(interceptor);
+      state.audit.add(interceptor);
       return this;
     }
 
     @Override
     public ReadResourceHandlerConfig validationInterceptor(
         MethodInterceptor<? super Object> interceptor) {
-      validation.add(interceptor);
+      state.validation.add(interceptor);
       return this;
     }
 
     @Override
     public ReadResourceHandlerConfig invocationInterceptor(
         MethodInterceptor<? super Object> interceptor) {
-      invocation.add(interceptor);
+      state.invocation.add(interceptor);
       return this;
     }
 
     @Override
     public ReadResourceHandlerConfig guard(Guard guard) {
-      guards.add(guard);
+      state.guards.add(guard);
       return this;
     }
 
     @Override
     public ReadResourceHandlerConfig resolver(ParameterResolver<? super Object> resolver) {
-      resolvers.add(resolver);
+      state.resolvers.add(resolver);
       return this;
-    }
-
-    List<MethodInterceptor<? super Object>> correlation() {
-      return correlation;
-    }
-
-    List<MethodInterceptor<? super Object>> observation() {
-      return observation;
-    }
-
-    List<MethodInterceptor<? super Object>> audit() {
-      return audit;
-    }
-
-    List<MethodInterceptor<? super Object>> validation() {
-      return validation;
-    }
-
-    List<MethodInterceptor<? super Object>> invocation() {
-      return invocation;
-    }
-
-    List<Guard> guards() {
-      return guards;
-    }
-
-    List<ParameterResolver<? super Object>> resolvers() {
-      return resolvers;
     }
   }
 
