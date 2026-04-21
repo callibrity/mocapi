@@ -89,11 +89,15 @@ Since spec 175 (Methodical 0.6), every handler's reflective invocation
 runs through a `MethodInterceptor` chain. Interceptors attach
 per-handler via the `*HandlerCustomizer` SPI (spec 180) — a customizer
 bean receives each handler's `*HandlerConfig` at build time and calls
-`config.interceptor(...)` to add interceptors. Interceptors are applied
-in attachment order — first-added is outermost. The customizer path
-gives per-handler metadata (descriptor, method, bean, annotations) and
-supports conditional attachment, which is why mocapi no longer autowires
-bare `MethodInterceptor<? super T>` beans at the handler layer.
+one of the per-stratum mutators (`correlationInterceptor`,
+`observationInterceptor`, `auditInterceptor`, `validationInterceptor`,
+`invocationInterceptor`) to contribute an interceptor to the kind of
+concern it represents. The builder assembles the chain in a fixed
+outer-to-inner order; see [customizers.md](customizers.md#strata) for
+the full stratum story. The customizer path gives per-handler
+metadata (descriptor, method, bean, annotations) and supports
+conditional attachment, which is why mocapi no longer autowires bare
+`MethodInterceptor<? super T>` beans at the handler layer.
 
 Tools get one built-in interceptor: `InputSchemaValidatingInterceptor`
 is appended innermost per `CallToolHandler`, validating the incoming
@@ -123,7 +127,7 @@ public class ToolTimingInterceptor implements MethodInterceptor<JsonNode> {
 
 @Bean
 CallToolHandlerCustomizer toolTimingCustomizer() {
-  return config -> config.interceptor(new ToolTimingInterceptor());
+  return config -> config.observationInterceptor(new ToolTimingInterceptor());
 }
 ```
 

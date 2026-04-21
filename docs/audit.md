@@ -137,20 +137,22 @@ each line:
 
 ## Interceptor ordering
 
-`mocapi-audit` attaches its interceptor at `@Order(200)`, sandwiched between
-`mocapi-logging`'s MDC customizer (`@Order(100)`) and `mocapi-o11y`'s
-observation customizer (`@Order(300)`):
+`mocapi-audit` contributes its interceptor to the **AUDIT** stratum of the
+handler chain (see [customizers.md](customizers.md#strata) for the full
+stratum model). The outer-to-inner sequence around it is:
 
-1. **MDC** (spec 181) — stamps `mcp.session` / `mcp.handler.kind` / `mcp.handler.name`.
-2. **Audit** (this module) — records the attempt, times it end-to-end.
-3. **O11y** — Micrometer observation wraps the inner work.
-4. **User customizer interceptors.**
-5. **Guards** — a denial here surfaces as `outcome=forbidden`.
-6. **Schema validation** (tools) — rejections surface as `outcome=invalid_params`.
-7. **Method invocation.**
+1. **CORRELATION** (MDC) — stamps `mcp.session` / `mcp.handler.kind` / `mcp.handler.name`.
+2. **OBSERVATION** (Micrometer observation) — wraps the rest.
+3. **AUDIT** (this module) — records the attempt, times it end-to-end. Sees post-guard outcomes, so a denial surfaces as `outcome=forbidden`.
+4. **AUTHORIZATION** — guards evaluated here; denial short-circuits with `-32003`.
+5. **VALIDATION** — JSON input-schema for tools first (rejections surface as `outcome=invalid_params`), then user-contributed validation (e.g. Jakarta Bean Validation).
+6. **INVOCATION** — any user-contributed invocation interceptors, then the reflective method call.
 
-User customizer interceptors default to `Ordered.LOWEST_PRECEDENCE`; annotate
-with `@Order(< 200)` if you want to run outside the audit scope.
+Because AUDIT sits outer of AUTHORIZATION, audit records every attempt —
+allowed or forbidden — and never has to reason about whether the guard
+fired. If you want a user interceptor that runs **outside** the audit scope
+(e.g., one that logs before audit kicks in), contribute it to CORRELATION or
+OBSERVATION instead.
 
 ## What is deliberately NOT emitted
 

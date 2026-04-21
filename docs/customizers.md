@@ -6,7 +6,8 @@ for every discovered handler (tool / prompt / resource / resource
 template), and can read the handler's descriptor / method / bean
 and attach:
 
-- a `MethodInterceptor` wrapping the invocation,
+- a `MethodInterceptor` wrapping the invocation, contributed to one of
+  five named **strata** (see [Strata](#strata) below),
 - a `Guard` gating visibility + invocation (see
   [guards.md](guards.md)),
 - or a `ParameterResolver` supplying a value for a specific parameter.
@@ -34,8 +35,8 @@ method:
 void customize(<XxxHandlerConfig> config);
 ```
 
-Each `*HandlerConfig` exposes three read-only accessors and three
-mutators:
+Each `*HandlerConfig` exposes three read-only accessors, one guard
+mutator, one resolver mutator, and one interceptor mutator **per stratum**:
 
 ```java
 // readers
@@ -43,8 +44,14 @@ Tool           descriptor();   // or Prompt / Resource / ResourceTemplate
 java.lang.reflect.Method  method();
 Object         bean();
 
-// mutators
-XxxConfig interceptor(MethodInterceptor<? super T> interceptor);
+// per-stratum interceptor mutators (see Strata below)
+XxxConfig correlationInterceptor(MethodInterceptor<? super T> interceptor);
+XxxConfig observationInterceptor(MethodInterceptor<? super T> interceptor);
+XxxConfig auditInterceptor(MethodInterceptor<? super T> interceptor);
+XxxConfig validationInterceptor(MethodInterceptor<? super T> interceptor);
+XxxConfig invocationInterceptor(MethodInterceptor<? super T> interceptor);
+
+// gates + parameter resolution
 XxxConfig guard(Guard guard);
 XxxConfig resolver(ParameterResolver<? super T> resolver);
 ```
@@ -52,6 +59,10 @@ XxxConfig resolver(ParameterResolver<? super T> resolver);
 The type parameter `T` is the argument type for the handler kind:
 `JsonNode` for tools, `Map<String, String>` for prompts and
 resource templates, `Object` for resources.
+
+Customizer authors pick the stratum that matches the intent of the
+interceptor. The builder assembles the chain; ordering stops being a
+concern at the call site.
 
 ## Quick example — attach a timing interceptor to every tool
 
@@ -66,7 +77,7 @@ class TimingConfig {
             Timer timer = Timer.builder("my.tool.timing")
                 .tag("tool", toolName)
                 .register(meters);
-            config.interceptor(invocation -> timer.record(() -> {
+            config.observationInterceptor(invocation -> timer.record(() -> {
                 try {
                     return invocation.proceed();
                 } catch (Throwable t) {
@@ -93,7 +104,7 @@ CallToolHandlerCustomizer auditOnlyWhenAnnotated() {
     return config -> {
         Audited ann = config.method().getAnnotation(Audited.class);
         if (ann == null) return;
-        config.interceptor(new AuditInterceptor(ann.level()));
+        config.auditInterceptor(new AuditInterceptor(ann.level()));
     };
 }
 ```
@@ -102,34 +113,54 @@ This is how `mocapi-spring-security-guards` attaches — it only
 installs a `ScopeGuard` when the method carries `@RequiresScope`
 (see [guards.md](guards.md)).
 
-## Ordering
+## Strata
 
-When multiple customizers attach interceptors to the same handler,
-the order in the final chain matches customizer bean ordering
-(Spring's `@Order` annotation). Lower `@Order` values run first.
+Customizers don't negotiate ordering — they pick a **stratum** that
+describes the intent of what they're contributing, and the handler
+builder assembles the chain in a fixed outer-to-inner sequence.
 
-Built-in customizers in mocapi use these `@Order` values so their
-interceptors nest in a defensible way around user interceptors:
-
-| `@Order` | Who | Interceptor |
+| Stratum | Add method | What it's for |
 |---|---|---|
-| 100 | `mocapi-logging` | `McpMdcInterceptor` |
-| 200 | `mocapi-audit` | `AuditLoggingInterceptor` |
-| 300 | `mocapi-o11y` | `McpHandlerObservationInterceptor` |
-| (default) | user code | (yours) |
+| CORRELATION | `correlationInterceptor(...)` | MDC, request-id propagation. Outermost so every downstream log carries correlation. |
+| OBSERVATION | `observationInterceptor(...)` | Traces, metrics. Wraps the rest so denials + validation failures are observed. |
+| AUDIT | `auditInterceptor(...)` | Persistent record of every attempt. Inside observation; sees post-guard outcomes. |
+| AUTHORIZATION | (no method — use `guard(...)`) | Guards. Wired by the builder into a single evaluation interceptor that short-circuits with `-32003 Forbidden` on denial. |
+| VALIDATION | `validationInterceptor(...)` | Semantic validation (Jakarta Bean Validation, cross-field checks). For tools, the compiled input JSON schema check is wired by the builder as the first VALIDATION step — a wire-level schema miss short-circuits before semantic validation runs. |
+| INVOCATION | `invocationInterceptor(...)` | Escape hatch that wraps the reflective call itself — retries, timeouts. |
 
-The outermost interceptors (lowest `@Order`) see every invocation,
-including ones later stopped by inner interceptors. That's why MDC
-sits outermost — it wants the correlation keys visible during any
-log line any subsequent interceptor might emit. Audit is next so it
-observes outcome/duration for everything including calls blocked by
-guards. Observability is inside that. User interceptors are inside
-observability so their work gets traced.
+Assembled chain (outer → inner):
 
-Guards are **not** customizer-ordered — they're evaluated at a fixed
-point in the pipeline owned by mocapi (between customizer
-interceptors and kind-specific trailing logic like tool input-schema
-validation). See [guards.md](guards.md) for details.
+```
+CORRELATION → OBSERVATION → AUDIT → AUTHORIZATION (guards) →
+VALIDATION (schema for tools, then user's validation) → INVOCATION
+→ (reflective call)
+```
+
+Denials bubble up through audit, observation, and MDC so every
+attempt — allowed or blocked — is correlated and observable.
+Validation only runs for callers who made it past the guard gate.
+
+Within a single stratum, multiple customizers contribute in the order
+Spring hands them to the builder — which is customizer bean
+`@Order` when running under a Spring application context. That's
+usually irrelevant: you rarely have two customizers competing for
+the same stratum on the same handler.
+
+### Picking a stratum
+
+- Setting up context that every later log line should carry →
+  **CORRELATION**.
+- Emitting traces or metrics → **OBSERVATION**.
+- Recording who called what and what happened → **AUDIT**.
+- Gating access → **`guard(...)`**, not an interceptor. See
+  [guards.md](guards.md).
+- Rejecting malformed or invalid inputs → **VALIDATION**.
+- Wrapping the actual method call (retry, timeout, fallback) →
+  **INVOCATION**.
+
+If none fit, you're usually better off extending one of the existing
+ones than stretching a stratum to cover a new concept. File an issue
+if you hit a genuine gap.
 
 ## Writing to `method.getAnnotation`
 
@@ -167,15 +198,15 @@ request-scoped state (e.g., `@CurrentTenant String tenant`).
 
 Reference for what's already at work before you add your own:
 
-| Module | Attaches |
-|---|---|
-| `mocapi-server` | (baseline — the handlers themselves, plus `InputSchemaValidatingInterceptor` for tools and the `GuardEvaluationInterceptor` when guards are attached) |
-| `mocapi-logging` | `McpMdcInterceptor` per handler kind |
-| `mocapi-o11y` | `McpHandlerObservationInterceptor` per handler kind (plus `McpObservationFilter` enriching the outer `jsonrpc.server` observation — see below) |
-| `mocapi-audit` | `AuditLoggingInterceptor` per handler kind |
-| `mocapi-jakarta-validation` | Methodical's `JakartaValidationInterceptor` per handler kind |
-| `mocapi-spring-security-guards` | `ScopeGuard` / `RoleGuard` when `@RequiresScope` / `@RequiresRole` present |
-| `mocapi-oauth2` | Two `SecurityFilterChain` beans (metadata chain + MCP chain), an `McpTokenStrategy` (`JwtMcpTokenStrategy` or `OpaqueTokenMcpTokenStrategy` depending on which Spring Boot wired), and five `McpMetadataCustomizer` beans populating the RFC 9728 metadata document (`ResourceMetadataCustomizer`, `AuthorizationServersMetadataCustomizer`, `ScopesSupportedMetadataCustomizer`, `ResourceNameMetadataCustomizer`, `ClaimsMetadataCustomizer`). See [authorization.md](authorization.md). |
+| Module | Attaches | Stratum |
+|---|---|---|
+| `mocapi-server` | `InputSchemaValidatingInterceptor` (tools), `GuardEvaluationInterceptor` (when guards present) | built-in: VALIDATION (schema), AUTHORIZATION (guards) |
+| `mocapi-logging` | `McpMdcInterceptor` per handler kind | CORRELATION |
+| `mocapi-o11y` | `McpHandlerObservationInterceptor` per handler kind (plus `McpObservationFilter` enriching the outer `jsonrpc.server` observation — see below) | OBSERVATION |
+| `mocapi-audit` | `AuditLoggingInterceptor` per handler kind | AUDIT |
+| `mocapi-jakarta-validation` | Methodical's `JakartaValidationInterceptor` per handler kind | VALIDATION |
+| `mocapi-spring-security-guards` | `ScopeGuard` / `RoleGuard` when `@RequiresScope` / `@RequiresRole` present | AUTHORIZATION (via `guard(...)`) |
+| `mocapi-oauth2` | Two `SecurityFilterChain` beans (metadata chain + MCP chain), an `McpTokenStrategy` (`JwtMcpTokenStrategy` or `OpaqueTokenMcpTokenStrategy` depending on which Spring Boot wired), and five `McpMetadataCustomizer` beans populating the RFC 9728 metadata document (`ResourceMetadataCustomizer`, `AuthorizationServersMetadataCustomizer`, `ScopesSupportedMetadataCustomizer`, `ResourceNameMetadataCustomizer`, `ClaimsMetadataCustomizer`). See [authorization.md](authorization.md). | n/a (HTTP / metadata layer) |
 
 Every one of these is a few lines of `@Bean` declaration —
 mocapi-autoconfigure. Crack any module's source to see the
@@ -199,9 +230,10 @@ page; each has deeper coverage in its own module doc.
 
 ## Non-goals
 
-- **Customizer ordering beyond Spring's `@Order`.** No per-module
-  ordering hints, no chain-position-sensitive APIs. If Spring's
-  `@Order` isn't enough, file an issue.
+- **Custom strata.** The six-stratum sequence is fixed. If you have
+  a genuine cross-cutting concern that doesn't map to one of them,
+  file an issue — we'd rather add a stratum than let the axis
+  proliferate.
 - **Dynamic add/remove at runtime.** Customizers run once at
   startup; the chain is frozen. For runtime gating use a `Guard`
   or an `MethodInterceptor` that reads a toggle.

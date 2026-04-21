@@ -196,8 +196,10 @@ their own propagation story.
   method. Cleaner than inventing a parameter resolver for
   single-use state.
 - **Per-method policy / config.** That's closer to an
-  interceptor than a resolver. Attach via
-  `config.interceptor(...)` instead.
+  interceptor than a resolver. Attach via the stratum method that
+  matches the intent (`config.validationInterceptor(...)`,
+  `config.invocationInterceptor(...)`, etc. — see
+  [customizers.md](customizers.md#strata)).
 - **Authorization decisions.** Use a `Guard` (see
   [guards.md](guards.md)). Guards run before the invocation with
   proper error mapping to `-32003 Forbidden`; a parameter resolver
