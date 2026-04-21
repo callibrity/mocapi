@@ -20,6 +20,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.server.handler.HandlerKind;
 import com.callibrity.mocapi.server.session.McpSession;
+import com.callibrity.ripcurl.core.JsonRpcCall;
+import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.callibrity.ripcurl.core.JsonRpcNotification;
+import com.callibrity.ripcurl.core.JsonRpcRequest;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -29,6 +33,7 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvocation;
 import org.slf4j.MDC;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpMdcInterceptorTest {
@@ -134,6 +139,54 @@ class McpMdcInterceptorTest {
 
     assertThat(captured.get()).containsEntry(McpMdcKeys.HANDLER_KIND, "tool");
     assertThat(captured.get().containsKey(McpMdcKeys.HANDLER_NAME)).isFalse();
+  }
+
+  @Test
+  void sets_request_id_key_when_json_rpc_call_is_bound() {
+    var interceptor = new McpMdcInterceptor(HandlerKind.TOOL, "my-tool", "Fixtures");
+    JsonRpcRequest call =
+        new JsonRpcCall("2.0", "tools/call", null, JsonNodeFactory.instance.numberNode(7));
+    AtomicReference<String> seen = new AtomicReference<>();
+
+    ScopedValue.where(JsonRpcDispatcher.CURRENT_REQUEST, call)
+        .run(
+            () ->
+                interceptor.intercept(
+                    MethodInvocation.of(
+                        dummyMethod(),
+                        new Fixtures(),
+                        null,
+                        new Object[0],
+                        () -> {
+                          seen.set(MDC.get(McpMdcKeys.REQUEST_ID));
+                          return null;
+                        })));
+
+    assertThat(seen.get()).isEqualTo("7");
+    assertThat(MDC.get(McpMdcKeys.REQUEST_ID)).isNull();
+  }
+
+  @Test
+  void omits_request_id_when_bound_request_is_notification() {
+    var interceptor = new McpMdcInterceptor(HandlerKind.TOOL, "my-tool", "Fixtures");
+    JsonRpcRequest notification = new JsonRpcNotification("2.0", "notifications/initialized", null);
+    AtomicReference<String> seen = new AtomicReference<>();
+
+    ScopedValue.where(JsonRpcDispatcher.CURRENT_REQUEST, notification)
+        .run(
+            () ->
+                interceptor.intercept(
+                    MethodInvocation.of(
+                        dummyMethod(),
+                        new Fixtures(),
+                        null,
+                        new Object[0],
+                        () -> {
+                          seen.set(MDC.get(McpMdcKeys.REQUEST_ID));
+                          return null;
+                        })));
+
+    assertThat(seen.get()).isNull();
   }
 
   @Test
