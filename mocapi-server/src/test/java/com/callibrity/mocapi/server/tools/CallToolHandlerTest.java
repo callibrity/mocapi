@@ -42,6 +42,7 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.MethodInvocation;
 import org.jwcarman.methodical.ParameterInfo;
 import org.jwcarman.methodical.ParameterResolver;
@@ -165,6 +166,54 @@ class CallToolHandlerTest {
 
     handler.call(mapper.createObjectNode().put("name", "World"));
     assertThat(hits).hasValue(1);
+  }
+
+  @Test
+  void customizer_contributions_to_every_stratum_land_in_outer_to_inner_order() {
+    var bean = new HelloTool();
+    var order = new ArrayList<String>();
+    MethodInterceptor<JsonNode> correlation =
+        invocation -> {
+          order.add("correlation");
+          return invocation.proceed();
+        };
+    MethodInterceptor<JsonNode> observation =
+        invocation -> {
+          order.add("observation");
+          return invocation.proceed();
+        };
+    MethodInterceptor<JsonNode> audit =
+        invocation -> {
+          order.add("audit");
+          return invocation.proceed();
+        };
+    MethodInterceptor<JsonNode> validation =
+        invocation -> {
+          order.add("validation");
+          return invocation.proceed();
+        };
+    MethodInterceptor<JsonNode> invocation =
+        inv -> {
+          order.add("invocation");
+          return inv.proceed();
+        };
+    CallToolHandlerCustomizer customizer =
+        config ->
+            config
+                .correlationInterceptor(correlation)
+                .observationInterceptor(observation)
+                .auditInterceptor(audit)
+                .validationInterceptor(validation)
+                .invocationInterceptor(invocation);
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
+
+    var handler =
+        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s);
+    handler.call(mapper.createObjectNode().put("name", "World"));
+
+    assertThat(order)
+        .containsExactly("correlation", "observation", "audit", "validation", "invocation");
   }
 
   @Test

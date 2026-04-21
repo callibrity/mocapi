@@ -38,6 +38,7 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.ParameterInfo;
 import org.jwcarman.methodical.ParameterResolver;
 import org.springframework.core.convert.ConversionService;
@@ -196,6 +197,56 @@ class ReadResourceTemplateHandlerTest {
     assertThatThrownBy(() -> createHandlers(target))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ReadResourceResult");
+  }
+
+  @Test
+  void customizer_contributions_to_every_stratum_land_in_outer_to_inner_order() {
+    var bean = new Fixture();
+    var order = new ArrayList<String>();
+    MethodInterceptor<Map<String, String>> correlation =
+        invocation -> {
+          order.add("correlation");
+          return invocation.proceed();
+        };
+    MethodInterceptor<Map<String, String>> observation =
+        invocation -> {
+          order.add("observation");
+          return invocation.proceed();
+        };
+    MethodInterceptor<Map<String, String>> audit =
+        invocation -> {
+          order.add("audit");
+          return invocation.proceed();
+        };
+    MethodInterceptor<Map<String, String>> validation =
+        invocation -> {
+          order.add("validation");
+          return invocation.proceed();
+        };
+    MethodInterceptor<Map<String, String>> invocation =
+        inv -> {
+          order.add("invocation");
+          return inv.proceed();
+        };
+    ReadResourceTemplateHandlerCustomizer customizer =
+        config ->
+            config
+                .correlationInterceptor(correlation)
+                .observationInterceptor(observation)
+                .auditInterceptor(audit)
+                .validationInterceptor(validation)
+                .invocationInterceptor(invocation);
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResourceTemplate.class)
+            .getFirst();
+
+    var handler =
+        ReadResourceTemplateHandlers.build(
+            bean, method, conversionService, List.of(customizer), s -> s);
+    handler.read(Map.of("id", "42"));
+
+    assertThat(order)
+        .containsExactly("correlation", "observation", "audit", "validation", "invocation");
   }
 
   @Test
