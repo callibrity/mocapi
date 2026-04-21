@@ -1,25 +1,25 @@
 # Mocapi
 
-**An enterprise-grade Spring Boot framework for building [Model Context Protocol (MCP)](https://modelcontextprotocol.io/specification/2025-11-25) servers in Java.**
+**A Spring Boot framework for building [Model Context Protocol (MCP)](https://modelcontextprotocol.io/specification/2025-11-25) servers in Java.**
 
-Define tools, prompts, and resources as annotated Spring beans. Ship to production with OAuth2, per-handler authorization, Jakarta Bean Validation, structured audit logging, distributed tracing, metrics, correlation-ID logging, an ops inventory endpoint, multi-node session state, and GraalVM native-image support — all opt-in, all wired through one consistent extension SPI.
+Define tools, prompts, and resources as annotated Spring beans. Pull in optional modules for OAuth2, per-handler authorization, Jakarta Bean Validation, structured audit logs, Micrometer observations, MDC correlation, an `/actuator/mcp` inventory endpoint, multi-node session storage, and GraalVM native-image support — all wired through one customizer SPI.
 
-**Batteries included. Opinions explicit. Surface area minimal.**
+> **Status:** pre-1.0, actively developed. APIs may still change between 0.x minors. We'd love early feedback and real-world usage reports.
 
-## Why Mocapi
+## What's in the box
 
-Building an MCP server from scratch means solving the same problems every team solves: JSON-RPC dispatch, SSE streaming, session lifecycle, event replay, schema generation, transport negotiation, OAuth2, tracing, metrics, audit. Mocapi ships all of that as a Spring Boot framework you wire once — by adding a transport starter — and extend through a single well-defined customizer SPI.
+Building an MCP server from scratch means solving the same problems every team solves: JSON-RPC dispatch, SSE streaming, session lifecycle, event replay, schema generation, transport negotiation, OAuth2, tracing, metrics, audit. Mocapi ships those pieces as Spring Boot autoconfiguration you wire by adding a transport starter, and extend through a single customizer SPI.
 
-- **Protocol coverage out of the box.** Complete MCP 2025-11-25 core surface — tools, prompts, resources, resource templates, completions, elicitation, sampling, progress notifications, logging, and the OAuth2 authorization flow — validated against the official conformance suite. Optional subscription features (`resources/subscribe` / `resources/list_changed` / `prompts/list_changed`) are not currently served; the capability bits are advertised as `false`, so spec-compliant clients fall back cleanly.
+- **MCP 2025-11-25 surface.** Tools, prompts, resources, resource templates, completions, elicitation, sampling, progress notifications, logging, and the OAuth2 authorization flow. Exercised by the official conformance suite in CI. Optional subscription features (`resources/subscribe` / `resources/list_changed` / `prompts/list_changed`) are not served; the capability bits are advertised as `false`, so compliant clients fall back cleanly.
 - **Transport-agnostic handler code.** Write a `@McpTool` once; run it over Streamable HTTP (for web clients) or stdio (for Claude Desktop / Cursor / IDE integrations) with no code change.
-- **Production-grade observability.** Metrics and distributed tracing via Micrometer Observation, SLF4J MDC correlation, structured audit logs for compliance — all activate by dropping in a module.
-- **Enterprise authorization.** OAuth2 resource server (MCP 2025-11-25 spec), per-handler `Guard` SPI, and `@RequiresScope` / `@RequiresRole` annotations backed by Spring Security.
-- **Multi-node by default.** Swap the session backend: Redis, PostgreSQL, NATS JetStream, DynamoDB, or Hazelcast. Workers are stateless; scale horizontally. Add `substrate-crypto` and every session, mailbox, and event-journal value is AES-GCM-encrypted at rest before it leaves the JVM.
-- **Extensible without surprises.** One customizer SPI per handler kind. Add interceptors, guards, or custom parameter resolvers with full access to the handler's descriptor, method, and bean. No blind bean-list autowiring.
-- **Fast where it matters.** Methodical 0.7's pre-bound parameter resolvers eliminate per-call reflection for things like Jackson `ObjectReader` construction. Context propagates across the per-call virtual-thread spawn so tracing spans parent correctly and `SecurityContextHolder` works on the handler thread. Sustained ~565 req/s with full observability in our standing soak test (see [Performance Benchmarking](docs/perf/benchmarking.md)).
-- **Native-image ready.** GraalVM AOT hints shipped; native builds just work.
+- **Observability modules.** Metrics and tracing via Micrometer Observation, SLF4J MDC correlation, structured audit logs — each activates by dropping in a module.
+- **Authorization.** OAuth2 resource server (MCP 2025-11-25 spec), per-handler `Guard` SPI, and `@RequiresScope` / `@RequiresRole` annotations backed by Spring Security.
+- **Pluggable session storage.** Swap the session backend: Redis, PostgreSQL, NATS JetStream, DynamoDB, or Hazelcast. Workers are stateless. Add `substrate-crypto` to AES-GCM-encrypt session, mailbox, and event-journal values before they leave the JVM.
+- **Typed extension SPI.** One customizer interface per handler kind. Attach interceptors, guards, or parameter resolvers with full access to the handler's descriptor, method, and bean — no blind bean-list autowiring.
+- **Virtual-thread-friendly.** Context propagates across the per-call virtual-thread spawn so tracing spans parent correctly and `SecurityContextHolder` works on the handler thread. A standing soak test sustained ~565 req/s with full observability on a laptop (see [Performance Benchmarking](docs/perf/benchmarking.md)).
+- **GraalVM native-image hints included.**
 
-Mocapi is what you want when you've decided MCP is infrastructure, not a demo.
+Mocapi's goal is to be the framework you reach for when MCP is a real surface of your product rather than a prototype.
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.callibrity.mocapi/mocapi-server)](https://central.sonatype.com/artifact/com.callibrity.mocapi/mocapi-server)
 ![GitHub License](https://img.shields.io/github/license/callibrity/mocapi)
