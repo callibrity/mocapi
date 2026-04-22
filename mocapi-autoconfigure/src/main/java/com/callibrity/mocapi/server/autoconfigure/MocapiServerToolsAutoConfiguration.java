@@ -68,7 +68,8 @@ public class MocapiServerToolsAutoConfiguration {
                           generator,
                           objectMapper,
                           customizers,
-                          mcpAnnotationValueResolver::resolveStringValue);
+                          mcpAnnotationValueResolver::resolveStringValue,
+                          props.isValidateOutput());
                   log.info(
                       "Registered MCP tool: \"{}\" (bean \"{}\")",
                       handler.descriptor().name(),

@@ -60,7 +60,10 @@ public final class CallToolHandlers {
    * placed ahead of the catch-all so a specific resolver always wins over the generic Jackson
    * fallback. Interceptors contributed by customizers run in order, followed by an {@link
    * InputSchemaValidatingInterceptor} for the compiled input schema (innermost) so schema
-   * validation runs closest to the reflective call.
+   * validation runs closest to the reflective call. When {@code validateOutput} is {@code true} and
+   * the tool declares an output schema, an {@link OutputSchemaValidatingInterceptor} is installed
+   * adjacent to the input validator to enforce that the tool's return value matches its declared
+   * output schema.
    */
   public static CallToolHandler build(
       Object bean,
@@ -68,7 +71,8 @@ public final class CallToolHandlers {
       MethodSchemaGenerator generator,
       ObjectMapper objectMapper,
       List<CallToolHandlerCustomizer> customizers,
-      UnaryOperator<String> valueResolver) {
+      UnaryOperator<String> valueResolver,
+      boolean validateOutput) {
     validateMcpToolParams(bean, method);
     McpTool annotation = method.getAnnotation(McpTool.class);
     String name =
@@ -97,6 +101,10 @@ public final class CallToolHandlers {
       builder.interceptor(new GuardEvaluationInterceptor(state.guards));
     }
     builder.interceptor(new InputSchemaValidatingInterceptor(compiledInputSchema));
+    if (validateOutput && outputSchema != null) {
+      builder.interceptor(
+          new OutputSchemaValidatingInterceptor(compile(outputSchema), objectMapper));
+    }
     state.validation.forEach(builder::interceptor);
     state.invocation.forEach(builder::interceptor);
     MethodInvoker<JsonNode> invoker = builder.build();
@@ -187,8 +195,8 @@ public final class CallToolHandlers {
     }
   }
 
-  private static Schema compile(ObjectNode inputSchema) {
-    return new SchemaLoader(new JsonParser(inputSchema.toString()).parse()).load();
+  private static Schema compile(ObjectNode schema) {
+    return new SchemaLoader(new JsonParser(schema.toString()).parse()).load();
   }
 
   private static void validateMcpToolParams(Object bean, Method method) {

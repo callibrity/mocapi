@@ -23,4 +23,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 class MocapiServerToolsProperties {
   private SchemaVersion schemaVersion;
+
+  /**
+   * Opt-in dev/test guardrail: when {@code true}, every tool's return value is validated against
+   * its declared output schema on each call and a schema mismatch fails loudly with a JSON-RPC
+   * internal error. Defaults to {@code false} so production dispatch pays no validation cost; flip
+   * it on in {@code @SpringBootTest} runs to catch drift between declared output schemas and actual
+   * tool responses.
+   */
+  private boolean validateOutput;
 }

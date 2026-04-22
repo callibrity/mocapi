@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
+import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.mocapi.server.handler.HandlerKind;
@@ -41,6 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.MethodInvocation;
@@ -58,7 +61,7 @@ class CallToolHandlerTest {
 
   private List<CallToolHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpTool.class).stream()
-        .map(m -> CallToolHandlers.build(target, m, generator, mapper, List.of(), s -> s))
+        .map(m -> CallToolHandlers.build(target, m, generator, mapper, List.of(), s -> s, false))
         .toList();
   }
 
@@ -156,7 +159,7 @@ class CallToolHandlerTest {
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
 
     var handler =
-        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s);
+        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s, false);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();
@@ -209,7 +212,7 @@ class CallToolHandlerTest {
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
 
     var handler =
-        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s);
+        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s, false);
     handler.call(mapper.createObjectNode().put("name", "World"));
 
     assertThat(order)
@@ -224,7 +227,7 @@ class CallToolHandlerTest {
     CallToolHandlerCustomizer customizer = config -> config.resolver(new CurrentTenantResolver());
 
     var handler =
-        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s);
+        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s, false);
     var result = handler.call(mapper.createObjectNode());
 
     assertThat(mapper.valueToTree(result).get("tenant").stringValue()).isEqualTo("acme");
@@ -246,7 +249,7 @@ class CallToolHandlerTest {
                         : Optional.empty());
 
     var handler =
-        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s);
+        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s, false);
     var result = handler.call(mapper.createObjectNode().put("input", "from-json"));
 
     assertThat(mapper.valueToTree(result).get("value").stringValue()).isEqualTo("from-resolver");
@@ -274,7 +277,7 @@ class CallToolHandlerTest {
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
     var handler =
-        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s);
+        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s, false);
 
     // Invalid args (missing required "name") would trip schema validation — but guards evaluate
     // first, so we get FORBIDDEN rather than a schema error.
@@ -300,7 +303,7 @@ class CallToolHandlerTest {
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
     var handler =
-        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s);
+        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s, false);
 
     var result = handler.call(mapper.createObjectNode().put("name", "World"));
     assertThat(result).isNotNull();
@@ -366,6 +369,115 @@ class CallToolHandlerTest {
     @McpTool
     public String doWork(@McpToolParams SimpleParams params, McpToolContext ctx) {
       return params.value();
+    }
+  }
+
+  @Nested
+  class When_output_validation_is_enabled {
+
+    private CallToolHandler buildHandler(Object bean, boolean validateOutput) {
+      var method =
+          MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
+      return CallToolHandlers.build(
+          bean, method, generator, mapper, List.of(), s -> s, validateOutput);
+    }
+
+    @Test
+    void installs_output_interceptor_when_flag_is_true_and_tool_declares_output_schema() {
+      var handler = buildHandler(new Widgets.OkTool(), true);
+      assertThat(handler.describe().interceptors())
+          .contains("Validates tool return value against the tool's output JSON schema");
+    }
+
+    @Test
+    void omits_output_interceptor_when_flag_is_false() {
+      var handler = buildHandler(new Widgets.OkTool(), false);
+      assertThat(handler.describe().interceptors())
+          .doesNotContain("Validates tool return value against the tool's output JSON schema");
+    }
+
+    @Test
+    void omits_output_interceptor_for_void_tool_even_when_flag_is_true() {
+      var handler = buildHandler(new BoxedVoidTool(), true);
+      assertThat(handler.describe().interceptors())
+          .doesNotContain("Validates tool return value against the tool's output JSON schema");
+    }
+
+    @Test
+    void happy_path_passes_through_when_return_value_matches_schema() {
+      var handler = buildHandler(new Widgets.OkTool(), true);
+      var result = handler.call(mapper.createObjectNode());
+      assertThat(result).isInstanceOf(Widgets.Widget.class);
+    }
+
+    @Test
+    void throws_internal_error_when_return_value_violates_schema() {
+      var handler = buildHandler(new Widgets.NullFieldTool(), true);
+      assertThatThrownBy(() -> handler.call(mapper.createObjectNode()))
+          .isInstanceOfSatisfying(
+              JsonRpcException.class,
+              e ->
+                  assertThat(e.getCode())
+                      .isEqualTo(com.callibrity.ripcurl.core.JsonRpcProtocol.INTERNAL_ERROR));
+    }
+
+    @Test
+    void does_not_throw_when_flag_is_false_even_if_return_value_would_violate_schema() {
+      var handler = buildHandler(new Widgets.NullFieldTool(), false);
+      var result = handler.call(mapper.createObjectNode());
+      assertThat(result).isInstanceOf(Widgets.Widget.class);
+    }
+
+    @Test
+    void validates_structured_content_when_tool_declares_call_tool_result_return_type() {
+      // A tool author bypassing auto-wrapping: declares CallToolResult, sets structuredContent.
+      // The output interceptor's CallToolResult branch validates structuredContent against the
+      // derived schema. The schema for CallToolResult is permissive (its structuredContent field
+      // is ObjectNode), so a well-formed structuredContent passes.
+      var handler = buildHandler(new Widgets.CallToolResultOkTool(), true);
+      var result = handler.call(mapper.createObjectNode());
+      assertThat(result).isInstanceOf(CallToolResult.class);
+    }
+
+    @Test
+    void skips_validation_when_call_tool_result_has_no_structured_content() {
+      var handler = buildHandler(new Widgets.TextOnlyCallToolResultTool(), true);
+      var result = handler.call(mapper.createObjectNode());
+      assertThat(result).isInstanceOf(CallToolResult.class);
+    }
+  }
+
+  static class Widgets {
+    record Widget(String name, int count) {}
+
+    static class OkTool {
+      @McpTool
+      public Widget make() {
+        return new Widget("ok", 1);
+      }
+    }
+
+    static class NullFieldTool {
+      @McpTool
+      public Widget make() {
+        return new Widget(null, 1);
+      }
+    }
+
+    static class CallToolResultOkTool {
+      @McpTool
+      public CallToolResult make() {
+        var mapper = new ObjectMapper();
+        var structured = mapper.createObjectNode().put("name", "ok").put("count", 1);
+        return new CallToolResult(List.of(new TextContent("ok", null)), null, structured);
+      }
+    }
+
+    static class TextOnlyCallToolResultTool {
+      @McpTool
+      public CallToolResult make() {
+        return new CallToolResult(List.of(new TextContent("just text", null)), null, null);
+      }
     }
   }
 }
