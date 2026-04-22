@@ -35,7 +35,7 @@ class DefaultMethodSchemaGeneratorTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
   private final DefaultMethodSchemaGenerator generator =
-      new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
+      new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_2020_12);
 
   // --- Test fixtures ---
 
@@ -110,7 +110,7 @@ class DefaultMethodSchemaGeneratorTest {
 
       ObjectNode schema = generator.generateInputSchema(target, method);
 
-      assertThat(schema.get("$schema").asString()).contains("draft-07");
+      assertThat(schema.get("$schema").asString()).contains("draft/2020-12");
       assertThat(schema.get("type").asString()).isEqualTo("object");
     }
   }

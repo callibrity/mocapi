@@ -57,7 +57,7 @@ class CallToolHandlerTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
   private final DefaultMethodSchemaGenerator generator =
-      new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
+      new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_2020_12);
 
   private List<CallToolHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpTool.class).stream()

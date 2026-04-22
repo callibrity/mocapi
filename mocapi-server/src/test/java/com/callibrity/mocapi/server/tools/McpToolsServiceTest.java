@@ -63,7 +63,7 @@ class McpToolsServiceTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
   private final DefaultMethodSchemaGenerator generator =
-      new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_7);
+      new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_2020_12);
   @Mock private McpResponseCorrelationService correlationService;
 
   private McpToolsService service;
