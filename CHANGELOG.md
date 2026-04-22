@@ -6,6 +6,41 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-04-22
+
+### Added
+
+- **Opt-in output schema validation for tool calls.** A new
+  `mocapi.tools.validate-output` property (default `false`) installs an
+  `OutputSchemaValidatingInterceptor` next to the existing input
+  validator on every tool handler. When on, each tool's return value is
+  validated against its derived output schema and a mismatch fails
+  loudly with JSON-RPC `-32603`, surfacing schema/reality drift at test
+  time instead of as an opaque gateway 500 in production. The
+  interceptor switches on the result shape: `CallToolResult` validates
+  `structuredContent` (skipped when null), `JsonNode` validates
+  directly, `null` is skipped, anything else is serialized via
+  `valueToTree` and validated. Flip it on in `@SpringBootTest` runs to
+  catch drift before clients do.
+
+### Changed
+
+- **`mocapi-server` tests aligned to `draft_2020_12`.** Production has
+  defaulted `mocapi.tools.schema-version` to `draft_2020_12` for a
+  while, but three `mocapi-server` tests were still instantiating
+  `DefaultMethodSchemaGenerator` with `SchemaVersion.DRAFT_7`. Flipping
+  them to match the production default is a correctness fix, not
+  cosmetic — and it also cut `mocapi-server`'s test-suite wall time
+  from ~15.7s to ~5.7s.
+
+### Documentation
+
+- **Removed two obsolete example ITs** (`PostgresqlStarterAutoConfigurationIT`,
+  `RedisStarterAutoConfigurationIT`) that spun up Testcontainers only
+  to verify Substrate's own Postgres/Redis auto-configurations. They
+  didn't exercise a single mocapi type and referred to mocapi-specific
+  "starters" that no longer exist. Saves ~22s of Docker per CI run.
+
 ## [0.13.0] - 2026-04-21
 
 ### Added
@@ -1144,7 +1179,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.13.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.14.0...HEAD
+[0.14.0]: https://github.com/callibrity/mocapi/releases/tag/0.14.0
 [0.13.0]: https://github.com/callibrity/mocapi/releases/tag/0.13.0
 [0.12.1]: https://github.com/callibrity/mocapi/releases/tag/0.12.1
 [0.12.0]: https://github.com/callibrity/mocapi/releases/tag/0.12.0
