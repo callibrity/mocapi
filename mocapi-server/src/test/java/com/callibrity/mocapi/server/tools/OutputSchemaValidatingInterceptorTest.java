@@ -74,7 +74,8 @@ class OutputSchemaValidatingInterceptorTest {
 
     @Test
     void throws_internal_error_when_required_field_is_missing() {
-      assertThatThrownBy(() -> interceptor.intercept(invocationReturning(new OnlyName("Ada"))))
+      MethodInvocation<JsonNode> invocation = invocationReturning(new OnlyName("Ada"));
+      assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOfSatisfying(
               JsonRpcException.class,
               e -> assertThat(e.getCode()).isEqualTo(JsonRpcProtocol.INTERNAL_ERROR));
@@ -82,8 +83,8 @@ class OutputSchemaValidatingInterceptorTest {
 
     @Test
     void throws_internal_error_when_field_type_is_wrong() {
-      assertThatThrownBy(
-              () -> interceptor.intercept(invocationReturning(new WrongTypes("Ada", "thirty"))))
+      MethodInvocation<JsonNode> invocation = invocationReturning(new WrongTypes("Ada", "thirty"));
+      assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOf(JsonRpcException.class);
     }
   }
@@ -106,8 +107,9 @@ class OutputSchemaValidatingInterceptorTest {
     void throws_when_structured_content_violates_schema() {
       ObjectNode bad = mapper.createObjectNode().put("name", "Ada"); // missing required "age"
       CallToolResult result = new CallToolResult(List.of(new TextContent("ok", null)), null, bad);
+      MethodInvocation<JsonNode> invocation = invocationReturning(result);
 
-      assertThatThrownBy(() -> interceptor.intercept(invocationReturning(result)))
+      assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOfSatisfying(
               JsonRpcException.class,
               e -> assertThat(e.getCode()).isEqualTo(JsonRpcProtocol.INTERNAL_ERROR));
@@ -139,8 +141,9 @@ class OutputSchemaValidatingInterceptorTest {
     @Test
     void throws_when_json_node_violates_schema() {
       JsonNode bad = mapper.createObjectNode().put("name", "Ada");
+      MethodInvocation<JsonNode> invocation = invocationReturning(bad);
 
-      assertThatThrownBy(() -> interceptor.intercept(invocationReturning(bad)))
+      assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOf(JsonRpcException.class);
     }
   }
