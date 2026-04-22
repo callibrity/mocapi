@@ -393,6 +393,7 @@ class CallToolHandlerTest {
     void omits_output_interceptor_when_flag_is_false() {
       var handler = buildHandler(new Widgets.OkTool(), false);
       assertThat(handler.describe().interceptors())
+          .contains("Validates tool arguments against the tool's input JSON schema")
           .doesNotContain("Validates tool return value against the tool's output JSON schema");
     }
 
@@ -400,6 +401,7 @@ class CallToolHandlerTest {
     void omits_output_interceptor_for_void_tool_even_when_flag_is_true() {
       var handler = buildHandler(new BoxedVoidTool(), true);
       assertThat(handler.describe().interceptors())
+          .contains("Validates tool arguments against the tool's input JSON schema")
           .doesNotContain("Validates tool return value against the tool's output JSON schema");
     }
 
