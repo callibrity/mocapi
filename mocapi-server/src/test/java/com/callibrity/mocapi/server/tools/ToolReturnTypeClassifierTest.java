@@ -276,7 +276,7 @@ class ToolReturnTypeClassifierTest {
     }
 
     @Test
-    void raw_CompletionStage_is_rejected() throws NoSuchMethodException {
+    void raw_CompletionStage_is_rejected() {
       // The Java compiler refuses to let us declare a raw CompletionStage return type without a
       // @SuppressWarnings("rawtypes") annotation — which the project bans. Instead we mock a
       // Method whose getGenericReturnType() returns CompletionStage.class directly (a Class, not
