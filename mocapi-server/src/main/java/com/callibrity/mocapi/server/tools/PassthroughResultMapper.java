@@ -25,6 +25,10 @@ import java.util.List;
  * structured content — so the wire shape still satisfies the spec's required-{@code content}
  * constraint without fabricating a meaningless text block.
  */
+// Sonar java:S6548 flags the classic-singleton pattern. Intentional here: the mapper is
+// stateless, paired with every CallToolResult-returning tool handler, and the "one canonical
+// INSTANCE" shape matches the other mappers in the sealed ResultMapper hierarchy.
+@SuppressWarnings("java:S6548")
 public final class PassthroughResultMapper implements ResultMapper {
 
   public static final PassthroughResultMapper INSTANCE = new PassthroughResultMapper();

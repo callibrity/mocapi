@@ -25,6 +25,10 @@ import java.util.List;
  * content — an ergonomic shortcut for tools that simply want to return a line of prose without
  * modeling a record.
  */
+// Sonar java:S6548 flags the classic-singleton pattern. Intentional here: the mapper is
+// stateless, paired with every CharSequence-returning tool handler, and the "one canonical
+// INSTANCE" shape matches the other mappers in the sealed ResultMapper hierarchy.
+@SuppressWarnings("java:S6548")
 public final class TextContentResultMapper implements ResultMapper {
 
   public static final TextContentResultMapper INSTANCE = new TextContentResultMapper();

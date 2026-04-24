@@ -24,6 +24,10 @@ import java.util.List;
  * content} array — honestly conveying "nothing to report" rather than fabricating a dummy text
  * block, while still satisfying the MCP spec's requirement that {@code content} be present.
  */
+// Sonar java:S6548 flags the classic-singleton pattern. Intentional here: the mapper is
+// stateless, paired with every void-returning tool handler, and the "one canonical INSTANCE"
+// shape matches the other mappers in the sealed ResultMapper hierarchy.
+@SuppressWarnings("java:S6548")
 public final class VoidResultMapper implements ResultMapper {
 
   public static final VoidResultMapper INSTANCE = new VoidResultMapper();
