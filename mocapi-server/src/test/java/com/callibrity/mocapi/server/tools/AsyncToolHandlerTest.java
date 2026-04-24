@@ -157,7 +157,8 @@ class AsyncToolHandlerTest {
     @Test
     void domain_exception_in_failed_future_surfaces_unwrapped_to_the_caller() {
       var handler = buildHandler(new AsyncThrowingTool(), false);
-      assertThatThrownBy(() -> handler.call(mapper.createObjectNode()))
+      var args = mapper.createObjectNode();
+      assertThatThrownBy(() -> handler.call(args))
           .isInstanceOf(IllegalStateException.class)
           .hasMessage("kaboom");
     }
@@ -167,7 +168,8 @@ class AsyncToolHandlerTest {
       // Simulates a guard-style denial happening inside async work. The await interceptor unwraps
       // CompletionException so McpToolsService's special FORBIDDEN handling can still fire.
       var handler = buildHandler(new AsyncForbiddenTool(), false);
-      assertThatThrownBy(() -> handler.call(mapper.createObjectNode()))
+      var args = mapper.createObjectNode();
+      assertThatThrownBy(() -> handler.call(args))
           .isInstanceOfSatisfying(
               JsonRpcException.class,
               e -> assertThat(e.getCode()).isEqualTo(JsonRpcErrorCodes.FORBIDDEN));
@@ -178,8 +180,8 @@ class AsyncToolHandlerTest {
       // A tool that fails asynchronously never reaches the output validator — the await
       // interceptor rethrows before output validation can run.
       var handler = buildHandler(new AsyncThrowingTool(), true);
-      assertThatThrownBy(() -> handler.call(mapper.createObjectNode()))
-          .isInstanceOf(IllegalStateException.class);
+      var args = mapper.createObjectNode();
+      assertThatThrownBy(() -> handler.call(args)).isInstanceOf(IllegalStateException.class);
     }
   }
 

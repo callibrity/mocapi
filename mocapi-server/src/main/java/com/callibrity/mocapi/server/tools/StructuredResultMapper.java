@@ -37,6 +37,11 @@ import tools.jackson.databind.node.ObjectNode;
  */
 public final class StructuredResultMapper implements ResultMapper {
 
+  private static final String NON_OBJECT_RUNTIME_SHAPE =
+      "Tool return value serialized to a %s node, but structuredContent must be a JSON object. "
+          + "The declared return type advertised an object-shaped schema; a custom Jackson "
+          + "serializer or unexpected subclass likely changed the runtime shape.";
+
   private final ObjectMapper objectMapper;
 
   public StructuredResultMapper(ObjectMapper objectMapper) {
@@ -53,12 +58,7 @@ public final class StructuredResultMapper implements ResultMapper {
     }
     JsonNode node = objectMapper.valueToTree(result);
     if (!(node instanceof ObjectNode obj)) {
-      throw new IllegalStateException(
-          "Tool return value serialized to a "
-              + node.getNodeType()
-              + " node, but structuredContent must be a JSON object. "
-              + "The declared return type advertised an object-shaped schema; "
-              + "a custom Jackson serializer or unexpected subclass likely changed the runtime shape.");
+      throw new IllegalStateException(String.format(NON_OBJECT_RUNTIME_SHAPE, node.getNodeType()));
     }
     return new CallToolResult(List.of(new TextContent(obj.toString(), null)), null, obj);
   }

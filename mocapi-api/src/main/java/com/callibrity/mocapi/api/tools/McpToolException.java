@@ -61,7 +61,12 @@ public class McpToolException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 
-  private final Object structuredContent;
+  // transient because the payload is an arbitrary author-supplied Object — requiring it to be
+  // Serializable would force every error POJO to implement Serializable, which is onerous and
+  // not worth it (MCP tool-error transport is JSON, not Java serialization). On the rare paths
+  // where an exception is actually Java-serialized (distributed runtimes, caches), the payload
+  // is lost on deserialization; that's an acceptable trade-off.
+  private final transient Object structuredContent;
 
   public McpToolException(String message) {
     this(message, null, null);

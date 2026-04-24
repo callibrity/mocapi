@@ -49,11 +49,6 @@ class ResultMappersTest {
       CallToolResult out = VoidResultMapper.INSTANCE.map("anything");
       assertThat(out.content()).isEmpty();
     }
-
-    @Test
-    void singleton_instance_is_stable() {
-      assertThat(VoidResultMapper.INSTANCE).isSameAs(VoidResultMapper.INSTANCE);
-    }
   }
 
   @Nested
@@ -74,11 +69,6 @@ class ResultMappersTest {
       assertThat(out.isError()).isNull();
       assertThat(out.structuredContent()).isNull();
       assertThat(out.content()).isEmpty();
-    }
-
-    @Test
-    void singleton_instance_is_stable() {
-      assertThat(PassthroughResultMapper.INSTANCE).isSameAs(PassthroughResultMapper.INSTANCE);
     }
   }
 
@@ -145,7 +135,8 @@ class ResultMappersTest {
       // schemas, so this should never happen in practice — but a custom Jackson serializer or an
       // unexpected subclass could still produce a non-object node at runtime, in which case the
       // mapper fails loudly rather than silently dropping structuredContent.
-      assertThatThrownBy(() -> structured.map(List.of("not", "an", "object")))
+      List<String> nonObjectPayload = List.of("not", "an", "object");
+      assertThatThrownBy(() -> structured.map(nonObjectPayload))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("structuredContent must be a JSON object");
     }

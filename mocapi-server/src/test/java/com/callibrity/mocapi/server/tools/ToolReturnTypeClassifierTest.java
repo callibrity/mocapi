@@ -332,7 +332,10 @@ class ToolReturnTypeClassifierTest {
   record Nothing() {}
 
   public static class PrimitiveVoidBean {
-    public void m() {}
+    public void m() {
+      // Intentionally empty: exercises the classifier's `void` return-type branch, which
+      // doesn't care about the body.
+    }
   }
 
   public static class BoxedVoidBean {

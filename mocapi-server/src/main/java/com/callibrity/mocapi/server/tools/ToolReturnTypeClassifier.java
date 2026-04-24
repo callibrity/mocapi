@@ -57,6 +57,46 @@ import tools.jackson.databind.node.ObjectNode;
  */
 final class ToolReturnTypeClassifier {
 
+  private static final String RETURN_TYPE_PREFIX = "return type ";
+
+  private static final String UNRESOLVABLE_RETURN_TYPE =
+      RETURN_TYPE_PREFIX + "%s could not be resolved to a concrete class.";
+
+  private static final String UNRESOLVABLE_INNER_TYPE =
+      "CompletionStage inner type %s could not be resolved to a concrete class.";
+
+  private static final String NESTED_COMPLETION_STAGE =
+      "nested CompletionStage (%s). A tool must await at most one layer of asynchrony; "
+          + "flatten the inner stage before returning.";
+
+  private static final String RAW_COMPLETION_STAGE =
+      "raw %s (no type argument). "
+          + "Declare a concrete type argument such as CompletionStage<MyRecord>.";
+
+  private static final String WRONG_ARITY_COMPLETION_STAGE =
+      "CompletionStage declared with %d type arguments; expected exactly one.";
+
+  private static final String WILDCARD_COMPLETION_STAGE =
+      "CompletionStage<?> wildcard (%s). Declare a concrete type argument.";
+
+  private static final String TYPE_VARIABLE_COMPLETION_STAGE =
+      "CompletionStage with an unresolved type variable (%s). Declare a concrete type argument.";
+
+  private static final String NON_OBJECT_SCHEMA =
+      RETURN_TYPE_PREFIX
+          + "%s produces a JSON schema of type \"%s\"; MCP requires structuredContent to be a "
+          + "JSON object. Wrap the value in a record whose fields describe the payload, or return "
+          + "CallToolResult to construct the result manually.";
+
+  private static final String EMPTY_PROPERTIES_SCHEMA =
+      RETURN_TYPE_PREFIX
+          + "%s produces an object schema with no declared properties (%s). MCP requires "
+          + "structuredContent to be a JSON object with a known shape. Use a concrete record/class "
+          + "whose fields describe the payload, or return CallToolResult to construct the result "
+          + "manually.";
+
+  private static final String REJECTION_WRAPPER = "@McpTool %s.%s: %s";
+
   private ToolReturnTypeClassifier() {}
 
   static Classification classify(
@@ -66,11 +106,7 @@ final class ToolReturnTypeClassifier {
     Class<?> rawReturnType = TypeUtils.getRawType(genericReturnType, beanClass);
     if (rawReturnType == null) {
       throw rejection(
-          bean,
-          method,
-          "return type "
-              + genericReturnType.getTypeName()
-              + " could not be resolved to a concrete class.");
+          bean, method, String.format(UNRESOLVABLE_RETURN_TYPE, genericReturnType.getTypeName()));
     }
 
     boolean async = false;
@@ -83,20 +119,11 @@ final class ToolReturnTypeClassifier {
       Class<?> innerRawType = TypeUtils.getRawType(innerGenericType, beanClass);
       if (innerRawType == null) {
         throw rejection(
-            bean,
-            method,
-            "CompletionStage inner type "
-                + innerGenericType.getTypeName()
-                + " could not be resolved to a concrete class.");
+            bean, method, String.format(UNRESOLVABLE_INNER_TYPE, innerGenericType.getTypeName()));
       }
       if (CompletionStage.class.isAssignableFrom(innerRawType)) {
         throw rejection(
-            bean,
-            method,
-            "nested CompletionStage ("
-                + genericReturnType.getTypeName()
-                + "). A tool must await at most one layer of asynchrony; "
-                + "flatten the inner stage before returning.");
+            bean, method, String.format(NESTED_COMPLETION_STAGE, genericReturnType.getTypeName()));
       }
       effectiveGenericType = innerGenericType;
       effectiveRawType = innerRawType;
@@ -120,38 +147,22 @@ final class ToolReturnTypeClassifier {
   private static Type unwrapCompletionStage(Object bean, Method method, Type genericReturnType) {
     if (!(genericReturnType instanceof ParameterizedType paramType)) {
       throw rejection(
-          bean,
-          method,
-          "raw "
-              + genericReturnType.getTypeName()
-              + " (no type argument). "
-              + "Declare a concrete type argument such as CompletionStage<MyRecord>.");
+          bean, method, String.format(RAW_COMPLETION_STAGE, genericReturnType.getTypeName()));
     }
     Type[] args = paramType.getActualTypeArguments();
     if (args.length != 1) {
-      throw rejection(
-          bean,
-          method,
-          "CompletionStage declared with "
-              + args.length
-              + " type arguments; expected exactly one.");
+      throw rejection(bean, method, String.format(WRONG_ARITY_COMPLETION_STAGE, args.length));
     }
     Type innerType = args[0];
     if (innerType instanceof WildcardType) {
       throw rejection(
-          bean,
-          method,
-          "CompletionStage<?> wildcard ("
-              + genericReturnType.getTypeName()
-              + "). Declare a concrete type argument.");
+          bean, method, String.format(WILDCARD_COMPLETION_STAGE, genericReturnType.getTypeName()));
     }
     if (innerType instanceof TypeVariable<?>) {
       throw rejection(
           bean,
           method,
-          "CompletionStage with an unresolved type variable ("
-              + genericReturnType.getTypeName()
-              + "). Declare a concrete type argument.");
+          String.format(TYPE_VARIABLE_COMPLETION_STAGE, genericReturnType.getTypeName()));
     }
     return innerType;
   }
@@ -162,34 +173,20 @@ final class ToolReturnTypeClassifier {
     String actualType = typeNode == null ? "(none)" : typeNode.asString();
     if (!"object".equals(actualType)) {
       throw rejection(
-          bean,
-          method,
-          "return type "
-              + effectiveType.getTypeName()
-              + " produces a JSON schema of type \""
-              + actualType
-              + "\"; MCP requires structuredContent to be a JSON object. "
-              + "Wrap the value in a record whose fields describe the payload, "
-              + "or return CallToolResult to construct the result manually.");
+          bean, method, String.format(NON_OBJECT_SCHEMA, effectiveType.getTypeName(), actualType));
     }
     JsonNode props = schema.get("properties");
     if (props == null || props.isEmpty()) {
       throw rejection(
           bean,
           method,
-          "return type "
-              + effectiveType.getTypeName()
-              + " produces an object schema with no declared properties ("
-              + schema
-              + "). MCP requires structuredContent to be a JSON object with a known shape. "
-              + "Use a concrete record/class whose fields describe the payload, "
-              + "or return CallToolResult to construct the result manually.");
+          String.format(EMPTY_PROPERTIES_SCHEMA, effectiveType.getTypeName(), schema));
     }
   }
 
   private static IllegalArgumentException rejection(Object bean, Method method, String reason) {
     return new IllegalArgumentException(
-        "@McpTool " + bean.getClass().getName() + "." + method.getName() + ": " + reason);
+        String.format(REJECTION_WRAPPER, bean.getClass().getName(), method.getName(), reason));
   }
 
   /**

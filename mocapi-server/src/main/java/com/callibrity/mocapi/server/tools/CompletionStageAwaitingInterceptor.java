@@ -36,6 +36,11 @@ import tools.jackson.databind.JsonNode;
  */
 final class CompletionStageAwaitingInterceptor implements MethodInterceptor<JsonNode> {
 
+  private static final String UNEXPECTED_NON_STAGE_RETURN =
+      "Async tool was expected to return a CompletionStage but returned %s; this is a mocapi "
+          + "invariant violation — registration should have rejected this tool if its declared "
+          + "return type was not a CompletionStage.";
+
   @Override
   public Object intercept(MethodInvocation<? extends JsonNode> invocation) {
     Object result = invocation.proceed();
@@ -44,10 +49,7 @@ final class CompletionStageAwaitingInterceptor implements MethodInterceptor<Json
     }
     if (!(result instanceof CompletionStage<?> stage)) {
       throw new IllegalStateException(
-          "Async tool was expected to return a CompletionStage but returned "
-              + result.getClass().getName()
-              + "; this is a mocapi invariant violation — registration should have rejected "
-              + "this tool if its declared return type was not a CompletionStage.");
+          String.format(UNEXPECTED_NON_STAGE_RETURN, result.getClass().getName()));
     }
     try {
       return stage.toCompletableFuture().join();

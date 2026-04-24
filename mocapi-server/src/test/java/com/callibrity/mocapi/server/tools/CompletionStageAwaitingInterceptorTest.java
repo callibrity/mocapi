@@ -62,16 +62,9 @@ class CompletionStageAwaitingInterceptorTest {
 
     @Test
     void future_that_completes_on_another_thread_is_joined_and_its_value_returned() {
-      CompletableFuture<Integer> stage =
-          CompletableFuture.supplyAsync(
-              () -> {
-                try {
-                  Thread.sleep(5);
-                } catch (InterruptedException e) {
-                  Thread.currentThread().interrupt();
-                }
-                return 42;
-              });
+      // supplyAsync runs on the common fork-join pool; the interceptor's join() blocks the caller
+      // until the async computation finishes — exactly the behavior we want to exercise.
+      CompletableFuture<Integer> stage = CompletableFuture.supplyAsync(() -> 42);
       Object out = interceptor.intercept(invocationReturning(stage));
       assertThat(out).isEqualTo(42);
     }
@@ -100,7 +93,8 @@ class CompletionStageAwaitingInterceptorTest {
     void RuntimeException_cause_surfaces_unwrapped_with_original_type() {
       var boom = new IllegalStateException("no dice");
       CompletableFuture<String> stage = CompletableFuture.failedFuture(boom);
-      assertThatThrownBy(() -> interceptor.intercept(invocationReturning(stage)))
+      MethodInvocation<JsonNode> invocation = invocationReturning(stage);
+      assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOf(IllegalStateException.class)
           .hasMessage("no dice")
           .isSameAs(boom);
@@ -111,7 +105,8 @@ class CompletionStageAwaitingInterceptorTest {
       var forbidden =
           new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "you don't have the ticket");
       CompletableFuture<String> stage = CompletableFuture.failedFuture(forbidden);
-      assertThatThrownBy(() -> interceptor.intercept(invocationReturning(stage)))
+      MethodInvocation<JsonNode> invocation = invocationReturning(stage);
+      assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOfSatisfying(
               JsonRpcException.class,
               e -> assertThat(e.getCode()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS));
@@ -121,7 +116,8 @@ class CompletionStageAwaitingInterceptorTest {
     void checked_exception_cause_is_wrapped_in_a_RuntimeException_preserving_message_and_cause() {
       var cause = new IOException("disk on fire");
       CompletableFuture<String> stage = CompletableFuture.failedFuture(cause);
-      assertThatThrownBy(() -> interceptor.intercept(invocationReturning(stage)))
+      MethodInvocation<JsonNode> invocation = invocationReturning(stage);
+      assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOf(RuntimeException.class)
           .hasMessage("disk on fire")
           .hasCause(cause);
@@ -131,7 +127,8 @@ class CompletionStageAwaitingInterceptorTest {
     void Error_cause_is_re_thrown_unmodified() {
       var fatal = new AssertionError("world ending");
       CompletableFuture<String> stage = CompletableFuture.failedFuture(fatal);
-      assertThatThrownBy(() -> interceptor.intercept(invocationReturning(stage)))
+      MethodInvocation<JsonNode> invocation = invocationReturning(stage);
+      assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOf(AssertionError.class)
           .hasMessage("world ending");
     }
@@ -143,7 +140,8 @@ class CompletionStageAwaitingInterceptorTest {
       var degenerate = new CompletionException("lonely wrapper", null);
       CompletableFuture<String> stage = new CompletableFuture<>();
       stage.completeExceptionally(degenerate);
-      assertThatThrownBy(() -> interceptor.intercept(invocationReturning(stage)))
+      MethodInvocation<JsonNode> invocation = invocationReturning(stage);
+      assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOf(CompletionException.class)
           .hasMessageContaining("lonely wrapper");
     }
@@ -152,7 +150,8 @@ class CompletionStageAwaitingInterceptorTest {
     void cancellation_propagates_as_CancellationException() {
       CompletableFuture<String> stage = new CompletableFuture<>();
       stage.cancel(true);
-      assertThatThrownBy(() -> interceptor.intercept(invocationReturning(stage)))
+      MethodInvocation<JsonNode> invocation = invocationReturning(stage);
+      assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOf(CancellationException.class);
     }
   }
@@ -162,8 +161,7 @@ class CompletionStageAwaitingInterceptorTest {
 
     @Test
     void null_stage_passes_through_without_NPE() {
-      // A misbehaving async tool that returns raw null instead of a completed future is tolerated;
-      // the downstream mapper's null-handling takes over.
+      // A raw-null return from an async tool is tolerated; downstream mapper handles null.
       Object out = interceptor.intercept(invocationReturning(null));
       assertThat(out).isNull();
     }
@@ -173,7 +171,8 @@ class CompletionStageAwaitingInterceptorTest {
       // If registration did its job, a handler that's wrapped by the await interceptor always
       // returns a CompletionStage. Any other non-null value means something upstream is wrong —
       // fail loudly rather than silently passing it through.
-      assertThatThrownBy(() -> interceptor.intercept(invocationReturning("not a stage")))
+      MethodInvocation<JsonNode> invocation = invocationReturning("not a stage");
+      assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("CompletionStage")
           .hasMessageContaining("java.lang.String");

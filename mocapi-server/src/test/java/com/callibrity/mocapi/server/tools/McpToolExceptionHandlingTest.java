@@ -152,9 +152,8 @@ class McpToolExceptionHandlingTest {
       var service = serviceWith(new StringPayloadTool());
       var result = service.callTool(call("string-payload"));
       String text = ((TextContent) result.content().getFirst()).text();
-      assertThat(text).contains("java.lang.String");
       // Jackson's node type for a TextNode is STRING.
-      assertThat(text).contains("STRING");
+      assertThat(text).contains("java.lang.String").contains("STRING");
     }
 
     @Test

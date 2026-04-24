@@ -52,6 +52,11 @@ import tools.jackson.databind.node.ValueNode;
  */
 public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
 
+  private static final String INVALID_STRUCTURED_CONTENT_SHAPE =
+      "McpToolException structuredContent must serialize to a JSON object, but %s serialized to "
+          + "a %s node. Use a record/POJO (or ObjectNode) whose Jackson serialization is an "
+          + "object for error payloads.";
+
   private final Logger log = LoggerFactory.getLogger(McpToolsService.class);
   private final ObjectMapper objectMapper;
   private final McpResponseCorrelationService correlationService;
@@ -165,12 +170,10 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
       JsonNode node = objectMapper.valueToTree(payload);
       if (!(node instanceof ObjectNode obj)) {
         throw new IllegalStateException(
-            "McpToolException structuredContent must serialize to a JSON object, but "
-                + payload.getClass().getName()
-                + " serialized to a "
-                + node.getNodeType()
-                + " node. Use a record/POJO (or ObjectNode) whose Jackson serialization is an "
-                + "object for error payloads.");
+            String.format(
+                INVALID_STRUCTURED_CONTENT_SHAPE,
+                payload.getClass().getName(),
+                node.getNodeType()));
       }
       structured = obj;
     }
