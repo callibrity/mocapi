@@ -59,12 +59,6 @@ final class ToolReturnTypeClassifier {
 
   private static final String RETURN_TYPE_PREFIX = "return type ";
 
-  private static final String UNRESOLVABLE_RETURN_TYPE =
-      RETURN_TYPE_PREFIX + "%s could not be resolved to a concrete class.";
-
-  private static final String UNRESOLVABLE_INNER_TYPE =
-      "CompletionStage inner type %s could not be resolved to a concrete class.";
-
   private static final String NESTED_COMPLETION_STAGE =
       "nested CompletionStage (%s). A tool must await at most one layer of asynchrony; "
           + "flatten the inner stage before returning.";
@@ -72,9 +66,6 @@ final class ToolReturnTypeClassifier {
   private static final String RAW_COMPLETION_STAGE =
       "raw %s (no type argument). "
           + "Declare a concrete type argument such as CompletionStage<MyRecord>.";
-
-  private static final String WRONG_ARITY_COMPLETION_STAGE =
-      "CompletionStage declared with %d type arguments; expected exactly one.";
 
   private static final String WILDCARD_COMPLETION_STAGE =
       "CompletionStage<?> wildcard (%s). Declare a concrete type argument.";
@@ -103,11 +94,11 @@ final class ToolReturnTypeClassifier {
       Object bean, Method method, MethodSchemaGenerator generator, ObjectMapper objectMapper) {
     Class<?> beanClass = bean.getClass();
     Type genericReturnType = method.getGenericReturnType();
+    // TypeUtils.getRawType can't return null here — a reflected Method always has a resolvable
+    // generic return type, so we don't bother with a defensive null check. Same for innerRawType
+    // below. If that invariant ever breaks, the subsequent isAssignableFrom check will NPE and
+    // loudly tell us, which is a better failure mode than silently misclassifying.
     Class<?> rawReturnType = TypeUtils.getRawType(genericReturnType, beanClass);
-    if (rawReturnType == null) {
-      throw rejection(
-          bean, method, String.format(UNRESOLVABLE_RETURN_TYPE, genericReturnType.getTypeName()));
-    }
 
     boolean async = false;
     Type effectiveGenericType = genericReturnType;
@@ -117,10 +108,6 @@ final class ToolReturnTypeClassifier {
       async = true;
       Type innerGenericType = unwrapCompletionStage(bean, method, genericReturnType);
       Class<?> innerRawType = TypeUtils.getRawType(innerGenericType, beanClass);
-      if (innerRawType == null) {
-        throw rejection(
-            bean, method, String.format(UNRESOLVABLE_INNER_TYPE, innerGenericType.getTypeName()));
-      }
       if (CompletionStage.class.isAssignableFrom(innerRawType)) {
         throw rejection(
             bean, method, String.format(NESTED_COMPLETION_STAGE, genericReturnType.getTypeName()));
@@ -149,11 +136,9 @@ final class ToolReturnTypeClassifier {
       throw rejection(
           bean, method, String.format(RAW_COMPLETION_STAGE, genericReturnType.getTypeName()));
     }
-    Type[] args = paramType.getActualTypeArguments();
-    if (args.length != 1) {
-      throw rejection(bean, method, String.format(WRONG_ARITY_COMPLETION_STAGE, args.length));
-    }
-    Type innerType = args[0];
+    // CompletionStage<T> has exactly one type parameter by its source declaration, so
+    // getActualTypeArguments() always returns length 1 — no arity check needed.
+    Type innerType = paramType.getActualTypeArguments()[0];
     if (innerType instanceof WildcardType) {
       throw rejection(
           bean, method, String.format(WILDCARD_COMPLETION_STAGE, genericReturnType.getTypeName()));
@@ -175,8 +160,10 @@ final class ToolReturnTypeClassifier {
       throw rejection(
           bean, method, String.format(NON_OBJECT_SCHEMA, effectiveType.getTypeName(), actualType));
     }
-    JsonNode props = schema.get("properties");
-    if (props == null || props.isEmpty()) {
+    // Jackson's schema generator either emits a populated `properties` object or omits the field
+    // entirely — it never emits `"properties": {}`. So a null check is sufficient; an additional
+    // `isEmpty()` check would be dead code under the current generator.
+    if (schema.get("properties") == null) {
       throw rejection(
           bean,
           method,

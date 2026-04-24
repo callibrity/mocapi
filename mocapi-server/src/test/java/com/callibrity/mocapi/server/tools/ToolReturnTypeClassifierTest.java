@@ -17,6 +17,8 @@ package com.callibrity.mocapi.server.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
@@ -271,6 +273,24 @@ class ToolReturnTypeClassifierTest {
       assertThatThrownBy(() -> classify(CompletionStageOfListBean.class))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("\"array\"");
+    }
+
+    @Test
+    void raw_CompletionStage_is_rejected() throws NoSuchMethodException {
+      // The Java compiler refuses to let us declare a raw CompletionStage return type without a
+      // @SuppressWarnings("rawtypes") annotation — which the project bans. Instead we mock a
+      // Method whose getGenericReturnType() returns CompletionStage.class directly (a Class, not
+      // a ParameterizedType), exercising the "raw" rejection branch in unwrapCompletionStage.
+      Method rawMethod = mock(Method.class);
+      when(rawMethod.getGenericReturnType()).thenReturn(CompletionStage.class);
+      when(rawMethod.getName()).thenReturn("m");
+      Object bean = new CompletionStageOfRecordBean();
+
+      assertThatThrownBy(
+              () -> ToolReturnTypeClassifier.classify(bean, rawMethod, generator, mapper))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("raw")
+          .hasMessageContaining("no type argument");
     }
 
     @Test
