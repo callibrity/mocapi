@@ -36,22 +36,34 @@ public final class CallToolHandler {
   private final Object bean;
   private final MethodInvoker<JsonNode> invoker;
   private final List<Guard> guards;
+  private final ResultMapper resultMapper;
 
   public CallToolHandler(
       Tool descriptor,
       Method method,
       Object bean,
       MethodInvoker<JsonNode> invoker,
-      List<Guard> guards) {
+      List<Guard> guards,
+      ResultMapper resultMapper) {
     this.descriptor = descriptor;
     this.method = method;
     this.bean = bean;
     this.invoker = invoker;
     this.guards = List.copyOf(guards);
+    this.resultMapper = resultMapper;
   }
 
   public List<Guard> guards() {
     return guards;
+  }
+
+  /**
+   * Returns the mapper that turns this handler's raw method return value into a {@link
+   * com.callibrity.mocapi.model.CallToolResult}. Selected once at handler-build time by {@link
+   * ToolReturnTypeClassifier}; callers should not do their own runtime type inspection.
+   */
+  public ResultMapper resultMapper() {
+    return resultMapper;
   }
 
   public Tool descriptor() {

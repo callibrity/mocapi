@@ -26,6 +26,7 @@ import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
+import com.callibrity.mocapi.server.tools.StructuredResultMapper;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -178,7 +179,13 @@ class ToolsListComplianceTest {
   private static CallToolHandler simpleTool(
       String name, String description, ObjectNode inputSchema, ObjectNode outputSchema) {
     var descriptor = new Tool(name, null, description, inputSchema, outputSchema);
-    return new CallToolHandler(descriptor, null, null, args -> Map.of("echo", "ok"), List.of());
+    return new CallToolHandler(
+        descriptor,
+        null,
+        null,
+        args -> Map.of("echo", "ok"),
+        List.of(),
+        new StructuredResultMapper(MAPPER));
   }
 
   private static JsonNode findToolByName(JsonNode tools, String name) {

@@ -29,6 +29,10 @@ import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
+import com.callibrity.mocapi.server.tools.PassthroughResultMapper;
+import com.callibrity.mocapi.server.tools.ResultMapper;
+import com.callibrity.mocapi.server.tools.StructuredResultMapper;
+import com.callibrity.mocapi.server.tools.VoidResultMapper;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
@@ -56,7 +60,10 @@ class ToolsCallComplianceTest {
     var inputSchema = MAPPER.createObjectNode().put("type", "object");
     inputSchema.putObject("properties").putObject("input").put("type", "string");
 
-    CallToolHandler simpleTool = makeTool("simple", inputSchema, args -> Map.of("value", "hello"));
+    var structuredMapper = new StructuredResultMapper(MAPPER);
+
+    CallToolHandler simpleTool =
+        makeTool("simple", inputSchema, args -> Map.of("value", "hello"), structuredMapper);
 
     CallToolHandler voidTool =
         makeTool(
@@ -64,13 +71,15 @@ class ToolsCallComplianceTest {
             inputSchema,
             args -> {
               return null;
-            });
+            },
+            VoidResultMapper.INSTANCE);
 
     CallToolHandler directResultTool =
         makeTool(
             "direct-result",
             inputSchema,
-            args -> new CallToolResult(List.of(new TextContent("direct", null)), null, null));
+            args -> new CallToolResult(List.of(new TextContent("direct", null)), null, null),
+            PassthroughResultMapper.INSTANCE);
 
     CallToolHandler throwingJsonRpcTool =
         makeTool(
@@ -78,7 +87,8 @@ class ToolsCallComplianceTest {
             inputSchema,
             args -> {
               throw new JsonRpcException(JsonRpcProtocol.INTERNAL_ERROR, "protocol failure");
-            });
+            },
+            structuredMapper);
 
     CallToolHandler throwingOtherTool =
         makeTool(
@@ -86,10 +96,12 @@ class ToolsCallComplianceTest {
             inputSchema,
             args -> {
               throw new RuntimeException("tool went boom");
-            });
+            },
+            structuredMapper);
 
     CallToolHandler structuredTool =
-        makeTool("structured", inputSchema, args -> Map.of("key", "structured-value"));
+        makeTool(
+            "structured", inputSchema, args -> Map.of("key", "structured-value"), structuredMapper);
 
     var toolsService =
         new McpToolsService(
@@ -238,8 +250,11 @@ class ToolsCallComplianceTest {
   // --- helpers ---
 
   private static CallToolHandler makeTool(
-      String name, ObjectNode inputSchema, java.util.function.Function<JsonNode, Object> fn) {
+      String name,
+      ObjectNode inputSchema,
+      java.util.function.Function<JsonNode, Object> fn,
+      ResultMapper mapper) {
     var descriptor = new Tool(name, null, name, inputSchema, null);
-    return new CallToolHandler(descriptor, null, null, fn::apply, java.util.List.of());
+    return new CallToolHandler(descriptor, null, null, fn::apply, java.util.List.of(), mapper);
   }
 }

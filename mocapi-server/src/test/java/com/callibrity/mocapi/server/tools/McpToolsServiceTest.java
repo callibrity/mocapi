@@ -131,8 +131,7 @@ class McpToolsServiceTest {
 
     assertThat(result.isError()).isNull();
     assertThat(result.structuredContent()).isNull();
-    assertThat(result.content()).hasSize(1);
-    assertThat(((TextContent) result.content().getFirst()).text()).isEmpty();
+    assertThat(result.content()).isEmpty();
   }
 
   @Test
@@ -252,24 +251,6 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void to_call_tool_result_handles_null_result() {
-    var result = service.toCallToolResult(null);
-    assertThat(result.isError()).isNull();
-    assertThat(result.structuredContent()).isNull();
-    assertThat(result.content()).hasSize(1);
-    assertThat(((TextContent) result.content().getFirst()).text()).isEmpty();
-  }
-
-  @Test
-  void to_call_tool_result_passes_through_call_tool_result() {
-    var original =
-        new com.callibrity.mocapi.model.CallToolResult(
-            List.of(new TextContent("test", null)), null, null);
-    var result = service.toCallToolResult(original);
-    assertThat(result).isSameAs(original);
-  }
-
-  @Test
   void interactive_tool_output_schema_is_generated() {
     var tool = service.lookup("interactive-greet");
     assertThat(tool.descriptor().outputSchema()).isNotNull();
@@ -303,14 +284,6 @@ class McpToolsServiceTest {
   }
 
   @Test
-  void to_call_tool_result_wraps_raw_json_node_without_extra_serialization() {
-    var node = mapper.createObjectNode().put("already", "a-node");
-    var result = service.toCallToolResult(node);
-    assertThat(result.structuredContent()).isEqualTo(node);
-    assertThat(((TextContent) result.content().getFirst()).text()).contains("\"already\"");
-  }
-
-  @Test
   void find_tool_descriptor_returns_descriptor_for_known_name() {
     var descriptor = service.findToolDescriptor("hello-tool.say-hello");
     assertThat(descriptor).isNotNull();
@@ -328,16 +301,6 @@ class McpToolsServiceTest {
         .isNotEmpty()
         .extracting(com.callibrity.mocapi.model.Tool::name)
         .isSorted();
-  }
-
-  @Test
-  void to_call_tool_result_with_non_object_result_has_null_structured_content() {
-    var result = service.toCallToolResult("just a string");
-
-    assertThat(result.isError()).isNull();
-    assertThat(result.structuredContent()).isNull();
-    assertThat(result.content()).hasSize(1);
-    assertThat(((TextContent) result.content().getFirst()).text()).contains("just a string");
   }
 
   private List<CallToolHandler> createHandlersWithGuards(Object target, Guard... guards) {

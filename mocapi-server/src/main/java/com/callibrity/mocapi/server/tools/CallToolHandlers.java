@@ -64,6 +64,14 @@ public final class CallToolHandlers {
    * the tool declares an output schema, an {@link OutputSchemaValidatingInterceptor} is installed
    * adjacent to the input validator to enforce that the tool's return value matches its declared
    * output schema.
+   *
+   * <p>{@link ToolReturnTypeClassifier} inspects the method's declared return type up front and
+   * picks a single {@link ResultMapper} for the handler; tools whose return type isn't one of the
+   * three permitted shapes (void, {@link com.callibrity.mocapi.model.CallToolResult}, or an
+   * object-schema POJO) fail to register here with a clear message. When the declared return type
+   * is a {@link java.util.concurrent.CompletionStage}, a {@link CompletionStageAwaitingInterceptor}
+   * is installed as the innermost interceptor so every other stratum — including output-schema
+   * validation — sees the unwrapped value rather than the future.
    */
   public static CallToolHandler build(
       Object bean,
@@ -83,8 +91,10 @@ public final class CallToolHandlers {
         resolveOrDefault(
             valueResolver, annotation.description(), () -> humanReadableName(bean, method));
     ObjectNode inputSchema = generator.generateInputSchema(bean, method);
-    ObjectNode outputSchema = isVoid(method) ? null : generator.generateOutputSchema(bean, method);
-    Tool descriptor = new Tool(name, title, description, inputSchema, outputSchema);
+    ToolReturnTypeClassifier.Classification classification =
+        ToolReturnTypeClassifier.classify(bean, method, generator, objectMapper);
+    Tool descriptor =
+        new Tool(name, title, description, inputSchema, classification.outputSchema());
     Schema compiledInputSchema = compile(inputSchema);
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
@@ -101,14 +111,22 @@ public final class CallToolHandlers {
       builder.interceptor(new GuardEvaluationInterceptor(state.guards));
     }
     builder.interceptor(new InputSchemaValidatingInterceptor(compiledInputSchema));
-    if (validateOutput && outputSchema != null) {
+    if (validateOutput && classification.outputSchema() != null) {
       builder.interceptor(
-          new OutputSchemaValidatingInterceptor(compile(outputSchema), objectMapper));
+          new OutputSchemaValidatingInterceptor(
+              compile(classification.outputSchema()), objectMapper));
     }
     state.validation.forEach(builder::interceptor);
     state.invocation.forEach(builder::interceptor);
+    if (classification.async()) {
+      // Innermost: runs first on the way out of the reflective call, so every outer interceptor
+      // (output validator, validation/invocation customizer strata, etc.) sees the awaited value
+      // rather than the CompletionStage itself.
+      builder.interceptor(new CompletionStageAwaitingInterceptor());
+    }
     MethodInvoker<JsonNode> invoker = builder.build();
-    return new CallToolHandler(descriptor, method, bean, invoker, List.copyOf(state.guards));
+    return new CallToolHandler(
+        descriptor, method, bean, invoker, List.copyOf(state.guards), classification.mapper());
   }
 
   private static List<ParameterResolver<? super JsonNode>> buildResolvers(
@@ -216,9 +234,5 @@ public final class CallToolHandlers {
               + "."
               + method.getName());
     }
-  }
-
-  private static boolean isVoid(Method method) {
-    return method.getReturnType() == void.class || method.getReturnType() == Void.class;
   }
 }

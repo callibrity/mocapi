@@ -32,6 +32,7 @@ import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
+import com.callibrity.mocapi.server.tools.StructuredResultMapper;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import java.util.List;
@@ -75,7 +76,8 @@ class ToolsCallInteractiveComplianceTest {
               ctx.sendProgress(2, 2);
               return Map.of("done", true);
             },
-            List.of());
+            List.of(),
+            new StructuredResultMapper(MAPPER));
 
     var contextCheckDescriptor =
         new Tool("context-check", null, "Checks context", inputSchema, null);
@@ -85,7 +87,8 @@ class ToolsCallInteractiveComplianceTest {
             null,
             null,
             arguments -> Map.of("hasContext", McpToolContext.CURRENT.isBound()),
-            List.of());
+            List.of(),
+            new StructuredResultMapper(MAPPER));
 
     sessionStore = inMemorySessionStore();
     var toolsService =

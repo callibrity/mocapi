@@ -20,8 +20,10 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ThrowingTool {
+  public record ExplodeResult(String message) {}
+
   @McpTool
-  public String explode(String input) {
+  public ExplodeResult explode(String input) {
     throw new RuntimeException("tool went boom");
   }
 }

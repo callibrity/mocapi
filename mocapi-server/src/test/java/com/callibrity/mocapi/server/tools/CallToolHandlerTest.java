@@ -342,10 +342,12 @@ class CallToolHandlerTest {
     }
   }
 
+  record WorkResult(String input) {}
+
   static class CustomizedTool {
     @McpTool(name = "custom-name", title = "Custom Title", description = "Custom description")
-    public String doWork(String input) {
-      return input;
+    public WorkResult doWork(String input) {
+      return new WorkResult(input);
     }
   }
 
@@ -367,8 +369,8 @@ class CallToolHandlerTest {
 
   static class ValidParamsWithContextTool {
     @McpTool
-    public String doWork(@McpToolParams SimpleParams params, McpToolContext ctx) {
-      return params.value();
+    public WorkResult doWork(@McpToolParams SimpleParams params, McpToolContext ctx) {
+      return new WorkResult(params.value());
     }
   }
 
@@ -431,21 +433,29 @@ class CallToolHandlerTest {
     }
 
     @Test
-    void validates_structured_content_when_tool_declares_call_tool_result_return_type() {
-      // A tool author bypassing auto-wrapping: declares CallToolResult, sets structuredContent.
-      // The output interceptor's CallToolResult branch validates structuredContent against the
-      // derived schema. The schema for CallToolResult is permissive (its structuredContent field
-      // is ObjectNode), so a well-formed structuredContent passes.
+    void does_not_install_output_validator_for_call_tool_result_returning_tool() {
+      // CallToolResult-returning tools advertise no outputSchema — there's no inferable schema
+      // for structuredContent the author will construct manually — so the validator is never
+      // installed, regardless of the flag.
+      var handler = buildHandler(new Widgets.CallToolResultOkTool(), true);
+      assertThat(handler.descriptor().outputSchema()).isNull();
+      assertThat(handler.describe().interceptors())
+          .doesNotContain("Validates tool return value against the tool's output JSON schema");
+    }
+
+    @Test
+    void passes_through_call_tool_result_author_built_regardless_of_flag() {
       var handler = buildHandler(new Widgets.CallToolResultOkTool(), true);
       var result = handler.call(mapper.createObjectNode());
       assertThat(result).isInstanceOf(CallToolResult.class);
     }
 
     @Test
-    void skips_validation_when_call_tool_result_has_no_structured_content() {
-      var handler = buildHandler(new Widgets.TextOnlyCallToolResultTool(), true);
-      var result = handler.call(mapper.createObjectNode());
-      assertThat(result).isInstanceOf(CallToolResult.class);
+    void does_not_install_output_validator_for_char_sequence_returning_tool() {
+      var handler = buildHandler(new Widgets.StringReturningTool(), true);
+      assertThat(handler.descriptor().outputSchema()).isNull();
+      assertThat(handler.describe().interceptors())
+          .doesNotContain("Validates tool return value against the tool's output JSON schema");
     }
   }
 
@@ -479,6 +489,13 @@ class CallToolHandlerTest {
       @McpTool
       public CallToolResult make() {
         return new CallToolResult(List.of(new TextContent("just text", null)), null, null);
+      }
+    }
+
+    static class StringReturningTool {
+      @McpTool
+      public String make() {
+        return "hello";
       }
     }
   }

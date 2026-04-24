@@ -6,6 +6,58 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Changed
+
+- **Strict tool return-type contract (breaking).** `@McpTool` method
+  return types are now checked at handler-build time and classified
+  once into one of four permitted shapes; the old runtime type switch
+  in `McpToolsService.toCallToolResult` is gone, and every handler
+  carries a pre-selected `ResultMapper`. Permitted shapes (applied to
+  the effective type after unwrapping one layer of `CompletionStage`):
+  (1) `void`/`Void` → empty `CallToolResult`; (2) `CallToolResult` →
+  passthrough, author owns the result; (3) `CharSequence` (including
+  `String`) → single text content block, no structured content; (4) a
+  record/POJO whose Jackson-derived schema is `type: "object"` with
+  declared properties → advertised as `outputSchema`, serialized into
+  `structuredContent`. Everything else (`List<T>`, `Map<K,V>`,
+  primitives, arrays, `Optional<T>`, `JsonNode`/`ObjectNode`, raw or
+  nested `CompletionStage`, empty records, …) fails to register with a
+  message naming the offending type and suggesting a fix. Previously,
+  non-object returns silently advertised a misleading `outputSchema`
+  and/or shipped `structuredContent = null` in violation of the MCP
+  spec; the new contract makes those mistakes impossible.
+
+### Added
+
+- **`CompletionStage<T>` / `CompletableFuture<T>` tool return types.**
+  Mocapi awaits the future on an innermost
+  `CompletionStageAwaitingInterceptor` and applies the same mapping
+  rules to the awaited value. `CompletionException` is unwrapped so
+  domain exceptions surface with their original type. Raw and nested
+  `CompletionStage` declarations are rejected at registration.
+- **`CharSequence` return type shortcut.** Tools that want to return
+  plain text can declare `String` (or any `CharSequence`) and mocapi
+  produces a text-only `CallToolResult` — no need to hand-build a
+  `CallToolResult` or invent a single-field record.
+- **Public `ResultMapper` API.** `ResultMapper` is a sealed interface
+  with four impls: `VoidResultMapper`, `PassthroughResultMapper`,
+  `TextContentResultMapper`, `StructuredResultMapper`. Users building
+  `CallToolHandler`s directly (outside the `@McpTool` auto-detection
+  path) can select a mapper explicitly.
+- **`McpToolException` for structured tool errors.** A new public
+  exception type in `mocapi-api` lets tool authors signal execution
+  failures that carry a structured payload and/or extra content blocks,
+  not just a text message. Throwing it (or a subclass) produces a
+  `CallToolResult` with `isError: true`, the exception message as the
+  first text block, `getAdditionalContent()` blocks appended after it,
+  and `getStructuredContent()` serialized into `structuredContent` (the
+  payload must serialize to a JSON object per MCP spec). Handled
+  identically when thrown synchronously or from a failed
+  `CompletionStage`. Authors are encouraged to subclass for reusable,
+  domain-specific error shapes; mocapi catches the parent type. No
+  "error code" field — per the MCP spec, tool-execution errors have no
+  protocol-level code slot; put any code inside `structuredContent`.
+
 ## [0.14.0] - 2026-04-22
 
 ### Added

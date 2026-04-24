@@ -18,15 +18,12 @@ package com.callibrity.mocapi.server.tools;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.mocapi.model.CallToolResult;
-import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
 import com.github.erosb.jsonsKema.SchemaLoader;
 import java.lang.reflect.Method;
-import java.util.List;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -35,8 +32,13 @@ import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvocation;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
 
+/**
+ * Unit tests for {@link OutputSchemaValidatingInterceptor}. Under the post-strictness-pass
+ * contract, the validator is only installed when a handler is paired with {@link
+ * StructuredResultMapper} — so the only values it ever sees are {@code null} (tolerated) or a
+ * POJO/record whose Jackson serialization is a JSON object.
+ */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OutputSchemaValidatingInterceptorTest {
 
@@ -68,8 +70,9 @@ class OutputSchemaValidatingInterceptorTest {
 
     @Test
     void passes_through_when_serialized_value_matches_schema() {
-      Object out = interceptor.intercept(invocationReturning(new Person("Ada", 36)));
-      assertThat(out).isInstanceOf(Person.class);
+      Person value = new Person("Ada", 36);
+      Object out = interceptor.intercept(invocationReturning(value));
+      assertThat(out).isSameAs(value);
     }
 
     @Test
@@ -87,64 +90,15 @@ class OutputSchemaValidatingInterceptorTest {
       assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOf(JsonRpcException.class);
     }
-  }
-
-  @Nested
-  class When_tool_returns_a_CallToolResult {
 
     @Test
-    void validates_structured_content_when_present() {
-      ObjectNode structured = mapper.createObjectNode().put("name", "Ada").put("age", 36);
-      CallToolResult result =
-          new CallToolResult(List.of(new TextContent("ok", null)), null, structured);
-
-      Object out = interceptor.intercept(invocationReturning(result));
-
-      assertThat(out).isSameAs(result);
-    }
-
-    @Test
-    void throws_when_structured_content_violates_schema() {
-      ObjectNode bad = mapper.createObjectNode().put("name", "Ada"); // missing required "age"
-      CallToolResult result = new CallToolResult(List.of(new TextContent("ok", null)), null, bad);
-      MethodInvocation<JsonNode> invocation = invocationReturning(result);
-
+    void throws_internal_error_when_extra_property_is_present() {
+      MethodInvocation<JsonNode> invocation =
+          invocationReturning(new WithExtra("Ada", 36, "extra"));
       assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOfSatisfying(
               JsonRpcException.class,
               e -> assertThat(e.getCode()).isEqualTo(JsonRpcProtocol.INTERNAL_ERROR));
-    }
-
-    @Test
-    void skips_validation_when_structured_content_is_null() {
-      CallToolResult textOnly =
-          new CallToolResult(List.of(new TextContent("just text", null)), null, null);
-
-      Object out = interceptor.intercept(invocationReturning(textOnly));
-
-      assertThat(out).isSameAs(textOnly);
-    }
-  }
-
-  @Nested
-  class When_tool_returns_a_JsonNode {
-
-    @Test
-    void validates_json_node_directly() {
-      JsonNode node = mapper.createObjectNode().put("name", "Ada").put("age", 36);
-
-      Object out = interceptor.intercept(invocationReturning(node));
-
-      assertThat(out).isSameAs(node);
-    }
-
-    @Test
-    void throws_when_json_node_violates_schema() {
-      JsonNode bad = mapper.createObjectNode().put("name", "Ada");
-      MethodInvocation<JsonNode> invocation = invocationReturning(bad);
-
-      assertThatThrownBy(() -> interceptor.intercept(invocation))
-          .isInstanceOf(JsonRpcException.class);
     }
   }
 
@@ -180,4 +134,6 @@ class OutputSchemaValidatingInterceptorTest {
   record OnlyName(String name) {}
 
   record WrongTypes(String name, String age) {}
+
+  record WithExtra(String name, int age, String extra) {}
 }

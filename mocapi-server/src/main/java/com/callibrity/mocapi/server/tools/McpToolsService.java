@@ -19,8 +19,10 @@ import static com.callibrity.mocapi.model.McpMethods.TOOLS_CALL;
 import static com.callibrity.mocapi.model.McpMethods.TOOLS_LIST;
 
 import com.callibrity.mocapi.api.tools.McpToolContext;
+import com.callibrity.mocapi.api.tools.McpToolException;
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ContentBlock;
 import com.callibrity.mocapi.model.ListToolsResult;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.TextContent;
@@ -33,6 +35,7 @@ import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import org.slf4j.Logger;
@@ -111,7 +114,23 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
 
     try {
       Object result = ScopedValue.where(McpToolContext.CURRENT, ctx).call(() -> handler.call(args));
-      return toCallToolResult(result);
+      return handler.resultMapper().map(result);
+    } catch (McpToolException e) {
+      // Tool authors' preferred way to signal a tool-execution failure with structured detail.
+      // Caught BEFORE the generic JsonRpcException / Exception arms so subclasses surface via
+      // toErrorCallToolResult(McpToolException, ...), preserving their structuredContent and
+      // additional content blocks.
+      log.warn("Tool {} raised a tool execution error", name, e);
+      try {
+        return toErrorCallToolResult(e, objectMapper);
+      } catch (IllegalStateException bad) {
+        // The author's structuredContent payload didn't serialize to a JSON object. Rather than
+        // letting IllegalStateException bubble out of callTool (which would be a 500 to the
+        // client), degrade gracefully to a text-only error result whose message is the detailed
+        // diagnostic — surfacing the bug to the author in the tool response itself.
+        log.warn("Tool {} raised McpToolException with invalid structuredContent shape", name, bad);
+        return toErrorCallToolResult(bad);
+      }
     } catch (JsonRpcException e) {
       // Guard denials (-32003) are a protocol-level gate and must surface as JSON-RPC errors, not
       // be wrapped into a CallToolResult. Schema-validation JsonRpcExceptions (-32602) stay wrapped
@@ -127,23 +146,34 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
     }
   }
 
-  CallToolResult toCallToolResult(Object result) {
-    return switch (result) {
-      case null -> new CallToolResult(List.of(new TextContent("", null)), null, null);
-      case CallToolResult ctr -> ctr;
-      case JsonNode node -> toCallToolResult(node);
-      default -> toCallToolResult(objectMapper.valueToTree(result));
-    };
-  }
-
-  private static CallToolResult toCallToolResult(JsonNode node) {
-    ObjectNode structuredContent = node instanceof ObjectNode obj ? obj : null;
-    return new CallToolResult(
-        List.of(new TextContent(node.toString(), null)), null, structuredContent);
-  }
-
   static CallToolResult toErrorCallToolResult(Throwable throwable) {
     String message = throwable.getMessage() != null ? throwable.getMessage() : throwable.toString();
     return new CallToolResult(List.of(new TextContent(message, null)), true, null);
+  }
+
+  static CallToolResult toErrorCallToolResult(McpToolException e, ObjectMapper objectMapper) {
+    String message = e.getMessage() != null ? e.getMessage() : e.toString();
+    List<ContentBlock> content = new ArrayList<>();
+    content.add(new TextContent(message, null));
+    List<ContentBlock> additional = e.getAdditionalContent();
+    if (additional != null && !additional.isEmpty()) {
+      content.addAll(additional);
+    }
+    ObjectNode structured = null;
+    Object payload = e.getStructuredContent();
+    if (payload != null) {
+      JsonNode node = objectMapper.valueToTree(payload);
+      if (!(node instanceof ObjectNode obj)) {
+        throw new IllegalStateException(
+            "McpToolException structuredContent must serialize to a JSON object, but "
+                + payload.getClass().getName()
+                + " serialized to a "
+                + node.getNodeType()
+                + " node. Use a record/POJO (or ObjectNode) whose Jackson serialization is an "
+                + "object for error payloads.");
+      }
+      structured = obj;
+    }
+    return new CallToolResult(List.copyOf(content), true, structured);
   }
 }

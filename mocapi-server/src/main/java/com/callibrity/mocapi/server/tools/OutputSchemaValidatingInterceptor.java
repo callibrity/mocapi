@@ -33,18 +33,12 @@ import tools.jackson.databind.ObjectMapper;
  * off) so production dispatch pays no validation cost, while {@code @SpringBootTest} runs can flip
  * it on to catch schema/reality drift before clients do.
  *
- * <p>The value that gets validated mirrors what {@code McpToolsService} eventually ships as {@code
- * structuredContent}:
- *
- * <ul>
- *   <li>A {@link CallToolResult} is inspected for its {@code structuredContent}; if present, that
- *       is what's validated. If the tool author returned a text-only {@code CallToolResult} (no
- *       structuredContent), validation is skipped — the author explicitly opted out of structured
- *       output for this call.
- *   <li>A {@link JsonNode} is validated as-is.
- *   <li>Anything else is serialized via {@link ObjectMapper#valueToTree(Object)} and validated,
- *       matching the default conversion path in {@code McpToolsService}.
- * </ul>
+ * <p>Only installed by {@link CallToolHandlers} when the declared return type is a structured
+ * POJO/record (i.e., the handler is paired with {@link StructuredResultMapper}). Handlers whose
+ * declared return type is {@code void}/{@link Void} or {@link CallToolResult} do not advertise an
+ * output schema and do not install this interceptor — so the only values this interceptor sees are
+ * {@code null} (tool returned null from a non-void signature, tolerated) or a POJO/record whose
+ * Jackson serialization is an object.
  */
 final class OutputSchemaValidatingInterceptor implements MethodInterceptor<JsonNode> {
 
@@ -59,16 +53,10 @@ final class OutputSchemaValidatingInterceptor implements MethodInterceptor<JsonN
   @Override
   public Object intercept(MethodInvocation<? extends JsonNode> invocation) {
     Object result = invocation.proceed();
-    JsonNode json =
-        switch (result) {
-          case null -> null;
-          case CallToolResult ctr -> ctr.structuredContent();
-          case JsonNode node -> node;
-          default -> objectMapper.valueToTree(result);
-        };
-    if (json == null) {
-      return result;
+    if (result == null) {
+      return null;
     }
+    JsonNode json = objectMapper.valueToTree(result);
     // json-sKema 0.29's Validator is NOT thread-safe — its internal SchemaVisitor mutates a
     // shared ArrayList that races under concurrent invocation. A fresh Validator per call is
     // the safe contract until json-sKema ships a thread-safe implementation. Do NOT cache
