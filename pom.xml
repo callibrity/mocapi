@@ -29,6 +29,11 @@
     <url>https://github.com/callibrity/mocapi</url>
     <inceptionYear>2025</inceptionYear>
 
+    <organization>
+        <name>Callibrity</name>
+        <url>https://www.callibrity.com</url>
+    </organization>
+
     <developers>
         <developer>
             <id>jwcarman</id>
@@ -231,6 +236,24 @@
             <plugin>
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <!--
+                    Add Implementation-Title / -Version / -Vendor (and Specification-*) to every
+                    produced jar's MANIFEST.MF so Package.getImplementationVersion() works at
+                    runtime — the startup banner reads it. addDefaultImplementationEntries pulls
+                    these from the project's own coordinates so we don't have to spell them out.
+                -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
             </plugin>
         </plugins>
 

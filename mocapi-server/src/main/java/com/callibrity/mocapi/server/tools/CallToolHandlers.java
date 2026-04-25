@@ -118,10 +118,11 @@ public final class CallToolHandlers {
     }
     state.validation.forEach(builder::interceptor);
     state.invocation.forEach(builder::interceptor);
-    if (classification.async()) {
-      // Innermost: runs first on the way out of the reflective call, so every outer interceptor
-      // (output validator, validation/invocation customizer strata, etc.) sees the awaited value
-      // rather than the CompletionStage itself.
+    // Innermost: install one CompletionStageAwaitingInterceptor per layer of CompletionStage
+    // wrapping the effective return type. Each interceptor's join() peels one layer; chained
+    // together they unwrap nested stages inside-out so every outer interceptor (output validator,
+    // validation/invocation customizer strata) sees the awaited value rather than a stage.
+    for (int i = 0; i < classification.asyncDepth(); i++) {
       builder.interceptor(new CompletionStageAwaitingInterceptor());
     }
     MethodInvoker<JsonNode> invoker = builder.build();

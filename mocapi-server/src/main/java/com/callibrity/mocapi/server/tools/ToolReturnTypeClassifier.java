@@ -20,167 +20,115 @@ import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
-import java.lang.reflect.WildcardType;
 import java.util.concurrent.CompletionStage;
 import org.apache.commons.lang3.reflect.TypeUtils;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Classifies a tool method's declared return type into one of three permitted shapes, rejecting
- * everything else with a type-specific message at handler-build time (so misconfigured tools fail
- * at startup, not with a silent wire mismatch).
+ * Classifies a tool method's declared return type into one of four permitted shapes, rejecting
+ * anything else at handler-build time.
  *
- * <p>Permitted shapes, applied to the <em>effective</em> return type (after optionally stripping
- * one layer of {@link CompletionStage}):
+ * <p>Permitted shapes (applied to the effective type after peeling off any number of {@code
+ * CompletionStage} layers):
  *
  * <ol>
- *   <li>{@code void} / {@link Void} — no output schema, {@link VoidResultMapper}
- *   <li>{@link CallToolResult} — author constructs the result manually; no output schema, {@link
- *       PassthroughResultMapper}
- *   <li>{@link CharSequence} (typically {@link String}) — ergonomic shortcut for text-only tool
- *       results; no output schema, {@link TextContentResultMapper}
- *   <li>A POJO/record whose Jackson-derived schema has {@code type: "object"} with at least one
- *       declared property — schema is advertised, {@link StructuredResultMapper}
+ *   <li>{@code void} / {@link Void} — {@link VoidResultMapper}, no output schema
+ *   <li>{@link CallToolResult} — {@link PassthroughResultMapper}, no output schema
+ *   <li>{@link CharSequence} — {@link TextContentResultMapper}, no output schema
+ *   <li>A POJO/record whose Jackson schema is {@code "type": "object"} with declared properties —
+ *       {@link StructuredResultMapper}, schema advertised
  * </ol>
  *
- * <p>Everything else is rejected. The rule set intentionally uses a semantic check on the generated
- * schema (rather than a hand-maintained class blocklist) so new "object-ish but empty" types (e.g.,
- * a future library's {@code Map} analog) are caught automatically.
- *
- * <p>Async support is one layer deep: {@code CompletionStage<X>} (covering {@link
- * java.util.concurrent.CompletableFuture} since it implements {@code CompletionStage}) unwraps to
- * {@code X}, which must itself be one of the three permitted shapes. Raw, wildcard, and nested
- * {@code CompletionStage} are rejected.
+ * <p>{@code CompletionStage<X>} (and {@code CompletableFuture<X>}) is unwrapped recursively; each
+ * layer gets one {@link CompletionStageAwaitingInterceptor} at runtime. The inner type argument
+ * must be a concrete class or parameterized type — wildcards and unresolved type variables are
+ * rejected because there's no shape to derive a schema from.
  */
 final class ToolReturnTypeClassifier {
-
-  private static final String RETURN_TYPE_PREFIX = "return type ";
-
-  private static final String NESTED_COMPLETION_STAGE =
-      "nested CompletionStage (%s). A tool must await at most one layer of asynchrony; "
-          + "flatten the inner stage before returning.";
-
-  private static final String RAW_COMPLETION_STAGE =
-      "raw %s (no type argument). "
-          + "Declare a concrete type argument such as CompletionStage<MyRecord>.";
-
-  private static final String WILDCARD_COMPLETION_STAGE =
-      "CompletionStage<?> wildcard (%s). Declare a concrete type argument.";
-
-  private static final String TYPE_VARIABLE_COMPLETION_STAGE =
-      "CompletionStage with an unresolved type variable (%s). Declare a concrete type argument.";
-
-  private static final String NON_OBJECT_SCHEMA =
-      RETURN_TYPE_PREFIX
-          + "%s produces a JSON schema of type \"%s\"; MCP requires structuredContent to be a "
-          + "JSON object. Wrap the value in a record whose fields describe the payload, or return "
-          + "CallToolResult to construct the result manually.";
-
-  private static final String EMPTY_PROPERTIES_SCHEMA =
-      RETURN_TYPE_PREFIX
-          + "%s produces an object schema with no declared properties (%s). MCP requires "
-          + "structuredContent to be a JSON object with a known shape. Use a concrete record/class "
-          + "whose fields describe the payload, or return CallToolResult to construct the result "
-          + "manually.";
-
-  private static final String REJECTION_WRAPPER = "@McpTool %s.%s: %s";
 
   private ToolReturnTypeClassifier() {}
 
   static Classification classify(
       Object bean, Method method, MethodSchemaGenerator generator, ObjectMapper objectMapper) {
     Class<?> beanClass = bean.getClass();
-    Type genericReturnType = method.getGenericReturnType();
-    // TypeUtils.getRawType can't return null here — a reflected Method always has a resolvable
-    // generic return type, so we don't bother with a defensive null check. Same for innerRawType
-    // below. If that invariant ever breaks, the subsequent isAssignableFrom check will NPE and
-    // loudly tell us, which is a better failure mode than silently misclassifying.
-    Class<?> rawReturnType = TypeUtils.getRawType(genericReturnType, beanClass);
+    Type type = method.getGenericReturnType();
+    Class<?> rawType = TypeUtils.getRawType(type, beanClass);
+    int asyncDepth = 0;
 
-    boolean async = false;
-    Type effectiveGenericType = genericReturnType;
-    Class<?> effectiveRawType = rawReturnType;
-
-    if (CompletionStage.class.isAssignableFrom(rawReturnType)) {
-      async = true;
-      Type innerGenericType = unwrapCompletionStage(bean, method, genericReturnType);
-      Class<?> innerRawType = TypeUtils.getRawType(innerGenericType, beanClass);
-      if (CompletionStage.class.isAssignableFrom(innerRawType)) {
+    // Peel CompletionStage layers; each layer becomes one await interceptor at runtime.
+    while (CompletionStage.class.isAssignableFrom(rawType)) {
+      if (!(type instanceof ParameterizedType p) || !isConcrete(p.getActualTypeArguments()[0])) {
         throw rejection(
-            bean, method, String.format(NESTED_COMPLETION_STAGE, genericReturnType.getTypeName()));
+            bean,
+            method,
+            "CompletionStage with no concrete type argument ("
+                + type.getTypeName()
+                + "). Declare a concrete inner type, e.g. CompletionStage<MyRecord>.");
       }
-      effectiveGenericType = innerGenericType;
-      effectiveRawType = innerRawType;
+      type = p.getActualTypeArguments()[0];
+      rawType = TypeUtils.getRawType(type, beanClass);
+      asyncDepth++;
     }
 
-    if (effectiveRawType == void.class || effectiveRawType == Void.class) {
-      return new Classification(VoidResultMapper.INSTANCE, null, async);
+    if (rawType == void.class || rawType == Void.class) {
+      return new Classification(VoidResultMapper.INSTANCE, null, asyncDepth);
     }
-    if (effectiveRawType == CallToolResult.class) {
-      return new Classification(PassthroughResultMapper.INSTANCE, null, async);
+    if (rawType == CallToolResult.class) {
+      return new Classification(PassthroughResultMapper.INSTANCE, null, asyncDepth);
     }
-    if (CharSequence.class.isAssignableFrom(effectiveRawType)) {
-      return new Classification(TextContentResultMapper.INSTANCE, null, async);
+    if (CharSequence.class.isAssignableFrom(rawType)) {
+      return new Classification(TextContentResultMapper.INSTANCE, null, asyncDepth);
     }
 
-    ObjectNode outputSchema = generator.generateSchema(effectiveRawType);
-    requireObjectShapedSchema(bean, method, effectiveGenericType, outputSchema);
-    return new Classification(new StructuredResultMapper(objectMapper), outputSchema, async);
-  }
-
-  private static Type unwrapCompletionStage(Object bean, Method method, Type genericReturnType) {
-    if (!(genericReturnType instanceof ParameterizedType paramType)) {
-      throw rejection(
-          bean, method, String.format(RAW_COMPLETION_STAGE, genericReturnType.getTypeName()));
-    }
-    // CompletionStage<T> has exactly one type parameter by its source declaration, so
-    // getActualTypeArguments() always returns length 1 — no arity check needed.
-    Type innerType = paramType.getActualTypeArguments()[0];
-    if (innerType instanceof WildcardType) {
-      throw rejection(
-          bean, method, String.format(WILDCARD_COMPLETION_STAGE, genericReturnType.getTypeName()));
-    }
-    if (innerType instanceof TypeVariable<?>) {
+    ObjectNode schema = generator.generateSchema(rawType);
+    String schemaType = schema.get("type") == null ? "(none)" : schema.get("type").asString();
+    if (!"object".equals(schemaType)) {
       throw rejection(
           bean,
           method,
-          String.format(TYPE_VARIABLE_COMPLETION_STAGE, genericReturnType.getTypeName()));
+          "return type "
+              + type.getTypeName()
+              + " produces a JSON schema of type \""
+              + schemaType
+              + "\"; structuredContent must be a JSON object. Wrap the value in a record/POJO, "
+              + "or return CallToolResult to build the result manually.");
     }
-    return innerType;
-  }
-
-  private static void requireObjectShapedSchema(
-      Object bean, Method method, Type effectiveType, ObjectNode schema) {
-    JsonNode typeNode = schema.get("type");
-    String actualType = typeNode == null ? "(none)" : typeNode.asString();
-    if (!"object".equals(actualType)) {
-      throw rejection(
-          bean, method, String.format(NON_OBJECT_SCHEMA, effectiveType.getTypeName(), actualType));
-    }
-    // Jackson's schema generator either emits a populated `properties` object or omits the field
-    // entirely — it never emits `"properties": {}`. So a null check is sufficient; an additional
-    // `isEmpty()` check would be dead code under the current generator.
     if (schema.get("properties") == null) {
       throw rejection(
           bean,
           method,
-          String.format(EMPTY_PROPERTIES_SCHEMA, effectiveType.getTypeName(), schema));
+          "return type "
+              + type.getTypeName()
+              + " produces an object schema with no declared properties ("
+              + schema
+              + "). Use a concrete record/class with named fields, or return CallToolResult.");
     }
+    return new Classification(new StructuredResultMapper(objectMapper), schema, asyncDepth);
+  }
+
+  /**
+   * A {@link CompletionStage} type argument is "concrete" if it has a derivable schema shape —
+   * either a {@link Class} (e.g. {@code CompletionStage<Person>}) or a {@link ParameterizedType}
+   * (e.g. {@code CompletionStage<List<Person>>} or {@code CompletionStage<CompletionStage<X>>}).
+   * Wildcards, type variables, and generic array types have no shape to inspect and are rejected.
+   */
+  private static boolean isConcrete(Type t) {
+    return t instanceof Class<?> || t instanceof ParameterizedType;
   }
 
   private static IllegalArgumentException rejection(Object bean, Method method, String reason) {
     return new IllegalArgumentException(
-        String.format(REJECTION_WRAPPER, bean.getClass().getName(), method.getName(), reason));
+        "@McpTool " + bean.getClass().getName() + "." + method.getName() + ": " + reason);
   }
 
   /**
-   * The classification outcome for a tool method's return type. {@code outputSchema} is {@code
-   * null} when the declared shape has no advertisable schema ({@code void}, {@link
-   * CallToolResult}); {@code async} is {@code true} when the raw return type is a {@link
-   * CompletionStage}, signalling that the await interceptor should be installed innermost.
+   * Outcome of classifying a tool's return type. {@code outputSchema} is {@code null} for shapes
+   * with no advertisable schema (void, {@link CallToolResult}, {@link CharSequence}). {@code
+   * asyncDepth} is the number of {@link CompletionStage} layers wrapping the effective type — 0 for
+   * synchronous, 1 for {@code CompletionStage<X>}, 2 for {@code
+   * CompletionStage<CompletionStage<X>>}, etc. The handler builder installs one await interceptor
+   * per layer.
    */
-  record Classification(ResultMapper mapper, ObjectNode outputSchema, boolean async) {}
+  record Classification(ResultMapper mapper, ObjectNode outputSchema, int asyncDepth) {}
 }

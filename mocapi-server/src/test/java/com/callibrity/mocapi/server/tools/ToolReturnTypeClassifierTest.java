@@ -64,7 +64,7 @@ class ToolReturnTypeClassifierTest {
       var c = classify(PrimitiveVoidBean.class);
       assertThat(c.mapper()).isSameAs(VoidResultMapper.INSTANCE);
       assertThat(c.outputSchema()).isNull();
-      assertThat(c.async()).isFalse();
+      assertThat(c.asyncDepth()).isZero();
     }
 
     @Test
@@ -72,7 +72,7 @@ class ToolReturnTypeClassifierTest {
       var c = classify(BoxedVoidBean.class);
       assertThat(c.mapper()).isSameAs(VoidResultMapper.INSTANCE);
       assertThat(c.outputSchema()).isNull();
-      assertThat(c.async()).isFalse();
+      assertThat(c.asyncDepth()).isZero();
     }
   }
 
@@ -84,7 +84,7 @@ class ToolReturnTypeClassifierTest {
       var c = classify(CallToolResultBean.class);
       assertThat(c.mapper()).isSameAs(PassthroughResultMapper.INSTANCE);
       assertThat(c.outputSchema()).isNull();
-      assertThat(c.async()).isFalse();
+      assertThat(c.asyncDepth()).isZero();
     }
   }
 
@@ -96,7 +96,7 @@ class ToolReturnTypeClassifierTest {
       var c = classify(StringBean.class);
       assertThat(c.mapper()).isSameAs(TextContentResultMapper.INSTANCE);
       assertThat(c.outputSchema()).isNull();
-      assertThat(c.async()).isFalse();
+      assertThat(c.asyncDepth()).isZero();
     }
 
     @Test
@@ -124,7 +124,7 @@ class ToolReturnTypeClassifierTest {
       assertThat(c.outputSchema()).isNotNull();
       assertThat(c.outputSchema().get("type").asString()).isEqualTo("object");
       assertThat(c.outputSchema().get("properties")).isNotNull();
-      assertThat(c.async()).isFalse();
+      assertThat(c.asyncDepth()).isZero();
     }
 
     @Test
@@ -230,7 +230,7 @@ class ToolReturnTypeClassifierTest {
     @Test
     void CompletionStage_of_record_unwraps_to_structured_mapper_with_schema() {
       var c = classify(CompletionStageOfRecordBean.class);
-      assertThat(c.async()).isTrue();
+      assertThat(c.asyncDepth()).isEqualTo(1);
       assertThat(c.mapper()).isInstanceOf(StructuredResultMapper.class);
       assertThat(c.outputSchema()).isNotNull();
       assertThat(c.outputSchema().get("type").asString()).isEqualTo("object");
@@ -239,7 +239,7 @@ class ToolReturnTypeClassifierTest {
     @Test
     void CompletableFuture_of_record_unwraps_to_structured_mapper_with_schema() {
       var c = classify(CompletableFutureOfRecordBean.class);
-      assertThat(c.async()).isTrue();
+      assertThat(c.asyncDepth()).isEqualTo(1);
       assertThat(c.mapper()).isInstanceOf(StructuredResultMapper.class);
       assertThat(c.outputSchema()).isNotNull();
     }
@@ -247,7 +247,7 @@ class ToolReturnTypeClassifierTest {
     @Test
     void CompletionStage_of_Void_unwraps_to_void_mapper_with_no_schema() {
       var c = classify(CompletionStageOfVoidBean.class);
-      assertThat(c.async()).isTrue();
+      assertThat(c.asyncDepth()).isEqualTo(1);
       assertThat(c.mapper()).isSameAs(VoidResultMapper.INSTANCE);
       assertThat(c.outputSchema()).isNull();
     }
@@ -255,7 +255,7 @@ class ToolReturnTypeClassifierTest {
     @Test
     void CompletionStage_of_CallToolResult_unwraps_to_passthrough_mapper_with_no_schema() {
       var c = classify(CompletionStageOfCallToolResultBean.class);
-      assertThat(c.async()).isTrue();
+      assertThat(c.asyncDepth()).isEqualTo(1);
       assertThat(c.mapper()).isSameAs(PassthroughResultMapper.INSTANCE);
       assertThat(c.outputSchema()).isNull();
     }
@@ -263,7 +263,7 @@ class ToolReturnTypeClassifierTest {
     @Test
     void CompletionStage_of_String_unwraps_to_text_mapper_with_no_schema() {
       var c = classify(CompletionStageOfStringBean.class);
-      assertThat(c.async()).isTrue();
+      assertThat(c.asyncDepth()).isEqualTo(1);
       assertThat(c.mapper()).isSameAs(TextContentResultMapper.INSTANCE);
       assertThat(c.outputSchema()).isNull();
     }
@@ -289,39 +289,41 @@ class ToolReturnTypeClassifierTest {
       assertThatThrownBy(
               () -> ToolReturnTypeClassifier.classify(bean, rawMethod, generator, mapper))
           .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("raw")
-          .hasMessageContaining("no type argument");
+          .hasMessageContaining("no concrete type argument");
     }
 
     @Test
     void wildcard_CompletionStage_is_rejected() {
       assertThatThrownBy(() -> classify(WildcardCompletionStageBean.class))
           .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("wildcard");
+          .hasMessageContaining("no concrete type argument");
     }
 
     @Test
     void unresolved_type_variable_CompletionStage_is_rejected() {
-      // A generic method like `public <T> CompletionStage<T> m()` has a TypeVariable inner type —
-      // there's no concrete class to derive a schema from, so classify must reject it with a
-      // dedicated message rather than misfiring later in the schema generator.
+      // `public <T> CompletionStage<T> m()` has a TypeVariable inner type — no concrete class to
+      // derive a schema from, so classify rejects it under the same "non-concrete" umbrella.
       assertThatThrownBy(() -> classify(TypeVariableCompletionStageBean.class))
           .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("type variable");
+          .hasMessageContaining("no concrete type argument");
     }
 
     @Test
-    void nested_CompletionStage_is_rejected() {
-      assertThatThrownBy(() -> classify(NestedCompletionStageBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("nested CompletionStage");
+    void nested_CompletionStage_unwraps_recursively_to_the_inner_concrete_type() {
+      // The classifier peels off CompletionStage layers until a non-stage type appears, so
+      // CompletionStage<CompletionStage<Person>> classifies as a structured Person with
+      // asyncDepth == 2. The handler builder installs one await interceptor per layer.
+      var c = classify(NestedCompletionStageBean.class);
+      assertThat(c.asyncDepth()).isEqualTo(2);
+      assertThat(c.mapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(c.outputSchema().get("type").asString()).isEqualTo("object");
     }
 
     @Test
-    void CompletableFuture_wrapping_CompletionStage_is_also_rejected_as_nested() {
-      assertThatThrownBy(() -> classify(FutureOfStageBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("nested CompletionStage");
+    void CompletableFuture_wrapping_CompletionStage_unwraps_to_depth_two_as_well() {
+      var c = classify(FutureOfStageBean.class);
+      assertThat(c.asyncDepth()).isEqualTo(2);
+      assertThat(c.mapper()).isInstanceOf(StructuredResultMapper.class);
     }
   }
 

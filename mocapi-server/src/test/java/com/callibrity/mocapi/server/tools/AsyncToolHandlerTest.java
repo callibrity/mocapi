@@ -152,6 +152,54 @@ class AsyncToolHandlerTest {
   }
 
   @Nested
+  class Nested_CompletionStage_layers {
+
+    @Test
+    void doubly_nested_stage_unwraps_through_two_await_interceptors_to_yield_the_inner_value() {
+      // CompletionStage<CompletionStage<Widget>>: two await interceptors stacked, each peels
+      // one layer. Verifies the recursive design end-to-end through CallToolHandlers.build.
+      var handler = buildHandler(new DoublyNestedStageTool(), false);
+      Object result = handler.call(mapper.createObjectNode());
+      assertThat(result).isInstanceOf(Widget.class);
+      assertThat(((Widget) result).name()).isEqualTo("nested");
+    }
+
+    @Test
+    void doubly_nested_stage_installs_two_await_interceptors_in_the_handler_chain() {
+      var handler = buildHandler(new DoublyNestedStageTool(), false);
+      long awaitCount =
+          handler.describe().interceptors().stream()
+              .filter(s -> s.equals("Awaits the tool's CompletionStage return value"))
+              .count();
+      assertThat(awaitCount).isEqualTo(2);
+    }
+
+    @Test
+    void triply_nested_stage_unwraps_through_three_await_interceptors() {
+      var handler = buildHandler(new TriplyNestedStageTool(), false);
+      Object result = handler.call(mapper.createObjectNode());
+      assertThat(result).isInstanceOf(Widget.class);
+      assertThat(((Widget) result).name()).isEqualTo("deep");
+      long awaitCount =
+          handler.describe().interceptors().stream()
+              .filter(s -> s.equals("Awaits the tool's CompletionStage return value"))
+              .count();
+      assertThat(awaitCount).isEqualTo(3);
+    }
+
+    @Test
+    void doubly_nested_stage_runs_output_schema_validation_against_the_innermost_value() {
+      // Output validator sits OUTSIDE both await interceptors, so when validateOutput=true the
+      // schema check sees the unwrapped Widget — not a CompletionStage of any depth.
+      var handler = buildHandler(new DoublyNestedNullFieldTool(), true);
+      assertThatThrownBy(() -> handler.call(mapper.createObjectNode()))
+          .isInstanceOfSatisfying(
+              JsonRpcException.class,
+              e -> assertThat(e.getCode()).isEqualTo(JsonRpcProtocol.INTERNAL_ERROR));
+    }
+  }
+
+  @Nested
   class Async_failure_paths {
 
     @Test
@@ -245,6 +293,31 @@ class AsyncToolHandlerTest {
     public CompletionStage<Widget> make() {
       return CompletableFuture.failedFuture(
           new JsonRpcException(JsonRpcErrorCodes.FORBIDDEN, "nope"));
+    }
+  }
+
+  static class DoublyNestedStageTool {
+    @McpTool
+    public CompletionStage<CompletionStage<Widget>> make() {
+      return CompletableFuture.completedFuture(
+          CompletableFuture.completedFuture(new Widget("nested", 2)));
+    }
+  }
+
+  static class TriplyNestedStageTool {
+    @McpTool
+    public CompletionStage<CompletionStage<CompletionStage<Widget>>> make() {
+      return CompletableFuture.completedFuture(
+          CompletableFuture.completedFuture(
+              CompletableFuture.completedFuture(new Widget("deep", 3))));
+    }
+  }
+
+  static class DoublyNestedNullFieldTool {
+    @McpTool
+    public CompletionStage<CompletionStage<Widget>> make() {
+      return CompletableFuture.completedFuture(
+          CompletableFuture.completedFuture(new Widget(null, 1)));
     }
   }
 }
