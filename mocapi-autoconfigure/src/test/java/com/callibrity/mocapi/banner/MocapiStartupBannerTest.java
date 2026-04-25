@@ -275,7 +275,7 @@ class MocapiStartupBannerTest {
       try {
         Class<?> type = Class.forName(fqcn);
         when(ctx.getBeanNamesForType(type)).thenReturn(new String[] {"bean"});
-      } catch (ClassNotFoundException e) {
+      } catch (ClassNotFoundException _) {
         // Class not on test classpath — banner's own try/catch handles this case; nothing to stub.
       }
       return this;
@@ -319,13 +319,21 @@ class MocapiStartupBannerTest {
     }
   }
 
-  /** Concrete McpSessionStore so the banner reports its simple name as "TestSessionStore". */
+  /**
+   * Concrete McpSessionStore so the banner reports its simple name as "TestSessionStore". The
+   * banner only ever calls {@code getClass().getSimpleName()} on the store, so every persistence
+   * operation here is intentionally a no-op stub.
+   */
   static class TestSessionStore implements McpSessionStore {
     @Override
-    public void save(McpSession session, Duration ttl) {}
+    public void save(McpSession session, Duration ttl) {
+      // no-op: banner never invokes this
+    }
 
     @Override
-    public void update(String sessionId, McpSession session) {}
+    public void update(String sessionId, McpSession session) {
+      // no-op: banner never invokes this
+    }
 
     @Override
     public Optional<McpSession> find(String sessionId) {
@@ -333,9 +341,13 @@ class MocapiStartupBannerTest {
     }
 
     @Override
-    public void touch(String sessionId, Duration ttl) {}
+    public void touch(String sessionId, Duration ttl) {
+      // no-op: banner never invokes this
+    }
 
     @Override
-    public void delete(String sessionId) {}
+    public void delete(String sessionId) {
+      // no-op: banner never invokes this
+    }
   }
 }

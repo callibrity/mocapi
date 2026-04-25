@@ -84,7 +84,11 @@ public class MocapiStartupBanner {
 
   @EventListener(ApplicationReadyEvent.class)
   public void onReady() {
-    log.info("\n{}", render());
+    // Guard the render() call with isInfoEnabled — the banner's render is non-trivial (bean
+    // lookups + string formatting), so it's worth skipping when INFO is filtered out.
+    if (log.isInfoEnabled()) {
+      log.info("\n{}", render());
+    }
   }
 
   /** Builds the banner text. Package-private so tests can assert against the formatted output. */
@@ -178,7 +182,7 @@ public class MocapiStartupBanner {
     try {
       Class<?> type = Class.forName(fqcn, false, MocapiStartupBanner.class.getClassLoader());
       return ctx.getBeanNamesForType(type).length > 0;
-    } catch (ClassNotFoundException e) {
+    } catch (ClassNotFoundException _) {
       return false;
     }
   }
