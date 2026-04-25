@@ -98,41 +98,10 @@ public final class CallToolHandlers {
     ObjectNode inputSchema = generator.generateInputSchema(bean, method);
 
     ResultType resultType = findResultType(bean, method);
-    ResultMapper resultMapper;
-    ObjectNode outputSchema = null;
-    if (resultType.isVoid()) {
-      resultMapper = VoidResultMapper.INSTANCE;
-    } else if (resultType.isCallToolResult()) {
-      resultMapper = PassthroughResultMapper.INSTANCE;
-    } else if (resultType.isCharSequence()) {
-      resultMapper = TextContentResultMapper.INSTANCE;
-    } else {
-      outputSchema = generator.generateSchema(resultType.rawType());
-      String schemaType =
-          outputSchema.get("type") == null ? "(none)" : outputSchema.get("type").asString();
-      if (!"object".equals(schemaType)) {
-        throw rejectReturnType(
-            bean,
-            method,
-            "return type "
-                + resultType.rawType().getName()
-                + " produces a JSON schema of type \""
-                + schemaType
-                + "\"; structuredContent must be a JSON object. Wrap the value in a record/POJO, "
-                + "or return CallToolResult to build the result manually.");
-      }
-      if (outputSchema.get("properties") == null) {
-        throw rejectReturnType(
-            bean,
-            method,
-            "return type "
-                + resultType.rawType().getName()
-                + " produces an object schema with no declared properties ("
-                + outputSchema
-                + "). Use a concrete record/class with named fields, or return CallToolResult.");
-      }
-      resultMapper = new StructuredResultMapper(objectMapper);
-    }
+    MapperAndSchema mapperAndSchema =
+        createResultMapper(resultType, bean, method, generator, objectMapper);
+    ResultMapper resultMapper = mapperAndSchema.mapper();
+    ObjectNode outputSchema = mapperAndSchema.outputSchema();
 
     Tool descriptor = new Tool(name, title, description, inputSchema, outputSchema);
     Schema compiledInputSchema = compile(inputSchema);
@@ -167,6 +136,55 @@ public final class CallToolHandlers {
     return new CallToolHandler(
         descriptor, method, bean, invoker, List.copyOf(state.guards), resultMapper);
   }
+
+  /**
+   * Picks the {@link ResultMapper} that fits the classified return type and (for the structured
+   * branch only) generates and validates the advertised output schema. Returns both pieces; the
+   * non-structured branches return a {@code null} schema.
+   */
+  private static MapperAndSchema createResultMapper(
+      ResultType resultType,
+      Object bean,
+      Method method,
+      MethodSchemaGenerator generator,
+      ObjectMapper objectMapper) {
+    if (resultType.isVoid()) {
+      return new MapperAndSchema(VoidResultMapper.INSTANCE, null);
+    }
+    if (resultType.isCallToolResult()) {
+      return new MapperAndSchema(PassthroughResultMapper.INSTANCE, null);
+    }
+    if (resultType.isCharSequence()) {
+      return new MapperAndSchema(TextContentResultMapper.INSTANCE, null);
+    }
+    ObjectNode outputSchema = generator.generateSchema(resultType.rawType());
+    String schemaType =
+        outputSchema.get("type") == null ? "(none)" : outputSchema.get("type").asString();
+    if (!"object".equals(schemaType)) {
+      throw rejectReturnType(
+          bean,
+          method,
+          "return type "
+              + resultType.rawType().getName()
+              + " produces a JSON schema of type \""
+              + schemaType
+              + "\"; structuredContent must be a JSON object. Wrap the value in a record/POJO, "
+              + "or return CallToolResult to build the result manually.");
+    }
+    if (outputSchema.get("properties") == null) {
+      throw rejectReturnType(
+          bean,
+          method,
+          "return type "
+              + resultType.rawType().getName()
+              + " produces an object schema with no declared properties ("
+              + outputSchema
+              + "). Use a concrete record/class with named fields, or return CallToolResult.");
+    }
+    return new MapperAndSchema(new StructuredResultMapper(objectMapper), outputSchema);
+  }
+
+  private record MapperAndSchema(ResultMapper mapper, ObjectNode outputSchema) {}
 
   /**
    * Walks a method's declared return type, peeling {@link CompletionStage} layers until a non-stage
