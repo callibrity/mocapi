@@ -12,3 +12,4 @@ com.callibrity.mocapi.audit.MocapiAuditAutoConfiguration
 com.callibrity.mocapi.jakarta.MocapiJakartaValidationAutoConfiguration
 com.callibrity.mocapi.actuator.MocapiActuatorAutoConfiguration
 com.callibrity.mocapi.security.spring.autoconfigure.MocapiSpringSecurityGuardsAutoConfiguration
+com.callibrity.mocapi.banner.MocapiStartupBannerAutoConfiguration

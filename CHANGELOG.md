@@ -6,6 +6,19 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- **Startup banner.** A new `MocapiStartupBanner` logs an ASCII-art
+  `mocapi` block plus a one-shot summary of the running configuration
+  when the application becomes ready — registered tool/prompt/resource
+  counts, the active transport (with endpoint path), the session-store
+  backend, OAuth2 state, and any observability modules. Discovery is
+  bean-presence driven via runtime class lookup so the banner has no
+  hard classpath dependency on optional starters; each line gracefully
+  collapses to a sensible default when the backing module is absent.
+  Gated by `mocapi.banner.enabled` (default `true`); set to `false` to
+  suppress.
+
 ### Changed
 
 - **Strict tool return-type contract (breaking).** `@McpTool` method
