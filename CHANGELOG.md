@@ -26,16 +26,17 @@ All notable changes to this project are documented in this file. The format is b
   once into one of four permitted shapes; the old runtime type switch
   in `McpToolsService.toCallToolResult` is gone, and every handler
   carries a pre-selected `ResultMapper`. Permitted shapes (applied to
-  the effective type after unwrapping one layer of `CompletionStage`):
-  (1) `void`/`Void` → empty `CallToolResult`; (2) `CallToolResult` →
-  passthrough, author owns the result; (3) `CharSequence` (including
-  `String`) → single text content block, no structured content; (4) a
-  record/POJO whose Jackson-derived schema is `type: "object"` with
-  declared properties → advertised as `outputSchema`, serialized into
-  `structuredContent`. Everything else (`List<T>`, `Map<K,V>`,
-  primitives, arrays, `Optional<T>`, `JsonNode`/`ObjectNode`, raw or
-  nested `CompletionStage`, empty records, …) fails to register with a
-  message naming the offending type and suggesting a fix. Previously,
+  the effective type after recursively peeling any number of
+  `CompletionStage` layers): (1) `void`/`Void` → empty `CallToolResult`;
+  (2) `CallToolResult` → passthrough, author owns the result; (3)
+  `CharSequence` (including `String`) → single text content block, no
+  structured content; (4) a record/POJO whose Jackson-derived schema is
+  `type: "object"` with declared properties → advertised as
+  `outputSchema`, serialized into `structuredContent`. Everything else
+  (`List<T>`, `Map<K,V>`, primitives, arrays, `Optional<T>`,
+  `JsonNode`/`ObjectNode`, raw/wildcard `CompletionStage`, empty
+  records, …) fails to register with a message naming the offending
+  type and suggesting a fix. Previously,
   non-object returns silently advertised a misleading `outputSchema`
   and/or shipped `structuredContent = null` in violation of the MCP
   spec; the new contract makes those mistakes impossible.
@@ -45,9 +46,12 @@ All notable changes to this project are documented in this file. The format is b
 - **`CompletionStage<T>` / `CompletableFuture<T>` tool return types.**
   Mocapi awaits the future on an innermost
   `CompletionStageAwaitingInterceptor` and applies the same mapping
-  rules to the awaited value. `CompletionException` is unwrapped so
-  domain exceptions surface with their original type. Raw and nested
-  `CompletionStage` declarations are rejected at registration.
+  rules to the awaited value. The interceptor loops, so any depth of
+  nesting (`CompletionStage<CompletionStage<X>>` etc.) is unwrapped
+  inside-out by a single instance. `CompletionException` is unwrapped
+  so domain exceptions surface with their original type. Raw and
+  wildcard `CompletionStage` declarations are rejected at registration
+  (no concrete inner type to derive a schema from).
 - **`CharSequence` return type shortcut.** Tools that want to return
   plain text can declare `String` (or any `CharSequence`) and mocapi
   produces a text-only `CallToolResult` — no need to hand-build a
