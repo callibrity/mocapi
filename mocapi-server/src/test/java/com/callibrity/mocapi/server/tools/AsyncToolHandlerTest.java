@@ -165,17 +165,19 @@ class AsyncToolHandlerTest {
     }
 
     @Test
-    void doubly_nested_stage_installs_two_await_interceptors_in_the_handler_chain() {
+    void doubly_nested_stage_installs_exactly_one_await_interceptor() {
+      // The interceptor itself loops to peel any depth of nesting, so we install only one
+      // regardless of how many layers the declared return type has.
       var handler = buildHandler(new DoublyNestedStageTool(), false);
       long awaitCount =
           handler.describe().interceptors().stream()
               .filter(s -> s.equals("Awaits the tool's CompletionStage return value"))
               .count();
-      assertThat(awaitCount).isEqualTo(2);
+      assertThat(awaitCount).isEqualTo(1);
     }
 
     @Test
-    void triply_nested_stage_unwraps_through_three_await_interceptors() {
+    void triply_nested_stage_unwraps_through_a_single_looping_await_interceptor() {
       var handler = buildHandler(new TriplyNestedStageTool(), false);
       Object result = handler.call(mapper.createObjectNode());
       assertThat(result).isInstanceOf(Widget.class);
@@ -184,7 +186,7 @@ class AsyncToolHandlerTest {
           handler.describe().interceptors().stream()
               .filter(s -> s.equals("Awaits the tool's CompletionStage return value"))
               .count();
-      assertThat(awaitCount).isEqualTo(3);
+      assertThat(awaitCount).isEqualTo(1);
     }
 
     @Test

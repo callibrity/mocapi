@@ -167,15 +167,13 @@ class CompletionStageAwaitingInterceptorTest {
     }
 
     @Test
-    void non_CompletionStage_non_null_return_is_an_invariant_violation_and_throws() {
-      // If registration did its job, a handler that's wrapped by the await interceptor always
-      // returns a CompletionStage. Any other non-null value means something upstream is wrong —
-      // fail loudly rather than silently passing it through.
-      MethodInvocation<JsonNode> invocation = invocationReturning("not a stage");
-      assertThatThrownBy(() -> interceptor.intercept(invocation))
-          .isInstanceOf(IllegalStateException.class)
-          .hasMessageContaining("CompletionStage")
-          .hasMessageContaining("java.lang.String");
+    void non_CompletionStage_non_null_return_falls_through_unchanged() {
+      // The loop-based interceptor doesn't enforce that the return is a CompletionStage — if a
+      // non-stage value bubbles up (which shouldn't happen given registration's classification,
+      // but defends against runtime surprises) it just passes through and the downstream mapper
+      // handles it.
+      Object out = interceptor.intercept(invocationReturning("not a stage"));
+      assertThat(out).isEqualTo("not a stage");
     }
   }
 

@@ -22,6 +22,7 @@ import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefau
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
+import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardEvaluationInterceptor;
@@ -32,9 +33,13 @@ import com.github.erosb.jsonsKema.Schema;
 import com.github.erosb.jsonsKema.SchemaLoader;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 import java.util.function.UnaryOperator;
+import org.apache.commons.lang3.reflect.TypeUtils;
 import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.ParameterResolver;
@@ -65,13 +70,13 @@ public final class CallToolHandlers {
    * adjacent to the input validator to enforce that the tool's return value matches its declared
    * output schema.
    *
-   * <p>{@link ToolReturnTypeClassifier} inspects the method's declared return type up front and
-   * picks a single {@link ResultMapper} for the handler; tools whose return type isn't one of the
-   * three permitted shapes (void, {@link com.callibrity.mocapi.model.CallToolResult}, or an
-   * object-schema POJO) fail to register here with a clear message. When the declared return type
-   * is a {@link java.util.concurrent.CompletionStage}, a {@link CompletionStageAwaitingInterceptor}
-   * is installed as the innermost interceptor so every other stratum — including output-schema
-   * validation — sees the unwrapped value rather than the future.
+   * <p>The method's declared return type is classified up front by {@link #findResultType} and the
+   * surrounding dispatch ladder; tools whose return type isn't one of the four permitted shapes
+   * (void, {@link CallToolResult}, {@link CharSequence}, or a POJO with an object-shaped schema)
+   * fail to register here with a clear message. When the declared return type contains any {@link
+   * java.util.concurrent.CompletionStage} layer, a single {@link
+   * CompletionStageAwaitingInterceptor} is installed as the innermost interceptor so every other
+   * stratum — including output-schema validation — sees the unwrapped value rather than a stage.
    */
   public static CallToolHandler build(
       Object bean,
@@ -91,10 +96,47 @@ public final class CallToolHandlers {
         resolveOrDefault(
             valueResolver, annotation.description(), () -> humanReadableName(bean, method));
     ObjectNode inputSchema = generator.generateInputSchema(bean, method);
-    ToolReturnTypeClassifier.Classification classification =
-        ToolReturnTypeClassifier.classify(bean, method, generator, objectMapper);
-    Tool descriptor =
-        new Tool(name, title, description, inputSchema, classification.outputSchema());
+
+    ResultType resultType = findResultType(bean, method);
+    Class<?> rawType = resultType.rawType();
+    boolean async = resultType.async();
+    ResultMapper resultMapper;
+    ObjectNode outputSchema = null;
+    if (rawType == void.class || rawType == Void.class) {
+      resultMapper = VoidResultMapper.INSTANCE;
+    } else if (rawType == CallToolResult.class) {
+      resultMapper = PassthroughResultMapper.INSTANCE;
+    } else if (CharSequence.class.isAssignableFrom(rawType)) {
+      resultMapper = TextContentResultMapper.INSTANCE;
+    } else {
+      outputSchema = generator.generateSchema(rawType);
+      String schemaType =
+          outputSchema.get("type") == null ? "(none)" : outputSchema.get("type").asString();
+      if (!"object".equals(schemaType)) {
+        throw rejectReturnType(
+            bean,
+            method,
+            "return type "
+                + rawType.getName()
+                + " produces a JSON schema of type \""
+                + schemaType
+                + "\"; structuredContent must be a JSON object. Wrap the value in a record/POJO, "
+                + "or return CallToolResult to build the result manually.");
+      }
+      if (outputSchema.get("properties") == null) {
+        throw rejectReturnType(
+            bean,
+            method,
+            "return type "
+                + rawType.getName()
+                + " produces an object schema with no declared properties ("
+                + outputSchema
+                + "). Use a concrete record/class with named fields, or return CallToolResult.");
+      }
+      resultMapper = new StructuredResultMapper(objectMapper);
+    }
+
+    Tool descriptor = new Tool(name, title, description, inputSchema, outputSchema);
     Schema compiledInputSchema = compile(inputSchema);
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
@@ -111,23 +153,59 @@ public final class CallToolHandlers {
       builder.interceptor(new GuardEvaluationInterceptor(state.guards));
     }
     builder.interceptor(new InputSchemaValidatingInterceptor(compiledInputSchema));
-    if (validateOutput && classification.outputSchema() != null) {
+    if (validateOutput && outputSchema != null) {
       builder.interceptor(
-          new OutputSchemaValidatingInterceptor(
-              compile(classification.outputSchema()), objectMapper));
+          new OutputSchemaValidatingInterceptor(compile(outputSchema), objectMapper));
     }
     state.validation.forEach(builder::interceptor);
     state.invocation.forEach(builder::interceptor);
-    // Innermost: install one CompletionStageAwaitingInterceptor per layer of CompletionStage
-    // wrapping the effective return type. Each interceptor's join() peels one layer; chained
-    // together they unwrap nested stages inside-out so every outer interceptor (output validator,
-    // validation/invocation customizer strata) sees the awaited value rather than a stage.
-    for (int i = 0; i < classification.asyncDepth(); i++) {
+    if (async) {
+      // Innermost: a single CompletionStageAwaitingInterceptor loops to peel any depth of
+      // nesting, so every outer interceptor (output validator, validation/invocation customizer
+      // strata) sees the awaited value rather than a stage.
       builder.interceptor(new CompletionStageAwaitingInterceptor());
     }
     MethodInvoker<JsonNode> invoker = builder.build();
     return new CallToolHandler(
-        descriptor, method, bean, invoker, List.copyOf(state.guards), classification.mapper());
+        descriptor, method, bean, invoker, List.copyOf(state.guards), resultMapper);
+  }
+
+  /**
+   * Walks a method's declared return type, peeling {@link CompletionStage} layers until a non-stage
+   * type is reached. Each {@code CompletionStage} layer must carry a concrete type argument (a
+   * {@link Class} or a {@link ParameterizedType}); raw, wildcard, and unresolved type variables are
+   * rejected because there's no shape to derive a schema from.
+   */
+  static ResultType findResultType(Object bean, Method method) {
+    Class<?> beanClass = bean.getClass();
+    Type type = method.getGenericReturnType();
+    Class<?> rawType = TypeUtils.getRawType(type, beanClass);
+    boolean async = false;
+    while (CompletionStage.class.isAssignableFrom(rawType)) {
+      if (!(type instanceof ParameterizedType p)
+          || !(p.getActualTypeArguments()[0] instanceof Class<?>
+              || p.getActualTypeArguments()[0] instanceof ParameterizedType)) {
+        throw rejectReturnType(
+            bean,
+            method,
+            "CompletionStage with no concrete type argument ("
+                + type.getTypeName()
+                + "). Declare a concrete inner type, e.g. CompletionStage<MyRecord>.");
+      }
+      type = p.getActualTypeArguments()[0];
+      rawType = TypeUtils.getRawType(type, beanClass);
+      async = true;
+    }
+    return new ResultType(rawType, async);
+  }
+
+  /** Effective tool return type after stripping any {@link CompletionStage} wrapping. */
+  record ResultType(Class<?> rawType, boolean async) {}
+
+  private static IllegalArgumentException rejectReturnType(
+      Object bean, Method method, String reason) {
+    return new IllegalArgumentException(
+        "@McpTool " + bean.getClass().getName() + "." + method.getName() + ": " + reason);
   }
 
   private static List<ParameterResolver<? super JsonNode>> buildResolvers(

@@ -23,60 +23,50 @@ import org.jwcarman.methodical.MethodInvocation;
 import tools.jackson.databind.JsonNode;
 
 /**
- * Innermost interceptor for async tool handlers. When the reflective call returns a {@link
- * CompletionStage}, this interceptor blocks until the stage completes and unwraps the resulting
- * {@link CompletionException} so domain exceptions surface with their original type — letting outer
- * interceptors (guard short-circuits, output-schema validation, etc.) and {@link
- * McpToolsService#invokeTool} react to the real exception rather than the JDK's wrapper.
+ * Innermost interceptor for async tool handlers. Loops over the result, calling {@code .join()} for
+ * as long as it's a {@link CompletionStage}, so any depth of nested stages (including 1) is
+ * unwrapped down to its terminal value in a single interceptor. Each {@link CompletionException} is
+ * unwrapped so domain exceptions surface with their original type — letting outer interceptors
+ * (guard short-circuits, output-schema validation, etc.) and {@link McpToolsService#invokeTool}
+ * react to the real exception rather than the JDK's wrapper.
  *
- * <p>A {@code null} stage (e.g., a misbehaved async tool that returned a raw {@code null} instead
- * of a completed future) is passed through unchanged. Registration rejects raw and nested {@code
- * CompletionStage} declarations, so a non-{@code CompletionStage} non-null value here is a contract
- * violation and throws {@link IllegalStateException}.
+ * <p>Installed by {@link CallToolHandlers#build} when the declared return type contains at least
+ * one {@link CompletionStage} layer. A {@code null} return (e.g. a misbehaved async tool that
+ * returned a raw {@code null} instead of a completed future) and a non-stage value both fall
+ * through the loop unchanged — the downstream mapper handles whatever bubbles up.
  */
 final class CompletionStageAwaitingInterceptor implements MethodInterceptor<JsonNode> {
-
-  private static final String UNEXPECTED_NON_STAGE_RETURN =
-      "Async tool was expected to return a CompletionStage but returned %s; this is a mocapi "
-          + "invariant violation — registration should have rejected this tool if its declared "
-          + "return type was not a CompletionStage.";
 
   @Override
   public Object intercept(MethodInvocation<? extends JsonNode> invocation) {
     Object result = invocation.proceed();
-    if (result == null) {
-      return null;
+    // Peel CompletionStage layers in a loop. The classifier guarantees the declared return type
+    // resolves to a non-stage after some number of unwraps; runtime values may surprise us
+    // (custom CompletionStage impls returning more stages from join()), but the loop terminates
+    // as soon as a non-stage value appears.
+    while (result instanceof CompletionStage<?> stage) {
+      try {
+        result = stage.toCompletableFuture().join();
+      } catch (CompletionException e) {
+        throw unwrap(e);
+      } catch (CancellationException e) {
+        // Propagate cancellation as-is; outer service catch turns it into an error
+        // CallToolResult so the client sees "tool failed" rather than an opaque 500.
+        throw e;
+      }
     }
-    if (!(result instanceof CompletionStage<?> stage)) {
-      throw new IllegalStateException(
-          String.format(UNEXPECTED_NON_STAGE_RETURN, result.getClass().getName()));
-    }
-    try {
-      return stage.toCompletableFuture().join();
-    } catch (CompletionException e) {
-      throw unwrap(e);
-    } catch (CancellationException e) {
-      // Propagate cancellation as-is; the outer service catch translates it into an error
-      // CallToolResult so the client sees "tool failed" rather than an opaque 500.
-      throw e;
-    }
+    return result;
   }
 
   private static RuntimeException unwrap(CompletionException e) {
-    Throwable cause = e.getCause();
-    if (cause == null) {
-      return e;
-    }
-    if (cause instanceof RuntimeException re) {
-      return re;
-    }
-    if (cause instanceof Error err) {
-      throw err;
-    }
-    // Checked exception: we can't rethrow directly without declaring throws; wrap in a
-    // RuntimeException that preserves the cause so McpToolsService can still surface a useful
-    // error message.
-    return new RuntimeException(cause.getMessage(), cause);
+    return switch (e.getCause()) {
+      case null -> e;
+      case RuntimeException re -> re;
+      case Error err -> throw err;
+      // Checked exception: can't rethrow directly without declaring throws; wrap in a
+      // RuntimeException that preserves the cause so McpToolsService surfaces a useful message.
+      case Throwable t -> new RuntimeException(t.getMessage(), t);
+    };
   }
 
   @Override
