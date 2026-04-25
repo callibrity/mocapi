@@ -1,6 +1,12 @@
-# Mocapi
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo.svg">
+    <img alt="@Mocapi" src="docs/assets/logo.svg" width="360">
+  </picture>
+</p>
 
-**A Spring Boot framework for building [Model Context Protocol (MCP)](https://modelcontextprotocol.io/specification/2025-11-25) servers in Java.**
+<h3 align="center">A Spring Boot framework for building <a href="https://modelcontextprotocol.io/specification/2025-11-25">Model Context Protocol (MCP)</a> servers in Java.</h3>
 
 Define tools, prompts, and resources as annotated Spring beans. Pull in optional modules for OAuth2, per-handler authorization, Jakarta Bean Validation, structured audit logs, Micrometer observations, MDC correlation, an `/actuator/mcp` inventory endpoint, multi-node session storage, and GraalVM native-image support — all wired through one customizer SPI.
 

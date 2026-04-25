@@ -48,7 +48,7 @@ public class MocapiStartupBanner {
   private static final Logger log = LoggerFactory.getLogger(MocapiStartupBanner.class);
 
   // FIGlet "Standard" font, matched roughly to Spring Boot's banner weight. The trailing tagline
-  // line keeps "@mocapi" grep-able so ops can locate the banner in mixed log streams.
+  // line keeps "@Mocapi" grep-able so ops can locate the banner in mixed log streams.
   private static final String ASCII_ART =
       """
         __  __                       _\s
@@ -109,8 +109,8 @@ public class MocapiStartupBanner {
   private static String headline() {
     String version = MocapiStartupBanner.class.getPackage().getImplementationVersion();
     return version == null
-        ? " :: @mocapi :: ready"
-        : " :: @mocapi :: ready                  (v" + version + ")";
+        ? " :: @Mocapi :: ready"
+        : " :: @Mocapi :: ready                  (v" + version + ")";
   }
 
   private int toolCount() {

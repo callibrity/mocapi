@@ -59,8 +59,8 @@ class MocapiStartupBannerTest {
     @Test
     void includes_a_recognizable_grep_anchor_below_the_art() {
       String banner = banner().build().render();
-      // ":: @mocapi :: ready" is the stable string ops grep for in mixed log streams.
-      assertThat(banner).contains(":: @mocapi :: ready");
+      // ":: @Mocapi :: ready" is the stable string ops grep for in mixed log streams.
+      assertThat(banner).contains(":: @Mocapi :: ready");
     }
   }
 
