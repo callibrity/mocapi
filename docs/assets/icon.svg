@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img">
+  <title>Mocapi icon</title>
+  <desc>A yellow @ symbol on a dark plum rounded square.</desc>
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#360D2D"/>
+  <text x="32" y="43" text-anchor="middle" font-family="ui-monospace, 'Cascadia Code', 'Fira Code', 'SF Mono', 'Menlo', 'Consolas', monospace" font-size="38" font-weight="700" fill="#FFCD00">@</text>
+</svg>
