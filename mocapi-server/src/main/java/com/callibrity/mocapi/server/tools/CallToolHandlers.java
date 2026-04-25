@@ -98,18 +98,16 @@ public final class CallToolHandlers {
     ObjectNode inputSchema = generator.generateInputSchema(bean, method);
 
     ResultType resultType = findResultType(bean, method);
-    Class<?> rawType = resultType.rawType();
-    boolean async = resultType.async();
     ResultMapper resultMapper;
     ObjectNode outputSchema = null;
-    if (rawType == void.class || rawType == Void.class) {
+    if (resultType.isVoid()) {
       resultMapper = VoidResultMapper.INSTANCE;
-    } else if (rawType == CallToolResult.class) {
+    } else if (resultType.isCallToolResult()) {
       resultMapper = PassthroughResultMapper.INSTANCE;
-    } else if (CharSequence.class.isAssignableFrom(rawType)) {
+    } else if (resultType.isCharSequence()) {
       resultMapper = TextContentResultMapper.INSTANCE;
     } else {
-      outputSchema = generator.generateSchema(rawType);
+      outputSchema = generator.generateSchema(resultType.rawType());
       String schemaType =
           outputSchema.get("type") == null ? "(none)" : outputSchema.get("type").asString();
       if (!"object".equals(schemaType)) {
@@ -117,7 +115,7 @@ public final class CallToolHandlers {
             bean,
             method,
             "return type "
-                + rawType.getName()
+                + resultType.rawType().getName()
                 + " produces a JSON schema of type \""
                 + schemaType
                 + "\"; structuredContent must be a JSON object. Wrap the value in a record/POJO, "
@@ -128,7 +126,7 @@ public final class CallToolHandlers {
             bean,
             method,
             "return type "
-                + rawType.getName()
+                + resultType.rawType().getName()
                 + " produces an object schema with no declared properties ("
                 + outputSchema
                 + "). Use a concrete record/class with named fields, or return CallToolResult.");
@@ -159,7 +157,7 @@ public final class CallToolHandlers {
     }
     state.validation.forEach(builder::interceptor);
     state.invocation.forEach(builder::interceptor);
-    if (async) {
+    if (resultType.async()) {
       // Innermost: a single CompletionStageAwaitingInterceptor loops to peel any depth of
       // nesting, so every outer interceptor (output validator, validation/invocation customizer
       // strata) sees the awaited value rather than a stage.
@@ -199,8 +197,25 @@ public final class CallToolHandlers {
     return new ResultType(rawType, async);
   }
 
-  /** Effective tool return type after stripping any {@link CompletionStage} wrapping. */
-  record ResultType(Class<?> rawType, boolean async) {}
+  /**
+   * Effective tool return type after stripping any {@link CompletionStage} wrapping. The {@code
+   * is*} predicates name the four dispatch dimensions used by {@link #build}; an effective type
+   * that matches none of them goes through structured-schema generation.
+   */
+  record ResultType(Class<?> rawType, boolean async) {
+
+    boolean isVoid() {
+      return rawType == void.class || rawType == Void.class;
+    }
+
+    boolean isCallToolResult() {
+      return rawType == CallToolResult.class;
+    }
+
+    boolean isCharSequence() {
+      return CharSequence.class.isAssignableFrom(rawType);
+    }
+  }
 
   private static IllegalArgumentException rejectReturnType(
       Object bean, Method method, String reason) {
