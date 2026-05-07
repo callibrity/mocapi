@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-05-07
+
 ### Added
 
 - **Startup banner.** A new `MocapiStartupBanner` logs an ASCII-art
@@ -1248,7 +1250,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.14.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.15.0...HEAD
+[0.15.0]: https://github.com/callibrity/mocapi/releases/tag/0.15.0
 [0.14.0]: https://github.com/callibrity/mocapi/releases/tag/0.14.0
 [0.13.0]: https://github.com/callibrity/mocapi/releases/tag/0.13.0
 [0.12.1]: https://github.com/callibrity/mocapi/releases/tag/0.12.1
