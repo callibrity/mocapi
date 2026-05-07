@@ -6,6 +6,34 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-05-07
+
+### Changed
+
+- **Tool input/output schemas now mark fields as required by default.**
+  When a tool is declared with `@McpToolParams` on a record (or any
+  Jackson-deserializable type), every component is now listed in the
+  generated input schema's `required` array unless it is explicitly
+  opted out. The same applies to record-shaped output schemas. The
+  previous behavior emitted no `required` array at all for these
+  shapes, which was misleading: tool authors writing
+  `record HelloRequest(String firstName, String lastName)` clearly
+  meant both fields to be required, but the schema told clients they
+  were optional. The new policy mirrors the per-parameter path that
+  has always been required-by-default.
+
+  **Opt-outs (any one of these makes a field optional):**
+  - declare the type as `Optional<T>`,
+  - annotate with `@jakarta.annotation.Nullable`, or
+  - annotate with `@io.swagger.v3.oas.annotations.media.Schema(requiredMode = NOT_REQUIRED)`.
+
+  **Migration.** If you have a record component that was implicitly
+  optional under the old behavior, switch its type to `Optional<T>`
+  (the most idiomatic option), or add `@Nullable` /
+  `@Schema(requiredMode = NOT_REQUIRED)`. Clients that were sending
+  requests missing such fields will otherwise be rejected at schema
+  validation time once you upgrade.
+
 ## [0.16.0] - 2026-05-07
 
 ### Changed
@@ -1264,7 +1292,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.16.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.17.0...HEAD
+[0.17.0]: https://github.com/callibrity/mocapi/releases/tag/0.17.0
 [0.16.0]: https://github.com/callibrity/mocapi/releases/tag/0.16.0
 [0.15.0]: https://github.com/callibrity/mocapi/releases/tag/0.15.0
 [0.14.0]: https://github.com/callibrity/mocapi/releases/tag/0.14.0
