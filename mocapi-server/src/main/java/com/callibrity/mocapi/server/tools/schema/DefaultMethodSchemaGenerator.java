@@ -17,6 +17,7 @@ package com.callibrity.mocapi.server.tools.schema;
 
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
+import com.github.victools.jsonschema.generator.FieldScope;
 import com.github.victools.jsonschema.generator.OptionPreset;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
@@ -24,10 +25,13 @@ import com.github.victools.jsonschema.generator.SchemaVersion;
 import com.github.victools.jsonschema.module.jackson.JacksonSchemaModule;
 import com.github.victools.jsonschema.module.jakarta.validation.JakartaValidationModule;
 import com.github.victools.jsonschema.module.swagger2.Swagger2Module;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.util.Arrays;
+import java.util.Optional;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -43,13 +47,24 @@ public class DefaultMethodSchemaGenerator implements MethodSchemaGenerator {
   private final SchemaGenerator generator;
 
   public DefaultMethodSchemaGenerator(ObjectMapper mapper, SchemaVersion schemaVersion) {
-    this.generator =
-        new SchemaGenerator(
-            new SchemaGeneratorConfigBuilder(mapper, schemaVersion, OptionPreset.PLAIN_JSON)
-                .with(new JacksonSchemaModule())
-                .with(new JakartaValidationModule())
-                .with(new Swagger2Module())
-                .build());
+    var configBuilder =
+        new SchemaGeneratorConfigBuilder(mapper, schemaVersion, OptionPreset.PLAIN_JSON)
+            .with(new JacksonSchemaModule())
+            .with(new JakartaValidationModule())
+            .with(new Swagger2Module());
+    configBuilder.forFields().withRequiredCheck(DefaultMethodSchemaGenerator::isFieldRequired);
+    this.generator = new SchemaGenerator(configBuilder.build());
+  }
+
+  private static boolean isFieldRequired(FieldScope field) {
+    if (Optional.class.isAssignableFrom(field.getType().getErasedType())) {
+      return false;
+    }
+    if (field.getAnnotationConsideringFieldAndGetterIfSupported(Nullable.class) != null) {
+      return false;
+    }
+    Schema schema = field.getAnnotationConsideringFieldAndGetterIfSupported(Schema.class);
+    return schema == null || schema.requiredMode() != Schema.RequiredMode.NOT_REQUIRED;
   }
 
   @Override

@@ -23,6 +23,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Nested;
@@ -40,6 +41,39 @@ class DefaultMethodSchemaGeneratorTest {
   // --- Test fixtures ---
 
   record SimpleParams(String name, int age) {}
+
+  record OptionalParams(String name, Optional<String> nickname) {}
+
+  record NullableAnnotatedParams(String name, @Nullable String nickname) {}
+
+  record SchemaAnnotatedParams(
+      String name, @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED) String nickname) {}
+
+  record HelloResult(String greeting) {}
+
+  static class ToolWithRecordReturn {
+    public HelloResult doWork(@McpToolParams SimpleParams params) {
+      return new HelloResult("hello, " + params.name());
+    }
+  }
+
+  static class ToolWithOptionalRecordParam {
+    public String doWork(@McpToolParams OptionalParams params) {
+      return params.name();
+    }
+  }
+
+  static class ToolWithNullableAnnotatedRecordParam {
+    public String doWork(@McpToolParams NullableAnnotatedParams params) {
+      return params.name();
+    }
+  }
+
+  static class ToolWithSchemaAnnotatedRecordParam {
+    public String doWork(@McpToolParams SchemaAnnotatedParams params) {
+      return params.name();
+    }
+  }
 
   record RequiredParams(
       @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name, String optional) {}
@@ -104,6 +138,59 @@ class DefaultMethodSchemaGeneratorTest {
     }
 
     @Test
+    void marks_every_record_component_as_required_by_default() throws Exception {
+      var target = new ToolWithRecordParam();
+      Method method = ToolWithRecordParam.class.getMethod("doWork", SimpleParams.class);
+
+      ObjectNode schema = generator.generateInputSchema(target, method);
+
+      var required = new ArrayList<String>();
+      schema.get("required").forEach(n -> required.add(n.asString()));
+      assertThat(required).containsExactlyInAnyOrder("name", "age");
+    }
+
+    @Test
+    void omits_optional_record_component_from_required() throws Exception {
+      var target = new ToolWithOptionalRecordParam();
+      Method method = ToolWithOptionalRecordParam.class.getMethod("doWork", OptionalParams.class);
+
+      ObjectNode schema = generator.generateInputSchema(target, method);
+
+      var required = new ArrayList<String>();
+      schema.get("required").forEach(n -> required.add(n.asString()));
+      assertThat(required).containsExactly("name");
+      var properties = (ObjectNode) schema.get("properties");
+      assertThat(properties.has("nickname")).isTrue();
+    }
+
+    @Test
+    void omits_nullable_annotated_record_component_from_required() throws Exception {
+      var target = new ToolWithNullableAnnotatedRecordParam();
+      Method method =
+          ToolWithNullableAnnotatedRecordParam.class.getMethod(
+              "doWork", NullableAnnotatedParams.class);
+
+      ObjectNode schema = generator.generateInputSchema(target, method);
+
+      var required = new ArrayList<String>();
+      schema.get("required").forEach(n -> required.add(n.asString()));
+      assertThat(required).containsExactly("name");
+    }
+
+    @Test
+    void omits_schema_not_required_record_component_from_required() throws Exception {
+      var target = new ToolWithSchemaAnnotatedRecordParam();
+      Method method =
+          ToolWithSchemaAnnotatedRecordParam.class.getMethod("doWork", SchemaAnnotatedParams.class);
+
+      ObjectNode schema = generator.generateInputSchema(target, method);
+
+      var required = new ArrayList<String>();
+      schema.get("required").forEach(n -> required.add(n.asString()));
+      assertThat(required).containsExactly("name");
+    }
+
+    @Test
     void removes_schema_version_from_inner_schema_and_adds_to_outer() throws Exception {
       var target = new ToolWithRecordParam();
       Method method = ToolWithRecordParam.class.getMethod("doWork", SimpleParams.class);
@@ -132,6 +219,22 @@ class DefaultMethodSchemaGeneratorTest {
       var properties = (ObjectNode) schema.get("properties");
       assertThat(properties.has("name")).isTrue();
       assertThat(properties.has("nickname")).isTrue();
+    }
+  }
+
+  @Nested
+  class Generate_output_schema {
+
+    @Test
+    void marks_every_record_component_as_required_by_default() throws Exception {
+      var target = new ToolWithRecordReturn();
+      Method method = ToolWithRecordReturn.class.getMethod("doWork", SimpleParams.class);
+
+      ObjectNode schema = generator.generateOutputSchema(target, method);
+
+      var required = new ArrayList<String>();
+      schema.get("required").forEach(n -> required.add(n.asString()));
+      assertThat(required).containsExactly("greeting");
     }
   }
 
