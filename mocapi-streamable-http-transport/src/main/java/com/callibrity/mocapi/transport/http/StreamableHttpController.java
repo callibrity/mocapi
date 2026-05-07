@@ -155,7 +155,7 @@ public class StreamableHttpController {
         protocolVersion,
         ctx -> {
           server.terminate(ctx);
-          return ResponseEntity.noContent().build();
+          return ResponseEntity.ok().build();
         });
   }
 

@@ -407,7 +407,8 @@ class StreamableHttpControllerTest {
       when(protocol.createContext("session-1", null)).thenReturn(validContext("session-1"));
       var response = controller.handleDelete("session-1", null, null);
 
-      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertThat(response.getBody()).isNull();
       verify(protocol).terminate(any(McpContext.class));
     }
 

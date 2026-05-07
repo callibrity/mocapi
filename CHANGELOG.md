@@ -6,6 +6,20 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-05-07
+
+### Changed
+
+- **`DELETE /mcp` now returns `200 OK` instead of `204 No Content`.**
+  The MCP Streamable HTTP spec only constrains the `405` "I refuse"
+  case for client-initiated session termination; any 2xx is conformant.
+  The official TypeScript SDK returns `200`, and at least one widely
+  used client (the MCP Inspector's proxy) mishandles `204` because its
+  underlying `fetch` implementation rejects the null-body status when
+  the proxy attaches a non-null body. Switching to `200` matches the
+  reference implementation and unblocks those clients without changing
+  semantics — the body is still empty and `terminate()` still runs.
+
 ## [0.15.0] - 2026-05-07
 
 ### Added
@@ -1250,7 +1264,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.15.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/0.16.0...HEAD
+[0.16.0]: https://github.com/callibrity/mocapi/releases/tag/0.16.0
 [0.15.0]: https://github.com/callibrity/mocapi/releases/tag/0.15.0
 [0.14.0]: https://github.com/callibrity/mocapi/releases/tag/0.14.0
 [0.13.0]: https://github.com/callibrity/mocapi/releases/tag/0.13.0
