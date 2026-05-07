@@ -10,9 +10,8 @@ and prompts via `@PromptService`/`@Prompt` as Spring components. The framework h
 JSON-RPC protocol dispatch, JSON schema generation/validation, SSE streaming transport,
 and Spring Boot auto-configuration. It targets the MCP 2025-11-25 spec.
 
-Currently undergoing a major upgrade: Java 25, Spring Boot 4.0.5, removal of the internal
-RipCurl JSON-RPC library, and fixes from a comprehensive code review (see `CODE_REVIEW.md`).
-The implementation plan is at `docs/plans/2026-04-05-java25-spring-boot-ripcurl-removal.md`.
+Currently runs on Java 25 and Spring Boot 4. Architecture decisions are
+captured under `docs/adr/`; living design docs are under `docs/design/`.
 
 ---
 

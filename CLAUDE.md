@@ -8,6 +8,60 @@ Never write or edit code without being explicitly told to do so! You may ask if 
 
 When committing and pushing changes to CLAUDE.md only, include `[skip ci]` in the commit message to avoid triggering CI.
 
+## Documentation layout
+
+Docs live under `docs/` in three trees:
+
+- `docs/guides/` — user-facing how-tos for library consumers.
+- `docs/design/` — living design docs describing the current architecture; updated in lockstep with the code.
+- `docs/adr/` — Architecture Decision Records (point-in-time, status: Accepted/Superseded/etc.). Template at `docs/adr/_template.md`.
+
+The Ralph spec workflow has been retired; the historical specs that
+produced 0.1.0 → 0.17.0 were mined for ADRs and removed from the tree.
+
+### When a change requires an ADR + design-doc update (rule)
+
+**Before writing code for an architecturally significant change, stop and
+produce two artifacts.** "Architecturally significant" means the change
+falls into any of these buckets:
+
+- A new module, or removal/merger of an existing module.
+- A new SPI (interface intended for users to implement) or a
+  backwards-incompatible change to an existing SPI.
+- A new transport, or a change to the `McpServer` ↔ `McpTransport`
+  contract.
+- A change to handler discovery, customizer composition, the stratum
+  ordering, or the descriptor pattern.
+- A change to session storage, mailbox/journal usage, or the Substrate
+  SPI contract.
+- A change to the authorization model (filter chains, Guard semantics,
+  `McpTokenStrategy`, RFC 9728 metadata shape).
+- A change to what mocapi declares not implemented in
+  `docs/adr/0018-*.md` (adding/removing an item from the list).
+- A change to declared MCP capabilities (`subscribe`, `listChanged`, etc.).
+
+For each such change:
+
+1. Add a new ADR under `docs/adr/NNNN-<short-title>.md` using the
+   template (`docs/adr/_template.md`). Status `Accepted`. Date is
+   today's date. Include `**Code anchors:**` pointing at the file(s)
+   the decision manifests as.
+2. Update the affected `docs/design/*.md` to reflect the new state.
+   The design doc should never describe behavior that is no longer
+   true; if a decision changes, the design doc changes in the same
+   PR.
+3. Add the new ADR to the index in `docs/adr/README.md`.
+4. If the new ADR supersedes an existing one, flip the old ADR's
+   status to "Superseded by ADR-NNNN" with a back-link.
+
+Bug fixes, refactors that don't change a public contract, dependency
+bumps, test additions, and documentation-only changes do **not**
+require an ADR.
+
+If you're not sure whether a change qualifies, ask before writing code.
+"I should have written an ADR for that" is harder to fix later than
+"I asked first and we agreed it didn't need one."
+
 ## Code quality — project-specific
 
 The `@SuppressWarnings("deprecation")` exception in the global guide applies here

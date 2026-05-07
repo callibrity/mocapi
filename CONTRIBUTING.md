@@ -37,6 +37,13 @@ If you’d like to contribute code:
 
 Please follow idiomatic Java practices and keep your code clean and well-documented. For larger changes, consider opening an issue first to discuss the approach.
 
+For architecturally significant changes — adding a new transport, changing
+how customizers compose, altering the storage SPIs, etc. — add an
+Architecture Decision Record under [`docs/adr/`](docs/adr/) using the
+[template](docs/adr/_template.md), and update the affected
+[design docs](docs/design/) in the same PR. Don't let the design docs
+drift behind the decisions that change them.
+
 ## 🧱 Project Structure
 
 - `mocapi-streamable-http-spring-boot-starter` / `mocapi-stdio-spring-boot-starter`: Spring Boot starters bundling `mocapi-server` with a specific transport
