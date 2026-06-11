@@ -56,14 +56,19 @@ between calls. A per-request, immutable `McpExchange` replaces
    `basket_id`) and the model passes it back as an argument on
    subsequent calls. This is a userland pattern documented in the
    guides — mocapi ships no framework machinery for it.
-6. **Substrate is removed entirely.** Its three mocapi consumers are
+6. **Substrate is removed entirely.** Its four mocapi consumers are
    all obsolete in this revision: the session store dies with sessions;
    the Mailbox rendezvous dies with server-initiated requests
-   ([ADR-0021](0021-mrtr-elicitation-replay.md)); and journal-backed
+   ([ADR-0021](0021-mrtr-elicitation-replay.md)); journal-backed
    SSE resumability dies with the
    [draft transport spec's](https://modelcontextprotocol.io/specification/draft/basic/transports/streamable-http)
    statement that "Resumable SSE streams via `Last-Event-ID` are not
-   supported."
+   supported"; and cross-node notification fan-out dies with the
+   standalone GET stream it fed — the only remaining delivery channel
+   is the response stream of the request a notification relates to,
+   which by construction lives on the node executing that request
+   (`subscriptions/listen`, the new cross-call channel, is not
+   implemented — [ADR-0022](0022-2026-07-28-features-not-implemented.md)).
 7. **Odyssey is removed with it.** Odyssey's only mocapi role was
    managing named, session-keyed, resumable SSE streams
    (`DefaultSseStream` / `DefaultSseStreamFactory`) — the standalone

@@ -75,11 +75,24 @@ Not implemented. SEP-2663 moved tasks out of the core protocol into an
 official extension; mocapi implements neither the extension nor any
 task semantics.
 
+**Rationale:** extensions are opt-in by design; mocapi starts from the
+core protocol only. The task lifecycle (`tasks/get`, `tasks/update`,
+`tasks/cancel`, server-directed task creation) is a substantial state
+machine for long-running operations that mocapi's synchronous handler
+model does not need yet. The extension's independent versioning means
+it can be adopted later without a protocol bump.
+
 ### MCP Apps extension
 
-**Spec reference:** SEP-1865 ([draft changelog](https://modelcontextprotocol.io/specification/draft/changelog))
+**Spec reference:** SEP-1865 ([2026-07-28 release candidate announcement](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/))
 
 Not implemented.
+
+**Rationale:** MCP Apps lets servers ship server-rendered HTML UIs
+displayed in sandboxed iframes — a presentation-layer concern far
+outside mocapi's tool/prompt/resource handler model, and an optional
+extension besides. Nothing in the core protocol requires it, and no
+mocapi use case has asked for it.
 
 ### URL-Mode Elicitation
 
