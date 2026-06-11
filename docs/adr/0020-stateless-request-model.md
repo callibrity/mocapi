@@ -64,14 +64,22 @@ between calls. A per-request, immutable `McpExchange` replaces
    [draft transport spec's](https://modelcontextprotocol.io/specification/draft/basic/transports/streamable-http)
    statement that "Resumable SSE streams via `Last-Event-ID` are not
    supported."
+7. **Odyssey is removed with it.** Odyssey's only mocapi role was
+   managing named, session-keyed, resumable SSE streams
+   (`DefaultSseStream` / `DefaultSseStreamFactory`) — the standalone
+   GET stream and `Last-Event-ID` replay. Both mechanisms are gone from
+   the transport. The only SSE remaining is a response stream scoped to
+   a single POST, carrying request-related notifications and the final
+   response; a plain Spring `SseEmitter` owned by the controller covers
+   it without a stream-management library.
 
 ## Consequences
 
 **What this buys us.** Multi-node deployment becomes trivial: any node
 can serve any request with no shared store, no sticky sessions, and no
-clustered backend to configure. The Substrate dependency — and the
-entire "pick a backend" decision surface of ADR-0007 — disappears from
-every pom and every deployment guide. The sealed session-validation
+clustered backend to configure. The Substrate and Odyssey dependencies
+— and the entire "pick a backend" decision surface of ADR-0007 —
+disappear from every pom and every deployment guide. The sealed session-validation
 result of ADR-0009 collapses to a single error case
 (`UnsupportedProtocolVersionError`), since there is no session to be
 missing or expired. Serverless and scale-to-zero deployments, which the
