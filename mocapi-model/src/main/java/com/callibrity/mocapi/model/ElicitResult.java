@@ -24,10 +24,12 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * Result of a {@code elicitation/create} request from the client. Contains the action taken by the
  * user and, for accepted responses, the structured content they provided. Typed accessor methods
- * are provided for convenient extraction of individual fields from the content object.
+ * are provided for convenient extraction of individual fields from the content object. As of MCP
+ * 2026-07-28 this is an {@link InputResponse} union member carried in a retried request's {@code
+ * inputResponses} map, not a JSON-RPC result.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ElicitResult(ElicitAction action, ObjectNode content) {
+public record ElicitResult(ElicitAction action, ObjectNode content) implements InputResponse {
 
   /** Returns true if the user accepted the elicitation and provided content. */
   public boolean isAccepted() {

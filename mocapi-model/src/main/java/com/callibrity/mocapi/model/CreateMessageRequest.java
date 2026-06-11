@@ -15,12 +15,13 @@
  */
 package com.callibrity.mocapi.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
-// SEP-2577 spec contract: AudioContent is also a member of the deprecated
-// SamplingMessageContentBlock union, which the spec retains for at least twelve months;
-// implementing it is required for 1:1 union completeness.
-@SuppressWarnings("deprecation")
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record AudioContent(String data, String mimeType, Annotations annotations)
-    implements ContentBlock, SamplingMessageContentBlock {}
+/**
+ * An embedded {@code sampling/createMessage} request envelope ({@link InputRequest} union member).
+ * mocapi never emits it; it exists for 1:1 union fidelity.
+ *
+ * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577); remains in the specification
+ *     for at least twelve months. The spec's suggested migration is for clients to perform sampling
+ *     through their own provider APIs rather than server-initiated requests.
+ */
+@Deprecated(since = "2026-07-28")
+public record CreateMessageRequest(CreateMessageRequestParams params) implements InputRequest {}

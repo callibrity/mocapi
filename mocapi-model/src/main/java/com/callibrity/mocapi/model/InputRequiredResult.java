@@ -16,11 +16,15 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.Map;
 
-// SEP-2577 spec contract: AudioContent is also a member of the deprecated
-// SamplingMessageContentBlock union, which the spec retains for at least twelve months;
-// implementing it is required for 1:1 union completeness.
-@SuppressWarnings("deprecation")
+/**
+ * Sent by the server to indicate that additional input is needed before the original request can be
+ * completed (multi-round-trip requests). At least one of {@code inputRequests} or {@code
+ * requestState} MUST be present; {@code resultType} is {@code "input_required"}. The client retries
+ * the original method with the original params plus {@code inputResponses} (keyed identically to
+ * {@code inputRequests}) and the opaque {@code requestState}.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record AudioContent(String data, String mimeType, Annotations annotations)
-    implements ContentBlock, SamplingMessageContentBlock {}
+public record InputRequiredResult(
+    Map<String, InputRequest> inputRequests, String requestState, String resultType) {}

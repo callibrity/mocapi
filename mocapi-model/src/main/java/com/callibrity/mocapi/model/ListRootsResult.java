@@ -15,14 +15,16 @@
  */
 package com.callibrity.mocapi.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 
 /**
- * Parameters of a URL-mode elicitation, embedded in an {@link ElicitRequest}. The required {@code
- * mode: "url"} discriminator is contributed by {@link ElicitRequestParams}'s type info; there is no
- * {@code _meta} — this is an embedded object, not JSON-RPC request params. URL-mode elicitation is
- * declared not implemented by mocapi (ADR-0022).
+ * The client's response to an embedded {@code roots/list} request ({@link InputResponse} union
+ * member). mocapi never requests it; it exists for 1:1 union fidelity. Note this is not a JSON-RPC
+ * {@code Result} in the 2026-07-28 schema — it carries no {@code resultType}.
+ *
+ * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577); remains in the specification
+ *     for at least twelve months. The spec's suggested migration is for servers to elicit needed
+ *     paths from the user instead of enumerating client roots.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record ElicitRequestURLParams(String message, String elicitationId, String url)
-    implements ElicitRequestParams {}
+@Deprecated(since = "2026-07-28")
+public record ListRootsResult(List<Root> roots) implements InputResponse {}

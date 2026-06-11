@@ -15,25 +15,15 @@
  */
 package com.callibrity.mocapi.model;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.List;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * A message in a sampling conversation. The spec's {@code content} is {@code
- * SamplingMessageContentBlock | SamplingMessageContentBlock[]}; modeled as a list that also accepts
- * the single-block wire form on deserialization.
- *
- * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577) along with the sampling
- *     feature; remains in the specification for at least twelve months. The spec's suggested
- *     migration is for clients to perform sampling through their own provider APIs.
+ * Params of the {@code notifications/subscriptions/acknowledged} notification: the subset of
+ * requested notification types the server agreed to honor. mocapi does not implement subscriptions
+ * (ADR-0022); this type exists for 1:1 model fidelity.
  */
-@Deprecated(since = "2026-07-28")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record SamplingMessage(
-    Role role,
-    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
-        List<SamplingMessageContentBlock> content,
-    @JsonProperty("_meta") ObjectNode meta) {}
+public record SubscriptionsAcknowledgedNotificationParams(
+    SubscriptionFilter notifications, @JsonProperty("_meta") ObjectNode meta) {}

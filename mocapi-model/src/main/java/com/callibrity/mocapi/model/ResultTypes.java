@@ -15,12 +15,15 @@
  */
 package com.callibrity.mocapi.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+/**
+ * Well-known values of the spec's open {@code ResultType} string union ({@code "complete" |
+ * "input_required" | string}). Every result a server sends MUST carry a {@code resultType}; modeled
+ * as a {@code String} component plus these constants because the union is open.
+ */
+public final class ResultTypes {
 
-// SEP-2577 spec contract: AudioContent is also a member of the deprecated
-// SamplingMessageContentBlock union, which the spec retains for at least twelve months;
-// implementing it is required for 1:1 union completeness.
-@SuppressWarnings("deprecation")
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record AudioContent(String data, String mimeType, Annotations annotations)
-    implements ContentBlock, SamplingMessageContentBlock {}
+  public static final String COMPLETE = "complete";
+  public static final String INPUT_REQUIRED = "input_required";
+
+  private ResultTypes() {}
+}

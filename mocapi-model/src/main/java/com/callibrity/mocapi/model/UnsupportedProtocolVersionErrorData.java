@@ -15,12 +15,16 @@
  */
 package com.callibrity.mocapi.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 
-// SEP-2577 spec contract: AudioContent is also a member of the deprecated
-// SamplingMessageContentBlock union, which the spec retains for at least twelve months;
-// implementing it is required for 1:1 union completeness.
-@SuppressWarnings("deprecation")
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record AudioContent(String data, String mimeType, Annotations annotations)
-    implements ContentBlock, SamplingMessageContentBlock {}
+/**
+ * The {@code error.data} payload of the spec's {@code UnsupportedProtocolVersionError} (code {@link
+ * #CODE}): returned when the request's protocol version is unknown to or unsupported by the server.
+ * On HTTP the response status MUST be {@code 400 Bad Request}. The JSON-RPC envelope goes through
+ * {@link JsonRpcError}.
+ */
+public record UnsupportedProtocolVersionErrorData(List<String> supported, String requested) {
+
+  /** The spec's {@code UNSUPPORTED_PROTOCOL_VERSION} JSON-RPC error code. */
+  public static final int CODE = -32004;
+}

@@ -15,12 +15,25 @@
  */
 package com.callibrity.mocapi.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.Locale;
 
-// SEP-2577 spec contract: AudioContent is also a member of the deprecated
-// SamplingMessageContentBlock union, which the spec retains for at least twelve months;
-// implementing it is required for 1:1 union completeness.
-@SuppressWarnings("deprecation")
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record AudioContent(String data, String mimeType, Annotations annotations)
-    implements ContentBlock, SamplingMessageContentBlock {}
+/**
+ * Intended scope of a cached {@code CacheableResult} response, analogous to HTTP {@code
+ * Cache-Control: public} vs {@code Cache-Control: private}.
+ */
+public enum CacheScope {
+  PUBLIC,
+  PRIVATE;
+
+  @JsonValue
+  public String toJson() {
+    return name().toLowerCase(Locale.ROOT);
+  }
+
+  @JsonCreator
+  public static CacheScope fromJson(String value) {
+    return valueOf(value.toUpperCase(Locale.ROOT));
+  }
+}

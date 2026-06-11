@@ -15,12 +15,14 @@
  */
 package com.callibrity.mocapi.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+/**
+ * The {@code error.data} payload of the spec's {@code MissingRequiredClientCapabilityError} (code
+ * {@link #CODE}): returned when processing a request requires a capability the client did not
+ * declare in {@code clientCapabilities}. On HTTP the response status MUST be {@code 400 Bad
+ * Request}. The JSON-RPC envelope goes through {@link JsonRpcError}.
+ */
+public record MissingRequiredClientCapabilityErrorData(ClientCapabilities requiredCapabilities) {
 
-// SEP-2577 spec contract: AudioContent is also a member of the deprecated
-// SamplingMessageContentBlock union, which the spec retains for at least twelve months;
-// implementing it is required for 1:1 union completeness.
-@SuppressWarnings("deprecation")
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record AudioContent(String data, String mimeType, Annotations annotations)
-    implements ContentBlock, SamplingMessageContentBlock {}
+  /** The spec's {@code MISSING_REQUIRED_CLIENT_CAPABILITY} JSON-RPC error code. */
+  public static final int CODE = -32003;
+}

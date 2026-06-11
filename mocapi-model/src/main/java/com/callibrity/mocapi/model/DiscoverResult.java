@@ -16,11 +16,19 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 
-// SEP-2577 spec contract: AudioContent is also a member of the deprecated
-// SamplingMessageContentBlock union, which the spec retains for at least twelve months;
-// implementing it is required for 1:1 union completeness.
-@SuppressWarnings("deprecation")
+/**
+ * Result of a {@code server/discover} request: the server's supported protocol versions,
+ * capabilities, identity, and optional instructions. Extends the spec's {@code CacheableResult}, so
+ * {@code ttlMs}, {@code cacheScope}, and {@code resultType} are required.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record AudioContent(String data, String mimeType, Annotations annotations)
-    implements ContentBlock, SamplingMessageContentBlock {}
+public record DiscoverResult(
+    List<String> supportedVersions,
+    ServerCapabilities capabilities,
+    Implementation serverInfo,
+    String instructions,
+    long ttlMs,
+    CacheScope cacheScope,
+    String resultType) {}

@@ -152,10 +152,13 @@ class RequestAndNotificationTypesSerializationTest {
     }
 
     @Test
+    // SEP-2577 spec contract: the sampling request/message types are deprecated but remain in the
+    // specification for the deprecation window; this round-trip exercises the retained 1:1 model.
+    @SuppressWarnings("deprecation")
     void create_message_request_params() throws Exception {
       var params =
           new CreateMessageRequestParams(
-              List.of(new SamplingMessage(Role.USER, null)),
+              List.of(new SamplingMessage(Role.USER, List.of(new TextContent("Hi", null)), null)),
               null,
               "You are helpful",
               IncludeContext.THIS_SERVER,
@@ -232,25 +235,33 @@ class RequestAndNotificationTypesSerializationTest {
 
     @Test
     void form_params_round_trip() throws Exception {
-      var params = new ElicitRequestFormParams("form", "Please fill", null, null);
+      ElicitRequestParams params = new ElicitRequestFormParams("Please fill", null);
       String json = mapper.writeValueAsString(params);
       assertThat(json).contains("\"mode\":\"form\"").contains("\"message\":\"Please fill\"");
 
-      var deserialized = mapper.readValue(json, ElicitRequestFormParams.class);
-      assertThat(deserialized.mode()).isEqualTo("form");
-      assertThat(deserialized.message()).isEqualTo("Please fill");
+      var deserialized = mapper.readValue(json, ElicitRequestParams.class);
+      assertThat(deserialized).isInstanceOf(ElicitRequestFormParams.class);
+      assertThat(((ElicitRequestFormParams) deserialized).message()).isEqualTo("Please fill");
+    }
+
+    @Test
+    void form_params_without_mode_deserialize_as_form() throws Exception {
+      var deserialized =
+          mapper.readValue("{\"message\":\"Please fill\"}", ElicitRequestParams.class);
+      assertThat(deserialized).isInstanceOf(ElicitRequestFormParams.class);
+      assertThat(((ElicitRequestFormParams) deserialized).message()).isEqualTo("Please fill");
     }
 
     @Test
     void url_params_round_trip() throws Exception {
-      var params =
-          new ElicitRequestURLParams("url", "Click link", "elicit-1", "https://example.com", null);
+      ElicitRequestParams params =
+          new ElicitRequestURLParams("Click link", "elicit-1", "https://example.com");
       String json = mapper.writeValueAsString(params);
       assertThat(json).contains("\"mode\":\"url\"").contains("\"elicitationId\":\"elicit-1\"");
 
-      var deserialized = mapper.readValue(json, ElicitRequestURLParams.class);
-      assertThat(deserialized.mode()).isEqualTo("url");
-      assertThat(deserialized.url()).isEqualTo("https://example.com");
+      var deserialized = mapper.readValue(json, ElicitRequestParams.class);
+      assertThat(deserialized).isInstanceOf(ElicitRequestURLParams.class);
+      assertThat(((ElicitRequestURLParams) deserialized).url()).isEqualTo("https://example.com");
     }
   }
 
