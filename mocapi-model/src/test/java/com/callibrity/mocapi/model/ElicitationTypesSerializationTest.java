@@ -232,14 +232,26 @@ class ElicitationTypesSerializationTest {
       Map<String, PrimitiveSchemaDefinition> props = new LinkedHashMap<>();
       props.put("name", new StringSchema("Name", null, null, null, null, null));
       props.put("age", new NumberSchema("integer", "Age", null, 0, 150, null));
-      var schema = new RequestedSchema(props, List.of("name"));
+      var schema = new RequestedSchema(props, List.of("name"), null);
       String json = mapper.writeValueAsString(schema);
       assertThat(json)
           .contains("\"type\":\"object\"")
           .contains("\"required\":[\"name\"]")
           .contains("\"properties\":{")
           .contains("\"name\":{")
-          .contains("\"age\":{");
+          .contains("\"age\":{")
+          .doesNotContain("$schema");
+    }
+
+    @Test
+    void requested_schema_round_trips_the_schema_dialect_field() throws Exception {
+      var schema =
+          new RequestedSchema(Map.of(), List.of(), "https://json-schema.org/draft/2020-12/schema");
+      String json = mapper.writeValueAsString(schema);
+      assertThat(json).contains("\"$schema\":\"https://json-schema.org/draft/2020-12/schema\"");
+
+      var deserialized = mapper.readValue(json, RequestedSchema.class);
+      assertThat(deserialized.schema()).isEqualTo("https://json-schema.org/draft/2020-12/schema");
     }
 
     @Test
