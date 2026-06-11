@@ -1,6 +1,6 @@
 # ADR-0009 — Server returns a sealed `McpContextResult`; transports map variants to native errors
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0020](0020-stateless-request-model.md)
 - **Date:** 2025-07-09
 
 ## Context

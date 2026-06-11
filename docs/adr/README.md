@@ -54,3 +54,7 @@ authored at decision time and dated accordingly.
 - [ADR-0016 — Tool schema generation via victools](0016-victools-tool-schema-generation.md)
 - [ADR-0017 — Observability stack: Micrometer + audit + actuator](0017-observability-stack.md)
 - [ADR-0018 — MCP spec features deliberately not implemented](0018-mcp-spec-features-not-implemented.md)
+- [ADR-0019 — Adopt MCP 2026-07-28 as the sole protocol (clean break)](0019-clean-break-2026-07-28.md)
+- [ADR-0020 — Stateless request model; sessions removed](0020-stateless-request-model.md)
+- [ADR-0021 — MRTR elicitation via replay](0021-mrtr-elicitation-replay.md)
+- [ADR-0022 — MCP 2026-07-28 features deliberately not implemented](0022-2026-07-28-features-not-implemented.md)
