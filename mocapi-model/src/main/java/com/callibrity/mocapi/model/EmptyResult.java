@@ -18,6 +18,6 @@ package com.callibrity.mocapi.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record EmptyResult() {
-  public static final EmptyResult INSTANCE = new EmptyResult();
+public record EmptyResult(String resultType) {
+  public static final EmptyResult INSTANCE = new EmptyResult(ResultTypes.COMPLETE);
 }

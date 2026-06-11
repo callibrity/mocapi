@@ -17,6 +17,17 @@ package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
 
+/**
+ * Params of {@code resources/read} (the spec's {@code ReadResourceRequestParams}; the former
+ * subscribe/unsubscribe sharers of this shape are gone). Extends the spec's {@code
+ * InputResponseRequestParams}: an MRTR retry re-sends the original params plus {@code
+ * inputResponses} and the opaque {@code requestState}.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ResourceRequestParams(String uri, @JsonProperty("_meta") RequestMeta meta) {}
+public record ResourceRequestParams(
+    String uri,
+    Map<String, InputResponse> inputResponses,
+    String requestState,
+    @JsonProperty("_meta") RequestMeta meta) {}

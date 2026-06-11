@@ -20,4 +20,8 @@ import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ListResourceTemplatesResult(
-    List<ResourceTemplate> resourceTemplates, String nextCursor) {}
+    List<ResourceTemplate> resourceTemplates,
+    String nextCursor,
+    long ttlMs,
+    CacheScope cacheScope,
+    String resultType) {}

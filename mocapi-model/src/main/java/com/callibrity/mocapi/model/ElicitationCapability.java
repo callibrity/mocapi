@@ -15,6 +15,13 @@
  */
 package com.callibrity.mocapi.model;
 
-// Empty by design — MCP spec defines this as a marker object whose presence signals capability.
-@SuppressWarnings("java:S2094")
-public record ElicitationCapability() {}
+import com.fasterxml.jackson.annotation.JsonInclude;
+import tools.jackson.databind.node.ObjectNode;
+
+/**
+ * The client's elicitation capability. Form support is implicit: a bare {@code {}} declares a
+ * form-capable client, so consumers must treat the capability's presence — not the {@code form}
+ * sub-object — as form support.
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record ElicitationCapability(ObjectNode form, ObjectNode url) {}

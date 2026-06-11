@@ -29,8 +29,8 @@ class EmptyResultSerializationTest {
   private final ObjectMapper mapper = JsonMapper.builder().build();
 
   @Test
-  void serializes_to_empty_object() throws Exception {
+  void serializes_with_the_required_result_type() throws Exception {
     String json = mapper.writeValueAsString(EmptyResult.INSTANCE);
-    assertThat(json).isEqualTo("{}");
+    assertThat(json).isEqualTo("{\"resultType\":\"complete\"}");
   }
 }

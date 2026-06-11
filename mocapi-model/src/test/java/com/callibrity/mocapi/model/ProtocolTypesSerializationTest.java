@@ -18,6 +18,7 @@ package com.callibrity.mocapi.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Nested;
@@ -48,19 +49,23 @@ class ProtocolTypesSerializationTest {
     @Test
     void get_prompt_result_round_trip() throws Exception {
       var msg = new PromptMessage(Role.ASSISTANT, new TextContent("Hello!", null));
-      var result = new GetPromptResult("A greeting prompt", List.of(msg));
+      var result = new GetPromptResult("A greeting prompt", List.of(msg), ResultTypes.COMPLETE);
       String json = mapper.writeValueAsString(result);
+      assertThat(json).contains("\"resultType\":\"complete\"");
 
       var deserialized = mapper.readValue(json, GetPromptResult.class);
       assertThat(deserialized.description()).isEqualTo("A greeting prompt");
       assertThat(deserialized.messages()).hasSize(1);
+      assertThat(deserialized.resultType()).isEqualTo(ResultTypes.COMPLETE);
     }
 
     @Test
     void call_tool_result_round_trip() throws Exception {
-      var result = new CallToolResult(List.of(new TextContent("result", null)), false, null);
+      var result =
+          new CallToolResult(
+              List.of(new TextContent("result", null)), false, null, ResultTypes.COMPLETE);
       String json = mapper.writeValueAsString(result);
-      assertThat(json).doesNotContain("structuredContent");
+      assertThat(json).doesNotContain("structuredContent").contains("\"resultType\":\"complete\"");
 
       var deserialized = mapper.readValue(json, CallToolResult.class);
       assertThat(deserialized.content()).hasSize(1);
@@ -68,10 +73,21 @@ class ProtocolTypesSerializationTest {
     }
 
     @Test
+    void call_tool_result_structured_content_accepts_any_json_value() throws Exception {
+      var result = new CallToolResult(null, null, mapper.readTree("[1,2,3]"), ResultTypes.COMPLETE);
+      String json = mapper.writeValueAsString(result);
+      assertThat(json).contains("\"structuredContent\":[1,2,3]");
+
+      var deserialized = mapper.readValue(json, CallToolResult.class);
+      assertThat(deserialized.structuredContent().isArray()).isTrue();
+    }
+
+    @Test
     void completion_round_trip() throws Exception {
       var completion = new Completion(List.of("val1", "val2"), 10, true);
-      var result = new CompleteResult(completion);
+      var result = new CompleteResult(completion, ResultTypes.COMPLETE);
       String json = mapper.writeValueAsString(result);
+      assertThat(json).contains("\"resultType\":\"complete\"");
 
       var deserialized = mapper.readValue(json, CompleteResult.class);
       assertThat(deserialized.completion().values()).containsExactly("val1", "val2");
@@ -114,7 +130,7 @@ class ProtocolTypesSerializationTest {
 
     @Test
     void elicitation_capability_round_trip() throws Exception {
-      var original = new ElicitationCapability();
+      var original = new ElicitationCapability(null, null);
       String json = mapper.writeValueAsString(original);
       assertThat(json).isEqualTo("{}");
 
@@ -123,6 +139,20 @@ class ProtocolTypesSerializationTest {
     }
 
     @Test
+    void elicitation_capability_with_form_sub_object_round_trip() throws Exception {
+      var original = new ElicitationCapability(mapper.createObjectNode(), null);
+      String json = mapper.writeValueAsString(original);
+      assertThat(json).isEqualTo("{\"form\":{}}");
+
+      var deserialized = mapper.readValue(json, ElicitationCapability.class);
+      assertThat(deserialized.form()).isNotNull();
+      assertThat(deserialized.url()).isNull();
+    }
+
+    @Test
+    // SEP-2577 spec contract: the sampling capability is deprecated but remains in the
+    // specification for the deprecation window; this round-trip exercises the retained 1:1 model.
+    @SuppressWarnings("deprecation")
     void sampling_capability_round_trip() throws Exception {
       var original = new SamplingCapability();
       String json = mapper.writeValueAsString(original);
@@ -172,20 +202,58 @@ class ProtocolTypesSerializationTest {
     }
 
     @Test
-    void roots_capability_round_trip() throws Exception {
-      var original = new RootsCapability(true);
+    // SEP-2577 spec contract: the roots capability is deprecated but remains in the specification
+    // for the deprecation window; this round-trip exercises the retained 1:1 model.
+    @SuppressWarnings("deprecation")
+    void roots_capability_is_an_empty_marker_object() throws Exception {
+      var original = new RootsCapability();
       String json = mapper.writeValueAsString(original);
-      assertThat(json).contains("\"listChanged\":true");
+      assertThat(json).isEqualTo("{}");
 
       var deserialized = mapper.readValue(json, RootsCapability.class);
-      assertThat(deserialized.listChanged()).isTrue();
+      assertThat(deserialized).isEqualTo(original);
     }
 
     @Test
-    void roots_capability_null_field_omitted() throws Exception {
-      var original = new RootsCapability(null);
+    void client_capabilities_extensions_round_trip() throws Exception {
+      var ext = mapper.createObjectNode();
+      ext.put("enabled", true);
+      var original =
+          new ClientCapabilities(
+              null,
+              null,
+              null,
+              new ElicitationCapability(null, null),
+              Map.of("com.example/x", ext));
       String json = mapper.writeValueAsString(original);
-      assertThat(json).isEqualTo("{}");
+      assertThat(json)
+          .contains("\"elicitation\":{}")
+          .contains("\"extensions\":{\"com.example/x\":{\"enabled\":true}}")
+          .doesNotContain("roots")
+          .doesNotContain("sampling");
+
+      var deserialized = mapper.readValue(json, ClientCapabilities.class);
+      assertThat(deserialized.extensions()).containsKey("com.example/x");
+      assertThat(deserialized.elicitation()).isNotNull();
+    }
+
+    @Test
+    void server_capabilities_extensions_round_trip() throws Exception {
+      var original =
+          new ServerCapabilities(
+              null,
+              new ToolsCapability(false),
+              null,
+              new CompletionsCapability(),
+              new ResourcesCapability(false, false),
+              new PromptsCapability(false),
+              Map.of());
+      String json = mapper.writeValueAsString(original);
+      assertThat(json).contains("\"extensions\":{}").doesNotContain("logging");
+
+      var deserialized = mapper.readValue(json, ServerCapabilities.class);
+      assertThat(deserialized.tools().listChanged()).isFalse();
+      assertThat(deserialized.extensions()).isEmpty();
     }
   }
 
@@ -248,9 +316,16 @@ class ProtocolTypesSerializationTest {
     @Test
     void list_prompts_result_round_trip() throws Exception {
       var prompt = new Prompt("greeting", "Greeting", "A greeting prompt", null, null);
-      var original = new ListPromptsResult(List.of(prompt), "cursor123");
+      var original =
+          new ListPromptsResult(
+              List.of(prompt), "cursor123", 5000L, CacheScope.PRIVATE, ResultTypes.COMPLETE);
       String json = mapper.writeValueAsString(original);
-      assertThat(json).contains("\"prompts\":[").contains("\"nextCursor\":\"cursor123\"");
+      assertThat(json)
+          .contains("\"prompts\":[")
+          .contains("\"nextCursor\":\"cursor123\"")
+          .contains("\"ttlMs\":5000")
+          .contains("\"cacheScope\":\"private\"")
+          .contains("\"resultType\":\"complete\"");
 
       var deserialized = mapper.readValue(json, ListPromptsResult.class);
       assertThat(deserialized)
@@ -258,12 +333,15 @@ class ProtocolTypesSerializationTest {
               r -> {
                 assertThat(r.prompts()).hasSize(1);
                 assertThat(r.nextCursor()).isEqualTo("cursor123");
+                assertThat(r.ttlMs()).isEqualTo(5000L);
+                assertThat(r.cacheScope()).isEqualTo(CacheScope.PRIVATE);
               });
     }
 
     @Test
     void list_prompts_result_null_cursor_omitted() throws Exception {
-      var original = new ListPromptsResult(List.of(), null);
+      var original =
+          new ListPromptsResult(List.of(), null, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE);
       String json = mapper.writeValueAsString(original);
       assertThat(json).doesNotContain("nextCursor");
     }
@@ -271,9 +349,14 @@ class ProtocolTypesSerializationTest {
     @Test
     void list_resources_result_round_trip() throws Exception {
       var resource = new Resource("file:///test.txt", "test", "A test resource", "text/plain");
-      var original = new ListResourcesResult(List.of(resource), "cursor456");
+      var original =
+          new ListResourcesResult(
+              List.of(resource), "cursor456", 0L, CacheScope.PUBLIC, ResultTypes.COMPLETE);
       String json = mapper.writeValueAsString(original);
-      assertThat(json).contains("\"resources\":[").contains("\"nextCursor\":\"cursor456\"");
+      assertThat(json)
+          .contains("\"resources\":[")
+          .contains("\"nextCursor\":\"cursor456\"")
+          .contains("\"cacheScope\":\"public\"");
 
       var deserialized = mapper.readValue(json, ListResourcesResult.class);
       assertThat(deserialized)
@@ -281,12 +364,14 @@ class ProtocolTypesSerializationTest {
               r -> {
                 assertThat(r.resources()).hasSize(1);
                 assertThat(r.nextCursor()).isEqualTo("cursor456");
+                assertThat(r.cacheScope()).isEqualTo(CacheScope.PUBLIC);
               });
     }
 
     @Test
     void list_resources_result_null_cursor_omitted() throws Exception {
-      var original = new ListResourcesResult(List.of(), null);
+      var original =
+          new ListResourcesResult(List.of(), null, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE);
       String json = mapper.writeValueAsString(original);
       assertThat(json).doesNotContain("nextCursor");
     }
@@ -294,7 +379,9 @@ class ProtocolTypesSerializationTest {
     @Test
     void list_resource_templates_result_round_trip() throws Exception {
       var template = new ResourceTemplate("file:///{path}", "files", "File access", "text/plain");
-      var original = new ListResourceTemplatesResult(List.of(template), "cursorABC");
+      var original =
+          new ListResourceTemplatesResult(
+              List.of(template), "cursorABC", 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE);
       String json = mapper.writeValueAsString(original);
       assertThat(json).contains("\"resourceTemplates\":[").contains("\"nextCursor\":\"cursorABC\"");
 
@@ -309,7 +396,9 @@ class ProtocolTypesSerializationTest {
 
     @Test
     void list_resource_templates_result_null_cursor_omitted() throws Exception {
-      var original = new ListResourceTemplatesResult(List.of(), null);
+      var original =
+          new ListResourceTemplatesResult(
+              List.of(), null, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE);
       String json = mapper.writeValueAsString(original);
       assertThat(json).doesNotContain("nextCursor");
     }
@@ -319,9 +408,14 @@ class ProtocolTypesSerializationTest {
       ObjectNode schema = mapper.createObjectNode();
       schema.put("type", "object");
       var tool = new Tool("echo", "Echo", "Echoes input", schema, null);
-      var original = new ListToolsResult(List.of(tool), "cursorXYZ");
+      var original =
+          new ListToolsResult(
+              List.of(tool), "cursorXYZ", 60000L, CacheScope.PRIVATE, ResultTypes.COMPLETE);
       String json = mapper.writeValueAsString(original);
-      assertThat(json).contains("\"tools\":[").contains("\"nextCursor\":\"cursorXYZ\"");
+      assertThat(json)
+          .contains("\"tools\":[")
+          .contains("\"nextCursor\":\"cursorXYZ\"")
+          .contains("\"ttlMs\":60000");
 
       var deserialized = mapper.readValue(json, ListToolsResult.class);
       assertThat(deserialized)
@@ -329,12 +423,14 @@ class ProtocolTypesSerializationTest {
               r -> {
                 assertThat(r.tools()).hasSize(1);
                 assertThat(r.nextCursor()).isEqualTo("cursorXYZ");
+                assertThat(r.ttlMs()).isEqualTo(60000L);
               });
     }
 
     @Test
     void list_tools_result_null_cursor_omitted() throws Exception {
-      var original = new ListToolsResult(List.of(), null);
+      var original =
+          new ListToolsResult(List.of(), null, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE);
       String json = mapper.writeValueAsString(original);
       assertThat(json).doesNotContain("nextCursor");
     }

@@ -37,7 +37,7 @@ class RequestAndNotificationTypesSerializationTest {
 
     @Test
     void round_trip() throws Exception {
-      var params = new RequestParams(new RequestMeta(StringNode.valueOf("tok")));
+      var params = new RequestParams(new RequestMeta(StringNode.valueOf("tok"), null, null, null));
       String json = mapper.writeValueAsString(params);
       assertThat(json).contains("\"_meta\"").contains("\"progressToken\":\"tok\"");
 
@@ -59,7 +59,8 @@ class RequestAndNotificationTypesSerializationTest {
     @Test
     void round_trip() throws Exception {
       var params =
-          new PaginatedRequestParams("cursor-123", new RequestMeta(StringNode.valueOf("tok")));
+          new PaginatedRequestParams(
+              "cursor-123", new RequestMeta(StringNode.valueOf("tok"), null, null, null));
       String json = mapper.writeValueAsString(params);
       assertThat(json).contains("\"cursor\":\"cursor-123\"").contains("\"_meta\"");
 
@@ -93,7 +94,7 @@ class RequestAndNotificationTypesSerializationTest {
     @Test
     void call_tool_request_params() throws Exception {
       var argsNode = mapper.readTree("{\"key\":\"value\"}");
-      var params = new CallToolRequestParams("myTool", argsNode, null);
+      var params = new CallToolRequestParams("myTool", argsNode, null, null, null);
       String json = mapper.writeValueAsString(params);
       assertThat(json)
           .contains("\"name\":\"myTool\"")
@@ -107,7 +108,12 @@ class RequestAndNotificationTypesSerializationTest {
     @Test
     void call_tool_request_params_with_meta() throws Exception {
       var params =
-          new CallToolRequestParams("tool", null, new RequestMeta(StringNode.valueOf("tok")));
+          new CallToolRequestParams(
+              "tool",
+              null,
+              null,
+              null,
+              new RequestMeta(StringNode.valueOf("tok"), null, null, null));
       String json = mapper.writeValueAsString(params);
       assertThat(json).contains("\"_meta\"").contains("\"progressToken\":\"tok\"");
 
@@ -116,8 +122,29 @@ class RequestAndNotificationTypesSerializationTest {
     }
 
     @Test
+    void call_tool_request_params_mrtr_retry_round_trip() throws Exception {
+      var params =
+          new CallToolRequestParams(
+              "tool",
+              null,
+              Map.of("elicit-1", new ElicitResult(ElicitAction.ACCEPT, null)),
+              "opaque-state",
+              null);
+      String json = mapper.writeValueAsString(params);
+      assertThat(json)
+          .contains("\"requestState\":\"opaque-state\"")
+          .contains("\"inputResponses\":{\"elicit-1\":{\"action\":\"accept\"}}");
+
+      var deserialized = mapper.readValue(json, CallToolRequestParams.class);
+      assertThat(deserialized.requestState()).isEqualTo("opaque-state");
+      assertThat(deserialized.inputResponses().get("elicit-1"))
+          .isInstanceOf(ElicitResult.class)
+          .satisfies(r -> assertThat(((ElicitResult) r).action()).isEqualTo(ElicitAction.ACCEPT));
+    }
+
+    @Test
     void get_prompt_request_params() throws Exception {
-      var params = new GetPromptRequestParams("myPrompt", Map.of("arg1", "val1"), null);
+      var params = new GetPromptRequestParams("myPrompt", Map.of("arg1", "val1"), null, null, null);
       String json = mapper.writeValueAsString(params);
       assertThat(json).contains("\"name\":\"myPrompt\"").contains("\"arg1\":\"val1\"");
 
@@ -128,7 +155,7 @@ class RequestAndNotificationTypesSerializationTest {
 
     @Test
     void resource_request_params() throws Exception {
-      var params = new ResourceRequestParams("file:///test.txt", null);
+      var params = new ResourceRequestParams("file:///test.txt", null, null, null);
       String json = mapper.writeValueAsString(params);
       assertThat(json).isEqualTo("{\"uri\":\"file:///test.txt\"}");
 
@@ -164,7 +191,6 @@ class RequestAndNotificationTypesSerializationTest {
               IncludeContext.THIS_SERVER,
               0.7,
               1024,
-              null,
               null,
               null,
               null,

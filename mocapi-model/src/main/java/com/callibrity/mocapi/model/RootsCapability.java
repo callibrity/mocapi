@@ -15,7 +15,15 @@
  */
 package com.callibrity.mocapi.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record RootsCapability(Boolean listChanged) {}
+/**
+ * The client's roots capability — now an empty marker object; {@code listChanged} is gone along
+ * with the {@code notifications/roots/list_changed} notification.
+ *
+ * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577) along with the Roots feature;
+ *     remains in the specification for at least twelve months. The spec's suggested migration is
+ *     passing directories or files via tool parameters, resource URIs, or server configuration.
+ */
+@Deprecated(since = "2026-07-28")
+// Empty by design — MCP spec defines this as a marker object whose presence signals capability.
+@SuppressWarnings("java:S2094")
+public record RootsCapability() {}

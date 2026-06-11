@@ -17,40 +17,55 @@ package com.callibrity.mocapi.model;
 
 import java.util.List;
 
-public record ReadResourceResult(List<ResourceContents> contents) {
+public record ReadResourceResult(
+    List<ResourceContents> contents, long ttlMs, CacheScope cacheScope, String resultType) {
 
   /**
-   * Builds a single-entry result wrapping a {@link TextResourceContents}.
+   * Builds a single-entry result wrapping a {@link TextResourceContents}, with the conservative
+   * cache defaults ({@code ttlMs=0}, {@code private}).
    *
    * @param uri the resource URI
    * @param mimeType the content MIME type, or {@code null}
    * @param text the text content
    */
   public static ReadResourceResult ofText(String uri, String mimeType, String text) {
-    return new ReadResourceResult(List.of(new TextResourceContents(uri, mimeType, text)));
+    return new ReadResourceResult(
+        List.of(new TextResourceContents(uri, mimeType, text)),
+        0L,
+        CacheScope.PRIVATE,
+        ResultTypes.COMPLETE);
   }
 
   /**
-   * Builds a single-entry result wrapping a {@link BlobResourceContents}. The {@code blob} is
-   * already base64-encoded; use {@link #ofBlob(String, String, byte[])} to encode raw bytes.
+   * Builds a single-entry result wrapping a {@link BlobResourceContents}, with the conservative
+   * cache defaults ({@code ttlMs=0}, {@code private}). The {@code blob} is already base64-encoded;
+   * use {@link #ofBlob(String, String, byte[])} to encode raw bytes.
    *
    * @param uri the resource URI
    * @param mimeType the content MIME type, or {@code null}
    * @param blob the base64-encoded blob payload
    */
   public static ReadResourceResult ofBlob(String uri, String mimeType, String blob) {
-    return new ReadResourceResult(List.of(new BlobResourceContents(uri, mimeType, blob)));
+    return new ReadResourceResult(
+        List.of(new BlobResourceContents(uri, mimeType, blob)),
+        0L,
+        CacheScope.PRIVATE,
+        ResultTypes.COMPLETE);
   }
 
   /**
    * Builds a single-entry result wrapping a {@link BlobResourceContents}, base64-encoding the
-   * supplied bytes.
+   * supplied bytes, with the conservative cache defaults ({@code ttlMs=0}, {@code private}).
    *
    * @param uri the resource URI
    * @param mimeType the content MIME type, or {@code null}
    * @param bytes the raw binary payload
    */
   public static ReadResourceResult ofBlob(String uri, String mimeType, byte[] bytes) {
-    return new ReadResourceResult(List.of(BlobResourceContents.of(uri, mimeType, bytes)));
+    return new ReadResourceResult(
+        List.of(BlobResourceContents.of(uri, mimeType, bytes)),
+        0L,
+        CacheScope.PRIVATE,
+        ResultTypes.COMPLETE);
   }
 }

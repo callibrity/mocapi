@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +33,7 @@ import tools.jackson.databind.node.ObjectNode;
 public record ElicitResult(ElicitAction action, ObjectNode content) implements InputResponse {
 
   /** Returns true if the user accepted the elicitation and provided content. */
+  @JsonIgnore
   public boolean isAccepted() {
     return action == ElicitAction.ACCEPT;
   }

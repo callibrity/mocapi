@@ -16,11 +16,23 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.Map;
+import tools.jackson.databind.node.ObjectNode;
 
+/**
+ * Capabilities the server advertises in {@code DiscoverResult}. {@code extensions} keys are
+ * reverse-DNS extension identifiers (SEP-2133). The {@code logging} member is deprecated
+ * (SEP-2577).
+ */
+// SEP-2577 spec contract: the deprecated logging capability member remains in the specification
+// for the deprecation window; modeling it is required for 1:1 fidelity.
+@SuppressWarnings("deprecation")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ServerCapabilities(
+    Map<String, ObjectNode> experimental,
     ToolsCapability tools,
-    LoggingCapability logging,
+    @Deprecated LoggingCapability logging,
     CompletionsCapability completions,
     ResourcesCapability resources,
-    PromptsCapability prompts) {}
+    PromptsCapability prompts,
+    Map<String, ObjectNode> extensions) {}

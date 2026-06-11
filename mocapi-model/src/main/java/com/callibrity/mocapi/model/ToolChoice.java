@@ -15,87 +15,27 @@
  */
 package com.callibrity.mocapi.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * Sampling {@code toolChoice} value. Per the MCP spec this is polymorphic — either one of the bare
- * strings {@code "auto"} / {@code "none"}, or an object {@code {"type":"tool","name":"x"}}
- * selecting a specific tool. This sealed type captures the three variants; Jackson serialization
- * handles the on-wire shape.
+ * Sampling {@code toolChoice} value, aligned to the draft schema's {@code { mode?: "auto" |
+ * "required" | "none" }} shape (the earlier polymorphic string/named-tool form is gone from the
+ * spec).
+ *
+ * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577) along with the sampling
+ *     feature; remains in the specification for at least twelve months. The spec's suggested
+ *     migration is for clients to integrate directly with LLM provider APIs.
  */
-public sealed interface ToolChoice permits ToolChoice.Auto, ToolChoice.None, ToolChoice.Specific {
+@Deprecated(since = "2026-07-28")
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record ToolChoice(String mode) {
 
-  /** Client lets the model decide whether (and which) tool to call. */
-  static ToolChoice auto() {
-    return Auto.INSTANCE;
-  }
+  /** {@code mode} value letting the model decide whether to call a tool. */
+  public static final String MODE_AUTO = "auto";
 
-  /** Client forbids the model from calling any tool on this sampling turn. */
-  static ToolChoice none() {
-    return None.INSTANCE;
-  }
+  /** {@code mode} value forcing the model to call at least one tool. */
+  public static final String MODE_REQUIRED = "required";
 
-  /** Client forces the model to call exactly one named tool. */
-  static ToolChoice specific(String name) {
-    return new Specific(name);
-  }
-
-  /**
-   * Parses the raw JSON shape ({@code "auto"}, {@code "none"}, or {@code {...}}) back to an
-   * instance. Used by Jackson.
-   */
-  @JsonCreator
-  static ToolChoice fromJson(Object json) {
-    if (json instanceof String s) {
-      return switch (s) {
-        case "auto" -> auto();
-        case "none" -> none();
-        default -> throw new IllegalArgumentException("Unknown toolChoice string: " + s);
-      };
-    }
-    if (json instanceof java.util.Map<?, ?> m && "tool".equals(m.get("type"))) {
-      Object nameValue = m.get("name");
-      if (nameValue instanceof String name) {
-        return specific(name);
-      }
-    }
-    throw new IllegalArgumentException("Unrecognized toolChoice payload: " + json);
-  }
-
-  // MCP protocol sentinel value. The "auto" tool-choice is a well-known string constant in
-  // the MCP 2025-11-25 spec; using a singleton avoids redundant allocations while preserving
-  // pattern-match compatibility with the sealed-interface shape.
-  @SuppressWarnings("java:S6548")
-  final class Auto implements ToolChoice {
-    static final Auto INSTANCE = new Auto();
-
-    private Auto() {}
-
-    @JsonValue
-    public String toJson() {
-      return "auto";
-    }
-  }
-
-  // MCP protocol sentinel value. See Auto above for rationale.
-  @SuppressWarnings("java:S6548")
-  final class None implements ToolChoice {
-    static final None INSTANCE = new None();
-
-    private None() {}
-
-    @JsonValue
-    public String toJson() {
-      return "none";
-    }
-  }
-
-  record Specific(@JsonProperty("type") String type, @JsonProperty("name") String name)
-      implements ToolChoice {
-    public Specific(String name) {
-      this("tool", name);
-    }
-  }
+  /** {@code mode} value forbidding tool calls on this sampling turn. */
+  public static final String MODE_NONE = "none";
 }

@@ -36,7 +36,7 @@ class RequestMetaAndProgressSerializationTest {
 
     @Test
     void serializes_string_progress_token() throws Exception {
-      var meta = new RequestMeta(StringNode.valueOf("token-abc"));
+      var meta = new RequestMeta(StringNode.valueOf("token-abc"), null, null, null);
       String json = mapper.writeValueAsString(meta);
       assertThat(json).isEqualTo("{\"progressToken\":\"token-abc\"}");
 
@@ -54,9 +54,30 @@ class RequestMetaAndProgressSerializationTest {
 
     @Test
     void omits_null_progress_token() throws Exception {
-      var meta = new RequestMeta(null);
+      var meta = new RequestMeta(null, null, null, null);
       String json = mapper.writeValueAsString(meta);
       assertThat(json).isEqualTo("{}");
+    }
+
+    @Test
+    void round_trips_the_envelope_keys() throws Exception {
+      var meta =
+          new RequestMeta(
+              null,
+              "2026-07-28",
+              new Implementation("ExampleClient", null, "1.0.0", null),
+              new ClientCapabilities(
+                  null, null, null, new ElicitationCapability(null, null), null));
+      String json = mapper.writeValueAsString(meta);
+      assertThat(json)
+          .contains("\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\"")
+          .contains("\"io.modelcontextprotocol/clientInfo\":{\"name\":\"ExampleClient\"")
+          .contains("\"io.modelcontextprotocol/clientCapabilities\":{\"elicitation\":{}}");
+
+      var deserialized = mapper.readValue(json, RequestMeta.class);
+      assertThat(deserialized.protocolVersion()).isEqualTo("2026-07-28");
+      assertThat(deserialized.clientInfo().name()).isEqualTo("ExampleClient");
+      assertThat(deserialized.clientCapabilities().elicitation()).isNotNull();
     }
   }
 

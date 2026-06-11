@@ -132,10 +132,22 @@ class ReadResourceResultTest {
         new ReadResourceResult(
             java.util.List.of(
                 new TextResourceContents("docs://a", "text/plain", "A"),
-                new BlobResourceContents("docs://b", "image/png", "aGk=")));
+                new BlobResourceContents("docs://b", "image/png", "aGk=")),
+            0L,
+            CacheScope.PRIVATE,
+            ResultTypes.COMPLETE);
 
     assertThat(result.contents()).hasSize(2);
     assertThat(result.contents().get(0)).isInstanceOf(TextResourceContents.class);
     assertThat(result.contents().get(1)).isInstanceOf(BlobResourceContents.class);
+  }
+
+  @Test
+  void factories_apply_conservative_cache_defaults() {
+    var result = ReadResourceResult.ofText("docs://a", "text/plain", "A");
+
+    assertThat(result.ttlMs()).isZero();
+    assertThat(result.cacheScope()).isEqualTo(CacheScope.PRIVATE);
+    assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
   }
 }

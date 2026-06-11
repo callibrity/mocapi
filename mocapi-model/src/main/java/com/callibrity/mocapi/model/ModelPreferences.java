@@ -18,6 +18,13 @@ package com.callibrity.mocapi.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
+/**
+ * Model-selection preferences for an embedded sampling request.
+ *
+ * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577) along with the sampling
+ *     feature; remains in the specification for at least twelve months.
+ */
+@Deprecated(since = "2026-07-28")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ModelPreferences(
     List<ModelHint> hints,
