@@ -17,6 +17,7 @@ package com.callibrity.mocapi.model;
 
 public final class McpMethods {
 
+  public static final String SERVER_DISCOVER = "server/discover";
   public static final String TOOLS_LIST = "tools/list";
   public static final String TOOLS_CALL = "tools/call";
   public static final String PROMPTS_LIST = "prompts/list";
@@ -25,13 +26,36 @@ public final class McpMethods {
   public static final String RESOURCES_TEMPLATES_LIST = "resources/templates/list";
   public static final String RESOURCES_READ = "resources/read";
   public static final String COMPLETION_COMPLETE = "completion/complete";
-  public static final String SAMPLING_CREATE_MESSAGE = "sampling/createMessage";
+  public static final String SUBSCRIPTIONS_LISTEN = "subscriptions/listen";
   public static final String ELICITATION_CREATE = "elicitation/create";
+
+  /**
+   * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577). Sampling is no longer a
+   *     JSON-RPC request; this string survives only as the {@code method} discriminator of the
+   *     embedded {@link CreateMessageRequest} {@link InputRequest} union member.
+   */
+  @Deprecated(since = "2026-07-28")
+  public static final String SAMPLING_CREATE_MESSAGE = "sampling/createMessage";
+
+  /**
+   * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577). Roots listing is no longer
+   *     a JSON-RPC request; this string survives only as the {@code method} discriminator of the
+   *     embedded {@link ListRootsRequest} {@link InputRequest} union member.
+   */
+  @Deprecated(since = "2026-07-28")
   public static final String ROOTS_LIST = "roots/list";
 
   public static final String NOTIFICATIONS_CANCELLED = "notifications/cancelled";
   public static final String NOTIFICATIONS_PROGRESS = "notifications/progress";
+
+  /**
+   * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577). Clients should rely on
+   *     OpenTelemetry-style logging integrations instead of {@code notifications/message}; the
+   *     notification remains in the specification for at least twelve months.
+   */
+  @Deprecated(since = "2026-07-28")
   public static final String NOTIFICATIONS_MESSAGE = "notifications/message";
+
   public static final String NOTIFICATIONS_RESOURCES_LIST_CHANGED =
       "notifications/resources/list_changed";
   public static final String NOTIFICATIONS_RESOURCES_UPDATED = "notifications/resources/updated";
@@ -40,6 +64,8 @@ public final class McpMethods {
       "notifications/prompts/list_changed";
   public static final String NOTIFICATIONS_ELICITATION_COMPLETE =
       "notifications/elicitation/complete";
+  public static final String NOTIFICATIONS_SUBSCRIPTIONS_ACKNOWLEDGED =
+      "notifications/subscriptions/acknowledged";
 
   private McpMethods() {}
 }
