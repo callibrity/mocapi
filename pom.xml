@@ -397,6 +397,7 @@
                                     <exclude>**/*.md</exclude>
                                     <exclude>**/*.md.example</exclude>
                                     <exclude>specs/**</exclude>
+                                    <exclude>docs/plans/**</exclude>
                                 </excludes>
                             </licenseSet>
                         </licenseSets>
