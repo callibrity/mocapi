@@ -23,5 +23,4 @@ public record ElicitRequestFormParams(
     String mode,
     String message,
     RequestedSchema requestedSchema,
-    TaskMetadata task,
     @JsonProperty("_meta") RequestMeta meta) {}

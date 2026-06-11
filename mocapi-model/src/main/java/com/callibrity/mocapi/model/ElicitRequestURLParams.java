@@ -24,5 +24,4 @@ public record ElicitRequestURLParams(
     String message,
     String elicitationId,
     String url,
-    TaskMetadata task,
     @JsonProperty("_meta") RequestMeta meta) {}

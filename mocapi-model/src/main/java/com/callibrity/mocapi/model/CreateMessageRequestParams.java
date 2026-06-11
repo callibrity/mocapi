@@ -32,5 +32,4 @@ public record CreateMessageRequestParams(
     ObjectNode metadata,
     List<Tool> tools,
     ToolChoice toolChoice,
-    TaskMetadata task,
     @JsonProperty("_meta") RequestMeta meta) {}

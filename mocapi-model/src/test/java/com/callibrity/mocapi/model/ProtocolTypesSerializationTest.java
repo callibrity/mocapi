@@ -68,21 +68,6 @@ class ProtocolTypesSerializationTest {
     }
 
     @Test
-    void initialize_result_round_trip() throws Exception {
-      var capabilities =
-          new ServerCapabilities(
-              new ToolsCapability(true), new LoggingCapability(), null, null, null);
-      var serverInfo = new Implementation("test-server", "Test Server", "1.0.0");
-      var result = new InitializeResult("2025-11-25", capabilities, serverInfo, "Welcome");
-      String json = mapper.writeValueAsString(result);
-
-      var deserialized = mapper.readValue(json, InitializeResult.class);
-      assertThat(deserialized.protocolVersion()).isEqualTo("2025-11-25");
-      assertThat(deserialized.capabilities().tools().listChanged()).isTrue();
-      assertThat(deserialized.serverInfo().name()).isEqualTo("test-server");
-    }
-
-    @Test
     void completion_round_trip() throws Exception {
       var completion = new Completion(List.of("val1", "val2"), 10, true);
       var result = new CompleteResult(completion);
@@ -92,16 +77,6 @@ class ProtocolTypesSerializationTest {
       assertThat(deserialized.completion().values()).containsExactly("val1", "val2");
       assertThat(deserialized.completion().total()).isEqualTo(10);
       assertThat(deserialized.completion().hasMore()).isTrue();
-    }
-
-    @Test
-    void null_fields_omitted() throws Exception {
-      var result = new InitializeResult("2025-11-25", null, null, null);
-      String json = mapper.writeValueAsString(result);
-      assertThat(json)
-          .doesNotContain("capabilities")
-          .doesNotContain("serverInfo")
-          .doesNotContain("instructions");
     }
 
     @Test

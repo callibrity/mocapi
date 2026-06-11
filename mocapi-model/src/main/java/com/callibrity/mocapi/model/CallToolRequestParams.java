@@ -21,4 +21,4 @@ import tools.jackson.databind.JsonNode;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CallToolRequestParams(
-    String name, JsonNode arguments, TaskMetadata task, @JsonProperty("_meta") RequestMeta meta) {}
+    String name, JsonNode arguments, @JsonProperty("_meta") RequestMeta meta) {}
