@@ -140,8 +140,27 @@ class MrtrElicitationComplianceTest {
             List.of(),
             new StructuredResultMapper(MAPPER));
 
+    CallToolHandler broadCatcher =
+        new CallToolHandler(
+            new Tool(
+                "broad-catcher", null, "Catches Exception around an elicit", inputSchema, null),
+            null,
+            null,
+            arguments -> {
+              McpToolContext ctx = McpToolContext.CURRENT.get();
+              try {
+                ElicitResult r = ctx.elicit(new ElicitRequestFormParams("Swallowed?", null));
+                return Map.of("status", "answered:" + r.action());
+              } catch (Exception e) {
+                return Map.of("status", "swallowed:" + e.getClass().getSimpleName());
+              }
+            },
+            List.of(),
+            new StructuredResultMapper(MAPPER));
+
     var toolsService =
-        new McpToolsService(List.of(oneQuestion, twoQuestions, fickle), MAPPER, engine);
+        new McpToolsService(
+            List.of(oneQuestion, twoQuestions, fickle, broadCatcher), MAPPER, engine);
 
     GetPromptHandler greet =
         new GetPromptHandler(
@@ -205,6 +224,23 @@ class MrtrElicitationComplianceTest {
   }
 
   // --- scenarios ---------------------------------------------------------
+
+  @Nested
+  class Broad_exception_catching_in_a_handler {
+
+    @Test
+    void a_broad_catch_swallows_the_pending_signal_and_ends_the_round_trip() {
+      JsonNode result = firstRoundTrip("broad-catcher");
+
+      // Pins the hazard documented in the interactive-tools guide: the pending signal is
+      // control flow unwinding the handler's stack, so a handler-level catch (Exception)
+      // converts the elicitation into the catch block's result — the client never sees
+      // the question and no InputRequiredResult is produced.
+      assertThat(result.path("resultType").asString()).isEqualTo(ResultTypes.COMPLETE);
+      assertThat(result.has("inputRequests")).isFalse();
+      assertThat(result.toString()).contains("swallowed:ElicitationPendingSignal");
+    }
+  }
 
   @Nested
   class One_elicitation_two_round_trips {
