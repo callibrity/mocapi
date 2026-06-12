@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.o11y;
 
+import com.callibrity.mocapi.server.exchange.McpExchange;
+import com.callibrity.mocapi.server.exchange.TraceContext;
 import com.callibrity.mocapi.server.handler.HandlerKind;
 import com.callibrity.ripcurl.o11y.JsonRpcObservationInterceptor;
 import io.micrometer.observation.Observation;
@@ -48,6 +50,16 @@ import org.jwcarman.methodical.MethodInvocation;
  * </ul>
  *
  * <p>{@code error.type} with the exception's simple class name is added on failure.
+ *
+ * <p><strong>Remote trace parent.</strong> When the bound {@link McpExchange} carries the
+ * spec-defined W3C trace-context {@code _meta} keys ({@code traceparent} / {@code tracestate} /
+ * {@code baggage}), the observation is created with a {@link McpRequestReceiverContext} so a
+ * propagating tracing handler joins the handler span to the client's trace as a remote parent. That
+ * client-supplied parent deliberately wins over local parentage (the enclosing {@code
+ * jsonrpc.server} span): the spec moved trace context into {@code _meta} precisely because the
+ * transport headers may not carry it, and the caller's trace is the one operators need to follow
+ * across the client/server boundary. Without trace keys the context is a plain one and the span
+ * nests locally as before.
  */
 public final class McpHandlerObservationInterceptor implements MethodInterceptor<Object> {
 
@@ -68,7 +80,8 @@ public final class McpHandlerObservationInterceptor implements MethodInterceptor
   @Override
   public Object intercept(MethodInvocation<?> invocation) {
     Observation observation =
-        Observation.createNotStarted(OBSERVATION_NAME, registry)
+        Observation.createNotStarted(
+                OBSERVATION_NAME, McpHandlerObservationInterceptor::handlerContext, registry)
             .contextualName(targetName)
             .lowCardinalityKeyValue("mcp.handler.kind", kind.tag());
 
@@ -92,6 +105,20 @@ public final class McpHandlerObservationInterceptor implements MethodInterceptor
     } finally {
       observation.stop();
     }
+  }
+
+  /**
+   * A {@link McpRequestReceiverContext} when the bound exchange carries a {@code traceparent},
+   * otherwise a plain context.
+   */
+  private static Observation.Context handlerContext() {
+    if (McpExchange.CURRENT.isBound()) {
+      TraceContext traceContext = McpExchange.CURRENT.get().traceContext();
+      if (traceContext.isPresent()) {
+        return new McpRequestReceiverContext(traceContext);
+      }
+    }
+    return new Observation.Context();
   }
 
   @Override

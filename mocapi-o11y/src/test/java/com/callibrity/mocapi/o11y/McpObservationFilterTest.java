@@ -17,9 +17,8 @@ package com.callibrity.mocapi.o11y;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.callibrity.mocapi.model.ClientCapabilities;
 import com.callibrity.mocapi.model.Implementation;
-import com.callibrity.mocapi.server.session.McpSession;
+import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
@@ -60,49 +59,41 @@ class McpObservationFilterTest {
 
   @Test
   void adds_mcp_method_name_from_bound_json_rpc_notification() {
-    JsonRpcRequest notification = new JsonRpcNotification("2.0", "notifications/initialized", null);
+    JsonRpcRequest notification = new JsonRpcNotification("2.0", "notifications/progress", null);
     Observation.Context context = jsonRpcContext();
 
     ScopedValue.where(JsonRpcDispatcher.CURRENT_REQUEST, notification)
         .run(() -> filter.map(context));
 
     assertThat(context.getLowCardinalityKeyValue("mcp.method.name").getValue())
-        .isEqualTo("notifications/initialized");
+        .isEqualTo("notifications/progress");
   }
 
   @Test
-  void adds_mcp_session_id_and_protocol_version_when_mcp_session_is_bound() {
+  void adds_protocol_version_and_client_name_when_exchange_is_bound() {
     Observation.Context context = jsonRpcContext();
-    McpSession session =
-        new McpSession(
-            "session-42",
-            "2025-11-25",
-            new ClientCapabilities(null, null, null),
-            new Implementation("client", "Client", "1.0"));
+    McpExchange exchange =
+        new McpExchange(
+            "2026-07-28", new Implementation("ExampleClient", null, "1.0.0", null), null);
 
-    ScopedValue.where(McpSession.CURRENT, session).run(() -> filter.map(context));
+    ScopedValue.where(McpExchange.CURRENT, exchange).run(() -> filter.map(context));
 
-    assertThat(context.getLowCardinalityKeyValue("mcp.session.id").getValue())
-        .isEqualTo("session-42");
     assertThat(context.getLowCardinalityKeyValue("mcp.protocol.version").getValue())
-        .isEqualTo("2025-11-25");
+        .isEqualTo("2026-07-28");
+    assertThat(context.getLowCardinalityKeyValue("mcp.client.name").getValue())
+        .isEqualTo("ExampleClient");
   }
 
   @Test
-  void omits_protocol_version_when_session_protocol_version_is_null() {
+  void omits_client_name_when_exchange_has_no_client_info() {
     Observation.Context context = jsonRpcContext();
-    McpSession session =
-        new McpSession(
-            "session-42",
-            null,
-            new ClientCapabilities(null, null, null),
-            new Implementation("client", "Client", "1.0"));
+    McpExchange exchange = new McpExchange("2026-07-28", null, null);
 
-    ScopedValue.where(McpSession.CURRENT, session).run(() -> filter.map(context));
+    ScopedValue.where(McpExchange.CURRENT, exchange).run(() -> filter.map(context));
 
-    assertThat(context.getLowCardinalityKeyValue("mcp.session.id").getValue())
-        .isEqualTo("session-42");
-    assertThat(context.getLowCardinalityKeyValue("mcp.protocol.version")).isNull();
+    assertThat(context.getLowCardinalityKeyValue("mcp.protocol.version").getValue())
+        .isEqualTo("2026-07-28");
+    assertThat(context.getLowCardinalityKeyValue("mcp.client.name")).isNull();
   }
 
   @Test
@@ -113,7 +104,8 @@ class McpObservationFilterTest {
 
     assertThat(result).isSameAs(context);
     assertThat(context.getLowCardinalityKeyValue("mcp.method.name")).isNull();
-    assertThat(context.getLowCardinalityKeyValue("mcp.session.id")).isNull();
+    assertThat(context.getLowCardinalityKeyValue("mcp.protocol.version")).isNull();
+    assertThat(context.getLowCardinalityKeyValue("mcp.client.name")).isNull();
   }
 
   private static Observation.Context jsonRpcContext() {

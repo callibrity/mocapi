@@ -16,8 +16,8 @@
 package com.callibrity.mocapi.audit;
 
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.handler.HandlerKind;
-import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.util.Hashes;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -39,8 +39,10 @@ import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Emits one structured audit event per MCP handler invocation on the {@code mocapi.audit} SLF4J
- * logger, with caller / session / handler / outcome / duration fields and (opt-in) a SHA-256 hash
- * of the arguments. One instance per handler — {@code handlerKind} and {@code handlerName} are
+ * logger, with caller / protocol-version / client-name / handler / outcome / duration fields and
+ * (opt-in) a SHA-256 hash of the arguments. Protocol version and client name come from the bound
+ * per-request {@link McpExchange} — MCP 2026-07-28 has no sessions (ADR-0020), so there is no
+ * session id to record. One instance per handler — {@code handlerKind} and {@code handlerName} are
  * closed over at construction so the hot path does no reflection.
  *
  * <p>Outcome classification maps {@link JsonRpcException}s carrying {@link
@@ -78,7 +80,10 @@ public final class AuditLoggingInterceptor implements MethodInterceptor<Object> 
   public Object intercept(MethodInvocation<?> invocation) {
     long startNanos = System.nanoTime();
     String caller = safeCaller();
-    String sessionId = safeSessionId();
+    McpExchange exchange = McpExchange.CURRENT.isBound() ? McpExchange.CURRENT.get() : null;
+    String protocolVersion = exchange == null ? null : exchange.protocolVersion();
+    String clientName =
+        exchange == null || exchange.clientInfo() == null ? null : exchange.clientInfo().name();
     String argsHash = hashArguments ? computeArgsHash(invocation.argument()) : null;
 
     String outcome = "success";
@@ -100,7 +105,8 @@ public final class AuditLoggingInterceptor implements MethodInterceptor<Object> 
       LoggingEventBuilder event =
           log.atInfo()
               .addKeyValue(AuditFieldKeys.CALLER, caller)
-              .addKeyValue(AuditFieldKeys.SESSION_ID, sessionId)
+              .addKeyValue(AuditFieldKeys.PROTOCOL_VERSION, protocolVersion)
+              .addKeyValue(AuditFieldKeys.CLIENT_NAME, clientName)
               .addKeyValue(AuditFieldKeys.HANDLER_KIND, handlerKind.tag())
               .addKeyValue(AuditFieldKeys.HANDLER_NAME, handlerName)
               .addKeyValue(AuditFieldKeys.OUTCOME, outcome)
@@ -122,10 +128,6 @@ public final class AuditLoggingInterceptor implements MethodInterceptor<Object> 
     } catch (RuntimeException _) {
       return AuditCallerIdentityProvider.ANONYMOUS;
     }
-  }
-
-  private static String safeSessionId() {
-    return McpSession.CURRENT.isBound() ? McpSession.CURRENT.get().sessionId() : null;
   }
 
   private static String classifyOutcome(Throwable t) {

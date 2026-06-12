@@ -18,8 +18,9 @@ package com.callibrity.mocapi.logging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.handler.HandlerKind;
-import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
@@ -56,15 +57,16 @@ class McpMdcInterceptorTest {
   }
 
   @Test
-  void sets_session_key_when_session_is_bound() {
+  void sets_protocol_version_and_client_name_when_exchange_is_bound() {
     var interceptor = new McpMdcInterceptor(HandlerKind.TOOL, "my-tool", "Fixtures");
-    var session = new McpSession("session-42", "2025-11-25", null, null);
-    AtomicReference<String> seen = new AtomicReference<>();
+    var exchange =
+        new McpExchange(
+            "2026-07-28", new Implementation("ExampleClient", null, "1.0.0", null), null);
+    AtomicReference<Map<String, String>> seen = new AtomicReference<>();
 
-    ScopedValue.where(McpSession.CURRENT, session)
+    ScopedValue.where(McpExchange.CURRENT, exchange)
         .run(
-            () -> {
-              try {
+            () ->
                 interceptor.intercept(
                     MethodInvocation.of(
                         dummyMethod(),
@@ -72,24 +74,50 @@ class McpMdcInterceptorTest {
                         null,
                         new Object[0],
                         () -> {
-                          seen.set(MDC.get(McpMdcKeys.SESSION));
+                          var snapshot = MDC.getCopyOfContextMap();
+                          seen.set(snapshot == null ? Map.of() : snapshot);
                           return null;
-                        }));
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-            });
+                        })));
 
-    assertThat(seen.get()).isEqualTo("session-42");
-    assertThat(MDC.get(McpMdcKeys.SESSION)).isNull();
+    assertThat(seen.get())
+        .containsEntry(McpMdcKeys.PROTOCOL_VERSION, "2026-07-28")
+        .containsEntry(McpMdcKeys.CLIENT_NAME, "ExampleClient");
+    assertThat(MDC.get(McpMdcKeys.PROTOCOL_VERSION)).isNull();
+    assertThat(MDC.get(McpMdcKeys.CLIENT_NAME)).isNull();
   }
 
   @Test
-  void omits_session_key_when_session_is_not_bound() {
+  void omits_exchange_keys_when_no_exchange_is_bound() {
     var interceptor = new McpMdcInterceptor(HandlerKind.TOOL, "my-tool", "Fixtures");
     var captured = invokeCapturingMdc(interceptor);
 
-    assertThat(captured.get().containsKey(McpMdcKeys.SESSION)).isFalse();
+    assertThat(captured.get().containsKey(McpMdcKeys.PROTOCOL_VERSION)).isFalse();
+    assertThat(captured.get().containsKey(McpMdcKeys.CLIENT_NAME)).isFalse();
+  }
+
+  @Test
+  void omits_client_name_when_exchange_has_no_client_info() {
+    var interceptor = new McpMdcInterceptor(HandlerKind.TOOL, "my-tool", "Fixtures");
+    var exchange = new McpExchange("2026-07-28", null, null);
+    AtomicReference<Map<String, String>> seen = new AtomicReference<>();
+
+    ScopedValue.where(McpExchange.CURRENT, exchange)
+        .run(
+            () ->
+                interceptor.intercept(
+                    MethodInvocation.of(
+                        dummyMethod(),
+                        new Fixtures(),
+                        null,
+                        new Object[0],
+                        () -> {
+                          var snapshot = MDC.getCopyOfContextMap();
+                          seen.set(snapshot == null ? Map.of() : snapshot);
+                          return null;
+                        })));
+
+    assertThat(seen.get()).containsEntry(McpMdcKeys.PROTOCOL_VERSION, "2026-07-28");
+    assertThat(seen.get().containsKey(McpMdcKeys.CLIENT_NAME)).isFalse();
   }
 
   @Test
@@ -169,7 +197,7 @@ class McpMdcInterceptorTest {
   @Test
   void omits_request_id_when_bound_request_is_notification() {
     var interceptor = new McpMdcInterceptor(HandlerKind.TOOL, "my-tool", "Fixtures");
-    JsonRpcRequest notification = new JsonRpcNotification("2.0", "notifications/initialized", null);
+    JsonRpcRequest notification = new JsonRpcNotification("2.0", "notifications/progress", null);
     AtomicReference<String> seen = new AtomicReference<>();
 
     ScopedValue.where(JsonRpcDispatcher.CURRENT_REQUEST, notification)

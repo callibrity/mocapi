@@ -22,9 +22,10 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.handler.HandlerKind;
-import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.lang.reflect.Method;
@@ -83,20 +84,26 @@ class AuditLoggingInterceptorTest {
         .containsKey(AuditFieldKeys.DURATION_MS)
         .doesNotContainKey(AuditFieldKeys.ARGUMENTS_HASH)
         .doesNotContainKey(AuditFieldKeys.ERROR_CLASS)
-        .containsKey(AuditFieldKeys.SESSION_ID);
+        .containsKey(AuditFieldKeys.PROTOCOL_VERSION)
+        .containsKey(AuditFieldKeys.CLIENT_NAME);
     assertThat((Long) kv.get(AuditFieldKeys.DURATION_MS)).isGreaterThanOrEqualTo(0L);
-    assertThat(kv.get(AuditFieldKeys.SESSION_ID)).isNull();
+    assertThat(kv.get(AuditFieldKeys.PROTOCOL_VERSION)).isNull();
+    assertThat(kv.get(AuditFieldKeys.CLIENT_NAME)).isNull();
   }
 
   @Test
-  void emits_session_id_when_session_is_bound() {
+  void emits_protocol_version_and_client_name_when_exchange_is_bound() {
     var interceptor = newInterceptor(HandlerKind.TOOL, "weather", false);
-    var session = new McpSession("session-42", "2025-11-25", null, null);
-    ScopedValue.where(McpSession.CURRENT, session)
+    var exchange =
+        new McpExchange(
+            "2026-07-28", new Implementation("ExampleClient", null, "1.0.0", null), null);
+    ScopedValue.where(McpExchange.CURRENT, exchange)
         .run(() -> interceptor.intercept(invocation(Map.of(), () -> "ok")));
 
     Map<String, Object> kv = keyValues(appender.list.getFirst());
-    assertThat(kv).containsEntry(AuditFieldKeys.SESSION_ID, "session-42");
+    assertThat(kv)
+        .containsEntry(AuditFieldKeys.PROTOCOL_VERSION, "2026-07-28")
+        .containsEntry(AuditFieldKeys.CLIENT_NAME, "ExampleClient");
   }
 
   @Test

@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.o11y;
 
-import com.callibrity.mocapi.server.session.McpSession;
+import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.o11y.JsonRpcObservationInterceptor;
@@ -30,15 +30,16 @@ import io.micrometer.observation.ObservationFilter;
  *
  * <p>The filter runs at {@link Observation#stop()} time, which ripcurl invokes from inside the
  * {@link JsonRpcDispatcher#CURRENT_REQUEST} scope — so both that {@link ScopedValue} and {@link
- * McpSession#CURRENT} are still bound when this filter reads them.
+ * McpExchange#CURRENT} are still bound when this filter reads them.
  *
  * <p>Attributes added on JSON-RPC observations per
  * https://opentelemetry.io/docs/specs/semconv/gen-ai/mcp/:
  *
  * <ul>
  *   <li>{@code mcp.method.name} — the JSON-RPC method (from the bound request envelope)
- *   <li>{@code mcp.session.id}, {@code mcp.protocol.version} — when {@link McpSession#CURRENT} is
- *       bound
+ *   <li>{@code mcp.protocol.version}, {@code mcp.client.name} — from the per-request {@code _meta}
+ *       envelope when {@link McpExchange#CURRENT} is bound (MCP 2026-07-28 has no sessions, so
+ *       there is no {@code mcp.session.id})
  * </ul>
  *
  * <p>Using an {@link ObservationFilter} rather than a per-method interceptor avoids ordering
@@ -59,12 +60,15 @@ public final class McpObservationFilter implements ObservationFilter {
       context.addLowCardinalityKeyValue(KeyValue.of("mcp.method.name", request.method()));
     }
 
-    if (McpSession.CURRENT.isBound()) {
-      McpSession session = McpSession.CURRENT.get();
-      context.addLowCardinalityKeyValue(KeyValue.of("mcp.session.id", session.sessionId()));
-      if (session.protocolVersion() != null) {
+    if (McpExchange.CURRENT.isBound()) {
+      McpExchange exchange = McpExchange.CURRENT.get();
+      if (exchange.protocolVersion() != null) {
         context.addLowCardinalityKeyValue(
-            KeyValue.of("mcp.protocol.version", session.protocolVersion()));
+            KeyValue.of("mcp.protocol.version", exchange.protocolVersion()));
+      }
+      if (exchange.clientInfo() != null && exchange.clientInfo().name() != null) {
+        context.addLowCardinalityKeyValue(
+            KeyValue.of("mcp.client.name", exchange.clientInfo().name()));
       }
     }
 
