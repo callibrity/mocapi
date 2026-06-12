@@ -325,6 +325,13 @@ public final class CallToolHandlers {
     }
   }
 
+  /**
+   * Compiles a framework-generated schema for runtime argument/output validation. Only schemas
+   * produced by {@link MethodSchemaGenerator} reach this point — they never contain external {@code
+   * $ref}s, so {@code SchemaLoader} never dereferences anything remote (SEP-2106 forbids
+   * auto-dereferencing external refs). If a future feature feeds user-supplied raw schemas into
+   * compilation, remote ref resolution must be disabled explicitly.
+   */
   private static Schema compile(ObjectNode schema) {
     return new SchemaLoader(new JsonParser(schema.toString()).parse()).load();
   }
