@@ -20,23 +20,22 @@ import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.CompleteRequestParams;
 import com.callibrity.mocapi.model.CompletionArgument;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplateReference;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
-import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.substrate.atom.AtomFactory;
-import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -65,16 +64,6 @@ class ResourceServiceAutoConfigurationTest {
     }
 
     @Bean
-    AtomFactory atomFactory() {
-      return SubstrateTestSupport.atomFactory();
-    }
-
-    @Bean
-    MailboxFactory mailboxFactory() {
-      return SubstrateTestSupport.mailboxFactory();
-    }
-
-    @Bean
     JsonRpcDispatcher jsonRpcDispatcher() {
       return mock(JsonRpcDispatcher.class);
     }
@@ -85,13 +74,19 @@ class ResourceServiceAutoConfigurationTest {
     @McpResource(uri = "test://hello", name = "Hello", mimeType = "text/plain")
     public ReadResourceResult hello() {
       return new ReadResourceResult(
-          List.of(new TextResourceContents("test://hello", "text/plain", "hi")));
+          List.of(new TextResourceContents("test://hello", "text/plain", "hi")),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
 
     @McpResourceTemplate(uriTemplate = "test://items/{id}", name = "Item")
     public ReadResourceResult item(String id) {
       return new ReadResourceResult(
-          List.of(new TextResourceContents("test://items/" + id, "text/plain", "item " + id)));
+          List.of(new TextResourceContents("test://items/" + id, "text/plain", "item " + id)),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -106,7 +101,10 @@ class ResourceServiceAutoConfigurationTest {
     @McpResourceTemplate(uriTemplate = "env://{stage}/config", name = "Env Config")
     public ReadResourceResult config(Stage stage) {
       return new ReadResourceResult(
-          List.of(new TextResourceContents("env://" + stage + "/config", "text/plain", "cfg")));
+          List.of(new TextResourceContents("env://" + stage + "/config", "text/plain", "cfg")),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -119,7 +117,10 @@ class ResourceServiceAutoConfigurationTest {
         mimeType = "${resource.mimeType}")
     public ReadResourceResult hello() {
       return new ReadResourceResult(
-          List.of(new TextResourceContents("test://hello", "text/plain", "hi")));
+          List.of(new TextResourceContents("test://hello", "text/plain", "hi")),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
 
     @McpResourceTemplate(
@@ -129,7 +130,10 @@ class ResourceServiceAutoConfigurationTest {
         mimeType = "${template.mimeType}")
     public ReadResourceResult item(String id) {
       return new ReadResourceResult(
-          List.of(new TextResourceContents("test://items/" + id, "text/plain", "item " + id)));
+          List.of(new TextResourceContents("test://items/" + id, "text/plain", "item " + id)),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -228,7 +232,10 @@ class ResourceServiceAutoConfigurationTest {
         .run(
             context -> {
               var service = context.getBean(McpResourcesService.class);
-              var result = service.readResource(new ResourceRequestParams("test://hello", null));
+              var result =
+                  (ReadResourceResult)
+                      service.readResource(
+                          new ResourceRequestParams("test://hello", null, null, null));
               var content = (TextResourceContents) result.contents().getFirst();
               assertThat(content.text()).isEqualTo("hi");
             });

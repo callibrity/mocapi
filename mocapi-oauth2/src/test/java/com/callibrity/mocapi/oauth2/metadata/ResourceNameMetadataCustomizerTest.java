@@ -31,7 +31,7 @@ class ResourceNameMetadataCustomizerTest {
 
   @Test
   void prefers_implementation_title_when_present() {
-    Implementation impl = new Implementation("mocapi", "Mocapi Server", "1.0.0");
+    Implementation impl = new Implementation("mocapi", "Mocapi Server", "1.0.0", null);
     OAuth2ProtectedResourceMetadata.Builder builder =
         mock(OAuth2ProtectedResourceMetadata.Builder.class);
 
@@ -42,7 +42,7 @@ class ResourceNameMetadataCustomizerTest {
 
   @Test
   void falls_back_to_implementation_name_when_title_blank() {
-    Implementation impl = new Implementation("mocapi", "", "1.0.0");
+    Implementation impl = new Implementation("mocapi", "", "1.0.0", null);
     OAuth2ProtectedResourceMetadata.Builder builder =
         mock(OAuth2ProtectedResourceMetadata.Builder.class);
 
@@ -53,7 +53,7 @@ class ResourceNameMetadataCustomizerTest {
 
   @Test
   void contributes_nothing_when_both_title_and_name_blank() {
-    Implementation impl = new Implementation("", "", "1.0.0");
+    Implementation impl = new Implementation("", "", "1.0.0", null);
     OAuth2ProtectedResourceMetadata.Builder builder =
         mock(OAuth2ProtectedResourceMetadata.Builder.class);
 

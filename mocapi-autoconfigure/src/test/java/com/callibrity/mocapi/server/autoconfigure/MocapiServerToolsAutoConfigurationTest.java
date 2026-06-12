@@ -18,7 +18,6 @@ package com.callibrity.mocapi.server.autoconfigure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
@@ -26,8 +25,6 @@ import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.substrate.atom.AtomFactory;
-import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -50,16 +47,6 @@ class MocapiServerToolsAutoConfigurationTest {
     @Bean
     ObjectMapper objectMapper() {
       return new ObjectMapper();
-    }
-
-    @Bean
-    AtomFactory atomFactory() {
-      return SubstrateTestSupport.atomFactory();
-    }
-
-    @Bean
-    MailboxFactory mailboxFactory() {
-      return SubstrateTestSupport.mailboxFactory();
     }
 
     @Bean

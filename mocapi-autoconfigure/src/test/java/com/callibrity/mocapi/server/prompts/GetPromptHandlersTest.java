@@ -24,19 +24,17 @@ import com.callibrity.mocapi.model.CompletionArgument;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.PromptReference;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerPromptsAutoConfiguration;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
-import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.substrate.atom.AtomFactory;
-import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -65,16 +63,6 @@ class GetPromptHandlersTest {
     }
 
     @Bean
-    AtomFactory atomFactory() {
-      return SubstrateTestSupport.atomFactory();
-    }
-
-    @Bean
-    MailboxFactory mailboxFactory() {
-      return SubstrateTestSupport.mailboxFactory();
-    }
-
-    @Bean
     JsonRpcDispatcher jsonRpcDispatcher() {
       return mock(JsonRpcDispatcher.class);
     }
@@ -86,7 +74,8 @@ class GetPromptHandlersTest {
     public GetPromptResult greet(String name) {
       return new GetPromptResult(
           "greeting",
-          List.of(new PromptMessage(Role.USER, new TextContent("Hello, " + name + "!", null))));
+          List.of(new PromptMessage(Role.USER, new TextContent("Hello, " + name + "!", null))),
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -102,7 +91,8 @@ class GetPromptHandlersTest {
     public GetPromptResult summarize(String text, Detail detail) {
       return new GetPromptResult(
           "summary",
-          List.of(new PromptMessage(Role.USER, new TextContent(detail + ": " + text, null))));
+          List.of(new PromptMessage(Role.USER, new TextContent(detail + ": " + text, null))),
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -115,7 +105,8 @@ class GetPromptHandlersTest {
     public GetPromptResult greet(String name) {
       return new GetPromptResult(
           "greeting",
-          List.of(new PromptMessage(Role.USER, new TextContent("Hello, " + name + "!", null))));
+          List.of(new PromptMessage(Role.USER, new TextContent("Hello, " + name + "!", null))),
+          ResultTypes.COMPLETE);
     }
   }
 

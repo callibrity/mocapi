@@ -31,7 +31,7 @@ import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.model.Tool;
-import com.callibrity.mocapi.server.session.McpSession;
+import com.callibrity.mocapi.server.exchange.McpExchange;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -49,7 +49,7 @@ class MocapiRuntimeHintsTest {
 
   @Test
   void registers_binding_hints_for_mcp_session() {
-    assertTypeHintRegistered(McpSession.class);
+    assertTypeHintRegistered(McpExchange.class);
   }
 
   @Test

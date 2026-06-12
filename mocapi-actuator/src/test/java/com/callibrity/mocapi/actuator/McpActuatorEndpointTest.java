@@ -51,7 +51,7 @@ class McpActuatorEndpointTest {
     McpActuatorSnapshot snapshot = fullFixtureSnapshot();
     assertThat(snapshot.server().name()).isEqualTo("mocapi");
     assertThat(snapshot.server().version()).isEqualTo("1.2.3");
-    assertThat(snapshot.server().protocolVersion()).isEqualTo("2025-11-25");
+    assertThat(snapshot.server().protocolVersion()).isEqualTo("2026-07-28");
   }
 
   @Test
@@ -157,7 +157,7 @@ class McpActuatorEndpointTest {
 
     var endpoint =
         new McpActuatorEndpoint(
-            new Implementation("mocapi", "Mocapi", "1.2.3"), tools, prompts, resources);
+            new Implementation("mocapi", "Mocapi", "1.2.3", null), tools, prompts, resources);
     return endpoint.snapshot();
   }
 
@@ -177,7 +177,7 @@ class McpActuatorEndpointTest {
 
     var endpoint =
         new McpActuatorEndpoint(
-            new Implementation("mocapi", null, null), tools, prompts, resources);
+            new Implementation("mocapi", null, null, null), tools, prompts, resources);
 
     McpActuatorSnapshot snapshot = endpoint.snapshot();
     var toolInfo = snapshot.tools().getFirst();
