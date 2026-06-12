@@ -146,7 +146,8 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
         return toErrorCallToolResult(bad);
       }
     } catch (JsonRpcException e) {
-      // Guard denials (-32003) are a protocol-level gate and must surface as JSON-RPC errors, not
+      // Guard denials (-32010, ADR-0023) are a protocol-level gate and must surface as JSON-RPC
+      // errors, not
       // be wrapped into a CallToolResult. Schema-validation JsonRpcExceptions (-32602) stay wrapped
       // so the calling LLM can self-correct on malformed arguments.
       if (e.getCode() == JsonRpcErrorCodes.FORBIDDEN) {

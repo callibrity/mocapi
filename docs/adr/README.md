@@ -58,3 +58,4 @@ authored at decision time and dated accordingly.
 - [ADR-0020 — Stateless request model; sessions removed](0020-stateless-request-model.md)
 - [ADR-0021 — MRTR elicitation via replay](0021-mrtr-elicitation-replay.md)
 - [ADR-0022 — MCP 2026-07-28 features deliberately not implemented](0022-2026-07-28-features-not-implemented.md)
+- [ADR-0023 — Guard denial moves to `-32010`; spec claims `-32003`/`-32004`](0023-guard-denial-code-relocation.md)

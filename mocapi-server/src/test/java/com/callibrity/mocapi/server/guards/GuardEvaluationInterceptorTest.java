@@ -87,13 +87,13 @@ class GuardEvaluationInterceptorTest {
     Guard second = new NamedGuard("B");
     assertThat(new GuardEvaluationInterceptor(List.of(first, second)))
         .hasToString(
-            "Evaluates guards [A, B] and rejects denied calls with JSON-RPC -32003 Forbidden");
+            "Evaluates guards [A, B] and rejects denied calls with JSON-RPC -32010 Forbidden");
   }
 
   @Test
   void toString_with_no_guards_still_describes_role() {
     assertThat(new GuardEvaluationInterceptor(List.of()))
-        .hasToString("Evaluates guards [] and rejects denied calls with JSON-RPC -32003 Forbidden");
+        .hasToString("Evaluates guards [] and rejects denied calls with JSON-RPC -32010 Forbidden");
   }
 
   private record NamedGuard(String label) implements Guard {

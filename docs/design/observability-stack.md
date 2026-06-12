@@ -103,7 +103,7 @@ logger.atInfo()
   exception. A tool that returns `CallToolResult.isError=true` still
   counts as `success` (it's a model-visible tool error, not an audit
   failure).
-- `forbidden` — `JsonRpcException` with code `-32003` (a guard denial).
+- `forbidden` — `JsonRpcException` with code `-32010` (a guard denial, ADR-0023).
 - `invalid_params` — `JsonRpcException` with code `-32602` (e.g.
   Jakarta Validation rejection).
 - `error` — any other thrown exception. Stack traces are not emitted;
@@ -173,8 +173,8 @@ inside it being observable:
   whether the guard fired; it sees the post-guard outcome and classifies
   it.
 - **AUTHORIZATION outside VALIDATION** so a request that would fail
-  validation but isn't allowed in the first place returns `-32003
-  Forbidden`, not `-32602 Invalid params`. Information leak prevention.
+  validation but isn't allowed in the first place returns `-32010
+  Forbidden` (ADR-0023), not `-32602 Invalid params`. Information leak prevention.
 - **VALIDATION outside INVOCATION** so a structurally invalid request
   never reaches user code.
 
