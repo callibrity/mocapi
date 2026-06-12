@@ -17,13 +17,11 @@ package com.callibrity.mocapi.transport.stdio;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -36,17 +34,14 @@ import tools.jackson.databind.node.JsonNodeFactory;
 class StdioTransportTest {
 
   private ByteArrayOutputStream buffer;
-  private PrintStream out;
-  private AtomicReference<String> sessionIdCapture;
   private final ObjectMapper objectMapper = new ObjectMapper();
   private StdioTransport transport;
 
   @BeforeEach
-  void setUp() {
+  void set_up() {
     buffer = new ByteArrayOutputStream();
-    out = new PrintStream(buffer, true, StandardCharsets.UTF_8);
-    sessionIdCapture = new AtomicReference<>();
-    transport = new StdioTransport(objectMapper, out, sessionIdCapture::set);
+    transport =
+        new StdioTransport(objectMapper, new PrintStream(buffer, true, StandardCharsets.UTF_8));
   }
 
   @Nested
@@ -92,17 +87,6 @@ class StdioTransportTest {
       assertThat(lines).hasSize(2);
       assertThat(lines[0]).contains("\"id\":1");
       assertThat(lines[1]).contains("\"id\":2");
-    }
-  }
-
-  @Nested
-  class Emit {
-
-    @Test
-    void session_initialized_delivers_session_id_to_sink() {
-      transport.emit(new McpEvent.SessionInitialized("session-abc", "2025-11-25"));
-
-      assertThat(sessionIdCapture.get()).isEqualTo("session-abc");
     }
   }
 }

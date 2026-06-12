@@ -45,10 +45,11 @@ protocol. Route all logging to stderr. A minimal `logback-spring.xml`:
 ## Design in one paragraph
 
 A single reader thread blocks on `BufferedReader.readLine()` against stdin and
-hands each parsed `JsonRpcMessage` to a virtual-thread executor. Per-message
-virtual threads are required because handlers can block awaiting a client
-response (elicitation, sampling) — dispatching inline would deadlock the reader
-against input it needs to read. `StdioTransport.send` writes one JSON line to
+hands each parsed `JsonRpcMessage` to a virtual-thread executor. MCP 2026-07-28
+is stateless: every line is an independent request or notification (no
+handshake, no session), and `server/discover` is answerable at any time.
+Per-message virtual threads keep a slow handler from stalling the reader
+thread. `StdioTransport.send` writes one JSON line to
 stdout; `PrintStream` is internally synchronized so concurrent writes from
 parallel dispatches can't interleave. The reader uses try-with-resources on the
 executor, so EOF → close → awaitTermination → JVM exit, with no dropped

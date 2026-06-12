@@ -15,11 +15,9 @@
  */
 package com.callibrity.mocapi.transport.stdio;
 
-import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import java.io.PrintStream;
-import java.util.function.Consumer;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -32,25 +30,15 @@ public final class StdioTransport implements McpTransport {
 
   private final ObjectMapper objectMapper;
   private final PrintStream out;
-  private final Consumer<String> sessionIdSink;
 
-  public StdioTransport(
-      ObjectMapper objectMapper, PrintStream out, Consumer<String> sessionIdSink) {
+  public StdioTransport(ObjectMapper objectMapper, PrintStream out) {
     this.objectMapper = objectMapper;
     this.out = out;
-    this.sessionIdSink = sessionIdSink;
   }
 
   @Override
   public void send(JsonRpcMessage message) {
     out.println(objectMapper.writeValueAsString(message));
     out.flush();
-  }
-
-  @Override
-  public void emit(McpEvent event) {
-    if (event instanceof McpEvent.SessionInitialized si) {
-      sessionIdSink.accept(si.sessionId());
-    }
   }
 }
