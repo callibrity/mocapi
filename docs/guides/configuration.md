@@ -2,40 +2,43 @@
 
 All Mocapi properties use the `mocapi.*` prefix. Configure them in `application.properties` or `application.yml`.
 
+Mocapi is stateless under MCP 2026-07-28: there are no sessions, no session store, and no session-related configuration. Every request is self-contained.
+
 ## Server Properties
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| `mocapi.server-name` | `${spring.application.name:mocapi}` | Server name reported in the `InitializeResult`. Defaults to your Spring application name. |
+| `mocapi.server-name` | `${spring.application.name:mocapi}` | Server name reported in the `server/discover` result. Defaults to your Spring application name. |
 | `mocapi.server-title` | `Callibrity Mocapi MCP Server` | Human-readable server title. |
 | `mocapi.server-version` | `unknown` | Server version. Overridden automatically if Spring Boot's `BuildProperties` are available (via `spring-boot-maven-plugin` build-info goal). |
-| `mocapi.instructions` | (none) | Optional instructions string included in the `InitializeResult`. Provides guidance to the LLM about how to use this server's tools. |
-
-## Session Properties
-
-| Property | Default | Description |
-|----------|---------|-------------|
-| `mocapi.session-timeout` | `PT1H` | Session TTL as an ISO 8601 duration. Sessions are refreshed on each access. Expired sessions are removed from the store. |
-| `mocapi.session-encryption-master-key` | (required) | Base64-encoded 32-byte AES-256 key for encrypting SSE event IDs. Must be set explicitly for production deployments. The example applications generate an ephemeral key on startup. |
+| `mocapi.instructions` | (none) | Optional instructions string included in the `server/discover` result. Provides guidance to the LLM about how to use this server's tools. |
 
 ## Transport Properties
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| `mocapi.endpoint` | `/mcp` | The HTTP endpoint path for the MCP Streamable HTTP transport. |
-| `mocapi.allowed-origins` | `localhost,127.0.0.1,[::1]` | Comma-separated list of allowed Origin header hostnames. Requests with an `Origin` header whose hostname is not in this list are rejected with HTTP 403. Requests without an `Origin` header are accepted. |
+| `mocapi.endpoint` | `/mcp` | The HTTP endpoint path for the MCP Streamable HTTP transport. POST-only — `GET` and `DELETE` return `405 Method Not Allowed`. |
+| `mocapi.allowed-origins` | `localhost,127.0.0.1,[::1]` | Comma-separated list of allowed Origin header hostnames (DNS-rebinding protection). Requests with an `Origin` header whose hostname is not in this list are rejected with HTTP 403. Requests without an `Origin` header are accepted. |
+| `mocapi.stdio.enabled` | `false` | Enables the stdio transport. Set to `true` when an MCP client launches the server as a subprocess (Claude Desktop, Cursor, MCP Inspector). |
 
-## Elicitation Properties
+## MRTR Elicitation Properties
 
-| Property | Default | Description |
-|----------|---------|-------------|
-| `mocapi.elicitation.timeout` | `PT5M` | Maximum time to wait for a client response to an `elicitation/create` request. If exceeded, the server sends `notifications/cancelled` and the tool receives an error. |
-
-## Sampling Properties
+Elicitation in MCP 2026-07-28 is a multi round-trip request (MRTR): the server returns an `input_required` result carrying an opaque `requestState` token, and the client retries the call with the answers attached. The token is encrypted and signed; these properties control it (see [Interactive Tools](interactive-tools.md) and ADR-0021).
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| `mocapi.sampling.timeout` | `PT30S` | Maximum time to wait for a client response to a `sampling/createMessage` request. If exceeded, the server sends `notifications/cancelled` and the tool receives an error. |
+| `mocapi.mrtr.secret` | (empty) | Base64-encoded 256-bit key used to encrypt and sign `requestState` tokens. **Required for production and multi-instance deployments.** When empty, an ephemeral key is generated at startup — in-flight elicitations will not survive a restart, and other instances cannot decode the tokens. |
+| `mocapi.mrtr.ttl` | `PT5M` | How long a client has to complete one elicitation round trip before the `requestState` token expires (ISO 8601 duration). An expired or tampered token is rejected with `-32602`. |
+
+## Cache Properties
+
+The 2026-07-28 spec requires cache directives (`ttlMs` / `cacheScope`) on the six cacheable results. These properties control what mocapi stamps onto them. The defaults (`PT0S` + `private`) mean "don't cache" — the conservative choice.
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `mocapi.cache.list-ttl` | `PT0S` | TTL stamped onto the four list results (`tools/list`, `prompts/list`, `resources/list`, `resources/templates/list`) and `server/discover` (ISO 8601 duration). |
+| `mocapi.cache.read-ttl` | `PT0S` | TTL stamped onto `resources/read` results (ISO 8601 duration). |
+| `mocapi.cache.scope` | `private` | Cache scope for all cacheable results: `private` (per-client caches only) or `public` (shared caches allowed). |
 
 ## Pagination Properties
 
@@ -51,28 +54,26 @@ mocapi.server-name=my-mcp-server
 mocapi.server-title=My MCP Server
 mocapi.instructions=This server provides weather and calendar tools.
 
-# Session management
-mocapi.session-timeout=PT30M
-mocapi.session-encryption-master-key=BASE64_ENCODED_32_BYTE_KEY
-
-# See "Generating the session encryption key" below for commands that produce a
-# suitable value for mocapi.session-encryption-master-key.
-
 # Transport
 mocapi.endpoint=/api/mcp
 mocapi.allowed-origins=myapp.example.com,localhost
 
-# Timeouts
-mocapi.elicitation.timeout=PT2M
-mocapi.sampling.timeout=PT1M
+# MRTR elicitation (see "Generating the MRTR secret" below)
+mocapi.mrtr.secret=BASE64_ENCODED_32_BYTE_KEY
+mocapi.mrtr.ttl=PT2M
+
+# Cache directives
+mocapi.cache.list-ttl=PT1M
+mocapi.cache.read-ttl=PT30S
+mocapi.cache.scope=private
 
 # Pagination
 mocapi.pagination.page-size=25
 ```
 
-## Generating the Session Encryption Key
+## Generating the MRTR Secret
 
-`mocapi.session-encryption-master-key` must be a base64-encoded 32-byte (AES-256) key. Any of the following produces a suitable value:
+`mocapi.mrtr.secret` must be a base64-encoded 32-byte (256-bit) key. Any of the following produces a suitable value:
 
 **OpenSSL (macOS/Linux):**
 ```bash
@@ -92,56 +93,11 @@ System.out.println(java.util.Base64.getEncoder().encodeToString(k));
 /exit
 ```
 
-Generate the key once per environment and store it in your secret manager (Vault, AWS Secrets Manager, Kubernetes Secret, etc.) -- not in source control. Rotating the key invalidates all outstanding SSE event IDs, so plan rotations during a maintenance window.
+Generate the key once per environment and store it in your secret manager (Vault, AWS Secrets Manager, Kubernetes Secret, etc.) -- not in source control. Rotating the key invalidates outstanding `requestState` tokens, so in-flight elicitations at rotation time fail with `-32602` and the client starts the call over -- annoying but harmless, given the short TTL.
 
-## Backend Configuration
+## Module-Specific Properties
 
-Mocapi uses [Substrate](https://github.com/jwcarman/substrate) for session storage, mailbox-based request/response correlation, and SSE event journaling. By default, Substrate uses in-memory implementations suitable for single-node development.
+Some optional modules carry their own property prefixes, documented in their guides:
 
-For production multi-node deployments, add a Substrate backend to your classpath:
-
-### Redis
-
-```xml
-<dependency>
-    <groupId>org.jwcarman.substrate</groupId>
-    <artifactId>substrate-redis</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-redis</artifactId>
-</dependency>
-```
-
-Configure Redis as you normally would for Spring Boot:
-
-```properties
-spring.data.redis.host=redis.example.com
-spring.data.redis.port=6379
-```
-
-### PostgreSQL
-
-```xml
-<dependency>
-    <groupId>org.jwcarman.substrate</groupId>
-    <artifactId>substrate-jdbc</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-jdbc</artifactId>
-</dependency>
-```
-
-### Hazelcast
-
-```xml
-<dependency>
-    <groupId>org.jwcarman.substrate</groupId>
-    <artifactId>substrate-hazelcast</artifactId>
-</dependency>
-```
-
-Substrate's auto-configuration detects the backend on the classpath and configures the appropriate implementations of `AtomFactory`, `MailboxFactory`, `JournalFactory`, and `NotifierFactory`. No Mocapi-specific backend configuration is needed.
-
-See the [examples](../../examples/) directory for working configurations with each backend.
+- `mocapi.oauth2.*` -- OAuth2 resource-server settings; see [Authorization](authorization.md).
+- `mocapi.audit.*` -- audit-log options such as `mocapi.audit.hash-arguments`; see [Audit](audit.md).
