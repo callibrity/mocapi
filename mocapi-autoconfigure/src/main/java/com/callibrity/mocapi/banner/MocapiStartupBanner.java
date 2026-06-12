@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.banner;
 
+import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.discover.DiscoverHandler;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.tools.McpToolsService;
@@ -60,6 +62,7 @@ public class MocapiStartupBanner {
       """;
 
   private final ObjectProvider<McpToolsService> tools;
+  private final ObjectProvider<DiscoverHandler> discover;
   private final ObjectProvider<McpPromptsService> prompts;
   private final ObjectProvider<McpResourcesService> resources;
   private final Environment env;
@@ -69,9 +72,11 @@ public class MocapiStartupBanner {
       ObjectProvider<McpToolsService> tools,
       ObjectProvider<McpPromptsService> prompts,
       ObjectProvider<McpResourcesService> resources,
+      ObjectProvider<DiscoverHandler> discover,
       Environment env,
       ApplicationContext ctx) {
     this.tools = tools;
+    this.discover = discover;
     this.prompts = prompts;
     this.resources = resources;
     this.env = env;
@@ -97,6 +102,7 @@ public class MocapiStartupBanner {
         String.format(
             "  Tools: %d | Prompts: %d | Resources: %d",
             toolCount(), promptCount(), resourceCount()));
+    lines.add("  Protocol: " + describeProtocol());
     lines.add("  Transport: " + describeTransport());
     lines.add("  OAuth2: " + describeOAuth2());
     String observability = describeObservability();
@@ -130,6 +136,19 @@ public class MocapiStartupBanner {
     }
     // Count fixed-URI and templated resources together — the LLM-side abstraction is "resources".
     return svc.allResourceHandlers().size() + svc.allResourceTemplateHandlers().size();
+  }
+
+  /**
+   * The protocol versions this server accepts — sourced from the same {@link DiscoverHandler} that
+   * answers {@code server/discover}, so the banner cannot drift from the wire truth. Falls back to
+   * the compiled-in {@link McpServer#PROTOCOL_VERSION} when the handler bean is absent (e.g. a test
+   * slice excluding the server auto-configuration).
+   */
+  private String describeProtocol() {
+    var handler = discover.getIfAvailable();
+    return handler == null
+        ? McpServer.PROTOCOL_VERSION
+        : String.join(", ", handler.discover().supportedVersions());
   }
 
   private String describeTransport() {

@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.banner;
 
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
+import com.callibrity.mocapi.server.discover.DiscoverHandler;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.tools.McpToolsService;
@@ -44,8 +45,9 @@ public class MocapiStartupBannerAutoConfiguration {
       ObjectProvider<McpToolsService> tools,
       ObjectProvider<McpPromptsService> prompts,
       ObjectProvider<McpResourcesService> resources,
+      ObjectProvider<DiscoverHandler> discover,
       Environment env,
       ApplicationContext ctx) {
-    return new MocapiStartupBanner(tools, prompts, resources, env, ctx);
+    return new MocapiStartupBanner(tools, prompts, resources, discover, env, ctx);
   }
 }
