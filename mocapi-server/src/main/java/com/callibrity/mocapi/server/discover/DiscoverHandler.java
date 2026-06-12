@@ -15,13 +15,13 @@
  */
 package com.callibrity.mocapi.server.discover;
 
-import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.DiscoverResult;
 import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import java.util.List;
 
@@ -33,22 +33,32 @@ import java.util.List;
  * {@code data.supported} list serves as the version-bootstrap probe (the {@code _meta} envelope is
  * REQUIRED on discover like on every request — there is no envelope-less probe).
  *
- * <p>{@code DiscoverResult} is cacheable; until Phase 5 makes caching configurable, the
- * conservative defaults are {@code ttlMs=0} / {@code private}.
+ * <p>{@code DiscoverResult} is the sixth cacheable result. Like the list results, its payload is
+ * startup-static discovery metadata, so it takes the configured <em>list</em> TTL ({@code
+ * mocapi.cache.list-ttl}) and the configured scope ({@code mocapi.cache.scope}) from {@link
+ * CacheSettings}; the defaults are the conservative {@code ttlMs=0} / {@code private}.
  */
 public class DiscoverHandler {
-
-  private static final long DEFAULT_TTL_MS = 0L;
 
   private final Implementation serverInfo;
   private final String instructions;
   private final ServerCapabilities capabilities;
+  private final CacheSettings cacheSettings;
 
   public DiscoverHandler(
       Implementation serverInfo, String instructions, ServerCapabilities capabilities) {
+    this(serverInfo, instructions, capabilities, CacheSettings.defaults());
+  }
+
+  public DiscoverHandler(
+      Implementation serverInfo,
+      String instructions,
+      ServerCapabilities capabilities,
+      CacheSettings cacheSettings) {
     this.serverInfo = serverInfo;
     this.instructions = instructions;
     this.capabilities = capabilities;
+    this.cacheSettings = cacheSettings;
   }
 
   @JsonRpcMethod(McpMethods.SERVER_DISCOVER)
@@ -58,8 +68,8 @@ public class DiscoverHandler {
         capabilities,
         serverInfo,
         instructions,
-        DEFAULT_TTL_MS,
-        CacheScope.PRIVATE,
+        cacheSettings.listTtlMs(),
+        cacheSettings.scope(),
         ResultTypes.COMPLETE);
   }
 }

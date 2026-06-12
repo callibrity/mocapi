@@ -25,6 +25,7 @@ import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.ResultTypes;
+import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.util.Cursors;
@@ -53,12 +54,13 @@ public class McpResourcesService {
   private final List<ReadResourceTemplateHandler> sortedTemplates;
   private final int pageSize;
   private final MrtrElicitationEngine elicitationEngine;
+  private final CacheSettings cacheSettings;
 
   public McpResourcesService(
       List<ReadResourceHandler> handlers,
       List<ReadResourceTemplateHandler> templateHandlers,
       MrtrElicitationEngine engine) {
-    this(handlers, templateHandlers, engine, DEFAULT_PAGE_SIZE);
+    this(handlers, templateHandlers, engine, DEFAULT_PAGE_SIZE, CacheSettings.defaults());
   }
 
   public McpResourcesService(
@@ -66,6 +68,15 @@ public class McpResourcesService {
       List<ReadResourceTemplateHandler> templateHandlers,
       MrtrElicitationEngine engine,
       int pageSize) {
+    this(handlers, templateHandlers, engine, pageSize, CacheSettings.defaults());
+  }
+
+  public McpResourcesService(
+      List<ReadResourceHandler> handlers,
+      List<ReadResourceTemplateHandler> templateHandlers,
+      MrtrElicitationEngine engine,
+      int pageSize,
+      CacheSettings cacheSettings) {
     this.resources =
         handlers.stream()
             .collect(
@@ -99,8 +110,16 @@ public class McpResourcesService {
             .toList();
     this.pageSize = pageSize;
     this.elicitationEngine = engine;
+    this.cacheSettings = cacheSettings;
   }
 
+  /**
+   * Lists registered resources sorted by URI — the resource's identity, matching what the {@code
+   * Mcp-Name} routing header carries for {@code resources/read}. Deterministic ordering is the
+   * spec's recommendation so clients can cache list responses and LLM prompt caches get stable
+   * prefixes. Cache directives ({@code ttlMs}/{@code cacheScope}) come from the configured {@link
+   * CacheSettings} list values.
+   */
   @JsonRpcMethod(McpMethods.RESOURCES_LIST)
   public ListResourcesResult listResources(@JsonRpcParams PaginatedRequestParams params) {
     List<Resource> visible =
@@ -108,16 +127,25 @@ public class McpResourcesService {
             .filter(h -> Guards.allows(h.guards()))
             .map(ReadResourceHandler::descriptor)
             .toList();
-    // Conservative cache defaults until Phase 5 makes them configurable (ttlMs=0, private).
     return Cursors.paginate(
         visible,
         params,
         pageSize,
         (resources, nextCursor) ->
             new ListResourcesResult(
-                resources, nextCursor, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE));
+                resources,
+                nextCursor,
+                cacheSettings.listTtlMs(),
+                cacheSettings.scope(),
+                ResultTypes.COMPLETE));
   }
 
+  /**
+   * Lists registered resource templates sorted by URI template — the template's identity (templates
+   * have no other unique key). Deterministic ordering is the spec's recommendation so clients can
+   * cache list responses and LLM prompt caches get stable prefixes. Cache directives ({@code
+   * ttlMs}/{@code cacheScope}) come from the configured {@link CacheSettings} list values.
+   */
   @JsonRpcMethod(McpMethods.RESOURCES_TEMPLATES_LIST)
   public ListResourceTemplatesResult listResourceTemplates(
       @JsonRpcParams PaginatedRequestParams params) {
@@ -132,7 +160,11 @@ public class McpResourcesService {
         pageSize,
         (resourceTemplates, nextCursor) ->
             new ListResourceTemplatesResult(
-                resourceTemplates, nextCursor, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE));
+                resourceTemplates,
+                nextCursor,
+                cacheSettings.listTtlMs(),
+                cacheSettings.scope(),
+                ResultTypes.COMPLETE));
   }
 
   /**
@@ -157,18 +189,33 @@ public class McpResourcesService {
   private ReadResourceResult doReadResource(String uri) {
     ReadResourceHandler exact = resources.get(uri);
     if (exact != null) {
-      return exact.read();
+      return withConfiguredCacheDefaults(exact.read());
     }
 
     for (var entry : templates.entrySet()) {
       if (entry.getKey().matches(uri)) {
         ReadResourceTemplateHandler handler = entry.getValue();
-        return handler.read(entry.getKey().match(uri));
+        return withConfiguredCacheDefaults(handler.read(entry.getKey().match(uri)));
       }
     }
 
     throw new JsonRpcException(
         JsonRpcProtocol.INVALID_PARAMS, String.format("Resource not found: %s", uri));
+  }
+
+  /**
+   * Applies the configured read-cache directives to a handler-produced result that carries the
+   * conservative defaults ({@code ttlMs=0}, {@code private}) — the values the {@link
+   * ReadResourceResult#ofText} / {@code ofBlob} convenience factories stamp. A handler that
+   * constructs its result with any other ttl/scope combination has expressed an explicit
+   * per-resource cache policy, which wins over the server-wide configuration.
+   */
+  private ReadResourceResult withConfiguredCacheDefaults(ReadResourceResult result) {
+    if (result == null || result.ttlMs() != 0L || result.cacheScope() != CacheScope.PRIVATE) {
+      return result;
+    }
+    return new ReadResourceResult(
+        result.contents(), cacheSettings.readTtlMs(), cacheSettings.scope(), result.resultType());
   }
 
   public boolean isEmpty() {

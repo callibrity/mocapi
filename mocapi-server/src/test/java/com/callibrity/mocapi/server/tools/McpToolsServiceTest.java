@@ -22,13 +22,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.callibrity.mocapi.api.tools.McpTool;
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.RequestMeta;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
@@ -42,12 +45,14 @@ import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaVersion;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -360,5 +365,56 @@ class McpToolsServiceTest {
     assertThat(result.content()).hasSize(1);
     String text = ((TextContent) result.content().getFirst()).text();
     assertThat(text).isEqualTo(exception.toString());
+  }
+
+  @Nested
+  class Cache_directives {
+
+    @Test
+    void list_tools_carries_conservative_defaults_when_unconfigured() {
+      var result = service.listTools(null);
+
+      assertThat(result.ttlMs()).isZero();
+      assertThat(result.cacheScope()).isEqualTo(CacheScope.PRIVATE);
+      assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
+    }
+
+    @Test
+    void list_tools_carries_configured_list_ttl_and_scope() {
+      var settings = new CacheSettings(Duration.ofMinutes(5), Duration.ZERO, CacheScope.PUBLIC);
+      var configured =
+          new McpToolsService(
+              createHandlers(new HelloTool()),
+              mapper,
+              elicitationEngine,
+              McpToolsService.DEFAULT_PAGE_SIZE,
+              settings);
+
+      var result = configured.listTools(null);
+
+      assertThat(result.ttlMs()).isEqualTo(300_000L);
+      assertThat(result.cacheScope()).isEqualTo(CacheScope.PUBLIC);
+    }
+  }
+
+  @Nested
+  class Deterministic_ordering {
+
+    @Test
+    void list_tools_order_is_sorted_by_name_regardless_of_registration_order() {
+      var reversed = new ArrayList<CallToolHandler>();
+      reversed.addAll(createHandlers(new VoidTool()));
+      reversed.addAll(createHandlers(new ThrowingTool()));
+      reversed.addAll(createHandlers(new InteractiveTool()));
+      reversed.addAll(createHandlers(new HelloTool()));
+      var reversedRegistration = new McpToolsService(reversed, mapper, elicitationEngine);
+
+      assertThat(reversedRegistration.listTools(null).tools().stream().map(Tool::name).toList())
+          .containsExactly(
+              "fire-and-forget",
+              "hello-tool.say-hello",
+              "interactive-greet",
+              "throwing-tool.explode");
+    }
   }
 }

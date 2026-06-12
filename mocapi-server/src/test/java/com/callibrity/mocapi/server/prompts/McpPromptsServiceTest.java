@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server.prompts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.GetPromptRequestParams;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
@@ -27,17 +28,20 @@ import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
+import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
@@ -234,5 +238,54 @@ class McpPromptsServiceTest {
 
     assertThat(result.prompts()).isEmpty();
     assertThat(result.nextCursor()).isNull();
+  }
+
+  @Nested
+  class Cache_directives {
+
+    @Test
+    void list_prompts_carries_conservative_defaults_when_unconfigured() {
+      var result = service.listPrompts(null);
+
+      assertThat(result.ttlMs()).isZero();
+      assertThat(result.cacheScope()).isEqualTo(CacheScope.PRIVATE);
+      assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
+    }
+
+    @Test
+    void list_prompts_carries_configured_list_ttl_and_scope() {
+      var settings = new CacheSettings(Duration.ofSeconds(90), Duration.ZERO, CacheScope.PUBLIC);
+      var configured =
+          new McpPromptsService(
+              List.of(handler("alpha-prompt", "Alpha desc")),
+              engine(),
+              McpPromptsService.DEFAULT_PAGE_SIZE,
+              settings);
+
+      var result = configured.listPrompts(null);
+
+      assertThat(result.ttlMs()).isEqualTo(90_000L);
+      assertThat(result.cacheScope()).isEqualTo(CacheScope.PUBLIC);
+    }
+  }
+
+  @Nested
+  class Deterministic_ordering {
+
+    @Test
+    void list_prompts_order_is_sorted_by_name_regardless_of_registration_order() {
+      var shuffledRegistration =
+          new McpPromptsService(
+              List.of(
+                  handler("delta-prompt", "d"),
+                  handler("alpha-prompt", "a"),
+                  handler("charlie-prompt", "c"),
+                  handler("bravo-prompt", "b")),
+              engine());
+
+      assertThat(
+              shuffledRegistration.listPrompts(null).prompts().stream().map(Prompt::name).toList())
+          .containsExactly("alpha-prompt", "bravo-prompt", "charlie-prompt", "delta-prompt");
+    }
   }
 }

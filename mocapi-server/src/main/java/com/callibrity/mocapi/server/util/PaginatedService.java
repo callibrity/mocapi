@@ -35,6 +35,12 @@ import java.util.stream.Collectors;
  * guard evaluation) that is applied to list and pagination operations; lookup is unfiltered and
  * always returns the handler if present by name.
  *
+ * <p><strong>Deterministic ordering.</strong> Items are sorted once at construction by the supplied
+ * comparator — the item's natural identity (tool name, prompt name; resources use URI and templates
+ * use URI template, sorted in {@code McpResourcesService}). Registration order never leaks into
+ * list responses: the spec recommends deterministic ordering so clients can cache list results and
+ * LLM prompt caches see stable prefixes across calls and instances.
+ *
  * @param <T> the item type (e.g., CallToolHandler, GetPromptHandler)
  * @param <D> the descriptor type (e.g., Tool, Prompt)
  */

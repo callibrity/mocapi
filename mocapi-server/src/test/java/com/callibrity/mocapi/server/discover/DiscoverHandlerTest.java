@@ -23,6 +23,8 @@ import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.ToolsCapability;
 import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.cache.CacheSettings;
+import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -63,6 +65,18 @@ class DiscoverHandlerTest {
 
     assertThat(result.ttlMs()).isZero();
     assertThat(result.cacheScope()).isEqualTo(CacheScope.PRIVATE);
+    assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
+  }
+
+  @Test
+  void carries_configured_list_ttl_and_scope_when_cache_settings_are_supplied() {
+    var settings = new CacheSettings(Duration.ofMinutes(10), Duration.ZERO, CacheScope.PUBLIC);
+    var configured = new DiscoverHandler(serverInfo, "be nice", capabilities, settings);
+
+    var result = configured.discover();
+
+    assertThat(result.ttlMs()).isEqualTo(600_000L);
+    assertThat(result.cacheScope()).isEqualTo(CacheScope.PUBLIC);
     assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
   }
 }

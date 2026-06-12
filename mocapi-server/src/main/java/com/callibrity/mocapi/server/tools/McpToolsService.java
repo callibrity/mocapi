@@ -21,7 +21,6 @@ import static com.callibrity.mocapi.model.McpMethods.TOOLS_LIST;
 import com.callibrity.mocapi.api.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolException;
-import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ContentBlock;
@@ -32,6 +31,7 @@ import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.mrtr.ElicitationLedgerMismatchException;
@@ -66,12 +66,13 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
   private final Logger log = LoggerFactory.getLogger(McpToolsService.class);
   private final ObjectMapper objectMapper;
   private final MrtrElicitationEngine elicitationEngine;
+  private final CacheSettings cacheSettings;
 
   public McpToolsService(
       List<CallToolHandler> handlers,
       ObjectMapper objectMapper,
       MrtrElicitationEngine elicitationEngine) {
-    this(handlers, objectMapper, elicitationEngine, DEFAULT_PAGE_SIZE);
+    this(handlers, objectMapper, elicitationEngine, DEFAULT_PAGE_SIZE, CacheSettings.defaults());
   }
 
   public McpToolsService(
@@ -79,6 +80,15 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
       ObjectMapper objectMapper,
       MrtrElicitationEngine elicitationEngine,
       int pageSize) {
+    this(handlers, objectMapper, elicitationEngine, pageSize, CacheSettings.defaults());
+  }
+
+  public McpToolsService(
+      List<CallToolHandler> handlers,
+      ObjectMapper objectMapper,
+      MrtrElicitationEngine elicitationEngine,
+      int pageSize,
+      CacheSettings cacheSettings) {
     super(
         handlers,
         CallToolHandler::name,
@@ -88,16 +98,26 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
         pageSize);
     this.objectMapper = objectMapper;
     this.elicitationEngine = elicitationEngine;
+    this.cacheSettings = cacheSettings;
   }
 
+  /**
+   * Lists registered tools sorted by tool name — the deterministic ordering the spec recommends so
+   * clients can cache list responses and LLM prompt caches get stable prefixes. Cache directives
+   * ({@code ttlMs}/{@code cacheScope}) come from the configured {@link CacheSettings} list values.
+   */
   @JsonRpcMethod(TOOLS_LIST)
   public ListToolsResult listTools(@JsonRpcParams PaginatedRequestParams params) {
-    // Conservative cache defaults until Phase 5 makes them configurable (ttlMs=0, private).
     return paginate(
         h -> Guards.allows(h.guards()),
         params,
         (tools, nextCursor) ->
-            new ListToolsResult(tools, nextCursor, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE));
+            new ListToolsResult(
+                tools,
+                nextCursor,
+                cacheSettings.listTtlMs(),
+                cacheSettings.scope(),
+                ResultTypes.COMPLETE));
   }
 
   /** Returns the full {@link Tool} descriptor for a registered tool, or {@code null} if none. */

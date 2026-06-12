@@ -26,16 +26,19 @@ import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
+import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
@@ -329,5 +332,145 @@ class McpResourcesServiceTest {
         (TextResourceContents)
             ((ReadResourceResult) service.readResource(params)).contents().getFirst();
     assertThat(content.text()).contains("id=abc");
+  }
+
+  @Nested
+  class Cache_directives {
+
+    private final CacheSettings settings =
+        new CacheSettings(Duration.ofMinutes(2), Duration.ofSeconds(30), CacheScope.PUBLIC);
+
+    private McpResourcesService configured(
+        List<ReadResourceHandler> handlers, List<ReadResourceTemplateHandler> templates) {
+      return new McpResourcesService(
+          handlers, templates, engine(), McpResourcesService.DEFAULT_PAGE_SIZE, settings);
+    }
+
+    @Test
+    void defaults_are_zero_ttl_and_private_scope_on_all_three_results() {
+      assertThat(service.listResources(null).ttlMs()).isZero();
+      assertThat(service.listResources(null).cacheScope()).isEqualTo(CacheScope.PRIVATE);
+      assertThat(service.listResourceTemplates(null).ttlMs()).isZero();
+      assertThat(service.listResourceTemplates(null).cacheScope()).isEqualTo(CacheScope.PRIVATE);
+
+      var read =
+          (ReadResourceResult)
+              service.readResource(new ResourceRequestParams("test://a", null, null, null));
+      assertThat(read.ttlMs()).isZero();
+      assertThat(read.cacheScope()).isEqualTo(CacheScope.PRIVATE);
+    }
+
+    @Test
+    void list_resources_carries_configured_list_ttl_and_scope() {
+      var svc = configured(List.of(handler("test://a", "A", "d", "text/plain")), List.of());
+
+      var result = svc.listResources(null);
+
+      assertThat(result.ttlMs()).isEqualTo(120_000L);
+      assertThat(result.cacheScope()).isEqualTo(CacheScope.PUBLIC);
+      assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
+    }
+
+    @Test
+    void list_resource_templates_carries_configured_list_ttl_and_scope() {
+      var svc =
+          configured(List.of(), List.of(templateHandler("test://t/{id}", "T", "d", "text/plain")));
+
+      var result = svc.listResourceTemplates(null);
+
+      assertThat(result.ttlMs()).isEqualTo(120_000L);
+      assertThat(result.cacheScope()).isEqualTo(CacheScope.PUBLIC);
+      assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
+    }
+
+    @Test
+    void read_resource_replaces_handler_defaults_with_configured_read_ttl_and_scope() {
+      var svc = configured(List.of(handler("test://a", "A", "d", "text/plain")), List.of());
+
+      var result =
+          (ReadResourceResult)
+              svc.readResource(new ResourceRequestParams("test://a", null, null, null));
+
+      assertThat(result.ttlMs()).isEqualTo(30_000L);
+      assertThat(result.cacheScope()).isEqualTo(CacheScope.PUBLIC);
+      assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
+    }
+
+    @Test
+    void read_resource_via_template_replaces_handler_defaults_with_configured_values() {
+      var svc =
+          configured(
+              List.of(), List.of(templateHandler("test://items/{id}", "T", "d", "text/plain")));
+
+      var result =
+          (ReadResourceResult)
+              svc.readResource(new ResourceRequestParams("test://items/42", null, null, null));
+
+      assertThat(result.ttlMs()).isEqualTo(30_000L);
+      assertThat(result.cacheScope()).isEqualTo(CacheScope.PUBLIC);
+    }
+
+    @Test
+    void read_resource_keeps_handler_supplied_explicit_cache_directives() {
+      var explicit =
+          new ReadResourceHandler(
+              new Resource("test://explicit", "E", "d", "text/plain"),
+              null,
+              null,
+              ignored ->
+                  new ReadResourceResult(
+                      List.of(new TextResourceContents("test://explicit", "text/plain", "x")),
+                      5_000L,
+                      CacheScope.PRIVATE,
+                      ResultTypes.COMPLETE),
+              List.of());
+      var svc = configured(List.of(explicit), List.of());
+
+      var result =
+          (ReadResourceResult)
+              svc.readResource(new ResourceRequestParams("test://explicit", null, null, null));
+
+      assertThat(result.ttlMs()).isEqualTo(5_000L);
+      assertThat(result.cacheScope()).isEqualTo(CacheScope.PRIVATE);
+    }
+  }
+
+  @Nested
+  class Deterministic_ordering {
+
+    @Test
+    void list_resources_order_is_sorted_by_uri_regardless_of_registration_order() {
+      var shuffled =
+          new McpResourcesService(
+              List.of(
+                  handler("test://delta", "D", "d", "text/plain"),
+                  handler("test://alpha", "A", "d", "text/plain"),
+                  handler("test://charlie", "C", "d", "text/plain"),
+                  handler("test://bravo", "B", "d", "text/plain")),
+              List.of(),
+              engine());
+
+      assertThat(shuffled.listResources(null).resources().stream().map(Resource::uri).toList())
+          .containsExactly("test://alpha", "test://bravo", "test://charlie", "test://delta");
+    }
+
+    @Test
+    void
+        list_resource_templates_order_is_sorted_by_uri_template_regardless_of_registration_order() {
+      var shuffled =
+          new McpResourcesService(
+              List.of(),
+              List.of(
+                  templateHandler("test://c/{id}", "C", "d", "text/plain"),
+                  templateHandler("test://a/{id}", "A", "d", "text/plain"),
+                  templateHandler("test://b/{id}", "B", "d", "text/plain")),
+              engine());
+
+      assertThat(
+              shuffled.listResourceTemplates(null).resourceTemplates().stream()
+                  .map(ResourceTemplate::uriTemplate)
+                  .toList())
+          .containsExactly("test://a/{id}", "test://b/{id}", "test://c/{id}");
+    }
   }
 }

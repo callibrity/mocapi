@@ -15,7 +15,6 @@
  */
 package com.callibrity.mocapi.server.prompts;
 
-import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.GetPromptRequestParams;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.ListPromptsResult;
@@ -23,6 +22,7 @@ import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.ResultTypes;
+import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.util.PaginatedService;
@@ -39,13 +39,22 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
 
   private final Logger log = LoggerFactory.getLogger(McpPromptsService.class);
   private final MrtrElicitationEngine elicitationEngine;
+  private final CacheSettings cacheSettings;
 
   public McpPromptsService(List<GetPromptHandler> handlers, MrtrElicitationEngine engine) {
-    this(handlers, engine, DEFAULT_PAGE_SIZE);
+    this(handlers, engine, DEFAULT_PAGE_SIZE, CacheSettings.defaults());
   }
 
   public McpPromptsService(
       List<GetPromptHandler> handlers, MrtrElicitationEngine engine, int pageSize) {
+    this(handlers, engine, pageSize, CacheSettings.defaults());
+  }
+
+  public McpPromptsService(
+      List<GetPromptHandler> handlers,
+      MrtrElicitationEngine engine,
+      int pageSize,
+      CacheSettings cacheSettings) {
     super(
         handlers,
         GetPromptHandler::name,
@@ -54,17 +63,26 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
         "Prompt",
         pageSize);
     this.elicitationEngine = engine;
+    this.cacheSettings = cacheSettings;
   }
 
+  /**
+   * Lists registered prompts sorted by prompt name — the deterministic ordering the spec recommends
+   * so clients can cache list responses and LLM prompt caches get stable prefixes. Cache directives
+   * ({@code ttlMs}/{@code cacheScope}) come from the configured {@link CacheSettings} list values.
+   */
   @JsonRpcMethod(McpMethods.PROMPTS_LIST)
   public ListPromptsResult listPrompts(@JsonRpcParams PaginatedRequestParams params) {
-    // Conservative cache defaults until Phase 5 makes them configurable (ttlMs=0, private).
     return paginate(
         h -> Guards.allows(h.guards()),
         params,
         (prompts, nextCursor) ->
             new ListPromptsResult(
-                prompts, nextCursor, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE));
+                prompts,
+                nextCursor,
+                cacheSettings.listTtlMs(),
+                cacheSettings.scope(),
+                ResultTypes.COMPLETE));
   }
 
   /**
