@@ -20,7 +20,7 @@ import com.callibrity.mocapi.model.ElicitResult;
 
 /**
  * Placeholder {@link ElicitationDispatcher} that keeps {@code ctx.elicit(...)} compiling between
- * the Mailbox teardown (ADR-0020) and the MRTR replay engine's arrival (ADR-0021, Phase 4).
+ * the rendezvous teardown (ADR-0020) and the MRTR replay engine's arrival (ADR-0021, Phase 4).
  */
 public final class UnimplementedElicitationDispatcher implements ElicitationDispatcher {
 

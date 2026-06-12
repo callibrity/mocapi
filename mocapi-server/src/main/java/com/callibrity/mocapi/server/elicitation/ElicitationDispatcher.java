@@ -20,7 +20,7 @@ import com.callibrity.mocapi.model.ElicitResult;
 
 /**
  * Internal seam between {@code ctx.elicit(...)} and the mechanism that obtains the client's answer.
- * MCP 2026-07-28 removed server-initiated requests, so the old Mailbox rendezvous (ADR-0008) is
+ * MCP 2026-07-28 removed server-initiated requests, so the old rendezvous channel (ADR-0008) is
  * gone; the MRTR replay engine (ADR-0021, Phase 4) is this seam's production implementation. The
  * capability pre-check (does the client support form elicitation?) happens before this seam is
  * consulted.
