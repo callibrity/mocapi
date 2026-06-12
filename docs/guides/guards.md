@@ -74,8 +74,9 @@ single guard class.
 ## Runtime semantics
 
 **Call time.** After lookup, the service evaluates the guard list. If any
-guard denies, the call throws a `JsonRpcException` with code `-32003`
-(`JsonRpcErrorCodes.FORBIDDEN`) and message `"Forbidden: <reason>"`, where
+guard denies, the call throws a `JsonRpcException` with code `-32010`
+(`JsonRpcErrorCodes.FORBIDDEN`; relocated from `-32003` by ADR-0023 —
+the 2026-07-28 spec claims `-32003` for `MissingRequiredClientCapabilityError`) and message `"Forbidden: <reason>"`, where
 `<reason>` comes from the first denying guard. Tools do *not* return
 `CallToolResult.isError=true` for guard denies — that would invite an LLM
 to "self-correct" on an auth failure, which is nonsense. Guard failure is
@@ -91,8 +92,9 @@ validation, user-attached logic) run *inside* the handler's invoker chain.
 Guards run in the service layer *before* the invoker chain executes. A
 denied call never reaches its interceptors at all.
 
-**Initialize.** The `initialize` protocol call doesn't pass through any
-handler, so guards don't apply to it.
+**Protocol-level methods.** Calls that don't reach a user handler
+(`server/discover`, the list methods' dispatch itself) don't pass through
+guards; guards protect tool/prompt/resource handler invocations.
 
 ## Reference implementation
 

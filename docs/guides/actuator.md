@@ -43,7 +43,7 @@ curl -s localhost:8080/actuator/mcp | jq
   "server": {
     "name": "mocapi",
     "version": "0.14.0",
-    "protocolVersion": "2025-11-25"
+    "protocolVersion": "2026-07-28"
   },
   "counts": {
     "tools": 12,

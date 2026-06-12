@@ -25,7 +25,8 @@ To silence audit temporarily without removing the module, set
 | Key | Always present? | Value |
 |---|---|---|
 | `caller` | yes | Authenticated principal name from the pluggable `AuditCallerIdentityProvider`, or `anonymous`. |
-| `session_id` | yes (may be `null`) | The MCP session id when a session is bound to the invocation. `null` during the `initialize` handshake. |
+| `protocol_version` | yes | Protocol version from the request's `_meta` envelope. |
+| `client_name` | yes (may be `null`) | Client name from the envelope's `clientInfo`. |
 | `handler_kind` | yes | One of `tool`, `prompt`, `resource`, `resource_template`. |
 | `handler_name` | yes | Tool / prompt name, or resource URI / URI template. |
 | `outcome` | yes | One of `success`, `forbidden`, `invalid_params`, `error`. |
@@ -141,7 +142,7 @@ each line:
 handler chain (see [customizers.md](customizers.md#strata) for the full
 stratum model). The outer-to-inner sequence around it is:
 
-1. **CORRELATION** (MDC) — stamps `mcp.session` / `mcp.handler.kind` / `mcp.handler.name`.
+1. **CORRELATION** (MDC) — stamps `mcp.protocol.version` / `mcp.client.name` / `mcp.handler.kind` / `mcp.handler.name` / `mcp.request.id`.
 2. **OBSERVATION** (Micrometer observation) — wraps the rest.
 3. **AUDIT** (this module) — records the attempt, times it end-to-end. Sees post-guard outcomes, so a denial surfaces as `outcome=forbidden`.
 4. **AUTHORIZATION** — guards evaluated here; denial short-circuits with `-32003`.

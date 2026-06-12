@@ -6,7 +6,7 @@ the corresponding feature module:
 
 | Concern | Module | What you get |
 |---|---|---|
-| Correlation logging (SLF4J MDC) | [`mocapi-logging`](logging.md) | `mcp.session` / `mcp.handler.kind` / `mcp.handler.name` MDC keys during every handler invocation |
+| Correlation logging (SLF4J MDC) | [`mocapi-logging`](logging.md) | `mcp.protocol.version` / `mcp.client.name` / `mcp.handler.kind` / `mcp.handler.name` / `mcp.request.id` MDC keys during every handler invocation |
 | Metrics + tracing (Micrometer) | `mocapi-o11y` | One `Observation` per invocation → meters and spans, via whichever Micrometer handlers are on classpath |
 | Structured audit log | [`mocapi-audit`](audit.md) | One SLF4J event per invocation on the `mocapi.audit` logger with caller / handler / outcome / duration fields |
 | Handler inventory endpoint | [`mocapi-actuator`](actuator.md) | `/actuator/mcp` — server info, handler counts, per-handler metadata + schema digests |
