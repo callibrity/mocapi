@@ -16,7 +16,7 @@ can't see it.
 The core SPI lives in `com.callibrity.mocapi.server.guards`. Mocapi does not
 own any auth model: each guard implementation reaches into its own
 framework of choice (Spring Security's `SecurityContextHolder`,
-`McpSession.CURRENT`, a servlet request, a plain `ScopedValue`, …) for the
+`McpExchange.CURRENT`, a servlet request, a plain `ScopedValue`, …) for the
 runtime state it needs.
 
 ## The SPI

@@ -3,7 +3,7 @@
 Handler methods normally take parameters that bind from the
 JSON-RPC request arguments (tools / resource templates) or the
 prompt arguments map. Sometimes you want a parameter to come from
-**somewhere else entirely** — the current session, the Spring
+**somewhere else entirely** — the per-request `McpExchange`, the Spring
 Security `SecurityContextHolder`, a per-request ScopedValue, a
 tenant-scoped bean lookup. That's what custom `ParameterResolver`s
 are for.
@@ -13,8 +13,9 @@ Mocapi supports them via the customizer SPI (see
 
 ## Example — `@CurrentTenant String tenant`
 
-You want `@CurrentTenant`-annotated parameters populated from a
-session attribute, so tool code doesn't have to pluck it itself:
+You want `@CurrentTenant`-annotated parameters populated from the
+authenticated caller's JWT claim, so tool code doesn't have to pluck
+it itself:
 
 ```java
 @McpTool(name = "list_tenant_widgets")
@@ -41,11 +42,12 @@ public final class CurrentTenantResolver implements ParameterResolver<JsonNode> 
         }
         return Optional.of(arguments -> {
             // Runs per-invocation. `arguments` is the whole request
-            // arguments JsonNode — we ignore it and pull from session.
-            if (!McpSession.CURRENT.isBound()) {
-                throw new IllegalStateException("@CurrentTenant requires a bound session");
+            // arguments JsonNode — we ignore it and read the caller's JWT.
+            if (!(SecurityContextHolder.getContext().getAuthentication()
+                    instanceof JwtAuthenticationToken jwt)) {
+                throw new IllegalStateException("@CurrentTenant requires an authenticated caller");
             }
-            return McpSession.CURRENT.get().attribute("tenant");
+            return jwt.getToken().getClaimAsString("tenant");
         });
     }
 }
@@ -107,7 +109,6 @@ take user args):
 
 ```
 McpTransportResolver    (specific)
-McpSessionResolver      (specific)
 [ your custom resolvers ]
 (no catch-all — resource handlers typically take only
 McpResourceContext-style scoped values)
@@ -191,10 +192,10 @@ their own propagation story.
 
 ## When NOT to write a ParameterResolver
 
-- **Request-scoped data available on `McpSession.CURRENT`.** Just
-  `McpSession.CURRENT.get().attribute(...)` inside the tool
-  method. Cleaner than inventing a parameter resolver for
-  single-use state.
+- **Request-scoped data available on `McpExchange.CURRENT`.** Just
+  `McpExchange.CURRENT.get()` (protocol version, client info,
+  client capabilities) inside the tool method. Cleaner than
+  inventing a parameter resolver for single-use state.
 - **Per-method policy / config.** That's closer to an
   interceptor than a resolver. Attach via the stratum method that
   matches the intent (`config.validationInterceptor(...)`,

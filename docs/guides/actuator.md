@@ -144,10 +144,6 @@ curl -s localhost:8080/actuator/mcp | jq
   be large; MCP clients already get them via `tools/list` on the
   protocol endpoint. The digest is enough to detect drift across
   deployments ("did this tool's schema change?").
-- **Session state.** Mocapi is multi-node; sessions live in the
-  backing store (Redis / PostgreSQL / NATS / Hazelcast), not on
-  any single node. Querying the store to count sessions cluster-
-  wide would be a different endpoint with a different shape.
 - **Metrics snapshot.** Metrics are already at
   `/actuator/metrics` and `/actuator/prometheus`. Duplicating
   them here would create two sources of truth.

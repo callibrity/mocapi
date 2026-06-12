@@ -121,7 +121,8 @@ installed, the structured fields flow into the JSON document automatically:
   "logger_name": "mocapi.audit",
   "message": "mcp.audit",
   "caller": "alice",
-  "session_id": "5d3cb2b3",
+  "protocol_version": "2026-07-28",
+  "client_name": "ExampleClient",
   "handler_kind": "tool",
   "handler_name": "get_weather",
   "outcome": "success",
@@ -133,7 +134,7 @@ With a plain console encoder the same fields render as `key=value` tails on
 each line:
 
 ```
-2026-04-19T17:22:11.043Z INFO mocapi.audit - mcp.audit caller=alice session_id=5d3cb2b3 handler_kind=tool handler_name=get_weather outcome=success duration_ms=42
+2026-04-19T17:22:11.043Z INFO mocapi.audit - mcp.audit caller=alice protocol_version=2026-07-28 client_name=ExampleClient handler_kind=tool handler_name=get_weather outcome=success duration_ms=42
 ```
 
 ## Interceptor ordering
