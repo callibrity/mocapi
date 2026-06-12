@@ -16,7 +16,9 @@
 package com.callibrity.mocapi.examples.validation;
 
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import jakarta.validation.constraints.Pattern;
 import java.util.List;
@@ -60,6 +62,9 @@ public class ConfigResources {
             new TextResourceContents(
                 "config://" + env + "/app",
                 "text/plain",
-                "env=" + env + "\nendpoint=https://api." + env + ".example.com")));
+                "env=" + env + "\nendpoint=https://api." + env + ".example.com")),
+        0L,
+        CacheScope.PRIVATE,
+        ResultTypes.COMPLETE);
   }
 }

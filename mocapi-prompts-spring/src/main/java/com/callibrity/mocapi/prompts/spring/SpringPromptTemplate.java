@@ -18,6 +18,7 @@ package com.callibrity.mocapi.prompts.spring;
 import com.callibrity.mocapi.api.prompts.template.PromptTemplate;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.List;
@@ -53,6 +54,8 @@ public class SpringPromptTemplate implements PromptTemplate {
     Map<String, String> safeArgs = args == null ? Map.of() : args;
     String rendered = helper.replacePlaceholders(template, safeArgs::get);
     return new GetPromptResult(
-        description, List.of(new PromptMessage(role, new TextContent(rendered, null))));
+        description,
+        List.of(new PromptMessage(role, new TextContent(rendered, null))),
+        ResultTypes.COMPLETE);
   }
 }

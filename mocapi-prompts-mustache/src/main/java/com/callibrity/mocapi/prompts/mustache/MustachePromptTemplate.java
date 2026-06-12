@@ -18,6 +18,7 @@ package com.callibrity.mocapi.prompts.mustache;
 import com.callibrity.mocapi.api.prompts.template.PromptTemplate;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import com.samskivert.mustache.Template;
@@ -49,6 +50,8 @@ public class MustachePromptTemplate implements PromptTemplate {
   public GetPromptResult render(Map<String, String> args) {
     var rendered = compiled.execute(args == null ? Map.of() : args);
     return new GetPromptResult(
-        description, List.of(new PromptMessage(role, new TextContent(rendered, null))));
+        description,
+        List.of(new PromptMessage(role, new TextContent(rendered, null))),
+        ResultTypes.COMPLETE);
   }
 }

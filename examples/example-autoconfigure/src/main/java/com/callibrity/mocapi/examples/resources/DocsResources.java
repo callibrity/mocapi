@@ -17,7 +17,9 @@ package com.callibrity.mocapi.examples.resources;
 
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import java.util.List;
 
@@ -45,7 +47,10 @@ public class DocsResources {
             new TextResourceContents(
                 "docs://readme",
                 "text/markdown",
-                "# Mocapi Example\n\nThis server demonstrates tools, prompts, and resources.")));
+                "# Mocapi Example\n\nThis server demonstrates tools, prompts, and resources.")),
+        0L,
+        CacheScope.PRIVATE,
+        ResultTypes.COMPLETE);
   }
 
   @McpResourceTemplate(
@@ -63,6 +68,9 @@ public class DocsResources {
                     + stage
                     + "\nendpoint=https://api."
                     + stage.name().toLowerCase()
-                    + ".example.com")));
+                    + ".example.com")),
+        0L,
+        CacheScope.PRIVATE,
+        ResultTypes.COMPLETE);
   }
 }

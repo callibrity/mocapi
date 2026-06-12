@@ -18,6 +18,7 @@ package com.callibrity.mocapi.examples.validation;
 import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import jakarta.validation.constraints.NotBlank;
@@ -57,6 +58,7 @@ public class SummarizePrompt {
         List.of(
             new PromptMessage(
                 Role.USER,
-                new TextContent("Please summarize the following text:\n\n" + text, null))));
+                new TextContent("Please summarize the following text:\n\n" + text, null))),
+        ResultTypes.COMPLETE);
   }
 }
