@@ -16,7 +16,9 @@
 package com.callibrity.mocapi.server.autoconfigure;
 
 import com.callibrity.mocapi.api.prompts.McpPrompt;
+import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.prompts.GetPromptHandler;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlers;
@@ -50,6 +52,8 @@ public class MocapiServerPromptsAutoConfiguration {
       ObjectProvider<ConversionService> conversionService,
       StringValueResolver mcpAnnotationValueResolver,
       McpCompletionsService completions,
+      MrtrElicitationEngine elicitationEngine,
+      CacheSettings cacheSettings,
       @Autowired(required = false) List<GetPromptHandlerCustomizer> promptCustomizers) {
     ConversionService cs =
         conversionService.getIfAvailable(DefaultConversionService::getSharedInstance);
@@ -85,6 +89,7 @@ public class MocapiServerPromptsAutoConfiguration {
                           c.argumentName(),
                           c.values());
                     }));
-    return new McpPromptsService(handlers, props.pagination().pageSize());
+    return new McpPromptsService(
+        handlers, elicitationEngine, props.pagination().pageSize(), cacheSettings);
   }
 }

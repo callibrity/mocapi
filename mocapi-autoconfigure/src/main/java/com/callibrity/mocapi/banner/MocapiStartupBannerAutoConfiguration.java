@@ -18,7 +18,6 @@ package com.callibrity.mocapi.banner;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
-import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -45,9 +44,8 @@ public class MocapiStartupBannerAutoConfiguration {
       ObjectProvider<McpToolsService> tools,
       ObjectProvider<McpPromptsService> prompts,
       ObjectProvider<McpResourcesService> resources,
-      ObjectProvider<McpSessionStore> sessionStore,
       Environment env,
       ApplicationContext ctx) {
-    return new MocapiStartupBanner(tools, prompts, resources, sessionStore, env, ctx);
+    return new MocapiStartupBanner(tools, prompts, resources, env, ctx);
   }
 }

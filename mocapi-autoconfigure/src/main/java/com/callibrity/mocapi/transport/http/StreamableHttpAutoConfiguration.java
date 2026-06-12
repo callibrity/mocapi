@@ -18,13 +18,8 @@ package com.callibrity.mocapi.transport.http;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerProperties;
-import com.callibrity.mocapi.transport.http.sse.Ciphers;
-import com.callibrity.mocapi.transport.http.sse.DefaultSseStreamFactory;
-import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
 import io.micrometer.context.ContextSnapshotFactory;
-import java.util.Base64;
 import lombok.RequiredArgsConstructor;
-import org.jwcarman.odyssey.core.Odyssey;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -33,6 +28,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import tools.jackson.databind.ObjectMapper;
 
+/** Auto-configuration for the stateless Streamable HTTP transport (MCP 2026-07-28). */
 @AutoConfiguration(after = MocapiServerAutoConfiguration.class)
 @ConditionalOnClass(StreamableHttpController.class)
 @ConditionalOnBean(McpServer.class)
@@ -49,12 +45,9 @@ public class StreamableHttpAutoConfiguration {
   }
 
   @Bean
-  @ConditionalOnMissingBean(SseStreamFactory.class)
-  public DefaultSseStreamFactory mcpProtocolSseStreamFactory(
-      Odyssey odyssey, ObjectMapper objectMapper) {
-    byte[] masterKey = decodeMasterKey(props.sessionEncryptionMasterKey());
-    Ciphers.validateAesGcmKey(masterKey);
-    return new DefaultSseStreamFactory(odyssey, objectMapper, masterKey);
+  @ConditionalOnMissingBean(McpHeaderValidator.class)
+  public McpHeaderValidator mcpProtocolHeaderValidator() {
+    return new McpHeaderValidator();
   }
 
   @Bean
@@ -68,38 +61,10 @@ public class StreamableHttpAutoConfiguration {
   public StreamableHttpController mcpProtocolStreamableHttpController(
       McpServer protocol,
       McpRequestValidator validator,
-      SseStreamFactory sseStreamFactory,
+      McpHeaderValidator headerValidator,
       ObjectMapper objectMapper,
       ContextSnapshotFactory contextSnapshotFactory) {
     return new StreamableHttpController(
-        protocol, validator, sseStreamFactory, objectMapper, contextSnapshotFactory);
-  }
-
-  private static byte[] decodeMasterKey(String encoded) {
-    if (encoded == null || encoded.isBlank()) {
-      throw new IllegalStateException(
-          """
-          mocapi.session-encryption-master-key is required but not set. Provide a \
-          base64-encoded 32-byte (AES-256) key via application.properties, \
-          application.yml, or the MOCAPI_SESSION_ENCRYPTION_MASTER_KEY environment \
-          variable. Generate one with: openssl rand -base64 32""");
-    }
-    byte[] decoded;
-    try {
-      decoded = Base64.getDecoder().decode(encoded);
-    } catch (IllegalArgumentException e) {
-      throw new IllegalStateException(
-          "mocapi.session-encryption-master-key is not valid base64. Generate a new one "
-              + "with: openssl rand -base64 32",
-          e);
-    }
-    if (decoded.length != 32) {
-      throw new IllegalStateException(
-          "mocapi.session-encryption-master-key decodes to "
-              + decoded.length
-              + " bytes; AES-256 requires exactly 32. Generate a new one with: "
-              + "openssl rand -base64 32");
-    }
-    return decoded;
+        protocol, validator, headerValidator, objectMapper, contextSnapshotFactory);
   }
 }

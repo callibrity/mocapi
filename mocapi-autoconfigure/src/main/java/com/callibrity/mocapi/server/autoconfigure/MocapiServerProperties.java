@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
+import com.callibrity.mocapi.model.CacheScope;
 import java.time.Duration;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -25,16 +26,22 @@ public record MocapiServerProperties(
     String serverTitle,
     String serverVersion,
     String instructions,
-    Duration sessionTimeout,
     List<String> allowedOrigins,
-    String sessionEncryptionMasterKey,
-    Elicitation elicitation,
-    Sampling sampling,
+    Mrtr mrtr,
+    Cache cache,
     Pagination pagination) {
 
-  public record Elicitation(Duration timeout) {}
+  /**
+   * MRTR elicitation replay (ADR-0021). An empty {@code secret} means an ephemeral key is generated
+   * at startup — requestState tokens then die with the process (dev only).
+   */
+  public record Mrtr(String secret, Duration ttl) {}
 
-  public record Sampling(Duration timeout) {}
+  /**
+   * Cache directives stamped onto the six cacheable results. {@code listTtl} covers the four list
+   * results and {@code server/discover}; {@code readTtl} covers {@code resources/read}.
+   */
+  public record Cache(Duration listTtl, Duration readTtl, CacheScope scope) {}
 
   public record Pagination(int pageSize) {}
 }

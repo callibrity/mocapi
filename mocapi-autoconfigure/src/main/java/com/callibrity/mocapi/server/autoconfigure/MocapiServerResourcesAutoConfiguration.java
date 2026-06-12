@@ -17,7 +17,9 @@ package com.callibrity.mocapi.server.autoconfigure;
 
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
+import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.resources.ReadResourceHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
@@ -54,6 +56,8 @@ public class MocapiServerResourcesAutoConfiguration {
       ObjectProvider<ConversionService> conversionService,
       StringValueResolver mcpAnnotationValueResolver,
       McpCompletionsService completions,
+      MrtrElicitationEngine elicitationEngine,
+      CacheSettings cacheSettings,
       @Autowired(required = false) List<ReadResourceHandlerCustomizer> resourceCustomizers,
       @Autowired(required = false)
           List<ReadResourceTemplateHandlerCustomizer> resourceTemplateCustomizers) {
@@ -110,6 +114,11 @@ public class MocapiServerResourcesAutoConfiguration {
                           c.argumentName(),
                           c.values());
                     }));
-    return new McpResourcesService(handlers, templateHandlers, props.pagination().pageSize());
+    return new McpResourcesService(
+        handlers,
+        templateHandlers,
+        elicitationEngine,
+        props.pagination().pageSize(),
+        cacheSettings);
   }
 }

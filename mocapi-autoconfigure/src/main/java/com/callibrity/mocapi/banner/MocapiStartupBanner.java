@@ -17,7 +17,6 @@ package com.callibrity.mocapi.banner;
 
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
-import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import java.util.ArrayList;
 import java.util.List;
@@ -63,7 +62,6 @@ public class MocapiStartupBanner {
   private final ObjectProvider<McpToolsService> tools;
   private final ObjectProvider<McpPromptsService> prompts;
   private final ObjectProvider<McpResourcesService> resources;
-  private final ObjectProvider<McpSessionStore> sessionStore;
   private final Environment env;
   private final ApplicationContext ctx;
 
@@ -71,13 +69,11 @@ public class MocapiStartupBanner {
       ObjectProvider<McpToolsService> tools,
       ObjectProvider<McpPromptsService> prompts,
       ObjectProvider<McpResourcesService> resources,
-      ObjectProvider<McpSessionStore> sessionStore,
       Environment env,
       ApplicationContext ctx) {
     this.tools = tools;
     this.prompts = prompts;
     this.resources = resources;
-    this.sessionStore = sessionStore;
     this.env = env;
     this.ctx = ctx;
   }
@@ -102,7 +98,6 @@ public class MocapiStartupBanner {
             "  Tools: %d | Prompts: %d | Resources: %d",
             toolCount(), promptCount(), resourceCount()));
     lines.add("  Transport: " + describeTransport());
-    lines.add("  Session store: " + describeSessionStore());
     lines.add("  OAuth2: " + describeOAuth2());
     String observability = describeObservability();
     if (!observability.isEmpty()) {
@@ -148,11 +143,6 @@ public class MocapiStartupBanner {
       return "stdio";
     }
     return "(none detected)";
-  }
-
-  private String describeSessionStore() {
-    var store = sessionStore.getIfAvailable();
-    return store == null ? "(none)" : store.getClass().getSimpleName();
   }
 
   private String describeOAuth2() {
