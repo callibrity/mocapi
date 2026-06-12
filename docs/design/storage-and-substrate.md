@@ -14,7 +14,7 @@ selection how-to, see the [Backends guide](../guides/backends.md).
 | Substrate SPI | Mocapi usage |
 |---|---|
 | `AtomFactory` | Session storage (`AtomMcpSessionStore`). |
-| `MailboxFactory` | Request/response correlation for elicitation and sampling (see [Elicitation & Sampling](elicitation-and-sampling.md) and [ADR-0008](../adr/0008-mailbox-elicitation-sampling.md)). |
+| `MailboxFactory` | Request/response correlation for elicitation and sampling ([ADR-0008](../adr/0008-mailbox-elicitation-sampling.md) — superseded by the MRTR replay design, [Elicitation — MRTR Replay](elicitation-mrtr.md)). |
 | `JournalFactory` | SSE event journaling for stream resumption (Odyssey, used by the Streamable HTTP transport). |
 | `NotifierFactory` | Cross-node event notification. |
 

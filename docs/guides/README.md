@@ -10,7 +10,7 @@ server, start here.
 - [Configuration Reference](configuration.md)
 
 ## Interactivity
-- [Interactive Tools — progress, log, elicitation, sampling](interactive-tools.md)
+- [Interactive Tools — progress, MRTR elicitation](interactive-tools.md)
 - [Externalizing Metadata](externalizing-metadata.md)
 
 ## Extending mocapi
