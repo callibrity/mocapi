@@ -6,6 +6,49 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Changed
+
+- **Clean-break rewrite for MCP 2026-07-28** ([ADR-0019](docs/adr/0019-clean-break-2026-07-28.md)).
+  Mocapi now implements protocol revision `2026-07-28` exclusively (plus the
+  `DRAFT-2026-v1` sentinel as a release-candidate-window alias, removed when
+  the final spec ships). The stateful 2025-11-25 architecture is gone:
+  - **Stateless core** ([ADR-0020](docs/adr/0020-stateless-request-model.md)):
+    the `initialize` handshake, sessions, and `Mcp-Session-Id` are removed;
+    every request carries protocol version, client info, and client
+    capabilities in its `_meta` envelope; `server/discover` advertises
+    versions and capabilities. Cross-call application state uses the spec's
+    explicit-handle pattern.
+  - **MRTR elicitation** ([ADR-0021](docs/adr/0021-mrtr-elicitation-replay.md)):
+    `ctx.elicit(...)` now works by replay — the server returns
+    `InputRequiredResult` with a self-contained AES-256-GCM `requestState`
+    token and re-executes the handler when the client retries with answers.
+    Code before a handler's last `elicit()` call runs once per round trip
+    (see the [interactive tools guide](docs/guides/interactive-tools.md)).
+    Configure via `mocapi.mrtr.secret` / `mocapi.mrtr.ttl`.
+  - **POST-only Streamable HTTP** with required routing headers
+    (`MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name`); mismatches return
+    `-32001 HeaderMismatch`. The GET SSE stream and `Last-Event-ID`
+    resumability are gone from the protocol.
+  - **Cache directives**: list/read/discover results carry the required
+    `ttlMs`/`cacheScope` fields, configurable via `mocapi.cache.list-ttl`,
+    `mocapi.cache.read-ttl`, and `mocapi.cache.scope`; tool/prompt/resource
+    listings are deterministically ordered.
+  - **Error codes**: spec codes `-32003` (missing client capability) and
+    `-32004` (unsupported protocol version) adopted; guard denials moved
+    from `-32003` to `-32010` ([ADR-0023](docs/adr/0023-guard-denial-code-relocation.md));
+    resource-not-found is `-32602`.
+
+### Removed
+
+- `ctx.sample(...)` and `ctx.logger(...)` — the MCP Sampling and Logging
+  features are deprecated by SEP-2577 and not carried into the rewrite
+  ([ADR-0022](docs/adr/0022-2026-07-28-features-not-implemented.md));
+  integrate with your LLM provider directly, and log to stderr or
+  OpenTelemetry.
+- The Substrate and Odyssey dependencies, the pluggable session-store
+  backends, and the Redis/PostgreSQL/NATS examples — all session-era
+  machinery with no role in a stateless server.
+
 ## [0.17.0] - 2026-05-07
 
 ### Changed
