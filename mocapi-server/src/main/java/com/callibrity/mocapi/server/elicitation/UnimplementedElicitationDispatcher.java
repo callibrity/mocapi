@@ -13,20 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.tools.util;
+package com.callibrity.mocapi.server.elicitation;
 
-import com.callibrity.mocapi.api.tools.McpTool;
-import com.callibrity.mocapi.api.tools.McpToolContext;
-import io.swagger.v3.oas.annotations.media.Schema;
-import org.springframework.stereotype.Component;
+import com.callibrity.mocapi.model.ElicitRequestFormParams;
+import com.callibrity.mocapi.model.ElicitResult;
 
-@Component
-public class InteractiveTool {
-  @McpTool(name = "interactive-greet", description = "Greets with progress")
-  public HelloResponse greet(
-      @Schema(description = "The name to greet") String name, McpToolContext ctx) {
-    ctx.sendProgress(1, 2);
-    ctx.sendProgress(2, 2);
-    return new HelloResponse(String.format("Hello, %s!", name));
+/**
+ * Placeholder {@link ElicitationDispatcher} that keeps {@code ctx.elicit(...)} compiling between
+ * the Mailbox teardown (ADR-0020) and the MRTR replay engine's arrival (ADR-0021, Phase 4).
+ */
+public final class UnimplementedElicitationDispatcher implements ElicitationDispatcher {
+
+  @Override
+  public ElicitResult elicit(ElicitRequestFormParams params) {
+    throw new UnsupportedOperationException("MRTR replay engine arrives in Phase 4");
   }
 }

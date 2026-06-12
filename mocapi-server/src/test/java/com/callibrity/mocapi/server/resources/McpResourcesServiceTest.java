@@ -18,11 +18,13 @@ package com.callibrity.mocapi.server.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplate;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardDecision;
@@ -48,7 +50,10 @@ class McpResourcesServiceTest {
         null,
         ignored ->
             new ReadResourceResult(
-                List.of(new TextResourceContents(uri, mimeType, "content of " + uri))),
+                List.of(new TextResourceContents(uri, mimeType, "content of " + uri)),
+                0L,
+                CacheScope.PRIVATE,
+                ResultTypes.COMPLETE),
         List.of());
   }
 
@@ -61,7 +66,10 @@ class McpResourcesServiceTest {
         null,
         vars ->
             new ReadResourceResult(
-                List.of(new TextResourceContents(uriTemplate, mimeType, "template " + vars))),
+                List.of(new TextResourceContents(uriTemplate, mimeType, "template " + vars)),
+                0L,
+                CacheScope.PRIVATE,
+                ResultTypes.COMPLETE),
         List.of(),
         List.of());
   }
@@ -98,7 +106,7 @@ class McpResourcesServiceTest {
 
   @Test
   void read_resource_by_exact_uri() {
-    var params = new ResourceRequestParams("test://a", null);
+    var params = new ResourceRequestParams("test://a", null, null, null);
 
     var result = service.readResource(params);
 
@@ -110,7 +118,7 @@ class McpResourcesServiceTest {
 
   @Test
   void read_resource_by_template_match() {
-    var params = new ResourceRequestParams("test://items/42", null);
+    var params = new ResourceRequestParams("test://items/42", null, null, null);
 
     var result = service.readResource(params);
 
@@ -125,7 +133,8 @@ class McpResourcesServiceTest {
     var template = templateHandler("test://items/{id}", "Item", "desc", "application/json");
     var svc = new McpResourcesService(List.of(exact), List.of(template));
 
-    var result = svc.readResource(new ResourceRequestParams("test://items/special", null));
+    var result =
+        svc.readResource(new ResourceRequestParams("test://items/special", null, null, null));
 
     assertThat(((TextResourceContents) result.contents().getFirst()).text())
         .isEqualTo("content of test://items/special");
@@ -133,7 +142,7 @@ class McpResourcesServiceTest {
 
   @Test
   void read_resource_throws_for_unknown_uri() {
-    var params = new ResourceRequestParams("test://unknown", null);
+    var params = new ResourceRequestParams("test://unknown", null, null, null);
 
     assertThatThrownBy(() -> service.readResource(params))
         .isInstanceOf(JsonRpcException.class)
@@ -254,7 +263,12 @@ class McpResourcesServiceTest {
         new Resource(uri, "g", "g", "text/plain"),
         null,
         null,
-        ignored -> new ReadResourceResult(List.of(new TextResourceContents(uri, "text/plain", ""))),
+        ignored ->
+            new ReadResourceResult(
+                List.of(new TextResourceContents(uri, "text/plain", "")),
+                0L,
+                CacheScope.PRIVATE,
+                ResultTypes.COMPLETE),
         List.of(guard));
   }
 
@@ -266,7 +280,10 @@ class McpResourcesServiceTest {
         null,
         vars ->
             new ReadResourceResult(
-                List.of(new TextResourceContents(uriTemplate, "text/plain", ""))),
+                List.of(new TextResourceContents(uriTemplate, "text/plain", "")),
+                0L,
+                CacheScope.PRIVATE,
+                ResultTypes.COMPLETE),
         List.of(),
         List.of(guard));
   }
@@ -292,7 +309,7 @@ class McpResourcesServiceTest {
 
   @Test
   void template_handler_read_receives_path_variables() {
-    var params = new ResourceRequestParams("test://items/abc", null);
+    var params = new ResourceRequestParams("test://items/abc", null, null, null);
     var content = (TextResourceContents) service.readResource(params).contents().getFirst();
     assertThat(content.text()).contains("id=abc");
   }

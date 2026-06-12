@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.tools;
 
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.List;
 import tools.jackson.databind.JsonNode;
@@ -54,12 +55,13 @@ public final class StructuredResultMapper implements ResultMapper {
       // Tool signature committed to a structured payload but handed us null. Rather than
       // fabricate a text block, return an empty content array — honest about "nothing to
       // report" while still satisfying the spec's required-content constraint.
-      return new CallToolResult(List.of(), null, null);
+      return new CallToolResult(List.of(), null, null, ResultTypes.COMPLETE);
     }
     JsonNode node = objectMapper.valueToTree(result);
     if (!(node instanceof ObjectNode obj)) {
       throw new IllegalStateException(String.format(NON_OBJECT_RUNTIME_SHAPE, node.getNodeType()));
     }
-    return new CallToolResult(List.of(new TextContent(obj.toString(), null)), null, obj);
+    return new CallToolResult(
+        List.of(new TextContent(obj.toString(), null)), null, obj, ResultTypes.COMPLETE);
   }
 }

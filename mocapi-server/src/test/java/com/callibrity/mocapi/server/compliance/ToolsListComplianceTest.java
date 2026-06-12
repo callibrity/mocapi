@@ -19,11 +19,10 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.Tool;
-import com.callibrity.mocapi.model.ToolsCapability;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.elicitation.UnimplementedElicitationDispatcher;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.StructuredResultMapper;
@@ -59,34 +58,20 @@ class ToolsListComplianceTest {
 
     var toolsService =
         new McpToolsService(
-            List.of(echoTool, greetTool),
-            MAPPER,
-            mock(com.callibrity.mocapi.server.McpResponseCorrelationService.class));
+            List.of(echoTool, greetTool), MAPPER, new UnimplementedElicitationDispatcher());
 
-    server =
-        buildServer(
-            inMemorySessionStore(),
-            new ServerCapabilities(new ToolsCapability(null), null, null, null, null),
-            toolsService);
+    server = buildServer(toolsService);
 
     var emptyToolsService =
-        new McpToolsService(
-            List.of(),
-            MAPPER,
-            mock(com.callibrity.mocapi.server.McpResponseCorrelationService.class));
-    emptyServer =
-        buildServer(
-            inMemorySessionStore(),
-            new ServerCapabilities(null, null, null, null, null),
-            emptyToolsService);
+        new McpToolsService(List.of(), MAPPER, new UnimplementedElicitationDispatcher());
+    emptyServer = buildServer(emptyToolsService);
   }
 
   @Test
   void returns_all_registered_tools() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId, server), call("tools/list"), transport);
+    server.handleCall(call("tools/list"), transport);
 
     var result = captureResult(transport);
     var tools = result.result().path("tools");
@@ -96,10 +81,9 @@ class ToolsListComplianceTest {
 
   @Test
   void each_tool_has_name_description_and_input_schema() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId, server), call("tools/list"), transport);
+    server.handleCall(call("tools/list"), transport);
 
     var result = captureResult(transport);
     var firstTool = result.result().path("tools").get(0);
@@ -110,10 +94,9 @@ class ToolsListComplianceTest {
 
   @Test
   void tools_with_output_schema_include_it() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId, server), call("tools/list"), transport);
+    server.handleCall(call("tools/list"), transport);
 
     var result = captureResult(transport);
     var tools = result.result().path("tools");
@@ -132,31 +115,19 @@ class ToolsListComplianceTest {
 
     var toolsService =
         new McpToolsService(
-            List.copyOf(tools),
-            MAPPER,
-            mock(com.callibrity.mocapi.server.McpResponseCorrelationService.class),
-            2);
+            List.copyOf(tools), MAPPER, new UnimplementedElicitationDispatcher(), 2);
 
-    var pagedServer =
-        buildServer(
-            inMemorySessionStore(),
-            new ServerCapabilities(new ToolsCapability(null), null, null, null, null),
-            toolsService);
-
-    var sessionId = initializeAndGetSessionId(pagedServer);
+    var pagedServer = buildServer(toolsService);
 
     var transport1 = mock(McpTransport.class);
-    pagedServer.handleCall(withSession(sessionId, pagedServer), call("tools/list"), transport1);
+    pagedServer.handleCall(call("tools/list"), transport1);
     var page1 = captureResult(transport1);
     assertThat(page1.result().path("tools").size()).isEqualTo(2);
     assertThat(page1.result().has("nextCursor")).isTrue();
 
     var cursor = page1.result().path("nextCursor").asString();
     var transport2 = mock(McpTransport.class);
-    pagedServer.handleCall(
-        withSession(sessionId, pagedServer),
-        call("tools/list", Map.of("cursor", cursor)),
-        transport2);
+    pagedServer.handleCall(call("tools/list", Map.of("cursor", cursor)), transport2);
     var page2 = captureResult(transport2);
     assertThat(page2.result().path("tools").size()).isEqualTo(1);
     assertThat(page2.result().has("nextCursor")).isFalse();
@@ -164,10 +135,9 @@ class ToolsListComplianceTest {
 
   @Test
   void empty_tool_registry_returns_empty_list_and_no_cursor() {
-    var sessionId = initializeAndGetSessionId(emptyServer);
     var transport = mock(McpTransport.class);
 
-    emptyServer.handleCall(withSession(sessionId, emptyServer), call("tools/list"), transport);
+    emptyServer.handleCall(call("tools/list"), transport);
 
     var result = captureResult(transport);
     assertThat(result.result().path("tools").size()).isZero();

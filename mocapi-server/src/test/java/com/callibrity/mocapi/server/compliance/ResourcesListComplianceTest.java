@@ -19,11 +19,11 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceTemplate;
-import com.callibrity.mocapi.model.ResourcesCapability;
-import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
@@ -57,8 +57,10 @@ class ResourcesListComplianceTest {
             null,
             ignored ->
                 new ReadResourceResult(
-                    List.of(
-                        new TextResourceContents("file:///readme.md", "text/markdown", "# Hi"))),
+                    List.of(new TextResourceContents("file:///readme.md", "text/markdown", "# Hi")),
+                    0L,
+                    CacheScope.PRIVATE,
+                    ResultTypes.COMPLETE),
             List.of());
 
     ReadResourceHandler configResource =
@@ -69,7 +71,10 @@ class ResourcesListComplianceTest {
             ignored ->
                 new ReadResourceResult(
                     List.of(
-                        new TextResourceContents("file:///config.json", "application/json", "{}"))),
+                        new TextResourceContents("file:///config.json", "application/json", "{}")),
+                    0L,
+                    CacheScope.PRIVATE,
+                    ResultTypes.COMPLETE),
             List.of());
 
     ReadResourceTemplateHandler userTemplate =
@@ -84,26 +89,24 @@ class ResourcesListComplianceTest {
                         new TextResourceContents(
                             "users://" + pathVariables.get("userId") + "/profile",
                             "application/json",
-                            "{}"))),
+                            "{}")),
+                    0L,
+                    CacheScope.PRIVATE,
+                    ResultTypes.COMPLETE),
             List.of(),
             List.of());
 
     var resourcesService =
         new McpResourcesService(List.of(fileResource, configResource), List.of(userTemplate));
 
-    server =
-        buildServer(
-            inMemorySessionStore(),
-            new ServerCapabilities(null, null, null, new ResourcesCapability(null, null), null),
-            resourcesService);
+    server = buildServer(resourcesService);
   }
 
   @Test
   void returns_all_registered_resources() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId, server), call("resources/list"), transport);
+    server.handleCall(call("resources/list"), transport);
 
     var result = captureResult(transport);
     var resources = result.result().path("resources");
@@ -113,10 +116,9 @@ class ResourcesListComplianceTest {
 
   @Test
   void each_resource_has_uri_name_and_optional_description_and_mime_type() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId, server), call("resources/list"), transport);
+    server.handleCall(call("resources/list"), transport);
 
     var result = captureResult(transport);
     var first = result.result().path("resources").get(0);
@@ -133,35 +135,26 @@ class ResourcesListComplianceTest {
     ReadResourceHandler r3 = simpleResource("file:///c.txt", "c", "C");
 
     var pagedService = new McpResourcesService(List.of(r1, r2, r3), List.of(), 2);
-    var pagedServer =
-        buildServer(
-            inMemorySessionStore(),
-            new ServerCapabilities(null, null, null, new ResourcesCapability(null, null), null),
-            pagedService);
+    var pagedServer = buildServer(pagedService);
 
-    var sessionId = initializeAndGetSessionId(pagedServer);
     var transport1 = mock(McpTransport.class);
-    pagedServer.handleCall(withSession(sessionId, pagedServer), call("resources/list"), transport1);
+    pagedServer.handleCall(call("resources/list"), transport1);
     var page1 = captureResult(transport1);
     assertThat(page1.result().path("resources").size()).isEqualTo(2);
     assertThat(page1.result().has("nextCursor")).isTrue();
 
     var cursor = page1.result().path("nextCursor").asString();
     var transport2 = mock(McpTransport.class);
-    pagedServer.handleCall(
-        withSession(sessionId, pagedServer),
-        call("resources/list", Map.of("cursor", cursor)),
-        transport2);
+    pagedServer.handleCall(call("resources/list", Map.of("cursor", cursor)), transport2);
     var page2 = captureResult(transport2);
     assertThat(page2.result().path("resources").size()).isEqualTo(1);
   }
 
   @Test
   void templates_list_returns_resource_templates() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId, server), call("resources/templates/list"), transport);
+    server.handleCall(call("resources/templates/list"), transport);
 
     var result = captureResult(transport);
     var templates = result.result().path("resourceTemplates");
@@ -178,7 +171,11 @@ class ResourcesListComplianceTest {
         null,
         null,
         ignored ->
-            new ReadResourceResult(List.of(new TextResourceContents(uri, "text/plain", "content"))),
+            new ReadResourceResult(
+                List.of(new TextResourceContents(uri, "text/plain", "content")),
+                0L,
+                CacheScope.PRIVATE,
+                ResultTypes.COMPLETE),
         List.of());
   }
 }

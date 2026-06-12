@@ -15,22 +15,24 @@
  */
 package com.callibrity.mocapi.server.compliance;
 
-import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.*;
+import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.buildServer;
+import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.notification;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
-import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.server.McpServer;
-import com.callibrity.mocapi.server.ping.McpPingService;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
 /**
- * MCP 2025-11-25 § Lifecycle — Notifications.
+ * MCP 2026-07-28 § Lifecycle — Notifications.
  *
- * <p>Verifies notification handling: notifications/initialized is processed, and unknown
- * notification methods are silently ignored per JSON-RPC spec.
+ * <p>Verifies notification handling in the stateless model: {@code notifications/cancelled} is
+ * acknowledged (with or without the now-optional {@code requestId}), and unknown notification
+ * methods are silently ignored per JSON-RPC spec.
  */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class NotificationComplianceTest {
@@ -39,32 +41,33 @@ class NotificationComplianceTest {
 
   @BeforeEach
   void setUp() {
-    server =
-        buildServer(
-            inMemorySessionStore(),
-            new ServerCapabilities(null, null, null, null, null),
-            new McpPingService());
+    server = buildServer();
   }
 
   @Test
-  void notifications_initialized_processed_without_error() {
-    var sessionId = initializeAndGetSessionId(server);
-
+  void notifications_cancelled_processed_without_error() {
     assertThatNoException()
         .isThrownBy(
             () ->
                 server.handleNotification(
-                    withSession(sessionId, server), notification("notifications/initialized")));
+                    notification(
+                        McpMethods.NOTIFICATIONS_CANCELLED,
+                        Map.of("requestId", "42", "reason", "user clicked cancel"))));
+  }
+
+  @Test
+  void notifications_cancelled_without_request_id_is_accepted() {
+    // The 2026-07-28 revision made requestId optional on CancelledNotificationParams.
+    assertThatNoException()
+        .isThrownBy(
+            () ->
+                server.handleNotification(
+                    notification(McpMethods.NOTIFICATIONS_CANCELLED, Map.of("reason", "gone"))));
   }
 
   @Test
   void unknown_notification_method_silently_ignored() {
-    var sessionId = initializeAndGetSessionId(server);
-
     assertThatNoException()
-        .isThrownBy(
-            () ->
-                server.handleNotification(
-                    withSession(sessionId, server), notification("notifications/unknown_method")));
+        .isThrownBy(() -> server.handleNotification(notification("notifications/unknown_method")));
   }
 }

@@ -24,6 +24,7 @@ import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptArgument;
 import com.callibrity.mocapi.model.PromptMessage;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.guards.Guard;
@@ -60,7 +61,8 @@ class McpPromptsServiceTest {
           String arg1 = typed.getOrDefault("arg1", "default");
           return new GetPromptResult(
               description,
-              List.of(new PromptMessage(Role.USER, new TextContent(name + ": " + arg1, null))));
+              List.of(new PromptMessage(Role.USER, new TextContent(name + ": " + arg1, null))),
+              ResultTypes.COMPLETE);
         },
         List.of(),
         List.of());
@@ -85,7 +87,8 @@ class McpPromptsServiceTest {
 
   @Test
   void get_prompt_returns_result() {
-    var params = new GetPromptRequestParams("alpha-prompt", Map.of("arg1", "hello"), null);
+    var params =
+        new GetPromptRequestParams("alpha-prompt", Map.of("arg1", "hello"), null, null, null);
 
     var result = service.getPrompt(params);
 
@@ -97,7 +100,7 @@ class McpPromptsServiceTest {
 
   @Test
   void get_prompt_with_null_arguments_uses_empty_map() {
-    var params = new GetPromptRequestParams("alpha-prompt", null, null);
+    var params = new GetPromptRequestParams("alpha-prompt", null, null, null, null);
 
     var result = service.getPrompt(params);
 
@@ -107,7 +110,7 @@ class McpPromptsServiceTest {
 
   @Test
   void get_prompt_throws_for_unknown_name() {
-    var params = new GetPromptRequestParams("nonexistent", null, null);
+    var params = new GetPromptRequestParams("nonexistent", null, null, null, null);
 
     assertThatThrownBy(() -> service.getPrompt(params))
         .isInstanceOf(JsonRpcException.class)
@@ -176,7 +179,7 @@ class McpPromptsServiceTest {
         descriptor,
         null,
         null,
-        args -> new GetPromptResult(name, List.of()),
+        args -> new GetPromptResult(name, List.of(), ResultTypes.COMPLETE),
         List.of(),
         List.of(guard));
   }
@@ -202,7 +205,7 @@ class McpPromptsServiceTest {
             descriptor,
             null,
             null,
-            args -> new GetPromptResult("mixed", List.of()),
+            args -> new GetPromptResult("mixed", List.of(), ResultTypes.COMPLETE),
             List.of(),
             List.of(GuardDecision.Allow::new, () -> new GuardDecision.Deny("blocked")));
     var guarded = new McpPromptsService(List.of(handler));

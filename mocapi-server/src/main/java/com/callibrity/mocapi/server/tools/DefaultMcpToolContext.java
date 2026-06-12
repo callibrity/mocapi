@@ -15,83 +15,53 @@
  */
 package com.callibrity.mocapi.server.tools;
 
-import com.callibrity.mocapi.api.sampling.CreateMessageRequestConfig;
-import com.callibrity.mocapi.api.tools.McpLogger;
+import com.callibrity.mocapi.api.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.api.tools.McpToolContext;
-import com.callibrity.mocapi.model.CreateMessageRequestParams;
-import com.callibrity.mocapi.model.CreateMessageResult;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.ProgressNotificationParams;
-import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.sampling.CreateMessageRequestBuilder;
+import com.callibrity.mocapi.server.elicitation.ElicitationDispatcher;
+import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
-import java.util.function.Consumer;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ValueNode;
 
 /**
- * Default {@link McpToolContext} implementation that delegates to an {@link McpTransport} for
- * mid-execution communication (progress, logging, elicitation, sampling).
+ * Default {@link McpToolContext} implementation. Progress notifications flow through the
+ * request-scoped {@link McpTransport}; elicitation routes through the {@link ElicitationDispatcher}
+ * seam after a per-request capability check against the {@link McpExchange} (a client that did not
+ * declare the {@code elicitation} capability gets {@link McpElicitationNotSupportedException},
+ * surfaced on the wire as the spec's {@code MissingRequiredClientCapabilityError}).
  */
 public class DefaultMcpToolContext implements McpToolContext {
 
   private final McpTransport transport;
   private final ObjectMapper objectMapper;
   private final ValueNode progressToken;
-  private final McpResponseCorrelationService correlationService;
-  private final McpToolsService toolsService;
+  private final ElicitationDispatcher elicitationDispatcher;
+  private final McpExchange exchange;
   private final String handlerName;
 
   public DefaultMcpToolContext(
       McpTransport transport,
       ObjectMapper objectMapper,
       ValueNode progressToken,
-      McpResponseCorrelationService correlationService) {
-    this(transport, objectMapper, progressToken, correlationService, null, "mcp");
-  }
-
-  public DefaultMcpToolContext(
-      McpTransport transport,
-      ObjectMapper objectMapper,
-      ValueNode progressToken,
-      McpResponseCorrelationService correlationService,
-      McpToolsService toolsService) {
-    this(transport, objectMapper, progressToken, correlationService, toolsService, "mcp");
-  }
-
-  public DefaultMcpToolContext(
-      McpTransport transport,
-      ObjectMapper objectMapper,
-      ValueNode progressToken,
-      McpResponseCorrelationService correlationService,
-      McpToolsService toolsService,
+      ElicitationDispatcher elicitationDispatcher,
+      McpExchange exchange,
       String handlerName) {
     this.transport = transport;
     this.objectMapper = objectMapper;
     this.progressToken = progressToken;
-    this.correlationService = correlationService;
-    this.toolsService = toolsService;
+    this.elicitationDispatcher = elicitationDispatcher;
+    this.exchange = exchange;
     this.handlerName = handlerName;
   }
 
   @Override
   public String handlerName() {
     return handlerName;
-  }
-
-  @Override
-  public McpLogger logger(String name) {
-    return new DefaultMcpLogger(transport, objectMapper, name);
-  }
-
-  @Override
-  public CreateMessageResult sample(Consumer<CreateMessageRequestConfig> customizer) {
-    var builder = new CreateMessageRequestBuilder(toolsService);
-    customizer.accept(builder);
-    return sample(builder.build());
   }
 
   @Override
@@ -107,13 +77,10 @@ public class DefaultMcpToolContext implements McpToolContext {
 
   @Override
   public ElicitResult elicit(ElicitRequestFormParams params) {
-    return correlationService.sendAndAwait(
-        McpMethods.ELICITATION_CREATE, params, ElicitResult.class, transport);
-  }
-
-  @Override
-  public CreateMessageResult sample(CreateMessageRequestParams params) {
-    return correlationService.sendAndAwait(
-        McpMethods.SAMPLING_CREATE_MESSAGE, params, CreateMessageResult.class, transport);
+    if (exchange == null || !exchange.supportsElicitationForm()) {
+      throw new McpElicitationNotSupportedException(
+          "Client did not declare the elicitation capability in clientCapabilities");
+    }
+    return elicitationDispatcher.elicit(params);
   }
 }

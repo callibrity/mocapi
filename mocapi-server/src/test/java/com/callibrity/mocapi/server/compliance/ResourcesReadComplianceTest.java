@@ -20,10 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.model.BlobResourceContents;
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
-import com.callibrity.mocapi.model.ResourcesCapability;
-import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
@@ -58,7 +58,10 @@ class ResourcesReadComplianceTest {
             ignored ->
                 new ReadResourceResult(
                     List.of(
-                        new TextResourceContents("file:///readme.md", "text/markdown", "# Hello"))),
+                        new TextResourceContents("file:///readme.md", "text/markdown", "# Hello")),
+                    0L,
+                    CacheScope.PRIVATE,
+                    ResultTypes.COMPLETE),
             List.of());
 
     ReadResourceHandler blobResource =
@@ -70,28 +73,23 @@ class ResourcesReadComplianceTest {
               var data =
                   Base64.getEncoder().encodeToString(new byte[] {(byte) 0x89, 0x50, 0x4E, 0x47});
               return new ReadResourceResult(
-                  List.of(new BlobResourceContents("file:///image.png", "image/png", data)));
+                  List.of(new BlobResourceContents("file:///image.png", "image/png", data)),
+                  0L,
+                  CacheScope.PRIVATE,
+                  ResultTypes.COMPLETE);
             },
             List.of());
 
     var service = new McpResourcesService(List.of(textResource, blobResource), List.of());
 
-    server =
-        buildServer(
-            inMemorySessionStore(),
-            new ServerCapabilities(null, null, null, new ResourcesCapability(null, null), null),
-            service);
+    server = buildServer(service);
   }
 
   @Test
   void read_with_valid_uri_returns_content() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(
-        withSession(sessionId, server),
-        call("resources/read", Map.of("uri", "file:///readme.md")),
-        transport);
+    server.handleCall(call("resources/read", Map.of("uri", "file:///readme.md")), transport);
 
     var result = captureResult(transport);
     var contents = result.result().path("contents");
@@ -101,13 +99,9 @@ class ResourcesReadComplianceTest {
 
   @Test
   void text_resource_returns_text_resource_contents() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(
-        withSession(sessionId, server),
-        call("resources/read", Map.of("uri", "file:///readme.md")),
-        transport);
+    server.handleCall(call("resources/read", Map.of("uri", "file:///readme.md")), transport);
 
     var result = captureResult(transport);
     var first = result.result().path("contents").get(0);
@@ -117,13 +111,9 @@ class ResourcesReadComplianceTest {
 
   @Test
   void binary_resource_returns_blob_resource_contents_with_base64() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(
-        withSession(sessionId, server),
-        call("resources/read", Map.of("uri", "file:///image.png")),
-        transport);
+    server.handleCall(call("resources/read", Map.of("uri", "file:///image.png")), transport);
 
     var result = captureResult(transport);
     var first = result.result().path("contents").get(0);
@@ -134,13 +124,9 @@ class ResourcesReadComplianceTest {
 
   @Test
   void unknown_uri_returns_error() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(
-        withSession(sessionId, server),
-        call("resources/read", Map.of("uri", "file:///nonexistent")),
-        transport);
+    server.handleCall(call("resources/read", Map.of("uri", "file:///nonexistent")), transport);
 
     var error = captureError(transport);
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);

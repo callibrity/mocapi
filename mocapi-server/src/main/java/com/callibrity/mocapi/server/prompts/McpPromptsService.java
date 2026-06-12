@@ -15,12 +15,14 @@
  */
 package com.callibrity.mocapi.server.prompts;
 
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.GetPromptRequestParams;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.ListPromptsResult;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Prompt;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -52,7 +54,13 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
 
   @JsonRpcMethod(McpMethods.PROMPTS_LIST)
   public ListPromptsResult listPrompts(@JsonRpcParams PaginatedRequestParams params) {
-    return paginate(h -> Guards.allows(h.guards()), params, ListPromptsResult::new);
+    // Conservative cache defaults until Phase 5 makes them configurable (ttlMs=0, private).
+    return paginate(
+        h -> Guards.allows(h.guards()),
+        params,
+        (prompts, nextCursor) ->
+            new ListPromptsResult(
+                prompts, nextCursor, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE));
   }
 
   @JsonRpcMethod(McpMethods.PROMPTS_GET)

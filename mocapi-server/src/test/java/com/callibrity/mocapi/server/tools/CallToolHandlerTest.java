@@ -22,6 +22,7 @@ import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.guards.GuardDecision;
@@ -481,14 +482,16 @@ class CallToolHandlerTest {
       public CallToolResult make() {
         var mapper = new ObjectMapper();
         var structured = mapper.createObjectNode().put("name", "ok").put("count", 1);
-        return new CallToolResult(List.of(new TextContent("ok", null)), null, structured);
+        return new CallToolResult(
+            List.of(new TextContent("ok", null)), null, structured, ResultTypes.COMPLETE);
       }
     }
 
     static class TextOnlyCallToolResultTool {
       @McpTool
       public CallToolResult make() {
-        return new CallToolResult(List.of(new TextContent("just text", null)), null, null);
+        return new CallToolResult(
+            List.of(new TextContent("just text", null)), null, null, ResultTypes.COMPLETE);
       }
     }
 

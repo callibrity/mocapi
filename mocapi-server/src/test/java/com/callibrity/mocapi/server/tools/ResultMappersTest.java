@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -56,7 +57,9 @@ class ResultMappersTest {
 
     @Test
     void CallToolResult_input_is_returned_as_is() {
-      CallToolResult in = new CallToolResult(List.of(new TextContent("hello", null)), null, null);
+      CallToolResult in =
+          new CallToolResult(
+              List.of(new TextContent("hello", null)), null, null, ResultTypes.COMPLETE);
 
       CallToolResult out = PassthroughResultMapper.INSTANCE.map(in);
 

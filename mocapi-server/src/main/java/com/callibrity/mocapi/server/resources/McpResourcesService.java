@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.server.resources;
 
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.ListResourceTemplatesResult;
 import com.callibrity.mocapi.model.ListResourcesResult;
 import com.callibrity.mocapi.model.McpMethods;
@@ -23,6 +24,7 @@ import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplate;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
@@ -100,7 +102,14 @@ public class McpResourcesService {
             .filter(h -> Guards.allows(h.guards()))
             .map(ReadResourceHandler::descriptor)
             .toList();
-    return Cursors.paginate(visible, params, pageSize, ListResourcesResult::new);
+    // Conservative cache defaults until Phase 5 makes them configurable (ttlMs=0, private).
+    return Cursors.paginate(
+        visible,
+        params,
+        pageSize,
+        (resources, nextCursor) ->
+            new ListResourcesResult(
+                resources, nextCursor, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE));
   }
 
   @JsonRpcMethod(McpMethods.RESOURCES_TEMPLATES_LIST)
@@ -111,7 +120,13 @@ public class McpResourcesService {
             .filter(h -> Guards.allows(h.guards()))
             .map(ReadResourceTemplateHandler::descriptor)
             .toList();
-    return Cursors.paginate(visible, params, pageSize, ListResourceTemplatesResult::new);
+    return Cursors.paginate(
+        visible,
+        params,
+        pageSize,
+        (resourceTemplates, nextCursor) ->
+            new ListResourceTemplatesResult(
+                resourceTemplates, nextCursor, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE));
   }
 
   @JsonRpcMethod(McpMethods.RESOURCES_READ)

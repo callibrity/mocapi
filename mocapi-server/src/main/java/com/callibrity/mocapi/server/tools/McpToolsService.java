@@ -20,16 +20,19 @@ import static com.callibrity.mocapi.model.McpMethods.TOOLS_LIST;
 
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolException;
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ContentBlock;
 import com.callibrity.mocapi.model.ListToolsResult;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
-import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.elicitation.ElicitationDispatcher;
+import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -59,19 +62,19 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
 
   private final Logger log = LoggerFactory.getLogger(McpToolsService.class);
   private final ObjectMapper objectMapper;
-  private final McpResponseCorrelationService correlationService;
+  private final ElicitationDispatcher elicitationDispatcher;
 
   public McpToolsService(
       List<CallToolHandler> handlers,
       ObjectMapper objectMapper,
-      McpResponseCorrelationService correlationService) {
-    this(handlers, objectMapper, correlationService, DEFAULT_PAGE_SIZE);
+      ElicitationDispatcher elicitationDispatcher) {
+    this(handlers, objectMapper, elicitationDispatcher, DEFAULT_PAGE_SIZE);
   }
 
   public McpToolsService(
       List<CallToolHandler> handlers,
       ObjectMapper objectMapper,
-      McpResponseCorrelationService correlationService,
+      ElicitationDispatcher elicitationDispatcher,
       int pageSize) {
     super(
         handlers,
@@ -81,12 +84,17 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
         "Tool",
         pageSize);
     this.objectMapper = objectMapper;
-    this.correlationService = correlationService;
+    this.elicitationDispatcher = elicitationDispatcher;
   }
 
   @JsonRpcMethod(TOOLS_LIST)
   public ListToolsResult listTools(@JsonRpcParams PaginatedRequestParams params) {
-    return paginate(h -> Guards.allows(h.guards()), params, ListToolsResult::new);
+    // Conservative cache defaults until Phase 5 makes them configurable (ttlMs=0, private).
+    return paginate(
+        h -> Guards.allows(h.guards()),
+        params,
+        (tools, nextCursor) ->
+            new ListToolsResult(tools, nextCursor, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE));
   }
 
   /** Returns the full {@link Tool} descriptor for a registered tool, or {@code null} if none. */
@@ -112,10 +120,11 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
   private CallToolResult invokeTool(
       String name, CallToolHandler handler, JsonNode args, CallToolRequestParams params) {
     McpTransport transport = McpTransport.CURRENT.isBound() ? McpTransport.CURRENT.get() : null;
+    McpExchange exchange = McpExchange.CURRENT.isBound() ? McpExchange.CURRENT.get() : null;
     ValueNode progressToken = params.meta() != null ? params.meta().progressToken() : null;
     DefaultMcpToolContext ctx =
         new DefaultMcpToolContext(
-            transport, objectMapper, progressToken, correlationService, this, name);
+            transport, objectMapper, progressToken, elicitationDispatcher, exchange, name);
 
     try {
       Object result = ScopedValue.where(McpToolContext.CURRENT, ctx).call(() -> handler.call(args));
@@ -153,7 +162,8 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
 
   static CallToolResult toErrorCallToolResult(Throwable throwable) {
     String message = throwable.getMessage() != null ? throwable.getMessage() : throwable.toString();
-    return new CallToolResult(List.of(new TextContent(message, null)), true, null);
+    return new CallToolResult(
+        List.of(new TextContent(message, null)), true, null, ResultTypes.COMPLETE);
   }
 
   static CallToolResult toErrorCallToolResult(McpToolException e, ObjectMapper objectMapper) {
@@ -177,6 +187,6 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
       }
       structured = obj;
     }
-    return new CallToolResult(List.copyOf(content), true, structured);
+    return new CallToolResult(List.copyOf(content), true, structured, ResultTypes.COMPLETE);
   }
 }

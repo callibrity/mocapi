@@ -17,14 +17,13 @@ package com.callibrity.mocapi.server.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolException;
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.ContentBlock;
 import com.callibrity.mocapi.model.TextContent;
-import com.callibrity.mocapi.server.McpResponseCorrelationService;
+import com.callibrity.mocapi.server.elicitation.UnimplementedElicitationDispatcher;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.util.List;
@@ -57,11 +56,11 @@ class McpToolExceptionHandlingTest {
         methods.stream()
             .map(m -> CallToolHandlers.build(bean, m, generator, mapper, List.of(), s -> s, false))
             .toList();
-    return new McpToolsService(handlers, mapper, mock(McpResponseCorrelationService.class));
+    return new McpToolsService(handlers, mapper, new UnimplementedElicitationDispatcher());
   }
 
   private CallToolRequestParams call(String name) {
-    return new CallToolRequestParams(name, mapper.createObjectNode(), null, null);
+    return new CallToolRequestParams(name, mapper.createObjectNode(), null, null, null);
   }
 
   @Nested

@@ -16,25 +16,15 @@
 package com.callibrity.mocapi.server.compliance;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import com.callibrity.mocapi.model.Implementation;
-import com.callibrity.mocapi.model.McpMethods;
-import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.model.McpMetaKeys;
 import com.callibrity.mocapi.server.DefaultMcpServer;
-import com.callibrity.mocapi.server.McpContext;
-import com.callibrity.mocapi.server.McpContextResult;
-import com.callibrity.mocapi.server.McpEvent;
-import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.McpTransportResolver;
-import com.callibrity.mocapi.server.autoconfigure.SessionStoreTestSupport;
+import com.callibrity.mocapi.server.exchange.MetaEnvelopeParser;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
-import com.callibrity.mocapi.server.session.McpSessionResolver;
-import com.callibrity.mocapi.server.session.McpSessionService;
-import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
@@ -46,18 +36,20 @@ import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandler;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerCustomizer;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlers;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.mockito.ArgumentCaptor;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
-/** Shared test infrastructure for MCP compliance tests. */
+/**
+ * Shared test infrastructure for MCP compliance tests, stateless-model edition (ADR-0020): no
+ * sessions, no handshake — every call carries the {@code _meta} envelope.
+ */
 final class ComplianceTestSupport {
 
   static final String PROTOCOL_VERSION = McpServer.PROTOCOL_VERSION;
@@ -71,14 +63,10 @@ final class ComplianceTestSupport {
 
   static JsonRpcDispatcher buildDispatcher(Object... services) {
     // Ripcurl always puts JsonRpcParamsResolver at the head of the chain and the
-    // Jackson3ParameterResolver at the tail; mocapi's session/transport resolvers slot in between
+    // Jackson3ParameterResolver at the tail; mocapi's transport resolver slots in between
     // via the customizer SPI.
     List<JsonRpcMethodHandlerCustomizer> customizers =
-        List.of(
-            config -> {
-              config.resolver(new McpSessionResolver());
-              config.resolver(new McpTransportResolver());
-            });
+        List.of(config -> config.resolver(new McpTransportResolver()));
     List<JsonRpcMethodHandler> handlers = new ArrayList<>();
     for (Object service : services) {
       for (var method :
@@ -89,87 +77,66 @@ final class ComplianceTestSupport {
     return new DefaultJsonRpcDispatcher(handlers);
   }
 
-  // --- Session service ---
-
-  static McpSessionService buildSessionService(
-      McpSessionStore store, ServerCapabilities capabilities) {
-    return new McpSessionService(
-        store,
-        Duration.ofHours(1),
-        new Implementation("test-server", "Test Server", "1.0.0"),
-        null,
-        capabilities);
-  }
-
   // --- Server ---
 
-  static McpServer buildServer(
-      McpSessionService sessionService,
-      McpResponseCorrelationService correlationService,
-      Object... services) {
-    Object[] allServices = new Object[services.length + 2];
-    allServices[0] = sessionService;
-    allServices[1] = new McpLifecycleService(sessionService);
-    System.arraycopy(services, 0, allServices, 2, services.length);
+  static McpServer buildServer(Object... services) {
+    Object[] allServices = new Object[services.length + 1];
+    allServices[0] = new McpLifecycleService();
+    System.arraycopy(services, 0, allServices, 1, services.length);
     var dispatcher = buildDispatcher(allServices);
-    return new DefaultMcpServer(sessionService, dispatcher, correlationService);
+    return new DefaultMcpServer(dispatcher, new MetaEnvelopeParser(MAPPER), MAPPER);
   }
 
-  static McpServer buildServer(
-      McpSessionStore store,
-      ServerCapabilities capabilities,
-      McpResponseCorrelationService correlationService,
-      Object... services) {
-    return buildServer(buildSessionService(store, capabilities), correlationService, services);
+  // --- Envelope builders ---
+
+  /** A valid {@code _meta} envelope for the given protocol version, no client capabilities. */
+  static ObjectNode envelope(String protocolVersion) {
+    ObjectNode meta = JsonNodeFactory.instance.objectNode();
+    meta.put(McpMetaKeys.PROTOCOL_VERSION, protocolVersion);
+    ObjectNode clientInfo = meta.putObject(McpMetaKeys.CLIENT_INFO);
+    clientInfo.put("name", "test-client");
+    clientInfo.put("version", "1.0");
+    meta.putObject(McpMetaKeys.CLIENT_CAPABILITIES);
+    return meta;
   }
 
-  static McpServer buildServer(
-      McpSessionStore store, ServerCapabilities capabilities, Object... services) {
-    return buildServer(store, capabilities, mock(McpResponseCorrelationService.class), services);
+  /** A valid envelope for the supported protocol version. */
+  static ObjectNode envelope() {
+    return envelope(PROTOCOL_VERSION);
   }
 
-  // --- Context ---
-
-  static McpContext noSession() {
-    return McpContext.empty();
-  }
-
-  static McpContext withSession(String sessionId, McpServer server) {
-    return switch (server.createContext(sessionId, PROTOCOL_VERSION)) {
-      case McpContextResult.ValidContext(var ctx) -> ctx;
-      default ->
-          throw new IllegalStateException("Failed to create context for session: " + sessionId);
-    };
+  /** A valid envelope whose clientCapabilities declares form elicitation support. */
+  static ObjectNode envelopeWithElicitation() {
+    ObjectNode meta = envelope();
+    ((ObjectNode) meta.get(McpMetaKeys.CLIENT_CAPABILITIES)).putObject("elicitation");
+    return meta;
   }
 
   // --- Call builders ---
 
-  static JsonRpcCall initializeCall() {
-    var params =
-        MAPPER.valueToTree(
-            Map.of(
-                "protocolVersion", PROTOCOL_VERSION,
-                "capabilities", Map.of(),
-                "clientInfo", Map.of("name", "test-client", "version", "1.0")));
-    return JsonRpcCall.of("initialize", params, nextId());
-  }
-
-  static JsonRpcCall initializeCallWithCapabilities(Map<String, Object> capabilities) {
-    var params =
-        MAPPER.valueToTree(
-            Map.of(
-                "protocolVersion", PROTOCOL_VERSION,
-                "capabilities", capabilities,
-                "clientInfo", Map.of("name", "test-client", "version", "1.0")));
-    return JsonRpcCall.of("initialize", params, nextId());
-  }
-
+  /** A call whose params carry only the {@code _meta} envelope. */
   static JsonRpcCall call(String method) {
-    return JsonRpcCall.of(method, null, nextId());
+    ObjectNode params = JsonNodeFactory.instance.objectNode();
+    params.set("_meta", envelope());
+    return JsonRpcCall.of(method, params, nextId());
   }
 
+  /** A call whose params are {@code params} plus the {@code _meta} envelope. */
   static JsonRpcCall call(String method, Object params) {
-    return JsonRpcCall.of(method, MAPPER.valueToTree(params), nextId());
+    return callWithMeta(method, params, envelope());
+  }
+
+  /** A call whose params are {@code params} plus the given {@code _meta} envelope. */
+  static JsonRpcCall callWithMeta(String method, Object params, ObjectNode meta) {
+    ObjectNode paramsNode = (ObjectNode) MAPPER.valueToTree(params);
+    paramsNode.set("_meta", meta);
+    return JsonRpcCall.of(method, paramsNode, nextId());
+  }
+
+  /** A call with NO {@code _meta} envelope — invalid on every method. */
+  static JsonRpcCall callWithoutEnvelope(String method, Object params) {
+    JsonNode paramsNode = params == null ? null : MAPPER.valueToTree(params);
+    return JsonRpcCall.of(method, paramsNode, nextId());
   }
 
   static JsonRpcNotification notification(String method) {
@@ -198,40 +165,6 @@ final class ComplianceTestSupport {
     var msg = captureMessage(transport);
     assertThat(msg).isInstanceOf(JsonRpcError.class);
     return (JsonRpcError) msg;
-  }
-
-  static McpEvent captureEvent(McpTransport transport) {
-    var captor = ArgumentCaptor.forClass(McpEvent.class);
-    verify(transport).emit(captor.capture());
-    return captor.getValue();
-  }
-
-  // --- Session helpers ---
-
-  /**
-   * Initializes a session and completes the handshake by sending {@code notifications/initialized},
-   * so the returned session id is ready for any call.
-   */
-  static String initializeAndGetSessionId(McpServer server) {
-    var transport = mock(McpTransport.class);
-    server.handleCall(noSession(), initializeCall(), transport);
-    String sessionId = ((McpEvent.SessionInitialized) captureEvent(transport)).sessionId();
-    server.handleNotification(
-        withSession(sessionId, server), notification(McpMethods.NOTIFICATIONS_INITIALIZED));
-    return sessionId;
-  }
-
-  /** Initializes a session but stops before the {@code notifications/initialized} handshake. */
-  static String initializeWithoutCompletingHandshake(McpServer server) {
-    var transport = mock(McpTransport.class);
-    server.handleCall(noSession(), initializeCall(), transport);
-    return ((McpEvent.SessionInitialized) captureEvent(transport)).sessionId();
-  }
-
-  // --- Session store (real implementation with in-memory substrate) ---
-
-  static McpSessionStore inMemorySessionStore() {
-    return SessionStoreTestSupport.create();
   }
 
   // --- ID generation ---

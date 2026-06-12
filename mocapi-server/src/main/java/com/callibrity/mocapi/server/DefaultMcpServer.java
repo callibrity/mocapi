@@ -15,100 +15,76 @@
  */
 package com.callibrity.mocapi.server;
 
-import com.callibrity.mocapi.server.session.McpSession;
-import com.callibrity.mocapi.server.session.McpSessionService;
+import com.callibrity.mocapi.model.UnsupportedProtocolVersionErrorData;
+import com.callibrity.mocapi.server.exchange.McpExchange;
+import com.callibrity.mocapi.server.exchange.MetaEnvelopeParser;
+import com.callibrity.mocapi.server.exchange.UnsupportedProtocolVersionException;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.callibrity.ripcurl.core.JsonRpcError;
+import com.callibrity.ripcurl.core.JsonRpcErrorDetail;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
-import java.util.Set;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.ObjectMapper;
 
-/** Default {@link McpServer} that handles session lifecycle and JSON-RPC dispatch. */
+/**
+ * Default {@link McpServer}: per-request {@code _meta} envelope parsing followed by JSON-RPC
+ * dispatch with the resulting {@link McpExchange} bound for the duration of the call (ADR-0020).
+ * Holds no per-client state of any kind.
+ */
 public class DefaultMcpServer implements McpServer {
 
-  private static final Set<String> KNOWN_PROTOCOL_VERSIONS =
-      Set.of("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05", "2024-10-07");
-
   private final Logger log = LoggerFactory.getLogger(DefaultMcpServer.class);
-  private final McpSessionService sessionService;
   private final JsonRpcDispatcher dispatcher;
-  private final McpResponseCorrelationService correlationService;
+  private final MetaEnvelopeParser envelopeParser;
+  private final ObjectMapper objectMapper;
 
   public DefaultMcpServer(
-      McpSessionService sessionService,
-      JsonRpcDispatcher dispatcher,
-      McpResponseCorrelationService correlationService) {
-    this.sessionService = sessionService;
+      JsonRpcDispatcher dispatcher, MetaEnvelopeParser envelopeParser, ObjectMapper objectMapper) {
     this.dispatcher = dispatcher;
-    this.correlationService = correlationService;
+    this.envelopeParser = envelopeParser;
+    this.objectMapper = objectMapper;
   }
 
   @Override
-  public McpContextResult createContext(String sessionId, String protocolVersion) {
-    if (sessionId == null || sessionId.isEmpty()) {
-      return new McpContextResult.SessionIdRequired(
-          -32000, "Bad Request: MCP-Session-Id header is required");
+  public void handleCall(JsonRpcCall call, McpTransport transport) {
+    McpExchange exchange;
+    try {
+      exchange = envelopeParser.parse(call.params());
+    } catch (JsonRpcException e) {
+      log.debug("Rejecting {} call: {}", call.method(), e.getMessage());
+      transport.send(call.error(e.getCode(), e.getMessage()));
+      return;
+    } catch (UnsupportedProtocolVersionException e) {
+      log.debug("Rejecting {} call: {}", call.method(), e.getMessage());
+      transport.send(unsupportedProtocolVersionError(call, e));
+      return;
     }
 
-    var session = sessionService.find(sessionId);
-    if (session.isEmpty()) {
-      log.debug("createContext: session not found for {}", sessionId);
-      return new McpContextResult.SessionNotFound(-32001, "Session not found");
-    }
-
-    log.debug(
-        "createContext: session {} found, initialized={}", sessionId, session.get().initialized());
-
-    if (protocolVersion != null && !KNOWN_PROTOCOL_VERSIONS.contains(protocolVersion)) {
-      return new McpContextResult.ProtocolVersionMismatch(
-          -32000, "Bad Request: Unsupported protocol version: " + protocolVersion);
-    }
-
-    return new McpContextResult.ValidContext(new SessionMcpContext(session.get(), protocolVersion));
-  }
-
-  @Override
-  public void handleCall(McpContext context, JsonRpcCall call, McpTransport transport) {
-    McpSession session = context.session().orElse(null);
-
-    // Initialized enforcement intentionally omitted. HTTP/2 multiplexing allows clients
-    // to send requests before the notifications/initialized 202 response arrives, causing
-    // legitimate requests to be rejected due to read-after-write races on the session store.
-
-    JsonRpcResponse response;
-    if (session != null) {
-      response =
-          ScopedValue.where(McpSession.CURRENT, session)
-              .where(McpTransport.CURRENT, transport)
-              .call(() -> dispatcher.dispatch(call));
-    } else {
-      response =
-          ScopedValue.where(McpTransport.CURRENT, transport).call(() -> dispatcher.dispatch(call));
-    }
+    JsonRpcResponse response =
+        ScopedValue.where(McpExchange.CURRENT, exchange)
+            .where(McpTransport.CURRENT, transport)
+            .call(() -> dispatcher.dispatch(call));
     if (response != null) {
       transport.send(response);
     }
   }
 
   @Override
-  public void handleNotification(McpContext context, JsonRpcNotification notification) {
-    McpSession session =
-        context
-            .session()
-            .orElseThrow(() -> new IllegalStateException("Session not found in context"));
-
-    ScopedValue.where(McpSession.CURRENT, session).run(() -> dispatcher.dispatch(notification));
+  public void handleNotification(JsonRpcNotification notification) {
+    dispatcher.dispatch(notification);
   }
 
-  @Override
-  public void handleResponse(McpContext context, JsonRpcResponse response) {
-    correlationService.deliver(response);
-  }
-
-  @Override
-  public void terminate(McpContext context) {
-    context.session().ifPresent(session -> sessionService.delete(session.sessionId()));
+  private JsonRpcError unsupportedProtocolVersionError(
+      JsonRpcCall call, UnsupportedProtocolVersionException e) {
+    return new JsonRpcError(
+        new JsonRpcErrorDetail(
+            UnsupportedProtocolVersionErrorData.CODE,
+            e.getMessage(),
+            objectMapper.valueToTree(e.data())),
+        call.id());
   }
 }

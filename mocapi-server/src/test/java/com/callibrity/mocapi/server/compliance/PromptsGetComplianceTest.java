@@ -23,9 +23,8 @@ import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptArgument;
 import com.callibrity.mocapi.model.PromptMessage;
-import com.callibrity.mocapi.model.PromptsCapability;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Role;
-import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
@@ -69,26 +68,21 @@ class PromptsGetComplianceTest {
               String name = typed.getOrDefault("name", "World");
               return new GetPromptResult(
                   "Greeting",
-                  List.of(new PromptMessage(Role.USER, new TextContent("Hello " + name, null))));
+                  List.of(new PromptMessage(Role.USER, new TextContent("Hello " + name, null))),
+                  ResultTypes.COMPLETE);
             },
             List.of(),
             List.of());
 
     var service = new McpPromptsService(List.of(greetHandler));
-    server =
-        buildServer(
-            inMemorySessionStore(),
-            new ServerCapabilities(null, null, null, null, new PromptsCapability(null)),
-            service);
+    server = buildServer(service);
   }
 
   @Test
   void get_with_valid_name_returns_messages() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
         call("prompts/get", Map.of("name", "greet", "arguments", Map.of("name", "Alice"))),
         transport);
 
@@ -100,11 +94,9 @@ class PromptsGetComplianceTest {
 
   @Test
   void arguments_substituted_into_messages() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
         call("prompts/get", Map.of("name", "greet", "arguments", Map.of("name", "Bob"))),
         transport);
 
@@ -115,13 +107,9 @@ class PromptsGetComplianceTest {
 
   @Test
   void unknown_prompt_name_returns_error() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(
-        withSession(sessionId, server),
-        call("prompts/get", Map.of("name", "nonexistent")),
-        transport);
+    server.handleCall(call("prompts/get", Map.of("name", "nonexistent")), transport);
 
     var error = captureError(transport);
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);

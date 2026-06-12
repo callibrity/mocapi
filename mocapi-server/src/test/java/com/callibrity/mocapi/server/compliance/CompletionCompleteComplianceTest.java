@@ -18,16 +18,9 @@ package com.callibrity.mocapi.server.compliance;
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.buildServer;
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.call;
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.captureResult;
-import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.inMemorySessionStore;
-import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.initializeAndGetSessionId;
-import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.initializeCall;
-import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.noSession;
-import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.withSession;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.callibrity.mocapi.model.CompletionsCapability;
-import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
@@ -58,20 +51,14 @@ class CompletionCompleteComplianceTest {
     completions.registerResourceTemplateVariable(
         "env://{stage}/config", "stage", List.of("DEV", "STAGE", "PROD"));
 
-    server =
-        buildServer(
-            inMemorySessionStore(),
-            new ServerCapabilities(null, null, new CompletionsCapability(), null, null),
-            completions);
+    server = buildServer(completions);
   }
 
   @Test
   void complete_for_prompt_argument_returns_filtered_values() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
         call(
             "completion/complete",
             Map.of(
@@ -88,11 +75,9 @@ class CompletionCompleteComplianceTest {
 
   @Test
   void complete_for_resource_template_variable_returns_registered_values() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
         call(
             "completion/complete",
             Map.of(
@@ -107,11 +92,9 @@ class CompletionCompleteComplianceTest {
 
   @Test
   void unknown_reference_returns_empty_values() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
         call(
             "completion/complete",
             Map.of(
@@ -130,11 +113,9 @@ class CompletionCompleteComplianceTest {
     // Mirrors the three assertions the @modelcontextprotocol/conformance npx tool makes on
     // completion-complete: completion field present, values field present, values is an array.
     // We hit this with an unregistered ref to prove shape compliance even on the cold path.
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
         call(
             "completion/complete",
             Map.of(
@@ -147,21 +128,5 @@ class CompletionCompleteComplianceTest {
     var completion = payload.path("completion");
     assertThat(completion.has("values")).as("completion.values field is present").isTrue();
     assertThat(completion.path("values").isArray()).as("completion.values is an array").isTrue();
-  }
-
-  @Test
-  void initialize_advertises_completions_capability() {
-    // MCP spec: servers supporting completion/complete must advertise capabilities.completions.
-    // Anchors the end-to-end conformance story — the client picks the npx scenario list partly
-    // from the initialize response, so failing to advertise would mean completion-complete gets
-    // skipped even though the RPC works.
-    var transport = mock(McpTransport.class);
-
-    server.handleCall(noSession(), initializeCall(), transport);
-
-    var payload = captureResult(transport).result();
-    assertThat(payload.path("capabilities").has("completions"))
-        .as("capabilities.completions is advertised")
-        .isTrue();
   }
 }
