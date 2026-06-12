@@ -258,7 +258,8 @@ public final class RequestedSchemaBuilder {
 
   public RequestedSchema build() {
     List<String> required = requiredNames.isEmpty() ? null : List.copyOf(requiredNames);
-    return new RequestedSchema(new LinkedHashMap<>(properties), required);
+    // No $schema dialect override — mocapi emits the spec's default flat object schema.
+    return new RequestedSchema(new LinkedHashMap<>(properties), required, null);
   }
 
   private void addProperty(String name, PrimitiveSchemaDefinition schema, boolean required) {
