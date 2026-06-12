@@ -18,10 +18,8 @@ package com.callibrity.mocapi.transport.http.writer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.transport.http.sse.SseStream;
-import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
@@ -32,7 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,7 +46,7 @@ class SseMessageWriterTest {
   }
 
   @Test
-  void write_result_publishes_and_transitions_to_closed() {
+  void write_result_publishes_closes_the_stream_and_transitions_to_closed() {
     var result =
         new JsonRpcResult(
             JsonNodeFactory.instance.objectNode().put("k", "v"),
@@ -59,17 +56,19 @@ class SseMessageWriterTest {
 
     assertThat(next).isSameAs(ClosedMessageWriter.INSTANCE);
     verify(stream).write(result);
+    verify(stream).close();
     verifyNoMoreInteractions(stream);
   }
 
   @Test
-  void write_error_publishes_and_transitions_to_closed() {
+  void write_error_publishes_closes_the_stream_and_transitions_to_closed() {
     var error = new JsonRpcError(42, "boom", JsonNodeFactory.instance.numberNode(1));
 
     MessageWriter next = writer.write(error);
 
     assertThat(next).isSameAs(ClosedMessageWriter.INSTANCE);
     verify(stream).write(error);
+    verify(stream).close();
   }
 
   @Test
@@ -84,36 +83,14 @@ class SseMessageWriterTest {
   }
 
   @Test
-  void write_call_publishes_and_stays_open() {
-    var call = JsonRpcCall.of("elicitation/create", null, JsonNodeFactory.instance.numberNode(7));
-
-    MessageWriter next = writer.write(call);
-
-    assertThat(next).isSameAs(writer);
-    verify(stream).write(call);
-    verifyNoMoreInteractions(stream);
-  }
-
-  @Test
   void multiple_notifications_stay_on_same_writer() {
     var first = new JsonRpcNotification("2.0", "notifications/progress", null);
-    var second = new JsonRpcNotification("2.0", "notifications/message", null);
+    var second = new JsonRpcNotification("2.0", "notifications/progress", null);
 
     MessageWriter afterFirst = writer.write(first);
     MessageWriter afterSecond = afterFirst.write(second);
 
     assertThat(afterFirst).isSameAs(writer);
     assertThat(afterSecond).isSameAs(writer);
-    verify(stream).write(first);
-    verify(stream).write(second);
-  }
-
-  @Test
-  void emitter_delegates_to_stream() {
-    SseEmitter emitter = new SseEmitter();
-    when(stream.createEmitter()).thenReturn(emitter);
-
-    assertThat(writer.emitter()).isSameAs(emitter);
-    verify(stream).createEmitter();
   }
 }

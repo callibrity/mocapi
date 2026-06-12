@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.transport.http.sse.SseStream;
 import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
@@ -42,11 +41,6 @@ import tools.jackson.databind.node.JsonNodeFactory;
 class StreamableHttpTransportTest {
 
   @Mock SseStream sseStream;
-
-  @Test
-  void exposes_session_id_header_constant() {
-    assertThat(StreamableHttpTransport.SESSION_ID_HEADER).isEqualTo("MCP-Session-Id");
-  }
 
   @Test
   void response_future_is_initially_incomplete() {
@@ -73,13 +67,14 @@ class StreamableHttpTransportTest {
   }
 
   @Test
-  void send_error_completes_future_with_json_entity() {
+  void send_error_completes_future_with_status_from_the_mapping_table() {
     var transport = new StreamableHttpTransport(unusedSupplier());
-    var error = new JsonRpcError(-32000, "err", JsonNodeFactory.instance.numberNode(1));
+    var error = new JsonRpcError(-32601, "no such method", JsonNodeFactory.instance.numberNode(1));
 
     transport.send(error);
 
     var entity = transport.response().getNow(null);
+    assertThat(entity.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     assertThat(entity.getBody()).isSameAs(error);
     assertThat(entity.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
   }
@@ -112,6 +107,7 @@ class StreamableHttpTransportTest {
     transport.send(response);
 
     verify(sseStream).write(response);
+    verify(sseStream).close();
   }
 
   @Test
@@ -141,50 +137,6 @@ class StreamableHttpTransportTest {
     assertThatThrownBy(() -> transport.send(late))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("closed response");
-  }
-
-  @Test
-  void emit_session_initialized_adds_session_header_on_json_commit() {
-    var transport = new StreamableHttpTransport(unusedSupplier());
-
-    transport.emit(new McpEvent.SessionInitialized("sess-42", "2025-11-25"));
-    transport.send(
-        new JsonRpcResult(
-            JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(1)));
-
-    var entity = transport.response().getNow(null);
-    assertThat(entity.getHeaders().getFirst(StreamableHttpTransport.SESSION_ID_HEADER))
-        .isEqualTo("sess-42");
-  }
-
-  @Test
-  void emit_session_initialized_adds_session_header_on_sse_commit() {
-    when(sseStream.createEmitter()).thenReturn(new SseEmitter());
-    var transport = new StreamableHttpTransport(() -> sseStream);
-
-    transport.emit(new McpEvent.SessionInitialized("sess-99", "2025-11-25"));
-    transport.send(new JsonRpcNotification("2.0", "notifications/progress", null));
-
-    var entity = transport.response().getNow(null);
-    assertThat(entity.getHeaders().getFirst(StreamableHttpTransport.SESSION_ID_HEADER))
-        .isEqualTo("sess-99");
-  }
-
-  @Test
-  void without_emit_session_header_is_absent() {
-    var transport = new StreamableHttpTransport(unusedSupplier());
-
-    transport.send(
-        new JsonRpcResult(
-            JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(1)));
-
-    assertThat(
-            transport
-                .response()
-                .getNow(null)
-                .getHeaders()
-                .getFirst(StreamableHttpTransport.SESSION_ID_HEADER))
-        .isNull();
   }
 
   private static Supplier<SseStream> unusedSupplier() {

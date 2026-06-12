@@ -21,7 +21,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.transport.http.sse.SseStream;
-import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
@@ -76,17 +75,28 @@ class DirectMessageWriterTest {
   }
 
   @Test
-  void write_error_commits_json_and_transitions_to_closed() {
+  void write_error_maps_http_status_from_the_json_rpc_code() {
     var writer = new DirectMessageWriter(unusedStreamSupplier(), consumer);
-    var error = new JsonRpcError(42, "boom", JsonNodeFactory.instance.numberNode(1));
+    var error = new JsonRpcError(-32601, "no such method", JsonNodeFactory.instance.numberNode(1));
 
     MessageWriter next = writer.write(error);
 
     assertThat(next).isSameAs(ClosedMessageWriter.INSTANCE);
     assertThat(committed).hasSize(1);
+    assertThat(committed.get(0).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     assertThat(committed.get(0).getHeaders().getContentType())
         .isEqualTo(MediaType.APPLICATION_JSON);
     assertThat(committed.get(0).getBody()).isSameAs(error);
+  }
+
+  @Test
+  void write_application_error_commits_json_with_200() {
+    var writer = new DirectMessageWriter(unusedStreamSupplier(), consumer);
+    var error = new JsonRpcError(42, "boom", JsonNodeFactory.instance.numberNode(1));
+
+    writer.write(error);
+
+    assertThat(committed.get(0).getStatusCode()).isEqualTo(HttpStatus.OK);
   }
 
   @Test
@@ -124,17 +134,14 @@ class DirectMessageWriterTest {
   }
 
   @Test
-  void write_call_commits_sse_and_transitions_to_sse_writer() {
-    SseEmitter emitter = new SseEmitter();
-    when(sseStream.createEmitter()).thenReturn(emitter);
+  void sse_commit_disables_proxy_buffering() {
+    when(sseStream.createEmitter()).thenReturn(new SseEmitter());
     var writer = new DirectMessageWriter(() -> sseStream, consumer);
-    var call = JsonRpcCall.of("elicitation/create", null, JsonNodeFactory.instance.numberNode(7));
 
-    MessageWriter next = writer.write(call);
+    writer.write(new JsonRpcNotification("2.0", "notifications/progress", null));
 
-    assertThat(next).isInstanceOf(SseMessageWriter.class);
-    assertThat(committed.get(0).getBody()).isSameAs(emitter);
-    verify(sseStream).write(call);
+    assertThat(committed.get(0).getHeaders().getFirst(DirectMessageWriter.X_ACCEL_BUFFERING_HEADER))
+        .isEqualTo("no");
   }
 
   @Test

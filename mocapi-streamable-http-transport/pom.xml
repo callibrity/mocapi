@@ -27,7 +27,7 @@
 
     <artifactId>mocapi-streamable-http-transport</artifactId>
     <name>Mocapi - Streamable HTTP Transport</name>
-    <description>Streamable HTTP transport for MCP: controller, transports, and encrypted SSE event IDs.</description>
+    <description>Streamable HTTP transport for MCP: POST-only controller with per-request SSE response streams.</description>
 
     <dependencies>
         <dependency>
@@ -42,11 +42,6 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>context-propagation</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jwcarman.odyssey</groupId>
-            <artifactId>odyssey</artifactId>
-            <version>${odyssey.version}</version>
         </dependency>
         <dependency>
             <groupId>tools.jackson.core</groupId>

@@ -20,8 +20,12 @@ import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+/**
+ * Writer state after the response has committed as SSE: request-scoped notifications keep the
+ * stream open; the final {@link JsonRpcResponse} is written and then terminates the stream, per the
+ * 2026-07-28 transport rule that the final response SHOULD close the SSE stream.
+ */
 @RequiredArgsConstructor
 public final class SseMessageWriter implements MessageWriter {
 
@@ -32,6 +36,7 @@ public final class SseMessageWriter implements MessageWriter {
     return switch (msg) {
       case JsonRpcResponse resp -> {
         sseStream.write(resp);
+        sseStream.close();
         yield ClosedMessageWriter.INSTANCE;
       }
       case JsonRpcRequest req -> {
@@ -39,9 +44,5 @@ public final class SseMessageWriter implements MessageWriter {
         yield this;
       }
     };
-  }
-
-  public SseEmitter emitter() {
-    return sseStream.createEmitter();
   }
 }

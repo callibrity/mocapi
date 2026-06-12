@@ -15,33 +15,29 @@
  */
 package com.callibrity.mocapi.transport.http;
 
-import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.transport.http.sse.SseStream;
 import com.callibrity.mocapi.transport.http.writer.DirectMessageWriter;
 import com.callibrity.mocapi.transport.http.writer.MessageWriter;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 
 /**
- * Adapts the {@link MessageWriter} state machine to the {@link McpTransport} SPI. Holds a future
- * that resolves to the HTTP response once the first outbound message commits the response shape.
+ * Adapts the {@link MessageWriter} state machine to the {@link McpTransport} SPI for a single POST
+ * request. Holds a future that resolves to the HTTP response once the first outbound message
+ * commits the response shape (plain JSON for an immediate response, SSE when request-scoped
+ * notifications come first — ADR-0004). Strictly per-request: MCP 2026-07-28 has no sessions and no
+ * cross-request delivery channel (ADR-0020).
  */
 final class StreamableHttpTransport implements McpTransport {
-
-  public static final String SESSION_ID_HEADER = "MCP-Session-Id";
 
   private final Logger log = LoggerFactory.getLogger(StreamableHttpTransport.class);
 
   private final CompletableFuture<ResponseEntity<Object>> response = new CompletableFuture<>();
-  private final List<Consumer<ResponseEntity<Object>>> decorators = new ArrayList<>();
   private MessageWriter writer;
 
   StreamableHttpTransport(Supplier<SseStream> sseStreamProvider) {
@@ -57,16 +53,8 @@ final class StreamableHttpTransport implements McpTransport {
     writer = writer.write(message);
   }
 
-  @Override
-  public void emit(McpEvent event) {
-    if (event instanceof McpEvent.SessionInitialized si) {
-      decorators.add(entity -> entity.getHeaders().add(SESSION_ID_HEADER, si.sessionId()));
-    }
-  }
-
   private void commit(ResponseEntity<Object> entity) {
     log.debug("Committing {} response", entity.getHeaders().getContentType());
-    decorators.forEach(d -> d.accept(entity));
     response.complete(entity);
   }
 }
