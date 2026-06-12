@@ -169,15 +169,12 @@ Docs live under [`docs/`](docs/) in three trees:
 - [Customizers](docs/guides/customizers.md) -- the `*HandlerCustomizer` SPI for extending mocapi: attach interceptors, guards, and parameter resolvers per handler
 - [Custom Parameter Resolvers](docs/guides/parameter-resolvers.md) -- writing `@CurrentTenant`-style parameter resolvers via the customizer SPI
 - [Configuration Reference](docs/guides/configuration.md) -- all `mocapi.*` properties
-- [Backend Integration](docs/guides/backends.md) -- using Redis, PostgreSQL, Hazelcast, or other session stores
 - [Performance Benchmarking](docs/guides/performance/benchmarking.md) -- periodic soak-test + JFR-profiling runbook to track regressions
 
 ### Design
 
 - [Architecture Overview](docs/design/architecture-overview.md) -- module layering, request flow, ScopedValues
 - [Transports](docs/design/transports.md) -- Streamable HTTP, stdio, the `McpServer` ↔ `McpTransport` contract
-- [Session & Context](docs/design/session-and-context.md) -- `McpSession`, `McpContext`, `McpContextResult`
-- [Storage & Substrate](docs/design/storage-and-substrate.md) -- the four Substrate SPIs and how mocapi uses them
 - [Extension SPI](docs/design/extension-spi.md) -- customizer model, six interceptor strata, parameter resolvers
 - [Authorization Model](docs/design/authorization-model.md) -- how OAuth2 + Guard SPI compose
 - [Observability Stack](docs/design/observability-stack.md) -- design of the four-module observability story

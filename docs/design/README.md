@@ -9,8 +9,6 @@ is wrong — fix it.
 
 - [Architecture Overview](architecture-overview.md) — module layering, request flow, ScopedValues
 - [Transports](transports.md) — Streamable HTTP, stdio, the `McpServer` ↔ `McpTransport` contract
-- [Session & Context](session-and-context.md) — `McpSession`, `McpContext`, `McpContextResult`
-- [Storage & Substrate](storage-and-substrate.md) — the four Substrate SPIs and how mocapi uses them
 - [Extension SPI](extension-spi.md) — customizer SPI, the six interceptor strata, parameter resolver model
 - [Handlers](handlers.md) — internal handler classes and how they are built at startup
 - [Elicitation — MRTR Replay](elicitation-mrtr.md) — requestState codec, response ledger, replay engine, idempotency contract

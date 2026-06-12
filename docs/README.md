@@ -33,7 +33,6 @@ SECURITY) live at the repo root.
 1. [`design/architecture-overview.md`](design/architecture-overview.md) — module layering, request flow, ScopedValues.
 2. [`design/transports.md`](design/transports.md) — Streamable HTTP and stdio.
 3. [`design/extension-spi.md`](design/extension-spi.md) — customizers, strata, parameter resolvers.
-4. [`design/storage-and-substrate.md`](design/storage-and-substrate.md) — the four pluggable SPIs.
 5. The [ADR index](adr/README.md) — pick decisions relevant to your area.
 
 **If you are looking for a specific decision,** the [ADR index](adr/README.md)

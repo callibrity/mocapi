@@ -23,7 +23,6 @@ server, start here.
 - [OAuth2 Resource Server](authorization.md)
 
 ## Operations
-- [Backend Selection](backends.md)
 - [Observability Overview](observability.md) — Logging, OTel, Audit, Actuator
 - [Logging / MDC Correlation](logging.md)
 - [OpenTelemetry](opentelemetry.md)
