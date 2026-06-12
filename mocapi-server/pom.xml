@@ -116,17 +116,6 @@
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.jwcarman.substrate</groupId>
-            <artifactId>substrate-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jwcarman.codec</groupId>
-            <artifactId>codec-jackson</artifactId>
-            <version>${codec.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
@@ -137,7 +126,7 @@
         <plugins>
             <!--
                 Publish a test-jar so other mocapi modules (notably mocapi-autoconfigure)
-                can reuse test fixtures like SubstrateTestSupport without duplicating code.
+                can reuse test fixtures without duplicating code.
             -->
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
