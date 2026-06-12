@@ -25,10 +25,29 @@ import tools.jackson.databind.node.ValueNode;
  * models them as nullable components and enforces presence at dispatch time, where a missing field
  * maps to JSON-RPC {@code -32602}. The deprecated {@code io.modelcontextprotocol/logLevel} key is
  * deliberately not modeled (logging not implemented, ADR-0022).
+ *
+ * <p>The optional W3C trace-context keys ({@code traceparent}, {@code tracestate}, {@code baggage})
+ * are defined in spec prose ({@code basic/index#meta}, "OpenTelemetry trace context") as unprefixed
+ * siblings of the envelope keys — an explicit exception to the {@code _meta} prefix rule. They
+ * carry W3C Trace Context / Baggage header values verbatim and feed the observability modules'
+ * remote-parent joining.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record RequestMeta(
     ValueNode progressToken,
     @JsonProperty(McpMetaKeys.PROTOCOL_VERSION) String protocolVersion,
     @JsonProperty(McpMetaKeys.CLIENT_INFO) Implementation clientInfo,
-    @JsonProperty(McpMetaKeys.CLIENT_CAPABILITIES) ClientCapabilities clientCapabilities) {}
+    @JsonProperty(McpMetaKeys.CLIENT_CAPABILITIES) ClientCapabilities clientCapabilities,
+    @JsonProperty(McpMetaKeys.TRACEPARENT) String traceparent,
+    @JsonProperty(McpMetaKeys.TRACESTATE) String tracestate,
+    @JsonProperty(McpMetaKeys.BAGGAGE) String baggage) {
+
+  /** Convenience constructor for envelopes without the optional W3C trace-context keys. */
+  public RequestMeta(
+      ValueNode progressToken,
+      String protocolVersion,
+      Implementation clientInfo,
+      ClientCapabilities clientCapabilities) {
+    this(progressToken, protocolVersion, clientInfo, clientCapabilities, null, null, null);
+  }
+}

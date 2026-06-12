@@ -85,7 +85,28 @@ public class MetaEnvelopeParser {
     if (!SUPPORTED_VERSIONS.contains(protocolVersion)) {
       throw new UnsupportedProtocolVersionException(SUPPORTED_VERSIONS, protocolVersion);
     }
-    return new McpExchange(protocolVersion, clientInfo, clientCapabilities);
+    return new McpExchange(protocolVersion, clientInfo, clientCapabilities, traceContext(meta));
+  }
+
+  /**
+   * Reads the optional, unprefixed W3C trace-context keys. They are observability hints, not
+   * protocol requirements, so a non-string value is treated as absent rather than rejected — a
+   * malformed telemetry hint must never fail the request.
+   */
+  private static TraceContext traceContext(JsonNode meta) {
+    String traceparent = optionalString(meta, McpMetaKeys.TRACEPARENT);
+    if (traceparent == null) {
+      return TraceContext.NONE;
+    }
+    return new TraceContext(
+        traceparent,
+        optionalString(meta, McpMetaKeys.TRACESTATE),
+        optionalString(meta, McpMetaKeys.BAGGAGE));
+  }
+
+  private static String optionalString(JsonNode meta, String key) {
+    JsonNode node = meta.get(key);
+    return node != null && node.isString() ? node.asString() : null;
   }
 
   private String requiredString(JsonNode meta, String key) {

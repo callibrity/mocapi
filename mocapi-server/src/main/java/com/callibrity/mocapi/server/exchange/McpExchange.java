@@ -27,11 +27,27 @@ import com.callibrity.mocapi.model.Implementation;
  * @param protocolVersion the {@code io.modelcontextprotocol/protocolVersion} value
  * @param clientInfo the {@code io.modelcontextprotocol/clientInfo} value
  * @param clientCapabilities the {@code io.modelcontextprotocol/clientCapabilities} value
+ * @param traceContext the optional unprefixed W3C trace-context keys ({@code traceparent} / {@code
+ *     tracestate} / {@code baggage}); never {@code null} — {@link TraceContext#NONE} when the
+ *     request carries none
  */
 public record McpExchange(
-    String protocolVersion, Implementation clientInfo, ClientCapabilities clientCapabilities) {
+    String protocolVersion,
+    Implementation clientInfo,
+    ClientCapabilities clientCapabilities,
+    TraceContext traceContext) {
 
   public static final ScopedValue<McpExchange> CURRENT = ScopedValue.newInstance();
+
+  public McpExchange {
+    traceContext = traceContext == null ? TraceContext.NONE : traceContext;
+  }
+
+  /** Convenience constructor for exchanges without client-supplied trace context. */
+  public McpExchange(
+      String protocolVersion, Implementation clientInfo, ClientCapabilities clientCapabilities) {
+    this(protocolVersion, clientInfo, clientCapabilities, TraceContext.NONE);
+  }
 
   /**
    * Returns true if the client supports form-mode elicitation. Form support is implicit in the

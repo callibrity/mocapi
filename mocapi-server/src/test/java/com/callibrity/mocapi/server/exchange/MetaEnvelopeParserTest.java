@@ -246,4 +246,57 @@ class MetaEnvelopeParserTest {
           .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcProtocol.INVALID_PARAMS);
     }
   }
+
+  @Nested
+  class Trace_context_keys {
+
+    private static final String TRACEPARENT =
+        "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+
+    @Test
+    void absent_trace_keys_yield_the_empty_trace_context() {
+      McpExchange exchange = parser.parse(validParams());
+
+      assertThat(exchange.traceContext()).isEqualTo(TraceContext.NONE);
+      assertThat(exchange.traceContext().isPresent()).isFalse();
+    }
+
+    @Test
+    void unprefixed_traceparent_tracestate_and_baggage_are_parsed() {
+      ObjectNode params = validParams();
+      meta(params).put(McpMetaKeys.TRACEPARENT, TRACEPARENT);
+      meta(params).put(McpMetaKeys.TRACESTATE, "congo=t61rcWkgMzE");
+      meta(params).put(McpMetaKeys.BAGGAGE, "userId=alice");
+
+      TraceContext traceContext = parser.parse(params).traceContext();
+
+      assertThat(traceContext.isPresent()).isTrue();
+      assertThat(traceContext.traceparent()).isEqualTo(TRACEPARENT);
+      assertThat(traceContext.tracestate()).isEqualTo("congo=t61rcWkgMzE");
+      assertThat(traceContext.baggage()).isEqualTo("userId=alice");
+    }
+
+    @Test
+    void traceparent_alone_is_present_with_null_siblings() {
+      ObjectNode params = validParams();
+      meta(params).put(McpMetaKeys.TRACEPARENT, TRACEPARENT);
+
+      TraceContext traceContext = parser.parse(params).traceContext();
+
+      assertThat(traceContext.isPresent()).isTrue();
+      assertThat(traceContext.tracestate()).isNull();
+      assertThat(traceContext.baggage()).isNull();
+    }
+
+    @Test
+    void non_string_trace_keys_are_treated_as_absent_not_rejected() {
+      // Observability hints must never fail the request.
+      ObjectNode params = validParams();
+      meta(params).put(McpMetaKeys.TRACEPARENT, 42);
+
+      McpExchange exchange = parser.parse(params);
+
+      assertThat(exchange.traceContext()).isEqualTo(TraceContext.NONE);
+    }
+  }
 }

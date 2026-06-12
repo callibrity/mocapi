@@ -79,6 +79,41 @@ class RequestMetaAndProgressSerializationTest {
       assertThat(deserialized.clientInfo().name()).isEqualTo("ExampleClient");
       assertThat(deserialized.clientCapabilities().elicitation()).isNotNull();
     }
+
+    @Test
+    void round_trips_the_unprefixed_trace_context_keys() throws Exception {
+      var meta =
+          new RequestMeta(
+              null,
+              "2026-07-28",
+              new Implementation("ExampleClient", null, "1.0.0", null),
+              new ClientCapabilities(null, null, null, null, null),
+              "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+              "congo=t61rcWkgMzE",
+              "userId=alice");
+      String json = mapper.writeValueAsString(meta);
+      assertThat(json)
+          .contains("\"traceparent\":\"00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01\"")
+          .contains("\"tracestate\":\"congo=t61rcWkgMzE\"")
+          .contains("\"baggage\":\"userId=alice\"");
+
+      var deserialized = mapper.readValue(json, RequestMeta.class);
+      assertThat(deserialized.traceparent())
+          .isEqualTo("00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01");
+      assertThat(deserialized.tracestate()).isEqualTo("congo=t61rcWkgMzE");
+      assertThat(deserialized.baggage()).isEqualTo("userId=alice");
+    }
+
+    @Test
+    void omits_absent_trace_context_keys() throws Exception {
+      var meta = new RequestMeta(null, "2026-07-28", null, null);
+      String json = mapper.writeValueAsString(meta);
+      assertThat(json)
+          .doesNotContain("traceparent")
+          .doesNotContain("tracestate")
+          .doesNotContain("baggage");
+      assertThat(meta.traceparent()).isNull();
+    }
   }
 
   @Nested
