@@ -100,6 +100,25 @@ public UpgradeResult upgrade(String userId, McpToolContext ctx) {
 }
 ```
 
+### Elicitation from prompts and resources
+
+Elicitation is not tool-only. Prompt and resource handler methods may
+declare an `McpElicitor` parameter (ADR-0024) and call the same
+`elicit(...)` API — `McpToolContext` itself extends `McpElicitor`, so
+tool code is unchanged:
+
+```java
+@McpPrompt(name = "plan-review", description = "Reviews a plan with user-supplied context")
+public GetPromptResult planReview(McpElicitor elicitor) {
+    ElicitResult ctx = elicitor.elicit("What context should the review use?",
+        schema -> schema.string("context", "Context"));
+    // ...
+}
+```
+
+The replay model — and the idempotency contract above — applies to
+prompts and resources exactly as it does to tools.
+
 ### Don't catch what you can't handle
 
 `ctx.elicit(...)` pauses your tool by throwing an internal control-flow

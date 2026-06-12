@@ -24,6 +24,7 @@ import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.server.elicitation.McpElicitorResolver;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardEvaluationInterceptor;
 import com.callibrity.mocapi.server.handler.MutableHandlerState;
@@ -245,6 +246,7 @@ public final class CallToolHandlers {
       ObjectMapper objectMapper, List<ParameterResolver<? super JsonNode>> userResolvers) {
     List<ParameterResolver<? super JsonNode>> out = new ArrayList<>();
     out.add(new McpToolContextResolver());
+    out.add(new McpElicitorResolver());
     out.add(new McpToolParamsResolver(objectMapper));
     out.addAll(userResolvers);
     out.add(new Jackson3ParameterResolver(objectMapper));

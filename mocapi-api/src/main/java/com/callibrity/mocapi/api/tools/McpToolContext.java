@@ -15,22 +15,29 @@
  */
 package com.callibrity.mocapi.api.tools;
 
-import com.callibrity.mocapi.api.elicitation.RequestedSchemaBuilder;
-import com.callibrity.mocapi.model.ElicitRequestFormParams;
-import com.callibrity.mocapi.model.ElicitResult;
-import java.util.function.Consumer;
+import com.callibrity.mocapi.api.elicitation.McpElicitor;
 
 /**
  * Context available to tool methods that need mid-execution communication with the client. Provides
- * progress notifications and form-mode elicitation. Tools return their final result via the method
- * return value — this context is only for mid-execution communication.
+ * progress notifications and (via {@link McpElicitor}) form-mode elicitation. Tools return their
+ * final result via the method return value — this context is only for mid-execution communication.
  *
  * <p>MCP 2026-07-28 deprecates Sampling and MCP Logging (SEP-2577), so the former {@code
  * sample(...)} and {@code logger(...)} surfaces are gone. Per the spec's migration guidance:
  * integrate directly with your LLM provider's API instead of sampling, and use stderr (stdio) or
  * OpenTelemetry — which {@code mocapi-otel} covers — instead of MCP logging. See ADR-0022.
+ *
+ * <p>Example elicitation (inherited from {@link McpElicitor}; see ADR-0024):
+ *
+ * <pre>{@code
+ * ElicitResult result = ctx.elicit("Please enter your details", schema -> schema
+ *     .string("name", "Your name")
+ *     .string("email", "Email address", s -> s.email())
+ *     .integer("age", "Your age", s -> s.optional().min(0).max(150))
+ * );
+ * }</pre>
  */
-public interface McpToolContext {
+public interface McpToolContext extends McpElicitor {
 
   ScopedValue<McpToolContext> CURRENT = ScopedValue.newInstance();
 
@@ -49,34 +56,4 @@ public interface McpToolContext {
    * @return the current handler name
    */
   String handlerName();
-
-  /**
-   * Requests form-mode input from the client and returns the client's response.
-   *
-   * @param params the elicitation request parameters
-   * @return the client's elicitation result
-   */
-  ElicitResult elicit(ElicitRequestFormParams params);
-
-  /**
-   * Requests form-mode input using a fluent schema builder. Example:
-   *
-   * <pre>{@code
-   * ElicitResult result = ctx.elicit("Please enter your details", schema -> schema
-   *     .string("name", "Your name")
-   *     .string("email", "Email address", s -> s.email())
-   *     .integer("age", "Your age", s -> s.optional().min(0).max(150))
-   * );
-   * }</pre>
-   *
-   * @param message the message to display to the user
-   * @param schemaCustomizer configures the schema via {@link RequestedSchemaBuilder}
-   * @return the client's elicitation result
-   */
-  default ElicitResult elicit(String message, Consumer<RequestedSchemaBuilder> schemaCustomizer) {
-    var builder = new RequestedSchemaBuilder();
-    schemaCustomizer.accept(builder);
-    var params = new ElicitRequestFormParams(message, builder.build());
-    return elicit(params);
-  }
 }

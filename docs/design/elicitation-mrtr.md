@@ -171,6 +171,15 @@ A retry that simply *doesn't* answer the pending question is not an
 error: the handler re-executes, reaches the same unanswered ordinal, and
 the same `InputRequiredResult` (with a re-minted token) goes back out.
 
+## The user-facing surface: `McpElicitor`
+
+`McpElicitor` (ADR-0024) owns the `elicit(...)` API. `McpToolContext`
+extends it, so tools are unchanged; prompt and resource handlers declare
+an `McpElicitor` parameter (resolved by the structural
+`McpElicitorResolver`) and get identical semantics — the services bind
+`McpElicitor.CURRENT` around handler invocation on all three MRTR seams,
+with the same capability pre-check (`DefaultMcpElicitor`).
+
 ## Capability gating
 
 Form-mode elicitation requires the client to declare the `elicitation`

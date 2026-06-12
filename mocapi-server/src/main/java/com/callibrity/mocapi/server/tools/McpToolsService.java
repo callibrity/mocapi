@@ -19,6 +19,7 @@ import static com.callibrity.mocapi.model.McpMethods.TOOLS_CALL;
 import static com.callibrity.mocapi.model.McpMethods.TOOLS_LIST;
 
 import com.callibrity.mocapi.api.elicitation.McpElicitationNotSupportedException;
+import com.callibrity.mocapi.api.elicitation.McpElicitor;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolException;
 import com.callibrity.mocapi.model.CallToolRequestParams;
@@ -161,7 +162,10 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
             transport, objectMapper, progressToken, elicitationEngine, exchange, name);
 
     try {
-      Object result = ScopedValue.where(McpToolContext.CURRENT, ctx).call(() -> handler.call(args));
+      Object result =
+          ScopedValue.where(McpToolContext.CURRENT, ctx)
+              .where(McpElicitor.CURRENT, ctx)
+              .call(() -> handler.call(args));
       return handler.resultMapper().map(result);
     } catch (ElicitationPendingSignal
         | ElicitationLedgerMismatchException

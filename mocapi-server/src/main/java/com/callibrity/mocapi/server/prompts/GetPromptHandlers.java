@@ -25,6 +25,7 @@ import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptArgument;
 import com.callibrity.mocapi.server.completions.CompletionCandidate;
 import com.callibrity.mocapi.server.completions.CompletionCandidates;
+import com.callibrity.mocapi.server.elicitation.McpElicitorResolver;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardEvaluationInterceptor;
 import com.callibrity.mocapi.server.handler.MutableHandlerState;
@@ -101,6 +102,7 @@ public final class GetPromptHandlers {
       ConversionService conversionService,
       List<ParameterResolver<? super Map<String, String>>> userResolvers) {
     List<ParameterResolver<? super Map<String, String>>> out = new ArrayList<>(userResolvers);
+    out.add(new McpElicitorResolver());
     out.add(new StringMapArgResolver(conversionService));
     return List.copyOf(out);
   }

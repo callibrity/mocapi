@@ -16,15 +16,20 @@
 package com.callibrity.mocapi.conformance;
 
 import com.callibrity.mocapi.api.elicitation.McpElicitationNotSupportedException;
+import com.callibrity.mocapi.api.elicitation.McpElicitor;
+import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.model.BooleanSchema;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.ElicitResult;
+import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PrimitiveSchemaDefinition;
+import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.RequestedSchema;
 import com.callibrity.mocapi.model.ResultTypes;
+import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.StringSchema;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.LinkedHashMap;
@@ -105,6 +110,25 @@ public class MrtrConformanceTools {
       // did not declare it gets a complete result with no input requests.
       return text("No mutually supported input-request methods; completing without input.");
     }
+  }
+
+  /** Scenario: input-required-result-non-tool-request (a PROMPT that elicits, ADR-0024). */
+  @McpPrompt(
+      name = "test_input_required_result_prompt",
+      description = "Prompt requiring elicitation input")
+  public GetPromptResult inputRequiredPrompt(McpElicitor elicitor) {
+    var properties = new LinkedHashMap<String, PrimitiveSchemaDefinition>();
+    properties.put("context", new StringSchema("Context", null, null, null, null, null));
+    ElicitResult answer =
+        elicitor.elicit(
+            new ElicitRequestFormParams(
+                "What context should the prompt use?",
+                new RequestedSchema(properties, List.of("context"), null)));
+    String context = answer.isAccepted() ? answer.getString("context") : "none";
+    return new GetPromptResult(
+        "Prompt with elicited context",
+        List.of(new PromptMessage(Role.USER, new TextContent("Use context: " + context, null))),
+        ResultTypes.COMPLETE);
   }
 
   private static ElicitRequestFormParams elicitName(String message) {

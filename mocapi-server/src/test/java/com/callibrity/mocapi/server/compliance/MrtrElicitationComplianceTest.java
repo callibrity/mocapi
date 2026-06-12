@@ -27,6 +27,7 @@ import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.mrtr
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import com.callibrity.mocapi.api.elicitation.McpElicitor;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
@@ -174,7 +175,26 @@ class MrtrElicitationComplianceTest {
                     ResultTypes.COMPLETE),
             List.of(),
             List.of());
-    var promptsService = new McpPromptsService(List.of(greet), engine);
+    GetPromptHandler askContext =
+        new GetPromptHandler(
+            new Prompt("ask-context", "AskContext", "Elicits its context", null, List.of()),
+            null,
+            null,
+            args -> {
+              ElicitResult context =
+                  McpElicitor.CURRENT
+                      .get()
+                      .elicit(
+                          new ElicitRequestFormParams("What context should the prompt use?", null));
+              String value = context.isAccepted() ? context.getString("context") : "none";
+              return new GetPromptResult(
+                  "AskContext",
+                  List.of(new PromptMessage(Role.USER, new TextContent("Context: " + value, null))),
+                  ResultTypes.COMPLETE);
+            },
+            List.of(),
+            List.of());
+    var promptsService = new McpPromptsService(List.of(greet, askContext), engine);
 
     ReadResourceHandler readme =
         new ReadResourceHandler(
@@ -188,7 +208,25 @@ class MrtrElicitationComplianceTest {
                     CacheScope.PRIVATE,
                     ResultTypes.COMPLETE),
             List.of());
-    var resourcesService = new McpResourcesService(List.of(readme), List.of(), engine);
+    ReadResourceHandler gated =
+        new ReadResourceHandler(
+            new Resource("file:///gated", "Gated", "Elicits before reading", "text/plain"),
+            null,
+            null,
+            ignored -> {
+              ElicitResult consent =
+                  McpElicitor.CURRENT
+                      .get()
+                      .elicit(new ElicitRequestFormParams("Confirm read access", null));
+              String status = consent.isAccepted() ? "granted" : "denied";
+              return new ReadResourceResult(
+                  List.of(new TextResourceContents("file:///gated", "text/plain", status)),
+                  0L,
+                  CacheScope.PRIVATE,
+                  ResultTypes.COMPLETE);
+            },
+            List.of());
+    var resourcesService = new McpResourcesService(List.of(readme, gated), List.of(), engine);
 
     return buildServer(toolsService, promptsService, resourcesService);
   }
@@ -486,6 +524,58 @@ class MrtrElicitationComplianceTest {
       assertThat(
               error.data().path("requiredCapabilities").path("elicitation").path("form").isObject())
           .isTrue();
+    }
+  }
+
+  @Nested
+  class Non_tool_elicitation {
+
+    @Test
+    void a_prompt_elicits_across_two_round_trips() {
+      var transport = mock(McpTransport.class);
+      server.handleCall(
+          callWithMeta("prompts/get", Map.of("name", "ask-context"), envelopeWithElicitation()),
+          transport);
+      JsonNode first = captureResult(transport).result();
+      assertThat(first.path("resultType").asString()).isEqualTo(ResultTypes.INPUT_REQUIRED);
+      String key = first.path("inputRequests").propertyNames().iterator().next();
+      String state = first.path("requestState").asString();
+
+      var retryTransport = mock(McpTransport.class);
+      Map<String, Object> retry = new HashMap<>();
+      retry.put("name", "ask-context");
+      retry.put("requestState", state);
+      retry.put("inputResponses", acceptAnswer(key, Map.of("context", "deployment runbook")));
+      server.handleCall(
+          callWithMeta("prompts/get", retry, envelopeWithElicitation()), retryTransport);
+
+      JsonNode done = captureResult(retryTransport).result();
+      assertThat(done.path("resultType").asString()).isEqualTo(ResultTypes.COMPLETE);
+      assertThat(done.toString()).contains("Context: deployment runbook");
+    }
+
+    @Test
+    void a_resource_elicits_across_two_round_trips() {
+      var transport = mock(McpTransport.class);
+      server.handleCall(
+          callWithMeta("resources/read", Map.of("uri", "file:///gated"), envelopeWithElicitation()),
+          transport);
+      JsonNode first = captureResult(transport).result();
+      assertThat(first.path("resultType").asString()).isEqualTo(ResultTypes.INPUT_REQUIRED);
+      String key = first.path("inputRequests").propertyNames().iterator().next();
+      String state = first.path("requestState").asString();
+
+      var retryTransport = mock(McpTransport.class);
+      Map<String, Object> retry = new HashMap<>();
+      retry.put("uri", "file:///gated");
+      retry.put("requestState", state);
+      retry.put("inputResponses", acceptAnswer(key, Map.of()));
+      server.handleCall(
+          callWithMeta("resources/read", retry, envelopeWithElicitation()), retryTransport);
+
+      JsonNode done = captureResult(retryTransport).result();
+      assertThat(done.path("resultType").asString()).isEqualTo(ResultTypes.COMPLETE);
+      assertThat(done.toString()).contains("granted");
     }
   }
 

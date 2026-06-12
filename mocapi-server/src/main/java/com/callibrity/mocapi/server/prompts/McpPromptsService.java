@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.server.prompts;
 
+import com.callibrity.mocapi.api.elicitation.McpElicitor;
 import com.callibrity.mocapi.model.GetPromptRequestParams;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.ListPromptsResult;
@@ -23,6 +24,7 @@ import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.server.cache.CacheSettings;
+import com.callibrity.mocapi.server.elicitation.DefaultMcpElicitor;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.util.PaginatedService;
@@ -39,6 +41,7 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
 
   private final Logger log = LoggerFactory.getLogger(McpPromptsService.class);
   private final MrtrElicitationEngine elicitationEngine;
+  private final DefaultMcpElicitor elicitor;
   private final CacheSettings cacheSettings;
 
   public McpPromptsService(List<GetPromptHandler> handlers, MrtrElicitationEngine engine) {
@@ -63,6 +66,7 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
         "Prompt",
         pageSize);
     this.elicitationEngine = engine;
+    this.elicitor = new DefaultMcpElicitor(engine);
     this.cacheSettings = cacheSettings;
   }
 
@@ -102,6 +106,6 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
         params,
         params.inputResponses(),
         params.requestState(),
-        () -> handler.get(arguments));
+        () -> ScopedValue.where(McpElicitor.CURRENT, elicitor).call(() -> handler.get(arguments)));
   }
 }
