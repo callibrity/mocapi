@@ -85,8 +85,10 @@ class DiscoverComplianceTest {
       server.handleCall(call(McpMethods.SERVER_DISCOVER), transport);
 
       var result = captureResult(transport).result();
-      assertThat(result.path("supportedVersions").size()).isEqualTo(1);
+      assertThat(result.path("supportedVersions").size()).isEqualTo(2);
       assertThat(result.path("supportedVersions").get(0).asString()).isEqualTo(PROTOCOL_VERSION);
+      assertThat(result.path("supportedVersions").get(1).asString())
+          .isEqualTo(McpServer.DRAFT_PROTOCOL_VERSION);
     }
 
     @Test
@@ -142,8 +144,10 @@ class DiscoverComplianceTest {
 
       var error = captureError(transport).error();
       assertThat(error.code()).isEqualTo(UnsupportedProtocolVersionErrorData.CODE);
-      assertThat(error.data().path("supported").size()).isEqualTo(1);
+      assertThat(error.data().path("supported").size()).isEqualTo(2);
       assertThat(error.data().path("supported").get(0).asString()).isEqualTo(PROTOCOL_VERSION);
+      assertThat(error.data().path("supported").get(1).asString())
+          .isEqualTo(McpServer.DRAFT_PROTOCOL_VERSION);
       assertThat(error.data().path("requested").asString()).isEqualTo("2025-11-25");
     }
   }

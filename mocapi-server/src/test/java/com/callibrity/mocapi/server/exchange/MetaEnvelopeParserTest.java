@@ -228,7 +228,8 @@ class MetaEnvelopeParserTest {
           .satisfies(
               e -> {
                 var data = ((UnsupportedProtocolVersionException) e).data();
-                assertThat(data.supported()).containsExactly(McpServer.PROTOCOL_VERSION);
+                assertThat(data.supported())
+                    .containsExactly(McpServer.PROTOCOL_VERSION, McpServer.DRAFT_PROTOCOL_VERSION);
                 assertThat(data.requested()).isEqualTo("2025-11-25");
               });
     }

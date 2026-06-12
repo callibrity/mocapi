@@ -39,8 +39,10 @@ class DiscoverHandlerTest {
   private final DiscoverHandler handler = new DiscoverHandler(serverInfo, "be nice", capabilities);
 
   @Test
-  void advertises_exactly_the_single_supported_protocol_version() {
-    assertThat(handler.discover().supportedVersions()).containsExactly(McpServer.PROTOCOL_VERSION);
+  void advertises_the_supported_protocol_versions() {
+    // The draft sentinel rides along during the RC window only (drop at Task 9.3).
+    assertThat(handler.discover().supportedVersions())
+        .containsExactly(McpServer.PROTOCOL_VERSION, McpServer.DRAFT_PROTOCOL_VERSION);
   }
 
   @Test

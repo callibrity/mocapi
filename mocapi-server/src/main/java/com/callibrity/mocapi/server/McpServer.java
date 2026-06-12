@@ -33,6 +33,16 @@ public interface McpServer {
   String PROTOCOL_VERSION = "2026-07-28";
 
   /**
+   * The pre-release sentinel the official conformance suite (and other draft-era clients) sends
+   * while 2026-07-28 is a release candidate. Accepted as an alias of {@link #PROTOCOL_VERSION}
+   * during the RC window only.
+   *
+   * <p><b>Remove at the RC→final re-verification</b> (migration plan Task 9.3) once the final spec
+   * ships and tooling switches to the dated version string.
+   */
+  String DRAFT_PROTOCOL_VERSION = "DRAFT-2026-v1";
+
+  /**
    * Handles a single JSON-RPC call: parses and validates the {@code _meta} envelope, dispatches the
    * call with the resulting exchange in scope, and sends the response (or envelope error) through
    * the transport.

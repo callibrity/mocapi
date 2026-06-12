@@ -46,7 +46,11 @@ import tools.jackson.databind.ObjectMapper;
 public class MetaEnvelopeParser {
 
   private static final String META_FIELD = "_meta";
-  private static final List<String> SUPPORTED_VERSIONS = List.of(McpServer.PROTOCOL_VERSION);
+
+  // DRAFT_PROTOCOL_VERSION is an RC-window alias only — remove at the RC→final re-verification
+  // (migration plan Task 9.3).
+  private static final List<String> SUPPORTED_VERSIONS =
+      List.of(McpServer.PROTOCOL_VERSION, McpServer.DRAFT_PROTOCOL_VERSION);
 
   private final ObjectMapper objectMapper;
 
