@@ -22,7 +22,6 @@ import static org.mockito.Mockito.mock;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.elicitation.UnimplementedElicitationDispatcher;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.StructuredResultMapper;
@@ -58,12 +57,12 @@ class ToolsListComplianceTest {
 
     var toolsService =
         new McpToolsService(
-            List.of(echoTool, greetTool), MAPPER, new UnimplementedElicitationDispatcher());
+            List.of(echoTool, greetTool), MAPPER, ComplianceTestSupport.mrtrEngine());
 
     server = buildServer(toolsService);
 
     var emptyToolsService =
-        new McpToolsService(List.of(), MAPPER, new UnimplementedElicitationDispatcher());
+        new McpToolsService(List.of(), MAPPER, ComplianceTestSupport.mrtrEngine());
     emptyServer = buildServer(emptyToolsService);
   }
 
@@ -114,8 +113,7 @@ class ToolsListComplianceTest {
     }
 
     var toolsService =
-        new McpToolsService(
-            List.copyOf(tools), MAPPER, new UnimplementedElicitationDispatcher(), 2);
+        new McpToolsService(List.copyOf(tools), MAPPER, ComplianceTestSupport.mrtrEngine(), 2);
 
     var pagedServer = buildServer(toolsService);
 

@@ -72,7 +72,7 @@ class PromptsListComplianceTest {
     GetPromptHandler greet =
         handler("greet", List.of(new PromptArgument("name", "Person's name", true)));
     GetPromptHandler simple = handler("simple", null);
-    var service = new McpPromptsService(List.of(greet, simple));
+    var service = new McpPromptsService(List.of(greet, simple), ComplianceTestSupport.mrtrEngine());
     server = buildServer(service);
   }
 
@@ -126,7 +126,8 @@ class PromptsListComplianceTest {
       prompts.add(handler("prompt-" + i, null));
     }
 
-    var service = new McpPromptsService(List.copyOf(prompts), 2);
+    var service =
+        new McpPromptsService(List.copyOf(prompts), ComplianceTestSupport.mrtrEngine(), 2);
     var pagedServer = buildServer(service);
 
     var transport1 = mock(McpTransport.class);

@@ -74,7 +74,7 @@ class PromptsGetComplianceTest {
             List.of(),
             List.of());
 
-    var service = new McpPromptsService(List.of(greetHandler));
+    var service = new McpPromptsService(List.of(greetHandler), ComplianceTestSupport.mrtrEngine());
     server = buildServer(service);
   }
 

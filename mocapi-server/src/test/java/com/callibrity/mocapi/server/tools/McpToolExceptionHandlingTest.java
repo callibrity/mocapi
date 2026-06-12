@@ -21,9 +21,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolException;
 import com.callibrity.mocapi.model.CallToolRequestParams;
+import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ContentBlock;
 import com.callibrity.mocapi.model.TextContent;
-import com.callibrity.mocapi.server.elicitation.UnimplementedElicitationDispatcher;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
+import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.util.List;
@@ -56,7 +58,11 @@ class McpToolExceptionHandlingTest {
         methods.stream()
             .map(m -> CallToolHandlers.build(bean, m, generator, mapper, List.of(), s -> s, false))
             .toList();
-    return new McpToolsService(handlers, mapper, new UnimplementedElicitationDispatcher());
+    return new McpToolsService(
+        handlers,
+        mapper,
+        new MrtrElicitationEngine(
+            RequestStateCodec.withEphemeralKey(RequestStateCodec.DEFAULT_TTL, mapper), mapper));
   }
 
   private CallToolRequestParams call(String name) {
@@ -69,7 +75,7 @@ class McpToolExceptionHandlingTest {
     @Test
     void message_only_produces_is_error_with_single_text_block_and_no_structured_content() {
       var service = serviceWith(new MessageOnlyTool());
-      var result = service.callTool(call("message-only"));
+      var result = (CallToolResult) service.callTool(call("message-only"));
       assertThat(result.isError()).isTrue();
       assertThat(result.structuredContent()).isNull();
       assertThat(result.content()).hasSize(1);
@@ -79,7 +85,7 @@ class McpToolExceptionHandlingTest {
     @Test
     void structured_content_payload_is_serialized_into_structured_content_field() {
       var service = serviceWith(new StructuredErrorTool());
-      var result = service.callTool(call("structured-error"));
+      var result = (CallToolResult) service.callTool(call("structured-error"));
       assertThat(result.isError()).isTrue();
       assertThat(result.structuredContent()).isNotNull();
       assertThat(result.structuredContent().get("code").asString()).isEqualTo("NOT_FOUND");
@@ -90,7 +96,7 @@ class McpToolExceptionHandlingTest {
     @Test
     void additional_content_blocks_are_appended_after_the_message() {
       var service = serviceWith(new AdditionalContentTool());
-      var result = service.callTool(call("additional-content"));
+      var result = (CallToolResult) service.callTool(call("additional-content"));
       assertThat(result.isError()).isTrue();
       assertThat(result.content()).hasSize(2);
       assertThat(((TextContent) result.content().get(0)).text()).isEqualTo("something went wrong");
@@ -101,7 +107,7 @@ class McpToolExceptionHandlingTest {
     @Test
     void subclass_is_caught_as_the_parent_so_authors_can_extend_freely() {
       var service = serviceWith(new SubclassedErrorTool());
-      var result = service.callTool(call("subclassed-error"));
+      var result = (CallToolResult) service.callTool(call("subclassed-error"));
       assertThat(result.isError()).isTrue();
       assertThat(result.structuredContent()).isNotNull();
       assertThat(result.structuredContent().get("code").asString()).isEqualTo("USER_NOT_FOUND");
@@ -111,7 +117,7 @@ class McpToolExceptionHandlingTest {
     @Test
     void list_payload_that_serializes_to_array_node_fails_with_illegal_state() {
       var service = serviceWith(new ListPayloadTool());
-      var result = service.callTool(call("list-payload"));
+      var result = (CallToolResult) service.callTool(call("list-payload"));
       assertThat(result.isError()).isTrue();
       assertThat(((TextContent) result.content().getFirst()).text())
           .contains("must serialize to a JSON object");
@@ -120,7 +126,7 @@ class McpToolExceptionHandlingTest {
     @Test
     void string_payload_that_serializes_to_text_node_fails_with_illegal_state() {
       var service = serviceWith(new StringPayloadTool());
-      var result = service.callTool(call("string-payload"));
+      var result = (CallToolResult) service.callTool(call("string-payload"));
       assertThat(result.isError()).isTrue();
       assertThat(((TextContent) result.content().getFirst()).text())
           .contains("must serialize to a JSON object");
@@ -129,7 +135,7 @@ class McpToolExceptionHandlingTest {
     @Test
     void numeric_payload_that_serializes_to_number_node_fails_with_illegal_state() {
       var service = serviceWith(new NumberPayloadTool());
-      var result = service.callTool(call("number-payload"));
+      var result = (CallToolResult) service.callTool(call("number-payload"));
       assertThat(result.isError()).isTrue();
       assertThat(((TextContent) result.content().getFirst()).text())
           .contains("must serialize to a JSON object");
@@ -138,7 +144,7 @@ class McpToolExceptionHandlingTest {
     @Test
     void boolean_payload_that_serializes_to_boolean_node_fails_with_illegal_state() {
       var service = serviceWith(new BooleanPayloadTool());
-      var result = service.callTool(call("boolean-payload"));
+      var result = (CallToolResult) service.callTool(call("boolean-payload"));
       assertThat(result.isError()).isTrue();
       assertThat(((TextContent) result.content().getFirst()).text())
           .contains("must serialize to a JSON object");
@@ -149,7 +155,7 @@ class McpToolExceptionHandlingTest {
       // The error must be actionable: the author needs to know which field was wrong and what it
       // serialized to. Verifies the message names both the Java class and the JSON node type.
       var service = serviceWith(new StringPayloadTool());
-      var result = service.callTool(call("string-payload"));
+      var result = (CallToolResult) service.callTool(call("string-payload"));
       String text = ((TextContent) result.content().getFirst()).text();
       // Jackson's node type for a TextNode is STRING.
       assertThat(text).contains("java.lang.String").contains("STRING");
@@ -161,7 +167,7 @@ class McpToolExceptionHandlingTest {
       // Without the fallback we'd emit a null text block, which would fail CallToolResult
       // serialization. toString() on a message-less RuntimeException yields the class name.
       var service = serviceWith(new NullMessageTool());
-      var result = service.callTool(call("null-message"));
+      var result = (CallToolResult) service.callTool(call("null-message"));
       assertThat(result.isError()).isTrue();
       assertThat(result.content()).hasSize(1);
       assertThat(((TextContent) result.content().getFirst()).text())
@@ -174,7 +180,7 @@ class McpToolExceptionHandlingTest {
       // returns null from getAdditionalContent() must not produce an NPE — the guard skips the
       // addAll and we still emit a well-formed single-block result.
       var service = serviceWith(new NullAdditionalContentTool());
-      var result = service.callTool(call("null-additional"));
+      var result = (CallToolResult) service.callTool(call("null-additional"));
       assertThat(result.isError()).isTrue();
       assertThat(result.content()).hasSize(1);
       assertThat(((TextContent) result.content().getFirst()).text()).isEqualTo("nope");
@@ -185,7 +191,7 @@ class McpToolExceptionHandlingTest {
       // Default getAdditionalContent() returns List.of() — the guard's !isEmpty() check skips
       // addAll. Verifies the default behavior matches the "null additional" shape one-for-one.
       var service = serviceWith(new MessageOnlyTool());
-      var result = service.callTool(call("message-only"));
+      var result = (CallToolResult) service.callTool(call("message-only"));
       assertThat(result.content()).hasSize(1);
     }
 
@@ -194,7 +200,7 @@ class McpToolExceptionHandlingTest {
       // Covers the path where both optional fields are populated: message block, then
       // additional blocks, then structuredContent all land on the same result.
       var service = serviceWith(new BothStructuredAndAdditionalContentTool());
-      var result = service.callTool(call("structured-plus-additional"));
+      var result = (CallToolResult) service.callTool(call("structured-plus-additional"));
       assertThat(result.isError()).isTrue();
       assertThat(result.structuredContent()).isNotNull();
       assertThat(result.structuredContent().get("code").asString()).isEqualTo("COMBINED");
@@ -210,7 +216,7 @@ class McpToolExceptionHandlingTest {
     @Test
     void failed_future_with_McpToolException_cause_surfaces_as_is_error_result() {
       var service = serviceWith(new AsyncStructuredErrorTool());
-      var result = service.callTool(call("async-error"));
+      var result = (CallToolResult) service.callTool(call("async-error"));
       assertThat(result.isError()).isTrue();
       assertThat(result.structuredContent()).isNotNull();
       assertThat(result.structuredContent().get("code").asString()).isEqualTo("TIMEOUT");
@@ -224,7 +230,7 @@ class McpToolExceptionHandlingTest {
     @Test
     void plain_RuntimeException_still_becomes_message_only_is_error_result() {
       var service = serviceWith(new PlainRuntimeErrorTool());
-      var result = service.callTool(call("plain-error"));
+      var result = (CallToolResult) service.callTool(call("plain-error"));
       assertThat(result.isError()).isTrue();
       assertThat(result.structuredContent()).isNull();
       assertThat(result.content()).hasSize(1);

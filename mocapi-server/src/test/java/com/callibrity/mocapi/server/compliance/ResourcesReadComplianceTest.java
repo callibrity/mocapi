@@ -80,7 +80,9 @@ class ResourcesReadComplianceTest {
             },
             List.of());
 
-    var service = new McpResourcesService(List.of(textResource, blobResource), List.of());
+    var service =
+        new McpResourcesService(
+            List.of(textResource, blobResource), List.of(), ComplianceTestSupport.mrtrEngine());
 
     server = buildServer(service);
   }

@@ -24,6 +24,7 @@ import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.server.guards.Guards;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
@@ -37,12 +38,14 @@ import org.slf4j.LoggerFactory;
 public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt> {
 
   private final Logger log = LoggerFactory.getLogger(McpPromptsService.class);
+  private final MrtrElicitationEngine elicitationEngine;
 
-  public McpPromptsService(List<GetPromptHandler> handlers) {
-    this(handlers, DEFAULT_PAGE_SIZE);
+  public McpPromptsService(List<GetPromptHandler> handlers, MrtrElicitationEngine engine) {
+    this(handlers, engine, DEFAULT_PAGE_SIZE);
   }
 
-  public McpPromptsService(List<GetPromptHandler> handlers, int pageSize) {
+  public McpPromptsService(
+      List<GetPromptHandler> handlers, MrtrElicitationEngine engine, int pageSize) {
     super(
         handlers,
         GetPromptHandler::name,
@@ -50,6 +53,7 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
         Comparator.comparing(Prompt::name),
         "Prompt",
         pageSize);
+    this.elicitationEngine = engine;
   }
 
   @JsonRpcMethod(McpMethods.PROMPTS_LIST)
@@ -63,12 +67,23 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
                 prompts, nextCursor, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE));
   }
 
+  /**
+   * Returns either a {@link GetPromptResult} or an {@code InputRequiredResult} — the MRTR union the
+   * spec declares for {@code prompts/get} responses — so the declared type is {@link Object};
+   * ripcurl serializes the runtime type. The {@link MrtrElicitationEngine} wraps the invocation:
+   * this method is one of the exactly three MRTR-capable RPC seams (see the engine's javadoc).
+   */
   @JsonRpcMethod(McpMethods.PROMPTS_GET)
-  public GetPromptResult getPrompt(@JsonRpcParams GetPromptRequestParams params) {
+  public Object getPrompt(@JsonRpcParams GetPromptRequestParams params) {
     String name = params.name();
     log.debug("Received request to get prompt \"{}\"", name);
     GetPromptHandler handler = lookup(name);
     Map<String, String> arguments = params.arguments() != null ? params.arguments() : Map.of();
-    return handler.get(arguments);
+    return elicitationEngine.execute(
+        McpMethods.PROMPTS_GET,
+        params,
+        params.inputResponses(),
+        params.requestState(),
+        () -> handler.get(arguments));
   }
 }

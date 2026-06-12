@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server.tools;
 import static com.callibrity.mocapi.model.McpMethods.TOOLS_CALL;
 import static com.callibrity.mocapi.model.McpMethods.TOOLS_LIST;
 
+import com.callibrity.mocapi.api.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolException;
 import com.callibrity.mocapi.model.CacheScope;
@@ -31,9 +32,11 @@ import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.elicitation.ElicitationDispatcher;
 import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.guards.Guards;
+import com.callibrity.mocapi.server.mrtr.ElicitationLedgerMismatchException;
+import com.callibrity.mocapi.server.mrtr.ElicitationPendingSignal;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
@@ -62,19 +65,19 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
 
   private final Logger log = LoggerFactory.getLogger(McpToolsService.class);
   private final ObjectMapper objectMapper;
-  private final ElicitationDispatcher elicitationDispatcher;
+  private final MrtrElicitationEngine elicitationEngine;
 
   public McpToolsService(
       List<CallToolHandler> handlers,
       ObjectMapper objectMapper,
-      ElicitationDispatcher elicitationDispatcher) {
-    this(handlers, objectMapper, elicitationDispatcher, DEFAULT_PAGE_SIZE);
+      MrtrElicitationEngine elicitationEngine) {
+    this(handlers, objectMapper, elicitationEngine, DEFAULT_PAGE_SIZE);
   }
 
   public McpToolsService(
       List<CallToolHandler> handlers,
       ObjectMapper objectMapper,
-      ElicitationDispatcher elicitationDispatcher,
+      MrtrElicitationEngine elicitationEngine,
       int pageSize) {
     super(
         handlers,
@@ -84,7 +87,7 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
         "Tool",
         pageSize);
     this.objectMapper = objectMapper;
-    this.elicitationDispatcher = elicitationDispatcher;
+    this.elicitationEngine = elicitationEngine;
   }
 
   @JsonRpcMethod(TOOLS_LIST)
@@ -107,14 +110,25 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
     return allDescriptors();
   }
 
+  /**
+   * Returns either a {@link CallToolResult} or an {@code InputRequiredResult} — the MRTR union the
+   * spec declares for {@code tools/call} responses — so the declared type is {@link Object};
+   * ripcurl serializes the runtime type. The {@link MrtrElicitationEngine} wraps the invocation:
+   * this method is one of the exactly three MRTR-capable RPC seams (see the engine's javadoc).
+   */
   @JsonRpcMethod(TOOLS_CALL)
-  public CallToolResult callTool(@JsonRpcParams CallToolRequestParams params) {
+  public Object callTool(@JsonRpcParams CallToolRequestParams params) {
     String name = params.name();
     log.debug("Received request to call tool \"{}\"", name);
     JsonNode args =
         params.arguments() != null ? params.arguments() : objectMapper.createObjectNode();
     CallToolHandler handler = lookup(name);
-    return invokeTool(name, handler, args, params);
+    return elicitationEngine.execute(
+        TOOLS_CALL,
+        params,
+        params.inputResponses(),
+        params.requestState(),
+        () -> invokeTool(name, handler, args, params));
   }
 
   private CallToolResult invokeTool(
@@ -124,11 +138,19 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
     ValueNode progressToken = params.meta() != null ? params.meta().progressToken() : null;
     DefaultMcpToolContext ctx =
         new DefaultMcpToolContext(
-            transport, objectMapper, progressToken, elicitationDispatcher, exchange, name);
+            transport, objectMapper, progressToken, elicitationEngine, exchange, name);
 
     try {
       Object result = ScopedValue.where(McpToolContext.CURRENT, ctx).call(() -> handler.call(args));
       return handler.resultMapper().map(result);
+    } catch (ElicitationPendingSignal
+        | ElicitationLedgerMismatchException
+        | McpElicitationNotSupportedException e) {
+      // MRTR control flow and capability gating must reach the engine / dispatch error handling,
+      // not be wrapped into an isError CallToolResult: the pending signal becomes the
+      // InputRequiredResult, the ledger mismatch becomes -32602, and the missing capability
+      // becomes the spec's MissingRequiredClientCapabilityError (-32003).
+      throw e;
     } catch (McpToolException e) {
       // Tool authors' preferred way to signal a tool-execution failure with structured detail.
       // Caught BEFORE the generic JsonRpcException / Exception arms so subclasses surface via

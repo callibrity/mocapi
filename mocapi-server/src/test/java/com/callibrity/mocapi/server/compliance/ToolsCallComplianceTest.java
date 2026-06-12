@@ -25,7 +25,6 @@ import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.elicitation.UnimplementedElicitationDispatcher;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.PassthroughResultMapper;
@@ -114,7 +113,7 @@ class ToolsCallComplianceTest {
                 throwingOtherTool,
                 structuredTool),
             MAPPER,
-            new UnimplementedElicitationDispatcher());
+            ComplianceTestSupport.mrtrEngine());
 
     server = buildServer(toolsService);
   }

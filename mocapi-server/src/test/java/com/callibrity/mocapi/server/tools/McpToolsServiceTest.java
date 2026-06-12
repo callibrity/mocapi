@@ -23,15 +23,16 @@ import static org.mockito.Mockito.verify;
 
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.model.CallToolRequestParams;
+import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.RequestMeta;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.elicitation.ElicitationDispatcher;
-import com.callibrity.mocapi.server.elicitation.UnimplementedElicitationDispatcher;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardDecision;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
+import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.util.HelloTool;
 import com.callibrity.mocapi.server.tools.util.InteractiveTool;
@@ -61,8 +62,10 @@ class McpToolsServiceTest {
   private final ObjectMapper mapper = new ObjectMapper();
   private final DefaultMethodSchemaGenerator generator =
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_2020_12);
-  private final ElicitationDispatcher elicitationDispatcher =
-      new UnimplementedElicitationDispatcher();
+  private final MrtrElicitationEngine elicitationEngine =
+      new MrtrElicitationEngine(
+          RequestStateCodec.withEphemeralKey(RequestStateCodec.DEFAULT_TTL, new ObjectMapper()),
+          new ObjectMapper());
 
   private McpToolsService service;
 
@@ -79,7 +82,7 @@ class McpToolsServiceTest {
     handlers.addAll(createHandlers(new InteractiveTool()));
     handlers.addAll(createHandlers(new ThrowingTool()));
     handlers.addAll(createHandlers(new VoidTool()));
-    service = new McpToolsService(List.copyOf(handlers), mapper, elicitationDispatcher);
+    service = new McpToolsService(List.copyOf(handlers), mapper, elicitationEngine);
   }
 
   @Test
@@ -116,7 +119,7 @@ class McpToolsServiceTest {
             null,
             null);
 
-    var result = service.callTool(params);
+    var result = (CallToolResult) service.callTool(params);
 
     assertThat(result.isError()).isNull();
     assertThat(result.structuredContent()).isNotNull();
@@ -129,7 +132,7 @@ class McpToolsServiceTest {
         new CallToolRequestParams(
             "fire-and-forget", mapper.createObjectNode().put("message", "hello"), null, null, null);
 
-    var result = service.callTool(params);
+    var result = (CallToolResult) service.callTool(params);
 
     assertThat(result.isError()).isNull();
     assertThat(result.structuredContent()).isNull();
@@ -146,7 +149,8 @@ class McpToolsServiceTest {
             "interactive-greet", mapper.createObjectNode().put("name", "Alice"), null, null, meta);
 
     var result =
-        ScopedValue.where(McpTransport.CURRENT, transport).call(() -> service.callTool(params));
+        (CallToolResult)
+            ScopedValue.where(McpTransport.CURRENT, transport).call(() -> service.callTool(params));
 
     assertThat(result.isError()).isNull();
     assertThat(result.structuredContent()).isNotNull();
@@ -188,7 +192,7 @@ class McpToolsServiceTest {
         new CallToolRequestParams(
             "hello-tool.say-hello", mapper.createObjectNode(), null, null, null);
 
-    var result = service.callTool(params);
+    var result = (CallToolResult) service.callTool(params);
 
     assertThat(result.isError()).isTrue();
     assertThat(result.content()).hasSize(1);
@@ -205,7 +209,7 @@ class McpToolsServiceTest {
             null,
             null);
 
-    var result = service.callTool(params);
+    var result = (CallToolResult) service.callTool(params);
 
     assertThat(result.isError()).isTrue();
     assertThat(result.content()).hasSize(1);
@@ -227,7 +231,7 @@ class McpToolsServiceTest {
 
   @Test
   void is_empty_returns_true_when_no_tools() {
-    var emptyService = new McpToolsService(List.of(), mapper, elicitationDispatcher);
+    var emptyService = new McpToolsService(List.of(), mapper, elicitationEngine);
     assertThat(emptyService.isEmpty()).isTrue();
   }
 
@@ -258,7 +262,7 @@ class McpToolsServiceTest {
     // Null arguments are replaced with an empty ObjectNode, which then fails schema validation
     // in the input-schema interceptor because the tool requires a "message" property — proving the
     // null-to-empty fallback executed.
-    var result = service.callTool(params);
+    var result = (CallToolResult) service.callTool(params);
 
     assertThat(result.isError()).isTrue();
     assertThat(((TextContent) result.content().getFirst()).text()).containsIgnoringCase("required");
@@ -304,7 +308,7 @@ class McpToolsServiceTest {
     Guard deny = () -> new GuardDecision.Deny("no-scope");
     var guardedService =
         new McpToolsService(
-            createHandlersWithGuards(new HelloTool(), deny), mapper, elicitationDispatcher);
+            createHandlersWithGuards(new HelloTool(), deny), mapper, elicitationEngine);
     var params =
         new CallToolRequestParams(
             "hello-tool.say-hello", mapper.createObjectNode().put("name", "X"), null, null, null);
@@ -323,7 +327,7 @@ class McpToolsServiceTest {
     var handlers = new ArrayList<CallToolHandler>();
     handlers.addAll(createHandlersWithGuards(new HelloTool(), allow));
     handlers.addAll(createHandlersWithGuards(new VoidTool(), deny));
-    var guardedService = new McpToolsService(handlers, mapper, elicitationDispatcher);
+    var guardedService = new McpToolsService(handlers, mapper, elicitationEngine);
 
     var names = guardedService.listTools(null).tools().stream().map(Tool::name).toList();
     assertThat(names).contains("hello-tool.say-hello").doesNotContain("fire-and-forget");
@@ -334,7 +338,7 @@ class McpToolsServiceTest {
     Guard allow = GuardDecision.Allow::new;
     Guard deny = () -> new GuardDecision.Deny("blocked");
     var handlers = createHandlersWithGuards(new HelloTool(), allow, deny);
-    var guardedService = new McpToolsService(handlers, mapper, elicitationDispatcher);
+    var guardedService = new McpToolsService(handlers, mapper, elicitationEngine);
 
     assertThat(guardedService.listTools(null).tools()).isEmpty();
 

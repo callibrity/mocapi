@@ -30,7 +30,6 @@ import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.elicitation.UnimplementedElicitationDispatcher;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.StructuredResultMapper;
@@ -93,9 +92,7 @@ class ToolsCallInteractiveComplianceTest {
 
     var toolsService =
         new McpToolsService(
-            List.of(interactiveTool, contextCheckTool),
-            MAPPER,
-            new UnimplementedElicitationDispatcher());
+            List.of(interactiveTool, contextCheckTool), MAPPER, ComplianceTestSupport.mrtrEngine());
 
     server = buildServer(toolsService);
   }

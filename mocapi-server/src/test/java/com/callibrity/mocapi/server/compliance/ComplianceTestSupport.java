@@ -23,8 +23,11 @@ import com.callibrity.mocapi.server.DefaultMcpServer;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.McpTransportResolver;
+import com.callibrity.mocapi.server.elicitation.ElicitationNotSupportedExceptionTranslator;
 import com.callibrity.mocapi.server.exchange.MetaEnvelopeParser;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
+import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
@@ -36,7 +39,13 @@ import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandler;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerCustomizer;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlers;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
+import com.callibrity.ripcurl.core.def.DefaultJsonRpcExceptionTranslator;
+import com.callibrity.ripcurl.core.def.DefaultJsonRpcExceptionTranslatorRegistry;
+import com.callibrity.ripcurl.core.def.IllegalArgumentExceptionTranslator;
+import com.callibrity.ripcurl.core.def.ParameterResolutionExceptionTranslator;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.reflect.MethodUtils;
@@ -54,6 +63,10 @@ final class ComplianceTestSupport {
 
   static final String PROTOCOL_VERSION = McpServer.PROTOCOL_VERSION;
   static final ObjectMapper MAPPER = new ObjectMapper();
+
+  /** Fixed MRTR secret so requestState tokens round-trip across separately built servers. */
+  static final String MRTR_SECRET =
+      Base64.getEncoder().encodeToString("compliance-test-secret-32-bytes!".getBytes());
 
   private static final AtomicInteger ID_COUNTER = new AtomicInteger(1);
 
@@ -74,7 +87,27 @@ final class ComplianceTestSupport {
         handlers.add(JsonRpcMethodHandlers.build(service, method, MAPPER, customizers));
       }
     }
-    return new DefaultJsonRpcDispatcher(handlers);
+    return new DefaultJsonRpcDispatcher(
+        handlers,
+        new DefaultJsonRpcExceptionTranslatorRegistry(
+            List.of(
+                new DefaultJsonRpcExceptionTranslator(),
+                new IllegalArgumentExceptionTranslator(),
+                new ParameterResolutionExceptionTranslator(),
+                new ElicitationNotSupportedExceptionTranslator(MAPPER))));
+  }
+
+  // --- MRTR ---
+
+  /** An MRTR engine with the shared test secret and the default TTL. */
+  static MrtrElicitationEngine mrtrEngine() {
+    return mrtrEngine(RequestStateCodec.DEFAULT_TTL);
+  }
+
+  /** An MRTR engine with the shared test secret and the given TTL. */
+  static MrtrElicitationEngine mrtrEngine(Duration ttl) {
+    return new MrtrElicitationEngine(
+        RequestStateCodec.withSecret(MRTR_SECRET, ttl, MAPPER), MAPPER);
   }
 
   // --- Server ---

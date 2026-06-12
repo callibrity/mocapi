@@ -26,6 +26,7 @@ import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.server.guards.Guards;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.util.Cursors;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -51,15 +52,19 @@ public class McpResourcesService {
   private final List<ReadResourceHandler> sortedResources;
   private final List<ReadResourceTemplateHandler> sortedTemplates;
   private final int pageSize;
+  private final MrtrElicitationEngine elicitationEngine;
 
   public McpResourcesService(
-      List<ReadResourceHandler> handlers, List<ReadResourceTemplateHandler> templateHandlers) {
-    this(handlers, templateHandlers, DEFAULT_PAGE_SIZE);
+      List<ReadResourceHandler> handlers,
+      List<ReadResourceTemplateHandler> templateHandlers,
+      MrtrElicitationEngine engine) {
+    this(handlers, templateHandlers, engine, DEFAULT_PAGE_SIZE);
   }
 
   public McpResourcesService(
       List<ReadResourceHandler> handlers,
       List<ReadResourceTemplateHandler> templateHandlers,
+      MrtrElicitationEngine engine,
       int pageSize) {
     this.resources =
         handlers.stream()
@@ -93,6 +98,7 @@ public class McpResourcesService {
             .sorted(Comparator.comparing(ReadResourceTemplateHandler::uriTemplate))
             .toList();
     this.pageSize = pageSize;
+    this.elicitationEngine = engine;
   }
 
   @JsonRpcMethod(McpMethods.RESOURCES_LIST)
@@ -129,11 +135,26 @@ public class McpResourcesService {
                 resourceTemplates, nextCursor, 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE));
   }
 
+  /**
+   * Returns either a {@link ReadResourceResult} or an {@code InputRequiredResult} — the MRTR union
+   * the spec declares for {@code resources/read} responses — so the declared type is {@link
+   * Object}; ripcurl serializes the runtime type. The {@link MrtrElicitationEngine} wraps the
+   * invocation: this method is one of the exactly three MRTR-capable RPC seams (see the engine's
+   * javadoc).
+   */
   @JsonRpcMethod(McpMethods.RESOURCES_READ)
-  public ReadResourceResult readResource(@JsonRpcParams ResourceRequestParams params) {
+  public Object readResource(@JsonRpcParams ResourceRequestParams params) {
     String uri = params.uri();
     log.debug("Received request to read resource \"{}\"", uri);
+    return elicitationEngine.execute(
+        McpMethods.RESOURCES_READ,
+        params,
+        params.inputResponses(),
+        params.requestState(),
+        () -> doReadResource(uri));
+  }
 
+  private ReadResourceResult doReadResource(String uri) {
     ReadResourceHandler exact = resources.get(uri);
     if (exact != null) {
       return exact.read();

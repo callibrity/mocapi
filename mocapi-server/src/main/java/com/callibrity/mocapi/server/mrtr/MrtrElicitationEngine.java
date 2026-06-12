@@ -1,0 +1,270 @@
+/*
+ * Copyright © 2025 Callibrity, Inc. (contactus@callibrity.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.callibrity.mocapi.server.mrtr;
+
+import com.callibrity.mocapi.model.ElicitRequest;
+import com.callibrity.mocapi.model.ElicitRequestFormParams;
+import com.callibrity.mocapi.model.ElicitResult;
+import com.callibrity.mocapi.model.InputRequiredResult;
+import com.callibrity.mocapi.model.InputResponse;
+import com.callibrity.mocapi.model.ResultTypes;
+import com.callibrity.mocapi.server.elicitation.ElicitationDispatcher;
+import com.callibrity.mocapi.server.util.Hashes;
+import com.callibrity.ripcurl.core.JsonRpcProtocol;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Supplier;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
+
+/**
+ * The MRTR replay engine (ADR-0021) — the production {@link ElicitationDispatcher}. Elicitation in
+ * MCP 2026-07-28 is a request/retry protocol: when a handler needs input, the server returns an
+ * {@code InputRequiredResult}; the client gathers answers and retries the original call with {@code
+ * inputResponses} plus the opaque {@code requestState}; the handler re-executes from the top with
+ * the accumulated answers available.
+ *
+ * <p><strong>The seam.</strong> {@link #execute} wraps handler invocation inside the three
+ * {@code @JsonRpcMethod} service methods for {@code tools/call}, {@code prompts/get}, and {@code
+ * resources/read} — exactly the three RPC methods whose params extend the spec's {@code
+ * InputResponseRequestParams} and whose responses admit {@code InputRequiredResult}. Hooking
+ * anywhere wider (e.g. {@code DefaultMcpServer}) would cover methods that may not return {@code
+ * input_required}; hooking anywhere narrower (per-handler interceptors) would miss the retry-path
+ * params. The service-method seam is also the last frame that can return a value to the JSON-RPC
+ * dispatcher before ripcurl's catch-all exception translation would swallow the internal {@link
+ * ElicitationPendingSignal}.
+ *
+ * <p><strong>Call ordinals.</strong> Each {@code ctx.elicit(...)} call site is identified by its
+ * call ordinal — the Nth elicit reached during execution maps to ledger position N. Answered
+ * ordinals return their {@link ElicitResult} immediately; the first unanswered ordinal raises
+ * {@link ElicitationPendingSignal}, which {@link #execute} converts into an {@code
+ * InputRequiredResult} whose {@code requestState} folds in everything answered so far. A
+ * fingerprint of each elicitation (message + schema) is stored per ledger slot; a replay that asks
+ * a different question at an answered position violates the idempotency contract and is rejected
+ * ({@link ElicitationLedgerMismatchException} → {@code -32602}).
+ *
+ * <p><strong>Decline/cancel.</strong> A {@code decline}/{@code cancel} {@link ElicitResult} is an
+ * answer like any other: it is recorded in the ledger and returned to the handler, which decides
+ * what to do ({@code ElicitResult.isAccepted()} semantics are unchanged).
+ */
+public class MrtrElicitationEngine implements ElicitationDispatcher {
+
+  private static final ScopedValue<ReplayExecution> EXECUTION = ScopedValue.newInstance();
+
+  private static final String KEY_PREFIX = "elicit-";
+
+  private final RequestStateCodec codec;
+  private final ObjectMapper objectMapper;
+
+  public MrtrElicitationEngine(RequestStateCodec codec, ObjectMapper objectMapper) {
+    this.codec = Objects.requireNonNull(codec, "codec");
+    this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
+  }
+
+  /**
+   * The {@code ctx.elicit(...)} seam: consults the current execution's response ledger by call
+   * ordinal. Answered → returns the recorded {@link ElicitResult}; unanswered → raises {@link
+   * ElicitationPendingSignal} carrying the built request.
+   *
+   * @throws IllegalStateException if called outside an MRTR-capable dispatch (only {@code
+   *     tools/call}, {@code prompts/get}, and {@code resources/read} handler executions on the
+   *     dispatch thread can elicit; detached async threads cannot)
+   */
+  @Override
+  public ElicitResult elicit(ElicitRequestFormParams params) {
+    if (!EXECUTION.isBound()) {
+      throw new IllegalStateException(
+          "ctx.elicit(...) called outside an MRTR dispatch. Elicitation is only available while "
+              + "the handler executes on the dispatch thread of tools/call, prompts/get, or "
+              + "resources/read — not from detached async threads.");
+    }
+    return EXECUTION.get().elicit(params, fingerprintOf(params));
+  }
+
+  /**
+   * Runs one MRTR round trip for the given method: builds the response ledger from the retry's
+   * {@code requestState}/{@code inputResponses} (empty on a fresh request), invokes the handler
+   * with the ledger in scope, and converts a pending elicitation into an {@code
+   * InputRequiredResult}.
+   *
+   * @param method the JSON-RPC method ({@code tools/call}, {@code prompts/get}, or {@code
+   *     resources/read})
+   * @param requestParams the request's typed params record; serialized and stripped of {@code
+   *     _meta}/{@code inputResponses}/{@code requestState} to form the {@code originalParams}
+   *     folded into the token
+   * @param inputResponses the retry's answers, keyed by the {@code inputRequests} keys the server
+   *     issued ({@code null} or empty on a fresh request)
+   * @param requestState the opaque token from the previous round trip ({@code null} on a fresh
+   *     request)
+   * @param invocation invokes the handler from the top
+   * @return the handler's result, or an {@code InputRequiredResult} if it elicited an unanswered
+   *     question
+   */
+  public Object execute(
+      String method,
+      Object requestParams,
+      Map<String, InputResponse> inputResponses,
+      String requestState,
+      Supplier<Object> invocation) {
+    ObjectNode originalParams = originalParamsOf(requestParams);
+    ReplayExecution execution =
+        new ReplayExecution(ledgerFor(method, originalParams, inputResponses, requestState));
+    try {
+      return ScopedValue.where(EXECUTION, execution).call(invocation::get);
+    } catch (ElicitationPendingSignal signal) {
+      String token = codec.encode(method, originalParams, execution.entries());
+      return new InputRequiredResult(
+          Map.of(signal.key(), new ElicitRequest(signal.params())),
+          token,
+          ResultTypes.INPUT_REQUIRED);
+    } catch (ElicitationLedgerMismatchException e) {
+      throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, e.getMessage());
+    }
+  }
+
+  private ObjectNode originalParamsOf(Object requestParams) {
+    ObjectNode node = (ObjectNode) objectMapper.valueToTree(requestParams);
+    node.remove("_meta");
+    node.remove("inputResponses");
+    node.remove("requestState");
+    return node;
+  }
+
+  private List<ResponseLedgerEntry> ledgerFor(
+      String method,
+      ObjectNode originalParams,
+      Map<String, InputResponse> inputResponses,
+      String requestState) {
+    if (requestState == null) {
+      if (inputResponses != null && !inputResponses.isEmpty()) {
+        throw invalidParams(
+            "inputResponses present without requestState; retries must echo the requestState "
+                + "from the InputRequiredResult");
+      }
+      return List.of();
+    }
+    RequestStatePayload payload = decode(requestState);
+    if (!method.equals(payload.method())) {
+      throw invalidParams(
+          String.format(
+              "requestState was issued for %s but the retry arrived on %s",
+              payload.method(), method));
+    }
+    verifySameTarget(payload.originalParams(), originalParams);
+    List<ResponseLedgerEntry> entries = new ArrayList<>(payload.inputResponses());
+    if (inputResponses != null) {
+      inputResponses.forEach((key, response) -> answer(entries, key, response));
+    }
+    return entries;
+  }
+
+  private RequestStatePayload decode(String requestState) {
+    try {
+      return codec.decode(requestState);
+    } catch (InvalidRequestStateException e) {
+      // Tampered, foreign-key, malformed, or expired state: never replay against it.
+      throw new JsonRpcException(
+          JsonRpcProtocol.INVALID_PARAMS, "Invalid requestState: " + e.getMessage(), e);
+    }
+  }
+
+  private void verifySameTarget(JsonNode stored, JsonNode incoming) {
+    if (!Objects.equals(stored.path("name"), incoming.path("name"))
+        || !Objects.equals(stored.path("uri"), incoming.path("uri"))) {
+      throw invalidParams(
+          "requestState was issued for a different target; retries must re-send the original "
+              + "request parameters");
+    }
+  }
+
+  private void answer(List<ResponseLedgerEntry> entries, String key, InputResponse response) {
+    for (int i = 0; i < entries.size(); i++) {
+      ResponseLedgerEntry entry = entries.get(i);
+      if (entry.key().equals(key)) {
+        if (entry.isAnswered()) {
+          throw invalidParams(
+              String.format(
+                  "inputResponses key \"%s\" was already answered in a previous round trip", key));
+        }
+        if (!(response instanceof ElicitResult result)) {
+          throw invalidParams(
+              String.format(
+                  "inputResponses key \"%s\" must carry an elicitation result; the server issued "
+                      + "an elicitation/create request for it",
+                  key));
+        }
+        entries.set(i, entry.answeredWith(result));
+        return;
+      }
+    }
+    throw invalidParams(
+        String.format(
+            "Unknown inputResponses key \"%s\"; the server never issued an input request with "
+                + "that key",
+            key));
+  }
+
+  private String fingerprintOf(ElicitRequestFormParams params) {
+    return Hashes.sha256Of(objectMapper.valueToTree(params).toString());
+  }
+
+  private static JsonRpcException invalidParams(String message) {
+    return new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, message);
+  }
+
+  /** Per-dispatch replay state: the response ledger plus the elicit-call cursor. */
+  private static final class ReplayExecution {
+
+    private final List<ResponseLedgerEntry> entries;
+    private int cursor;
+
+    ReplayExecution(List<ResponseLedgerEntry> entries) {
+      this.entries = new ArrayList<>(entries);
+    }
+
+    ElicitResult elicit(ElicitRequestFormParams params, String fingerprint) {
+      cursor++;
+      if (cursor <= entries.size()) {
+        ResponseLedgerEntry entry = entries.get(cursor - 1);
+        if (!entry.fingerprint().equals(fingerprint)) {
+          throw new ElicitationLedgerMismatchException(
+              String.format(
+                  "MRTR replay mismatch at elicitation #%d (key \"%s\"): the handler asked a "
+                      + "different question than the one this ledger position answers. Handlers "
+                      + "must honor the MRTR idempotency contract: code before the last elicit() "
+                      + "re-executes once per round trip, and the Nth elicit() reached during a "
+                      + "replay must issue the same message and schema as the original execution.",
+                  cursor, entry.key()));
+        }
+        if (entry.isAnswered()) {
+          return entry.response();
+        }
+        throw new ElicitationPendingSignal(entry.key(), params);
+      }
+      String key = KEY_PREFIX + cursor;
+      entries.add(new ResponseLedgerEntry(key, fingerprint, null));
+      throw new ElicitationPendingSignal(key, params);
+    }
+
+    List<ResponseLedgerEntry> entries() {
+      return List.copyOf(entries);
+    }
+  }
+}

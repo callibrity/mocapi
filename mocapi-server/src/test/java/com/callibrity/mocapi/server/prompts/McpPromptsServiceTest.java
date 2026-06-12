@@ -29,6 +29,8 @@ import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardDecision;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
+import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.Map;
@@ -37,9 +39,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class McpPromptsServiceTest {
+
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+
+  private static MrtrElicitationEngine engine() {
+    return new MrtrElicitationEngine(
+        RequestStateCodec.withEphemeralKey(RequestStateCodec.DEFAULT_TTL, MAPPER), MAPPER);
+  }
 
   private McpPromptsService service;
 
@@ -72,7 +82,8 @@ class McpPromptsServiceTest {
   void setUp() {
     service =
         new McpPromptsService(
-            List.of(handler("beta-prompt", "Beta desc"), handler("alpha-prompt", "Alpha desc")));
+            List.of(handler("beta-prompt", "Beta desc"), handler("alpha-prompt", "Alpha desc")),
+            engine());
   }
 
   @Test
@@ -90,7 +101,7 @@ class McpPromptsServiceTest {
     var params =
         new GetPromptRequestParams("alpha-prompt", Map.of("arg1", "hello"), null, null, null);
 
-    var result = service.getPrompt(params);
+    var result = (GetPromptResult) service.getPrompt(params);
 
     assertThat(result.description()).isEqualTo("Alpha desc");
     assertThat(result.messages()).hasSize(1);
@@ -102,7 +113,7 @@ class McpPromptsServiceTest {
   void get_prompt_with_null_arguments_uses_empty_map() {
     var params = new GetPromptRequestParams("alpha-prompt", null, null, null, null);
 
-    var result = service.getPrompt(params);
+    var result = (GetPromptResult) service.getPrompt(params);
 
     var content = (TextContent) result.messages().getFirst().content();
     assertThat(content.text()).isEqualTo("alpha-prompt: default");
@@ -132,7 +143,7 @@ class McpPromptsServiceTest {
 
   @Test
   void is_empty_returns_true_when_no_prompts() {
-    var emptyService = new McpPromptsService(List.of());
+    var emptyService = new McpPromptsService(List.of(), engine());
     assertThat(emptyService.isEmpty()).isTrue();
   }
 
@@ -147,7 +158,7 @@ class McpPromptsServiceTest {
         IntStream.range(0, 5)
             .mapToObj(i -> handler(String.format("prompt-%03d", i), "desc " + i))
             .toList();
-    var svc = new McpPromptsService(prompts, 2);
+    var svc = new McpPromptsService(prompts, engine(), 2);
 
     var page1 = svc.listPrompts(null);
     assertThat(page1.prompts()).hasSize(2);
@@ -190,7 +201,8 @@ class McpPromptsServiceTest {
         new McpPromptsService(
             List.of(
                 guardedHandler("visible", GuardDecision.Allow::new),
-                guardedHandler("hidden", () -> new GuardDecision.Deny("no"))));
+                guardedHandler("hidden", () -> new GuardDecision.Deny("no"))),
+            engine());
     var names = guarded.listPrompts(null).prompts().stream().map(Prompt::name).toList();
     assertThat(names).contains("visible").doesNotContain("hidden");
   }
@@ -208,7 +220,7 @@ class McpPromptsServiceTest {
             args -> new GetPromptResult("mixed", List.of(), ResultTypes.COMPLETE),
             List.of(),
             List.of(GuardDecision.Allow::new, () -> new GuardDecision.Deny("blocked")));
-    var guarded = new McpPromptsService(List.of(handler));
+    var guarded = new McpPromptsService(List.of(handler), engine());
 
     assertThat(guarded.listPrompts(null).prompts()).isEmpty();
   }

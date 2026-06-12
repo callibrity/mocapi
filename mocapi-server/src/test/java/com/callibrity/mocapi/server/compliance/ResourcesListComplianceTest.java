@@ -97,7 +97,10 @@ class ResourcesListComplianceTest {
             List.of());
 
     var resourcesService =
-        new McpResourcesService(List.of(fileResource, configResource), List.of(userTemplate));
+        new McpResourcesService(
+            List.of(fileResource, configResource),
+            List.of(userTemplate),
+            ComplianceTestSupport.mrtrEngine());
 
     server = buildServer(resourcesService);
   }
@@ -134,7 +137,9 @@ class ResourcesListComplianceTest {
     ReadResourceHandler r2 = simpleResource("file:///b.txt", "b", "B");
     ReadResourceHandler r3 = simpleResource("file:///c.txt", "c", "C");
 
-    var pagedService = new McpResourcesService(List.of(r1, r2, r3), List.of(), 2);
+    var pagedService =
+        new McpResourcesService(
+            List.of(r1, r2, r3), List.of(), ComplianceTestSupport.mrtrEngine(), 2);
     var pagedServer = buildServer(pagedService);
 
     var transport1 = mock(McpTransport.class);
