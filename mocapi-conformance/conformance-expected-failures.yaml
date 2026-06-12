@@ -1,0 +1,23 @@
+# Expected-failure baseline for the official MCP conformance suite (2026-07-28 draft track),
+# run as:
+#   npx @modelcontextprotocol/conformance@0.2.0-alpha.2 server \
+#     --url http://localhost:8081/mcp --suite draft \
+#     --expected-failures mocapi-conformance/conformance-expected-failures.yaml
+#
+# Every entry maps to a declared omission (ADR-0022) or a filed follow-up — see README.md.
+server:
+  # Permanent (ADR-0022): mocapi emits no sampling/roots input requests — both features are
+  # deprecated by SEP-2577 and deliberately not implemented.
+  - input-required-result-basic-sampling
+  - input-required-result-basic-list-roots
+  - input-required-result-multiple-input-requests # requires sampling + roots requests in one result
+  - input-required-result-capability-check # asserts sampling-only inputRequests for a sampling-only client
+
+  # Temporary: prompt-side elicitation has engine support (prompts/get MRTR seam) but no
+  # user-facing API yet — needs a new SPI + ADR. Follow-up tracked in the migration plan.
+  - input-required-result-non-tool-request
+
+  # Suite over-constraint (filed as feedback): the scenario requires the literal inputRequests
+  # key "user_name", but per the spec the keys are server-assigned; mocapi assigns
+  # "elicit-<ordinal>". The same tool passes input-required-result-result-type.
+  - input-required-result-basic-elicitation
