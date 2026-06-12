@@ -155,6 +155,29 @@ The `extensions` capability map is advertised empty. No extensions are
 implemented (see the Tasks and MCP Apps entries above for the two
 official ones explicitly declined).
 
+### 2026-07-28 authorization review (record of verification)
+
+**Spec references:** SEP-2468 (RFC 9207 `iss` validation), SEP-837
+(`application_type` at DCR), SEP-2352 (issuer-bound credentials),
+SEP-2207 (refresh tokens), SEP-2350 (scope accumulation), SEP-2351
+(`.well-known` suffix), and the RFC 7591 DCR deprecation in favor of
+Client ID Metadata Documents.
+
+Reviewed 2026-06-12 against the draft authorization spec. All seven
+changes are client- or authorization-server-side; none impose new
+resource-server MUSTs. Mocapi's resource-server obligations remain met
+without code changes: bearer validation with mandatory audience
+enforcement (`MocapiOAuth2Compliance`,
+`AudienceCheckingOpaqueTokenIntrospector`) in both JWT and opaque-token
+modes; RFC 9728 Protected Resource Metadata at
+`/.well-known/oauth-protected-resource` with the standard field set
+(shape unchanged in the draft); 401 on missing/invalid tokens; no
+`offline_access` in `scopes_supported`.
+
+**Deferred SHOULD-level enhancements** (no protocol impact): the
+`scope` parameter on 401 `WWW-Authenticate` challenges, and 403
+`insufficient_scope` challenges for step-up authorization flows.
+
 ## Consequences
 
 **What this buys us.** A single, citable list of declared-not-supported
