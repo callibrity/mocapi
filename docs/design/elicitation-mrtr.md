@@ -212,6 +212,17 @@ machinery.
   answers small, but handlers with many round trips pay linearly.
 - **Pre-elicitation work is re-paid every round trip.** Handlers doing
   expensive work before an `elicit()` should cache by their own means.
+- **Concurrent retries of the same token are safe but independent.** The
+  engine is stateless and the ledger is immutable inside the token, so two
+  simultaneous retries carrying the same `requestState` each replay
+  correctly and return independent results. The client owns serializing
+  round trips if it wants exactly-once handler completion.
+- **Broad `catch (Exception)` blocks inside a handler are a hazard.** The
+  pending signal unwinds the handler's stack as a `RuntimeException`; a
+  handler that catches and swallows it converts a pending elicitation into
+  whatever the catch block returns, silently ending the round trip. Catch
+  specific exception types around `elicit()` calls, or rethrow anything
+  you did not expect (see the interactive-tools guide).
 
 ## The elicitation schema is constrained
 

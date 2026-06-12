@@ -100,6 +100,33 @@ public UpgradeResult upgrade(String userId, McpToolContext ctx) {
 }
 ```
 
+### Don't catch what you can't handle
+
+`ctx.elicit(...)` pauses your tool by throwing an internal control-flow
+exception that mocapi catches at the dispatch layer. A broad
+`catch (Exception e)` wrapped around an `elicit()` call will intercept it,
+and whatever your catch block returns silently replaces the elicitation
+round trip — the client never sees the question.
+
+```java
+// WRONG — swallows the elicitation control signal along with real errors
+try {
+    ElicitResult r = ctx.elicit("Confirm?", s -> s.bool("ok", "OK?"));
+} catch (Exception e) {
+    return Result.error("something went wrong");
+}
+
+// RIGHT — catch only what you can actually handle
+try {
+    riskyPreparation();
+} catch (PreparationException e) {
+    return Result.error("preparation failed: " + e.getMessage());
+}
+ElicitResult r = ctx.elicit("Confirm?", s -> s.bool("ok", "OK?"));
+```
+
+If you must wrap broadly, rethrow `RuntimeException`s you did not create.
+
 This worked example completes in three round trips: the first returns the
 plan question, the second returns the confirmation question, the third
 charges the card and returns the result. The charge happens exactly once
