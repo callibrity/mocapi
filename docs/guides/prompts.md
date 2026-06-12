@@ -146,7 +146,8 @@ public final class CurrentTenantResolver implements ParameterResolver<Map<String
 
     @Override
     public Object resolve(ParameterInfo info, Map<String, String> args) {
-        return McpSession.CURRENT.get().attribute("tenant");
+        var jwt = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        return jwt.getToken().getClaimAsString("tenant");
     }
 }
 ```

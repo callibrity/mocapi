@@ -231,7 +231,8 @@ public final class CurrentTenantResolver implements ParameterResolver<JsonNode> 
 
     @Override
     public Object resolve(ParameterInfo info, JsonNode arguments) {
-        return McpSession.CURRENT.get().attribute("tenant");
+        var jwt = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        return jwt.getToken().getClaimAsString("tenant");
     }
 }
 ```
