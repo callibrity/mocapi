@@ -18,7 +18,7 @@ package com.callibrity.mocapi.server.mrtr;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 
 /**
- * Internal control-flow signal raised by {@code ctx.elicit(...)} when the elicitation at the
+ * Internal control-flow exception thrown by {@code ctx.elicit(...)} when the elicitation at the
  * current call ordinal has no answer in the response ledger (ADR-0021). {@link
  * MrtrElicitationEngine#execute} catches it and converts it into the {@code InputRequiredResult}
  * round-trip response; it is never user-visible and never crosses the dispatch boundary. Stack
@@ -27,17 +27,19 @@ import com.callibrity.mocapi.model.ElicitRequestFormParams;
  * <p>Code that wraps handler exceptions generically (e.g. tool-error mapping) must rethrow this
  * type so the engine can see it.
  */
-public final class ElicitationPendingSignal extends RuntimeException {
+public final class InputRequiredException extends RuntimeException {
 
-  /** Not serializable; the signal never outlives the dispatch stack it unwinds. */
+  /** Not serializable; the exception never outlives the dispatch stack it unwinds. */
   private final transient String key;
 
-  /** Not serializable; the signal never outlives the dispatch stack it unwinds. */
+  /** Not serializable; the exception never outlives the dispatch stack it unwinds. */
   private final transient ElicitRequestFormParams params;
 
-  ElicitationPendingSignal(String key, ElicitRequestFormParams params) {
+  InputRequiredException(String key, ElicitRequestFormParams params) {
     super(
-        "Elicitation \"" + key + "\" awaits a client response (internal MRTR control signal)",
+        "Elicitation \""
+            + key
+            + "\" awaits a client response (internal MRTR control-flow exception)",
         null,
         false,
         false);

@@ -36,7 +36,7 @@ import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.mrtr.ElicitationLedgerMismatchException;
-import com.callibrity.mocapi.server.mrtr.ElicitationPendingSignal;
+import com.callibrity.mocapi.server.mrtr.InputRequiredException;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -167,7 +167,7 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
               .where(McpElicitor.CURRENT, ctx)
               .call(() -> handler.call(args));
       return handler.resultMapper().map(result);
-    } catch (ElicitationPendingSignal
+    } catch (InputRequiredException
         | ElicitationLedgerMismatchException
         | McpElicitationNotSupportedException e) {
       // MRTR control flow and capability gating must reach the engine / dispatch error handling,

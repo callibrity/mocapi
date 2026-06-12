@@ -49,12 +49,12 @@ import tools.jackson.databind.node.ObjectNode;
  * input_required}; hooking anywhere narrower (per-handler interceptors) would miss the retry-path
  * params. The service-method seam is also the last frame that can return a value to the JSON-RPC
  * dispatcher before ripcurl's catch-all exception translation would swallow the internal {@link
- * ElicitationPendingSignal}.
+ * InputRequiredException}.
  *
  * <p><strong>Call ordinals.</strong> Each {@code ctx.elicit(...)} call site is identified by its
  * call ordinal — the Nth elicit reached during execution maps to ledger position N. Answered
  * ordinals return their {@link ElicitResult} immediately; the first unanswered ordinal raises
- * {@link ElicitationPendingSignal}, which {@link #execute} converts into an {@code
+ * {@link InputRequiredException}, which {@link #execute} converts into an {@code
  * InputRequiredResult} whose {@code requestState} folds in everything answered so far. A
  * fingerprint of each elicitation (message + schema) is stored per ledger slot; a replay that asks
  * a different question at an answered position violates the idempotency contract and is rejected
@@ -81,7 +81,7 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
   /**
    * The {@code ctx.elicit(...)} seam: consults the current execution's response ledger by call
    * ordinal. Answered → returns the recorded {@link ElicitResult}; unanswered → raises {@link
-   * ElicitationPendingSignal} carrying the built request.
+   * InputRequiredException} carrying the built request.
    *
    * @throws IllegalStateException if called outside an MRTR-capable dispatch (only {@code
    *     tools/call}, {@code prompts/get}, and {@code resources/read} handler executions on the
@@ -128,7 +128,7 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
         new ReplayExecution(ledgerFor(method, originalParams, inputResponses, requestState));
     try {
       return ScopedValue.where(EXECUTION, execution).call(invocation::get);
-    } catch (ElicitationPendingSignal signal) {
+    } catch (InputRequiredException signal) {
       String token = codec.encode(method, originalParams, execution.entries());
       return new InputRequiredResult(
           Map.of(signal.key(), new ElicitRequest(signal.params())),
@@ -256,11 +256,11 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
         if (entry.isAnswered()) {
           return entry.response();
         }
-        throw new ElicitationPendingSignal(entry.key(), params);
+        throw new InputRequiredException(entry.key(), params);
       }
       String key = KEY_PREFIX + cursor;
       entries.add(new ResponseLedgerEntry(key, fingerprint, null));
-      throw new ElicitationPendingSignal(key, params);
+      throw new InputRequiredException(key, params);
     }
 
     List<ResponseLedgerEntry> entries() {

@@ -22,8 +22,8 @@ package com.callibrity.mocapi.server.mrtr;
  * -32602} (Invalid params) — replaying against the wrong answers would feed a handler data it never
  * asked for.
  *
- * <p>Like {@link ElicitationPendingSignal}, generic handler-exception wrapping must rethrow this
- * type so the engine can see it.
+ * <p>Like {@link InputRequiredException}, generic handler-exception wrapping must rethrow this type
+ * so the engine can see it.
  */
 public final class ElicitationLedgerMismatchException extends RuntimeException {
 

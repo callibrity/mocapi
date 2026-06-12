@@ -276,7 +276,7 @@ class MrtrElicitationComplianceTest {
       // the question and no InputRequiredResult is produced.
       assertThat(result.path("resultType").asString()).isEqualTo(ResultTypes.COMPLETE);
       assertThat(result.has("inputRequests")).isFalse();
-      assertThat(result.toString()).contains("swallowed:ElicitationPendingSignal");
+      assertThat(result.toString()).contains("swallowed:InputRequiredException");
     }
   }
 

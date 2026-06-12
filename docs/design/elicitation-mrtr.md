@@ -108,13 +108,14 @@ A `decline` or `cancel` `ElicitResult` is an answer like any other: it is
 recorded in the ledger and returned to the handler, which decides what to
 do (`ElicitResult.isAccepted()` semantics are unchanged).
 
-### 3. `ElicitationPendingSignal` — internal unwinding
+### 3. `InputRequiredException` — internal unwinding
 
 When `ctx.elicit(...)` reaches an unanswered ordinal, it cannot "block
 until the client replies" — there is no reply channel. Instead it throws
-`ElicitationPendingSignal`, an internal `RuntimeException` (stack-trace
-suppressed; it is control flow, not an error) carrying the issued key and
-the built `ElicitRequestFormParams`. The signal unwinds the handler stack
+`InputRequiredException`, an internal `RuntimeException` (stack-trace
+suppressed; it is control flow, not an error — and it is named for the
+`InputRequiredResult` it becomes) carrying the issued key and
+the built `ElicitRequestFormParams`. The exception unwinds the handler stack
 to the MRTR engine, which converts it into the `InputRequiredResult`.
 It is never user-visible and never crosses the dispatch boundary; the
 tool-error wrapping in `McpToolsService` explicitly rethrows it (along
@@ -135,7 +136,7 @@ execute(method, params, inputResponses, requestState, invocation)
   ├── ledger ← decode + validate requestState, merge inputResponses
   ├── run invocation with the ledger bound (ScopedValue)
   │     └── ctx.elicit(...) consults the ledger by ordinal
-  ├── ElicitationPendingSignal → InputRequiredResult + fresh requestState
+  ├── InputRequiredException → InputRequiredResult + fresh requestState
   └── otherwise → the handler's own result
 ```
 
