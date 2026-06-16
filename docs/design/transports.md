@@ -103,6 +103,19 @@ server MUST NOT send more messages for that request). The in-flight
 handler is not interrupted — its late output is simply dropped
 ([ADR-0022](../adr/0022-2026-07-28-features-not-implemented.md)).
 
+The stream is closed on every terminating path, never leaked: a
+serialization failure for one message is logged and dropped without
+tearing down the stream; writing the terminal response always closes it,
+even if that write throws; and a handler exception thrown *after* the SSE
+response has committed is caught by the controller and routed to
+`StreamableHttpTransport.abort(...)`, which closes the committed stream
+(before commit, `abort` fails the response future for a plain JSON
+error). As a final backstop against a handler that hangs without ever
+sending its terminal response, the emitter carries a configurable async
+timeout (`mocapi.stream-timeout`, default 5 minutes) — there is no
+resumability to recover, so an unbounded stream would otherwise hold the
+connection forever.
+
 Notifications POSTed by the client are dispatched and acknowledged with
 `202 Accepted` and no body. A POSTed JSON-RPC *response* is rejected
 with `-32600`: 2026-07-28 has no server-initiated requests, so clients

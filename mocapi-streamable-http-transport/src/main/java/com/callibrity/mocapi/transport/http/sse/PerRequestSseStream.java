@@ -33,8 +33,10 @@ import tools.jackson.databind.ObjectMapper;
  * messages for the request, and the in-flight handler is not interrupted, so its late messages are
  * simply dropped without exception spam.
  *
- * <p>No emitter timeout is configured ({@code 0L}): the stream's lifetime is the in-flight call,
- * and the final response closes it.
+ * <p>The stream's lifetime is the in-flight call, and the final response closes it. A configurable
+ * timeout (default 5 minutes, {@code mocapi.stream-timeout}) is a backstop: if a handler hangs
+ * without ever sending the final response, the timeout completes the stream rather than leaking the
+ * connection forever (there is no resumability to recover, ADR-0020).
  */
 public final class PerRequestSseStream implements SseStream {
 
@@ -44,8 +46,14 @@ public final class PerRequestSseStream implements SseStream {
   private final SseEmitter emitter;
   private final AtomicBoolean closed = new AtomicBoolean();
 
-  public PerRequestSseStream(ObjectMapper objectMapper) {
-    this(objectMapper, new SseEmitter(0L));
+  /**
+   * @param objectMapper serializer for SSE event payloads
+   * @param timeoutMillis the async timeout backstop for the stream; a stuck handler holding the
+   *     connection is bounded by this rather than hanging forever (there is no resumability to
+   *     recover, ADR-0020). {@code 0} disables the timeout.
+   */
+  public PerRequestSseStream(ObjectMapper objectMapper, long timeoutMillis) {
+    this(objectMapper, new SseEmitter(timeoutMillis));
   }
 
   PerRequestSseStream(ObjectMapper objectMapper, SseEmitter emitter) {
@@ -67,10 +75,18 @@ public final class PerRequestSseStream implements SseStream {
       log.debug("Response stream closed (client disconnect = cancellation); dropping message");
       return;
     }
+    String payload;
     try {
-      emitter.send(
-          SseEmitter.event()
-              .data(objectMapper.writeValueAsString(msg), MediaType.APPLICATION_JSON));
+      payload = objectMapper.writeValueAsString(msg);
+    } catch (RuntimeException e) {
+      // A message we cannot serialize is a programming error, not a disconnect. Drop it without
+      // propagating (which would leak the committed stream) and without marking the stream closed,
+      // so the terminal close() can still complete the emitter.
+      log.warn("Dropping un-serializable SSE message: {}", e.toString());
+      return;
+    }
+    try {
+      emitter.send(SseEmitter.event().data(payload, MediaType.APPLICATION_JSON));
     } catch (IOException | IllegalStateException e) {
       closed.set(true);
       log.debug(

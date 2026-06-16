@@ -17,6 +17,9 @@ package com.callibrity.mocapi.transport.http.sse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.io.IOException;
@@ -82,6 +85,21 @@ class PerRequestSseStreamTest {
       assertThatCode(() -> stream.write(okResult())).doesNotThrowAnyException();
       assertThat(emitter.sentData).isEmpty();
     }
+
+    @Test
+    void serialization_failure_is_swallowed_and_does_not_terminate_the_stream() {
+      ObjectMapper failing = mock(ObjectMapper.class);
+      when(failing.writeValueAsString(any())).thenThrow(new RuntimeException("boom"));
+      var failingStream = new PerRequestSseStream(failing, emitter);
+
+      // A message that cannot be serialized is a bug, not a disconnect: it must not propagate
+      // out of write() (which would leak the committed stream), and it must not mark the stream
+      // closed, so the terminal close() can still complete the emitter.
+      assertThatCode(() -> failingStream.write(okResult())).doesNotThrowAnyException();
+
+      failingStream.close();
+      assertThat(emitter.completed).isTrue();
+    }
   }
 
   @Nested
@@ -106,6 +124,15 @@ class PerRequestSseStreamTest {
   @Test
   void create_emitter_returns_the_per_request_emitter() {
     assertThat(stream.createEmitter()).isSameAs(emitter);
+  }
+
+  @Test
+  void configures_the_emitter_with_the_given_timeout_as_a_backstop() {
+    // A stuck handler (no exception, just hung) would otherwise hold the connection forever, since
+    // there is no resumability and no other bound. The emitter timeout is the backstop.
+    var timed = new PerRequestSseStream(objectMapper, 120_000L);
+
+    assertThat(timed.createEmitter().getTimeout()).isEqualTo(120_000L);
   }
 
   /** Captures sends without needing the Spring MVC async machinery. */

@@ -35,8 +35,13 @@ public final class SseMessageWriter implements MessageWriter {
   public MessageWriter write(JsonRpcMessage msg) {
     return switch (msg) {
       case JsonRpcResponse resp -> {
-        sseStream.write(resp);
-        sseStream.close();
+        // The terminal response always closes the stream — even if writing it fails — so a
+        // committed emitter is never left open.
+        try {
+          sseStream.write(resp);
+        } finally {
+          sseStream.close();
+        }
         yield ClosedMessageWriter.INSTANCE;
       }
       case JsonRpcRequest req -> {

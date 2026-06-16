@@ -16,6 +16,9 @@
 package com.callibrity.mocapi.transport.http.writer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -68,6 +71,20 @@ class SseMessageWriterTest {
 
     assertThat(next).isSameAs(ClosedMessageWriter.INSTANCE);
     verify(stream).write(error);
+    verify(stream).close();
+  }
+
+  @Test
+  void closes_the_stream_even_if_writing_the_terminal_response_throws() {
+    var result =
+        new JsonRpcResult(
+            JsonNodeFactory.instance.objectNode().put("k", "v"),
+            JsonNodeFactory.instance.numberNode(1));
+    doThrow(new RuntimeException("write boom")).when(stream).write(any());
+
+    // The terminal response MUST always close the stream; a failure writing it must not leak the
+    // committed emitter.
+    assertThatThrownBy(() -> writer.write(result)).isInstanceOf(RuntimeException.class);
     verify(stream).close();
   }
 

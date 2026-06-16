@@ -173,7 +173,7 @@ class ContextPropagationTest {
 
   private StreamableHttpController newController(ContextSnapshotFactory factory) {
     return new StreamableHttpController(
-        server, validator, new McpHeaderValidator(), objectMapper, factory);
+        server, validator, new McpHeaderValidator(), objectMapper, factory, 0L);
   }
 
   private CompletableFuture<ResponseEntity<Object>> invokeHandlerOnVt(

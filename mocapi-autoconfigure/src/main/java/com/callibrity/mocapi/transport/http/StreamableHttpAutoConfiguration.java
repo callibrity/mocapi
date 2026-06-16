@@ -65,6 +65,11 @@ public class StreamableHttpAutoConfiguration {
       ObjectMapper objectMapper,
       ContextSnapshotFactory contextSnapshotFactory) {
     return new StreamableHttpController(
-        protocol, validator, headerValidator, objectMapper, contextSnapshotFactory);
+        protocol,
+        validator,
+        headerValidator,
+        objectMapper,
+        contextSnapshotFactory,
+        props.streamTimeoutOrDefault().toMillis());
   }
 }

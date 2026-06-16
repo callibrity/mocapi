@@ -75,7 +75,8 @@ class StreamableHttpControllerTest {
             new McpRequestValidator(List.of("localhost")),
             new McpHeaderValidator(),
             objectMapper,
-            ContextSnapshotFactory.builder().build());
+            ContextSnapshotFactory.builder().build(),
+            0L);
   }
 
   // --- helpers ---

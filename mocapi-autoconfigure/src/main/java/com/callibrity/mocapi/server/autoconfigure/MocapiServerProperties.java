@@ -27,9 +27,21 @@ public record MocapiServerProperties(
     String serverVersion,
     String instructions,
     List<String> allowedOrigins,
+    Duration streamTimeout,
     Mrtr mrtr,
     Cache cache,
     Pagination pagination) {
+
+  /**
+   * Backstop async timeout for a per-request SSE response stream ({@code mocapi.stream-timeout}).
+   * Bounds a hung handler that never sends its final response; {@code null} falls back to {@link
+   * #DEFAULT_STREAM_TIMEOUT}.
+   */
+  public static final Duration DEFAULT_STREAM_TIMEOUT = Duration.ofMinutes(5);
+
+  public Duration streamTimeoutOrDefault() {
+    return streamTimeout != null ? streamTimeout : DEFAULT_STREAM_TIMEOUT;
+  }
 
   /**
    * MRTR elicitation replay (ADR-0021). An empty {@code secret} means an ephemeral key is generated

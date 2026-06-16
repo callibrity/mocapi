@@ -51,6 +51,15 @@ All notable changes to this project are documented in this file. The format is b
   `McpPromptContext`, and `McpResourceContext`, so **prompt and resource
   handlers can now report progress** (and therefore stream over SSE), not just
   tools.
+- **Per-request SSE streams are now leak-proof.** The response stream is closed
+  on every terminating path: a serialization failure for one message is logged
+  and dropped without tearing down the stream; the terminal response always
+  closes the stream even if writing it throws; and a handler exception thrown
+  after the SSE response has committed now closes the committed stream instead
+  of hanging. A configurable backstop async timeout (`mocapi.stream-timeout`,
+  default 5 minutes) bounds a handler that hangs without ever sending its final
+  response — previously such a stream had no timeout and held the connection
+  indefinitely.
 
 ### Removed
 

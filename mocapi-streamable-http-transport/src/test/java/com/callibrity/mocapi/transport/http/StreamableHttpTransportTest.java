@@ -139,6 +139,29 @@ class StreamableHttpTransportTest {
         .hasMessageContaining("closed response");
   }
 
+  @Test
+  void abort_before_commit_completes_the_future_exceptionally() {
+    var transport = new StreamableHttpTransport(unusedSupplier());
+    var boom = new RuntimeException("handler blew up");
+
+    transport.abort(boom);
+
+    assertThat(transport.response()).isCompletedExceptionally();
+  }
+
+  @Test
+  void abort_after_sse_commit_closes_the_committed_stream() {
+    when(sseStream.createEmitter()).thenReturn(new SseEmitter());
+    var transport = new StreamableHttpTransport(() -> sseStream);
+    transport.send(new JsonRpcNotification("2.0", "notifications/progress", null));
+
+    // The response future is already resolved (SSE committed), so abort must release the emitter by
+    // closing the committed stream rather than no-op on the settled future.
+    transport.abort(new RuntimeException("handler blew up after commit"));
+
+    verify(sseStream).close();
+  }
+
   private static Supplier<SseStream> unusedSupplier() {
     return () -> {
       throw new AssertionError("should not be called");

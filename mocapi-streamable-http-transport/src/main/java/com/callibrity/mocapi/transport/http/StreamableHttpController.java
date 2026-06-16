@@ -73,18 +73,21 @@ public class StreamableHttpController {
   private final McpHeaderValidator headerValidator;
   private final ObjectMapper objectMapper;
   private final ContextSnapshotFactory contextSnapshotFactory;
+  private final long streamTimeoutMillis;
 
   public StreamableHttpController(
       McpServer server,
       McpRequestValidator validator,
       McpHeaderValidator headerValidator,
       ObjectMapper objectMapper,
-      ContextSnapshotFactory contextSnapshotFactory) {
+      ContextSnapshotFactory contextSnapshotFactory,
+      long streamTimeoutMillis) {
     this.server = server;
     this.validator = validator;
     this.headerValidator = headerValidator;
     this.objectMapper = objectMapper;
     this.contextSnapshotFactory = contextSnapshotFactory;
+    this.streamTimeoutMillis = streamTimeoutMillis;
   }
 
   @PostMapping(produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE})
@@ -143,7 +146,9 @@ public class StreamableHttpController {
     if (headerFailure.isPresent()) {
       return CompletableFuture.completedFuture(headerMismatch(headerFailure.get(), call.id()));
     }
-    var transport = new StreamableHttpTransport(() -> new PerRequestSseStream(objectMapper));
+    var transport =
+        new StreamableHttpTransport(
+            () -> new PerRequestSseStream(objectMapper, streamTimeoutMillis));
     ContextSnapshot snapshot = contextSnapshotFactory.captureAll();
     Thread.ofVirtual()
         .start(
@@ -152,7 +157,7 @@ public class StreamableHttpController {
                   try {
                     server.handleCall(call, transport);
                   } catch (Exception e) {
-                    transport.response().completeExceptionally(e);
+                    transport.abort(e);
                   }
                 }));
     return transport.response();

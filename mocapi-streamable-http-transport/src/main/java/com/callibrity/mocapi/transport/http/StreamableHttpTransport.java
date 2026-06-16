@@ -39,9 +39,18 @@ final class StreamableHttpTransport implements McpTransport {
 
   private final CompletableFuture<ResponseEntity<Object>> response = new CompletableFuture<>();
   private MessageWriter writer;
+  private SseStream committedStream;
 
   StreamableHttpTransport(Supplier<SseStream> sseStreamProvider) {
-    this.writer = new DirectMessageWriter(sseStreamProvider, this::commit);
+    // Capture the SSE stream the moment it is created so abort() can release the emitter if a
+    // dispatch failure happens after the response has already committed as SSE.
+    Supplier<SseStream> capturing =
+        () -> {
+          SseStream stream = sseStreamProvider.get();
+          this.committedStream = stream;
+          return stream;
+        };
+    this.writer = new DirectMessageWriter(capturing, this::commit);
   }
 
   public CompletableFuture<ResponseEntity<Object>> response() {
@@ -51,6 +60,21 @@ final class StreamableHttpTransport implements McpTransport {
   @Override
   public void send(JsonRpcMessage message) {
     writer = writer.write(message);
+  }
+
+  /**
+   * Aborts the request after a dispatch failure. Before the response shape commits this fails the
+   * pending future (a plain error reply); once an SSE stream has committed the future is already
+   * resolved, so instead the committed stream is closed to release the emitter — otherwise a
+   * post-commit throw would leak the connection (no SSE timeout is configured).
+   */
+  void abort(Throwable t) {
+    // completeExceptionally returns false when the future is already settled — i.e. the response
+    // shape has committed. In that case the only way to end the request is to close the committed
+    // SSE stream (a JSON reply has nothing left to release).
+    if (!response.completeExceptionally(t) && committedStream != null) {
+      committedStream.close();
+    }
   }
 
   private void commit(ResponseEntity<Object> entity) {
