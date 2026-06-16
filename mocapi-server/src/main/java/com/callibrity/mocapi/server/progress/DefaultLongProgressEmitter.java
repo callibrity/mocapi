@@ -19,7 +19,7 @@ import com.callibrity.mocapi.api.progress.LongProgressEmitter;
 
 /**
  * Default {@link LongProgressEmitter} backed by a single-operation {@link ProgressChannel}. Integer
- * values are widened to {@code double} for the spec's {@code number}-typed wire fields.
+ * values are emitted as whole-number JSON on the wire.
  */
 class DefaultLongProgressEmitter implements LongProgressEmitter {
 
@@ -31,11 +31,11 @@ class DefaultLongProgressEmitter implements LongProgressEmitter {
 
   @Override
   public void emit(long progress, String message) {
-    channel.emit((double) progress, message);
+    channel.emit(progress, message);
   }
 
   @Override
   public void emit(long progress) {
-    channel.emit((double) progress, null);
+    channel.emit(progress, null);
   }
 }

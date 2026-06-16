@@ -59,9 +59,20 @@ class DefaultMcpProgressSourceTest {
 
       var n = capturedNotifications().get(0);
       assertThat(n.method()).isEqualTo("notifications/progress");
+      assertThat(n.params().get("progress").isFloatingPointNumber()).isTrue();
       assertThat(n.params().get("progress").asDouble()).isEqualTo(1.25);
+      assertThat(n.params().get("total").isFloatingPointNumber()).isTrue();
       assertThat(n.params().get("total").asDouble()).isEqualTo(2.5);
       assertThat(n.params().get("message").asString()).isEqualTo("quarter");
+    }
+
+    @Test
+    void emits_floating_point_even_for_whole_values() {
+      source(TOKEN).doubleProgress(4.0).emit(2.0);
+
+      var n = capturedNotifications().get(0);
+      assertThat(n.params().get("progress").isFloatingPointNumber()).isTrue();
+      assertThat(n.params().get("total").isFloatingPointNumber()).isTrue();
     }
 
     @Test
@@ -88,12 +99,14 @@ class DefaultMcpProgressSourceTest {
   class Long_progress {
 
     @Test
-    void widens_integer_values_to_number_on_the_wire() {
+    void emits_integral_progress_and_total_on_the_wire() {
       source(TOKEN).longProgress(4L).emit(2, "halfway");
 
       var n = capturedNotifications().get(0);
-      assertThat(n.params().get("progress").asDouble()).isEqualTo(2.0);
-      assertThat(n.params().get("total").asDouble()).isEqualTo(4.0);
+      assertThat(n.params().get("progress").isIntegralNumber()).isTrue();
+      assertThat(n.params().get("progress").asLong()).isEqualTo(2L);
+      assertThat(n.params().get("total").isIntegralNumber()).isTrue();
+      assertThat(n.params().get("total").asLong()).isEqualTo(4L);
     }
   }
 
@@ -107,10 +120,12 @@ class DefaultMcpProgressSourceTest {
       counter.emit("second");
 
       var notifications = capturedNotifications();
-      assertThat(notifications.get(0).params().get("progress").asDouble()).isEqualTo(1.0);
+      assertThat(notifications.get(0).params().get("progress").isIntegralNumber()).isTrue();
+      assertThat(notifications.get(0).params().get("progress").asLong()).isEqualTo(1L);
       assertThat(notifications.get(0).params().get("message").asString()).isEqualTo("first");
-      assertThat(notifications.get(1).params().get("progress").asDouble()).isEqualTo(2.0);
-      assertThat(notifications.get(0).params().get("total").asDouble()).isEqualTo(3.0);
+      assertThat(notifications.get(1).params().get("progress").asLong()).isEqualTo(2L);
+      assertThat(notifications.get(0).params().get("total").isIntegralNumber()).isTrue();
+      assertThat(notifications.get(0).params().get("total").asLong()).isEqualTo(3L);
     }
 
     @Test
@@ -118,7 +133,8 @@ class DefaultMcpProgressSourceTest {
       source(TOKEN).countingProgress(null).emit();
 
       var n = capturedNotifications().get(0);
-      assertThat(n.params().get("progress").asDouble()).isEqualTo(1.0);
+      assertThat(n.params().get("progress").isIntegralNumber()).isTrue();
+      assertThat(n.params().get("progress").asLong()).isEqualTo(1L);
       assertThat(n.params().has("total")).isFalse();
       assertThat(n.params().has("message")).isFalse();
     }
@@ -133,6 +149,7 @@ class DefaultMcpProgressSourceTest {
 
       var n = capturedNotifications().get(0);
       assertThat(n.params().get("progress").asDouble()).isEqualTo(0.25);
+      assertThat(n.params().get("total").isFloatingPointNumber()).isTrue();
       assertThat(n.params().get("total").asDouble()).isEqualTo(1.0);
     }
 

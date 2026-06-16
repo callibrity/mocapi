@@ -18,7 +18,8 @@ package com.callibrity.mocapi.api.progress;
 /**
  * Emits integer-valued progress notifications for one operation (ADR-0025). Created from {@link
  * McpProgressSource#longProgress(Long)}, which captures the total once; each call reports the
- * absolute progress value so far. Values are widened to the spec's {@code number} type on the wire.
+ * absolute progress value so far. Values are emitted as whole-number JSON (the spec's {@code
+ * number} type permits integers as well as floating point).
  *
  * <p>The MCP spec requires progress to strictly increase with each notification, so each {@code
  * emit(...)} call must be greater than the previous one or the emitter throws {@link

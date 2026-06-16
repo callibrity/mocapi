@@ -46,14 +46,12 @@ public class DefaultMcpProgressSource implements McpProgressSource {
 
   @Override
   public LongProgressEmitter longProgress(Long total) {
-    return new DefaultLongProgressEmitter(
-        new ProgressChannel(transport, progressToken, total == null ? null : total.doubleValue()));
+    return new DefaultLongProgressEmitter(new ProgressChannel(transport, progressToken, total));
   }
 
   @Override
   public CountingProgressEmitter countingProgress(Long total) {
-    return new DefaultCountingProgressEmitter(
-        new ProgressChannel(transport, progressToken, total == null ? null : total.doubleValue()));
+    return new DefaultCountingProgressEmitter(new ProgressChannel(transport, progressToken, total));
   }
 
   @Override

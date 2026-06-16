@@ -36,37 +36,51 @@ class ProgressChannel {
 
   private final McpTransport transport;
   private final ValueNode progressToken;
-  private final Double total;
+  private final Number total;
   private boolean started;
   private double last;
 
-  ProgressChannel(McpTransport transport, ValueNode progressToken, Double total) {
+  ProgressChannel(McpTransport transport, ValueNode progressToken, Number total) {
     this.transport = transport;
     this.progressToken = progressToken;
     this.total = total;
   }
 
-  void emit(double progress, String message) {
-    if (started && progress <= last) {
+  void emit(Number progress, String message) {
+    double value = progress.doubleValue();
+    if (started && value <= last) {
       throw new IllegalArgumentException(
           String.format(
               "progress must strictly increase with each notification: previous=%s, got=%s",
-              last, progress));
+              last, value));
     }
     started = true;
-    last = progress;
+    last = value;
     if (progressToken == null || transport == null) {
       return;
     }
     ObjectNode params = JsonNodeFactory.instance.objectNode();
     params.set("progressToken", progressToken);
-    params.put("progress", progress);
+    putNumber(params, "progress", progress);
     if (total != null) {
-      params.put("total", total.doubleValue());
+      putNumber(params, "total", total);
     }
     if (message != null) {
       params.put("message", message);
     }
     transport.send(new JsonRpcNotification("2.0", McpMethods.NOTIFICATIONS_PROGRESS, params));
+  }
+
+  /**
+   * Writes a numeric field preserving the emitter's chosen wire type: integral emitters (long,
+   * counting) serialize whole-number JSON ({@code 5}), floating emitters (double, percent)
+   * serialize floating-point JSON ({@code 5.0}). Both are valid per the spec's {@code number} type.
+   */
+  private static void putNumber(ObjectNode node, String field, Number value) {
+    if (value instanceof Double || value instanceof Float) {
+      node.put(field, value.doubleValue());
+    } else {
+      node.put(field, value.longValue());
+    }
   }
 }

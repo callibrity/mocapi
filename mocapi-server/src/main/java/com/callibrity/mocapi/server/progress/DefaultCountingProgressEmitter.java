@@ -33,7 +33,7 @@ class DefaultCountingProgressEmitter implements CountingProgressEmitter {
 
   @Override
   public void emit(String message) {
-    channel.emit((double) ++count, message);
+    channel.emit(++count, message);
   }
 
   @Override
