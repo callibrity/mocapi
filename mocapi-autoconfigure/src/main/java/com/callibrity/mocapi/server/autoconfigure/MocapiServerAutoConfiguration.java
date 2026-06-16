@@ -34,6 +34,7 @@ import com.callibrity.mocapi.server.discover.DiscoverHandler;
 import com.callibrity.mocapi.server.elicitation.ElicitationNotSupportedExceptionTranslator;
 import com.callibrity.mocapi.server.exchange.MetaEnvelopeParser;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
+import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
@@ -151,11 +152,22 @@ public class MocapiServerAutoConfiguration {
         : RequestStateCodec.withSecret(secret, ttl, objectMapper);
   }
 
+  /**
+   * Default {@link McpPrincipalSource}: unauthenticated (no principal). An authenticated deployment
+   * supplies its own bean — e.g. one reading the OAuth2 JWT subject — to bind {@code requestState}
+   * tokens to their caller and reject cross-principal replay.
+   */
+  @Bean
+  @ConditionalOnMissingBean(McpPrincipalSource.class)
+  public McpPrincipalSource mcpPrincipalSource() {
+    return () -> null;
+  }
+
   @Bean
   @ConditionalOnMissingBean(MrtrElicitationEngine.class)
   public MrtrElicitationEngine mcpElicitationEngine(
-      RequestStateCodec codec, ObjectMapper objectMapper) {
-    return new MrtrElicitationEngine(codec, objectMapper);
+      RequestStateCodec codec, ObjectMapper objectMapper, McpPrincipalSource principalSource) {
+    return new MrtrElicitationEngine(codec, objectMapper, principalSource);
   }
 
   /** Maps {@code McpElicitationNotSupportedException} to {@code -32003} on the wire. */

@@ -24,7 +24,12 @@ All notable changes to this project are documented in this file. The format is b
     token and re-executes the handler when the client retries with answers.
     Code before a handler's last `elicit()` call runs once per round trip
     (see the [interactive tools guide](docs/guides/interactive-tools.md)).
-    Configure via `mocapi.mrtr.secret` / `mocapi.mrtr.ttl`.
+    Configure via `mocapi.mrtr.secret` / `mocapi.mrtr.ttl`. The
+    `requestState` binds to the authenticated principal via the new
+    `McpPrincipalSource` SPI (default unauthenticated; supply a bean — e.g.
+    reading the OAuth2 JWT subject — to enable it), so a token minted for
+    one caller is rejected if replayed by another (the spec's MRTR
+    replay-prevention guidance).
   - **POST-only Streamable HTTP** with required routing headers
     (`MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name`); mismatches return
     `-32001 HeaderMismatch`. The GET SSE stream and `Last-Event-ID`

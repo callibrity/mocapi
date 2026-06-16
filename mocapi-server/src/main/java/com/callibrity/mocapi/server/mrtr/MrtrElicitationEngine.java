@@ -72,10 +72,17 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
 
   private final RequestStateCodec codec;
   private final ObjectMapper objectMapper;
+  private final McpPrincipalSource principalSource;
 
   public MrtrElicitationEngine(RequestStateCodec codec, ObjectMapper objectMapper) {
+    this(codec, objectMapper, () -> null);
+  }
+
+  public MrtrElicitationEngine(
+      RequestStateCodec codec, ObjectMapper objectMapper, McpPrincipalSource principalSource) {
     this.codec = Objects.requireNonNull(codec, "codec");
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
+    this.principalSource = Objects.requireNonNull(principalSource, "principalSource");
   }
 
   /**
@@ -129,7 +136,9 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
     try {
       return ScopedValue.where(EXECUTION, execution).call(invocation::get);
     } catch (InputRequiredException signal) {
-      String token = codec.encode(method, originalParams, execution.entries());
+      String token =
+          codec.encode(
+              method, originalParams, execution.entries(), principalSource.currentPrincipal());
       return new InputRequiredResult(
           Map.of(signal.key(), new ElicitRequest(signal.params())),
           token,
@@ -161,6 +170,7 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
       return List.of();
     }
     RequestStatePayload payload = decode(requestState);
+    verifySamePrincipal(payload.principal());
     if (!method.equals(payload.method())) {
       throw invalidParams(
           String.format(
@@ -182,6 +192,14 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
       // Tampered, foreign-key, malformed, or expired state: never replay against it.
       throw new JsonRpcException(
           JsonRpcProtocol.INVALID_PARAMS, "Invalid requestState: " + e.getMessage(), e);
+    }
+  }
+
+  private void verifySamePrincipal(String storedPrincipal) {
+    if (!Objects.equals(principalSource.currentPrincipal(), storedPrincipal)) {
+      throw invalidParams(
+          "requestState was issued for a different principal; it cannot be replayed by another "
+              + "caller");
     }
   }
 

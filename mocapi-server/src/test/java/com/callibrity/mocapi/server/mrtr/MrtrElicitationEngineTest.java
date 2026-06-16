@@ -38,6 +38,7 @@ import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -108,6 +109,62 @@ class MrtrElicitationEngineTest {
       ElicitRequest request = (ElicitRequest) required.inputRequests().get("elicit-1");
       assertThat(((ElicitRequestFormParams) request.params()).message()).isEqualTo("Your email?");
       assertThat(required.requestState()).isNotBlank();
+    }
+  }
+
+  @Nested
+  class Principal_binding {
+
+    private final AtomicReference<String> principal = new AtomicReference<>();
+    private final MrtrElicitationEngine boundEngine =
+        new MrtrElicitationEngine(
+            RequestStateCodec.withSecret(SECRET, Duration.ofMinutes(5), mapper),
+            mapper,
+            principal::get);
+
+    private final Supplier<Object> emailHandler =
+        () -> "done:" + boundEngine.elicit(question("Your email?")).getString("email");
+
+    private InputRequiredResult firstTrip() {
+      return (InputRequiredResult)
+          boundEngine.execute(
+              McpMethods.TOOLS_CALL, toolParams(null, null), null, null, emailHandler);
+    }
+
+    @Test
+    void retry_presented_by_a_different_principal_is_rejected() {
+      principal.set("alice");
+      var first = firstTrip();
+
+      principal.set("bob");
+      Map<String, InputResponse> answers = Map.of("elicit-1", accept("email", "user@example.com"));
+      assertThatThrownBy(
+              () ->
+                  boundEngine.execute(
+                      McpMethods.TOOLS_CALL,
+                      toolParams(answers, first.requestState()),
+                      answers,
+                      first.requestState(),
+                      emailHandler))
+          .isInstanceOf(JsonRpcException.class)
+          .hasMessageContaining("principal");
+    }
+
+    @Test
+    void retry_by_the_same_principal_succeeds() {
+      principal.set("alice");
+      var first = firstTrip();
+
+      Map<String, InputResponse> answers = Map.of("elicit-1", accept("email", "user@example.com"));
+      Object result =
+          boundEngine.execute(
+              McpMethods.TOOLS_CALL,
+              toolParams(answers, first.requestState()),
+              answers,
+              first.requestState(),
+              emailHandler);
+
+      assertThat(result).isEqualTo("done:user@example.com");
     }
   }
 

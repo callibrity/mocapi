@@ -58,9 +58,15 @@ the conversation is folded into the `requestState` token:
     { "key": "elicit-1", "fingerprint": "sha256:…", "response": { "action": "accept", "content": { … } } },
     { "key": "elicit-2", "fingerprint": "sha256:…" }
   ],
-  "issuedAt": 1781524800000
+  "issuedAt": 1781524800000,
+  "principal": "user-123"
 }
 ```
+
+(`principal` is the authenticated caller the token was bound to, or `null`
+when unauthenticated; supplied by the `McpPrincipalSource` seam — the core
+is auth-agnostic, so the default is unauthenticated and an OAuth2/app bean
+provides the real principal. A retry by a different principal is rejected.)
 
 (`originalParams` is the request's params minus `_meta`, `inputResponses`,
 and `requestState`.)
@@ -161,6 +167,7 @@ Streamable HTTP transport:
 | Tampered / wrong-key / malformed `requestState` | fails AES-GCM authentication |
 | Expired `requestState` (older than `mocapi.mrtr.ttl`) | conversation lapsed |
 | Retry method ≠ the method the token was issued for | token is not transferable across methods |
+| Retry principal ≠ the principal the token was issued for | token is bound to its authenticated caller; no cross-principal replay |
 | Retry `name`/`uri` ≠ the original target | token is not transferable across tools/prompts/resources |
 | `inputResponses` without `requestState` | answers with no conversation |
 | `inputResponses` key the server never issued | unknown slot |

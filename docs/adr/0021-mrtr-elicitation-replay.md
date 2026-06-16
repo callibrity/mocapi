@@ -34,16 +34,19 @@ or to yield.
 
 **Rules:**
 
-1. `requestState` is a self-contained, signed and encrypted blob
-   containing `{method, originalParams, inputResponses[], issuedAt}`.
+1. `requestState` is a self-contained AES-256-GCM blob containing
+   `{method, originalParams, inputResponses[], issuedAt, principal}`.
    The server stores nothing; the token *is* the state. Clients treat
-   it as opaque per the spec; tampering fails signature verification.
+   it as opaque per the spec; any tampering fails the GCM authentication
+   tag.
 2. When a handler calls `ctx.elicit(...)` and no answer is available,
    the call raises an internal control signal. The dispatcher converts
    it into an `InputRequiredResult` carrying the built `inputRequests`
    and a fresh `requestState` that folds in everything answered so far.
-3. On retry, the server verifies and decrypts `requestState`, merges
-   the incoming `inputResponses` into the ledger, and re-dispatches the
+3. On retry, the server verifies and decrypts `requestState` — rejecting
+   a tampered/expired token, a method or target that doesn't match, or a
+   **principal** that doesn't match the current caller — merges the
+   incoming `inputResponses` into the ledger, and re-dispatches the
    original call (`method` + `originalParams`) from the top. Each
    `ctx.elicit(...)` call site is identified by its **call ordinal** —
    the Nth `elicit` reached during execution. Answered ordinals return
@@ -53,6 +56,29 @@ or to yield.
    ([ADR-0015](0015-constrained-elicitation-schema-builder.md)) is
    unchanged — the schema vocabulary handlers use to describe the
    input they need is the same; only the delivery mechanism moved.
+
+**Integrity, confidentiality, and replay prevention.** The spec requires
+only that `requestState` be integrity-protected ("HMAC or AEAD") and that
+state failing verification be rejected; it does not require encryption.
+Mocapi uses AES-256-GCM (AEAD): the auth tag is the required integrity
+check, and encryption keeps the accumulated ledger opaque. Honestly,
+encryption buys little *wire* confidentiality — the elicited questions and
+answers cross the wire in cleartext as `inputRequests`/`inputResponses`
+regardless — so AEAD's value over a plain HMAC is (a) defense-in-depth for
+the one concentrated, client-held, potentially-persisted artifact, and
+(b) making the spec's "opaque" contract impossible to violate (clients
+can't decode and couple to the internal shape). A HMAC-signed,
+never-decrypted token is an equally spec-valid alternative, recorded here
+as considered; AEAD was kept because it costs ~nothing over HMAC and adds
+those two properties. For replay prevention the token follows the spec's
+SHOULDs: a short TTL (`issuedAt` + `mocapi.mrtr.ttl`), the originating
+request (`method` + `originalParams`, rejecting cross-method/cross-target
+reuse), and the **authenticated principal** — bound via the
+`McpPrincipalSource` seam (default unauthenticated; an authenticated
+deployment supplies the principal, e.g. the OAuth2 JWT subject) so a token
+minted for one caller cannot be replayed by another. Single-use is *not*
+enforced (the replay model is intentionally idempotent); a handler needing
+exactly-once semantics must enforce that itself.
 
 **The honest consequence:** handlers must be idempotent up to their
 last `elicit()` call. Code before an `elicit()` re-runs once per round

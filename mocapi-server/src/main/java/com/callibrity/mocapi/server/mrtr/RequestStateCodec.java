@@ -139,13 +139,32 @@ public final class RequestStateCodec {
    * @param originalParams the original params (already stripped of {@code _meta}, {@code
    *     inputResponses}, {@code requestState})
    * @param inputResponses the response ledger in call-ordinal order
-   * @return the opaque Base64URL token
+   * @return the opaque Base64URL token, bound to no principal
    */
   public String encode(
       String method, JsonNode originalParams, List<ResponseLedgerEntry> inputResponses) {
+    return encode(method, originalParams, inputResponses, null);
+  }
+
+  /**
+   * Mints a {@code requestState} token bound to the given authenticated principal, stamped with the
+   * current time. A retry presented by a different principal is rejected at decode time.
+   *
+   * @param method the JSON-RPC method the original request arrived on
+   * @param originalParams the original params (already stripped of {@code _meta}, {@code
+   *     inputResponses}, {@code requestState})
+   * @param inputResponses the response ledger in call-ordinal order
+   * @param principal the authenticated principal, or {@code null} when unauthenticated
+   * @return the opaque Base64URL token
+   */
+  public String encode(
+      String method,
+      JsonNode originalParams,
+      List<ResponseLedgerEntry> inputResponses,
+      String principal) {
     var payload =
         new RequestStatePayload(
-            method, originalParams, List.copyOf(inputResponses), clock.millis());
+            method, originalParams, List.copyOf(inputResponses), clock.millis(), principal);
     byte[] plaintext = objectMapper.writeValueAsBytes(payload);
     byte[] nonce = new byte[NONCE_LENGTH];
     SECURE_RANDOM.nextBytes(nonce);

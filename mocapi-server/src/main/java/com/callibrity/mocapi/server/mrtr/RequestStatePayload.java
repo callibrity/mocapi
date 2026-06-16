@@ -31,9 +31,13 @@ import tools.jackson.databind.JsonNode;
  *     answered or pending (see {@link ResponseLedgerEntry})
  * @param issuedAt epoch milliseconds when the token was minted; tokens older than the configured
  *     TTL are rejected
+ * @param principal the authenticated principal the token was issued for, or {@code null} when the
+ *     request was unauthenticated; a retry presented by a different principal is rejected (the MRTR
+ *     replay-prevention guidance — bind the state to its principal)
  */
 public record RequestStatePayload(
     String method,
     JsonNode originalParams,
     List<ResponseLedgerEntry> inputResponses,
-    long issuedAt) {}
+    long issuedAt,
+    String principal) {}

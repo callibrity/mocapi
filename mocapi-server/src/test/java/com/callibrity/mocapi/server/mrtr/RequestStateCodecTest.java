@@ -85,6 +85,20 @@ class RequestStateCodecTest {
     }
 
     @Test
+    void decode_returns_the_principal_the_token_was_bound_to() {
+      String token = codec.encode("tools/call", originalParams(), ledger(), "user-123");
+
+      assertThat(codec.decode(token).principal()).isEqualTo("user-123");
+    }
+
+    @Test
+    void encoding_without_a_principal_leaves_it_null() {
+      String token = codec.encode("tools/call", originalParams(), ledger());
+
+      assertThat(codec.decode(token).principal()).isNull();
+    }
+
+    @Test
     void each_encode_produces_a_different_token_for_the_same_payload() {
       String first = codec.encode("tools/call", originalParams(), ledger());
       String second = codec.encode("tools/call", originalParams(), ledger());
