@@ -83,6 +83,29 @@ are all annotation-driven; each internal representation is a single
 concrete class built once at startup. There is no SPI users
 implement — only annotations.
 
+## Handler context injection
+
+Tool, prompt, and resource handler methods may declare a context parameter
+for mid-execution communication with the client. The contexts form one
+hierarchy (ADR-0025): `MrtrContext` (`McpElicitor` + `McpProgressSource` +
+`handlerName()`) is the shared base of the three leaf types
+`McpToolContext`, `McpPromptContext`, and `McpResourceContext`. The leaves
+exist only for the three MRTR-capable methods (`tools/call`, `prompts/get`,
+`resources/read`), making the spec's "interaction only on these three"
+boundary a compile-time fact.
+
+Each of the three services builds a context per request
+(`AbstractMrtrContext` subclass, capturing the request's transport,
+`_meta` progress token, and exchange) and binds it to both its leaf
+`CURRENT` `ScopedValue` and `McpElicitor.CURRENT` around the handler
+invocation. The handler factories register the matching structural
+resolvers (the `ScopedValueResolver` pattern): the leaf-context resolver
+first, then `McpElicitorResolver`, so a handler can declare its full leaf
+context or a bare `McpElicitor` for elicitation alone. Progress flows
+through the captured transport as `notifications/progress`; elicitation
+routes through the MRTR engine (see
+[elicitation-mrtr.md](elicitation-mrtr.md)).
+
 ## Interceptor chain
 
 Since spec 175 (Methodical 0.6), every handler's reflective invocation

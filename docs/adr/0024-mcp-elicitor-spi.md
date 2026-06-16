@@ -77,6 +77,14 @@ guide's warnings.
 
 **Non-goals.** No sampling/roots equivalents (deprecated features,
 [ADR-0022](0022-2026-07-28-features-not-implemented.md)); no
-URL-mode elicitation; no progress API for prompts/resources (the
-spec scopes progress to long-running operations — revisit on
-demand).
+URL-mode elicitation.
+
+> **Update ([ADR-0025](0025-progress-emitters-and-mrtr-context.md),
+> 2026-06-16):** the original non-goals also declined a progress API
+> for prompts/resources and per-kind context types. ADR-0025 reverses
+> both: it adds typed progress emitters, gives prompts and resources a
+> progress surface, and introduces `MrtrContext extends McpElicitor,
+> McpProgressSource` with `McpToolContext` / `McpPromptContext` /
+> `McpResourceContext` as leaves. The elicitation decision above stands
+> unchanged; `McpElicitor` simply becomes a super-interface of
+> `MrtrContext`.

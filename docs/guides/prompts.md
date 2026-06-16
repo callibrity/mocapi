@@ -369,3 +369,24 @@ PromptTemplateFactory promptTemplateFactory() {
 ```
 
 Your bean wins thanks to `@ConditionalOnMissingBean(PromptTemplateFactory.class)`.
+
+## Mid-execution interaction (progress and elicitation)
+
+A prompt handler may declare an `McpPromptContext` parameter to report
+progress or elicit input while it runs — the same surface tool handlers
+get, scoped to `prompts/get` (ADR-0025, ADR-0024). The parameter is
+resolved by the framework and never appears as a prompt argument.
+
+```java
+@McpPrompt(name = "summarize", description = "Summarizes a topic")
+public GetPromptResult summarize(String topic, McpPromptContext ctx) {
+    var p = ctx.percentProgress();
+    p.complete(0.5, "gathering sources");
+    // ... build the prompt ...
+    p.complete(1.0, "done");
+    return result;
+}
+```
+
+See the [interactive tools guide](interactive-tools.md) for the full
+progress and elicitation API and the replay/idempotency contract.

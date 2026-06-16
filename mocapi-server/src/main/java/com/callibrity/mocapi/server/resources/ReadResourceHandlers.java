@@ -44,8 +44,8 @@ public final class ReadResourceHandlers {
 
   /**
    * Builds one {@link ReadResourceHandler} for the given {@code (bean, method)} pair. Resource
-   * methods get one structural parameter resolver ({@link McpElicitorResolver}, ADR-0024);
-   * resolvers attached by customizers follow it.
+   * methods get two structural parameter resolvers — {@link McpResourceContextResolver} (ADR-0025)
+   * and {@link McpElicitorResolver} (ADR-0024); resolvers attached by customizers follow them.
    */
   public static ReadResourceHandler build(
       Object bean,
@@ -64,6 +64,7 @@ public final class ReadResourceHandlers {
     customizers.forEach(c -> c.customize(config));
     MutableHandlerState<Object> state = config.state;
     MethodInvoker.Builder<Object> builder = MethodInvoker.builder(method, bean, Object.class);
+    builder.resolver(new McpResourceContextResolver());
     builder.resolver(new McpElicitorResolver());
     state.resolvers.forEach(builder::resolver);
     state.correlation.forEach(builder::interceptor);

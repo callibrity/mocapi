@@ -37,9 +37,26 @@ All notable changes to this project are documented in this file. The format is b
     `-32004` (unsupported protocol version) adopted; guard denials moved
     from `-32003` to `-32010` ([ADR-0023](docs/adr/0023-guard-denial-code-relocation.md));
     resource-not-found is `-32602`.
+- **Typed progress emitters and the `MrtrContext` super-interface**
+  ([ADR-0025](docs/adr/0025-progress-emitters-and-mrtr-context.md)). Progress
+  reporting moves from `McpToolContext.sendProgress(long, long)` to a family
+  of stateful emitters obtained from the handler context —
+  `doubleProgress(Double)`, `longProgress(Long)`, `countingProgress(Long)`
+  (auto-increments by one per `emit`), and `percentProgress()` (a `0.0–1.0`
+  fraction). Emitters expose the spec's full progress shape — floating-point
+  `progress`/`total` and the human-readable `message` field — and enforce the
+  spec's strictly-increasing rule, throwing `IllegalArgumentException`
+  otherwise. The new `MrtrContext` (extending `McpElicitor` and the new
+  `McpProgressSource`) is the shared base of `McpToolContext`,
+  `McpPromptContext`, and `McpResourceContext`, so **prompt and resource
+  handlers can now report progress** (and therefore stream over SSE), not just
+  tools.
 
 ### Removed
 
+- `McpToolContext.sendProgress(long, long)` — superseded by the typed progress
+  emitters above ([ADR-0025](docs/adr/0025-progress-emitters-and-mrtr-context.md)).
+  Migrate `ctx.sendProgress(p, t)` to `ctx.longProgress(t).emit(p)`.
 - `ctx.sample(...)` and `ctx.logger(...)` — the MCP Sampling and Logging
   features are deprecated by SEP-2577 and not carried into the rewrite
   ([ADR-0022](docs/adr/0022-2026-07-28-features-not-implemented.md));

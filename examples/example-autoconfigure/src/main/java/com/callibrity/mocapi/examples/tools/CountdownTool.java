@@ -26,8 +26,9 @@ public class CountdownTool {
       name = "countdown",
       description = "Counts down from the given number, sending progress updates via SSE")
   public CountdownResponse countdown(long from, McpToolContext ctx) {
+    var progress = ctx.countingProgress(from);
     for (long i = from; i > 0; i--) {
-      ctx.sendProgress(from - i, from);
+      progress.emit();
       try {
         Thread.sleep(500);
       } catch (InterruptedException _) {

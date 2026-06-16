@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.tools;
+package com.callibrity.mocapi.server.prompts;
 
-import com.callibrity.mocapi.api.tools.McpToolContext;
+import com.callibrity.mocapi.api.prompts.McpPromptContext;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.context.AbstractMrtrContext;
 import com.callibrity.mocapi.server.elicitation.ElicitationDispatcher;
@@ -23,13 +23,13 @@ import com.callibrity.mocapi.server.exchange.McpExchange;
 import tools.jackson.databind.node.ValueNode;
 
 /**
- * Default {@link McpToolContext} implementation. Inherits progress emitters and elicitation from
- * {@link AbstractMrtrContext} (ADR-0025); adds nothing but the {@code McpToolContext} marker the
- * tool parameter resolver keys on.
+ * Default {@link McpPromptContext} implementation. Inherits progress emitters and elicitation from
+ * {@link AbstractMrtrContext} (ADR-0025); adds nothing but the {@code McpPromptContext} marker the
+ * prompt parameter resolver keys on.
  */
-public class DefaultMcpToolContext extends AbstractMrtrContext implements McpToolContext {
+public class DefaultMcpPromptContext extends AbstractMrtrContext implements McpPromptContext {
 
-  public DefaultMcpToolContext(
+  public DefaultMcpPromptContext(
       McpTransport transport,
       ValueNode progressToken,
       ElicitationDispatcher elicitationDispatcher,

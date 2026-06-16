@@ -15,17 +15,31 @@
  */
 package com.callibrity.mocapi.api.tools;
 
+import com.callibrity.mocapi.api.context.MrtrContext;
 import com.callibrity.mocapi.api.elicitation.McpElicitor;
+import com.callibrity.mocapi.api.progress.McpProgressSource;
 
 /**
  * Context available to tool methods that need mid-execution communication with the client. Provides
- * progress notifications and (via {@link McpElicitor}) form-mode elicitation. Tools return their
- * final result via the method return value — this context is only for mid-execution communication.
+ * progress notifications (via {@link McpProgressSource}) and form-mode elicitation (via {@link
+ * McpElicitor}), both inherited from {@link MrtrContext}. Tools return their final result via the
+ * method return value — this context is only for mid-execution communication.
  *
  * <p>MCP 2026-07-28 deprecates Sampling and MCP Logging (SEP-2577), so the former {@code
  * sample(...)} and {@code logger(...)} surfaces are gone. Per the spec's migration guidance:
  * integrate directly with your LLM provider's API instead of sampling, and use stderr (stdio) or
  * OpenTelemetry — which {@code mocapi-otel} covers — instead of MCP logging. See ADR-0022.
+ *
+ * <p>Example progress (inherited from {@link McpProgressSource}; see ADR-0025):
+ *
+ * <pre>{@code
+ * var p = ctx.longProgress((long) items.size());
+ * long done = 0;
+ * for (var item : items) {
+ *   process(item);
+ *   p.emit(++done, "processed " + item.name());
+ * }
+ * }</pre>
  *
  * <p>Example elicitation (inherited from {@link McpElicitor}; see ADR-0024):
  *
@@ -37,23 +51,7 @@ import com.callibrity.mocapi.api.elicitation.McpElicitor;
  * );
  * }</pre>
  */
-public interface McpToolContext extends McpElicitor {
+public interface McpToolContext extends MrtrContext {
 
   ScopedValue<McpToolContext> CURRENT = ScopedValue.newInstance();
-
-  /**
-   * Sends a progress notification to the client.
-   *
-   * @param progress the current progress value
-   * @param total the total expected value
-   */
-  void sendProgress(long progress, long total);
-
-  /**
-   * Returns the name of the handler currently executing (the {@code @McpTool} name, or the prompt /
-   * resource name).
-   *
-   * @return the current handler name
-   */
-  String handlerName();
 }

@@ -333,11 +333,12 @@ public class ConformanceTools {
       name = "test_tool_with_progress",
       description = "Reports progress notifications for conformance testing")
   public CallToolResult withProgress(McpToolContext ctx) throws InterruptedException {
-    ctx.sendProgress(0, 100);
+    var progress = ctx.longProgress(100L);
+    progress.emit(0);
     Thread.sleep(50);
-    ctx.sendProgress(50, 100);
+    progress.emit(50);
     Thread.sleep(50);
-    ctx.sendProgress(100, 100);
+    progress.emit(100);
     return new CallToolResult(
         List.of(new TextContent("Progress test completed successfully", null)),
         null,

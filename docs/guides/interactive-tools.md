@@ -7,11 +7,12 @@ import com.callibrity.mocapi.api.tools.McpToolContext;
 
 @McpTool(name = "process", description = "Processes data with progress")
 public ProcessResult process(String data, McpToolContext ctx) {
-    ctx.sendProgress(1, 3);
+    var progress = ctx.longProgress(3L);
+    progress.emit(1);
     // ... step 1 ...
-    ctx.sendProgress(2, 3);
+    progress.emit(2);
     // ... step 2 ...
-    ctx.sendProgress(3, 3);
+    progress.emit(3);
     return new ProcessResult("Done");
 }
 ```
@@ -27,13 +28,39 @@ The `McpToolContext` parameter does not appear in the tool's input schema -- it 
 
 ## Progress Notifications
 
-Send progress updates to let the client show a progress indicator:
+Progress is reported through a typed emitter obtained from the context. Pick
+the variant that fits how you measure progress; each captures the total once
+and tracks its own running value:
 
 ```java
-ctx.sendProgress(current, total);
+// Counting — one notification per item, no counter to manage (the common case)
+var p = ctx.countingProgress((long) items.size());
+for (var item : items) {
+    process(item);
+    p.emit("processed " + item.name());   // advances 1, 2, 3, …
+}
+
+// Long / Double — when you already hold the running value (total may be null = unknown)
+ctx.longProgress(3L).emit(2, "step 2 of 3");
+ctx.doubleProgress(1.0).emit(0.5, "halfway");
+
+// Percentage — a fraction in [0.0, 1.0], reported against a total of 1.0
+var pct = ctx.percentProgress();
+pct.complete(0.5, "halfway");
+pct.complete(1.0, "done");
 ```
 
-Both arguments are `long`. Progress notifications are sent as `notifications/progress` on the request's own response stream. They are only sent if the client included a `progressToken` in the request's `_meta` field.
+The MCP spec requires progress to **strictly increase** with each
+notification; the emitter enforces this and throws `IllegalArgumentException`
+on a non-increasing value (and on a percentage outside `[0.0, 1.0]`). The
+optional `message` is the spec's human-readable progress text. Notifications
+are sent as `notifications/progress` on the request's own response stream
+(which switches it to SSE), and only when the client included a
+`progressToken` in the request's `_meta` — without one the emitter still
+validates each call but sends nothing.
+
+Progress isn't tool-only: prompt (`McpPromptContext`) and resource
+(`McpResourceContext`) handlers expose the same emitters.
 
 ## Elicitation
 
@@ -239,17 +266,18 @@ The tool declares `McpToolContext` and uses it for mid-execution communication:
 ```java
 @McpTool(name = "wizard", description = "Multi-step wizard")
 public WizardResult wizard(McpToolContext ctx) {
-    ctx.sendProgress(1, 3);
+    var progress = ctx.longProgress(3L);
+    progress.emit(1);
     ElicitResult step1 = ctx.elicit(step1Params);
-    ctx.sendProgress(2, 3);
+    progress.emit(2);
     ElicitResult step2 = ctx.elicit(step2Params);
-    ctx.sendProgress(3, 3);
+    progress.emit(3);
     return new WizardResult(step1, step2);
 }
 ```
 
 Remember the replay model: this wizard completes in three round trips, and
-the method body (including the `sendProgress(1, 3)` line) runs three
+the method body (including the `progress.emit(1)` line) runs three
 times. Keep pre-elicitation code idempotent.
 
 In all three patterns, the tool returns its result (or void). The framework wraps it in a `CallToolResult` and sends it as the JSON-RPC response. Tools never send their own result on the transport.

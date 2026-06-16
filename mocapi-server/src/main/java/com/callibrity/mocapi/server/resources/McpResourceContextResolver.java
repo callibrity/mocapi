@@ -13,21 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.server.tools.util;
+package com.callibrity.mocapi.server.resources;
 
-import com.callibrity.mocapi.api.tools.McpTool;
-import com.callibrity.mocapi.api.tools.McpToolContext;
-import io.swagger.v3.oas.annotations.media.Schema;
-import org.springframework.stereotype.Component;
+import com.callibrity.mocapi.api.resources.McpResourceContext;
+import com.callibrity.mocapi.server.util.ScopedValueResolver;
 
-@Component
-public class InteractiveTool {
-  @McpTool(name = "interactive-greet", description = "Greets with progress")
-  public HelloResponse greet(
-      @Schema(description = "The name to greet") String name, McpToolContext ctx) {
-    var progress = ctx.longProgress(2L);
-    progress.emit(1);
-    progress.emit(2);
-    return new HelloResponse(String.format("Hello, %s!", name));
+/**
+ * Resolves {@link McpResourceContext} parameters in resource methods by reading from the {@link
+ * McpResourceContext#CURRENT} {@link ScopedValue} (ADR-0025).
+ */
+public class McpResourceContextResolver extends ScopedValueResolver<McpResourceContext> {
+
+  public McpResourceContextResolver() {
+    super(McpResourceContext.class, McpResourceContext.CURRENT);
   }
 }

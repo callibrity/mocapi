@@ -208,3 +208,24 @@ For multi-entry results (e.g., a markdown page plus its embedded images), use th
 Mocapi uses Spring's `UriTemplate` for matching. Fixed resources are matched first by exact URI; if no fixed resource matches, each registered template is tried in registration order until one matches. The first match wins.
 
 If no resource or template matches the requested URI, the client receives a JSON-RPC `Invalid params` error.
+
+## Mid-execution interaction (progress and elicitation)
+
+A resource (or resource-template) handler may declare an
+`McpResourceContext` parameter to report progress or elicit input while it
+runs — the same surface tool handlers get, scoped to `resources/read`
+(ADR-0025, ADR-0024).
+
+```java
+@McpResource(uri = "report://latest", mimeType = "application/pdf")
+public ReadResourceResult latestReport(McpResourceContext ctx) {
+    var p = ctx.countingProgress(3L);
+    p.emit("querying");
+    p.emit("rendering");
+    p.emit("encoding");
+    return ReadResourceResult.ofBlob("report://latest", "application/pdf", bytes);
+}
+```
+
+See the [interactive tools guide](interactive-tools.md) for the full
+progress and elicitation API and the replay/idempotency contract.

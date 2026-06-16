@@ -172,14 +172,20 @@ A retry that simply *doesn't* answer the pending question is not an
 error: the handler re-executes, reaches the same unanswered ordinal, and
 the same `InputRequiredResult` (with a re-minted token) goes back out.
 
-## The user-facing surface: `McpElicitor`
+## The user-facing surface: `McpElicitor` and `MrtrContext`
 
-`McpElicitor` (ADR-0024) owns the `elicit(...)` API. `McpToolContext`
-extends it, so tools are unchanged; prompt and resource handlers declare
-an `McpElicitor` parameter (resolved by the structural
-`McpElicitorResolver`) and get identical semantics — the services bind
-`McpElicitor.CURRENT` around handler invocation on all three MRTR seams,
-with the same capability pre-check (`DefaultMcpElicitor`).
+`McpElicitor` (ADR-0024) owns the `elicit(...)` API. Since ADR-0025 it is
+one half of `MrtrContext` — the shared base interface
+(`McpElicitor` + `McpProgressSource`) of the three MRTR-capable handler
+contexts, `McpToolContext`, `McpPromptContext`, and `McpResourceContext`.
+A handler can declare its leaf context (to elicit *and* report progress)
+or a bare `McpElicitor` parameter (elicitation only); both resolve through
+the structural `ScopedValueResolver` pattern (`McpToolContextResolver`,
+`McpPromptContextResolver`, `McpResourceContextResolver`,
+`McpElicitorResolver`). Each of the three services builds a context
+(`AbstractMrtrContext` subclass) and binds it to both its leaf
+`CURRENT` and `McpElicitor.CURRENT` around handler invocation, with the
+capability pre-check living in `AbstractMrtrContext.elicit(...)`.
 
 ## Capability gating
 
@@ -188,7 +194,7 @@ capability in the per-request `_meta`
 (`io.modelcontextprotocol/clientCapabilities`); a bare
 `"elicitation": {}` counts as form-capable
 (`McpExchange.supportsElicitationForm()`). When a handler elicits against
-a client that did not declare it, `DefaultMcpToolContext` throws
+a client that did not declare it, `AbstractMrtrContext` throws
 `McpElicitationNotSupportedException`, which
 `ElicitationNotSupportedExceptionTranslator` maps onto the spec's
 `MissingRequiredClientCapabilityError`: JSON-RPC code `-32003` with
@@ -259,6 +265,8 @@ reachable through `McpToolContext`.
   documentation for `ctx.elicit(...)` and progress.
 - [ADR-0021](../adr/0021-mrtr-elicitation-replay.md) — the replay
   decision, including the rejected park-and-relay alternative.
+- [ADR-0025](../adr/0025-progress-emitters-and-mrtr-context.md) — the
+  `MrtrContext` super-interface and typed progress emitters.
 - [ADR-0020](../adr/0020-stateless-request-model.md) — the stateless
   request model MRTR depends on.
 - [ADR-0015](../adr/0015-constrained-elicitation-schema-builder.md) —

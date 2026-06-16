@@ -17,6 +17,10 @@ package com.callibrity.mocapi.api.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.mocapi.api.progress.CountingProgressEmitter;
+import com.callibrity.mocapi.api.progress.DoubleProgressEmitter;
+import com.callibrity.mocapi.api.progress.LongProgressEmitter;
+import com.callibrity.mocapi.api.progress.PercentageCompleteProgressEmitter;
 import com.callibrity.mocapi.model.ElicitAction;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.ElicitResult;
@@ -38,8 +42,23 @@ class McpToolContextDefaultMethodsTest {
     }
 
     @Override
-    public void sendProgress(long progress, long total) {
-      // not under test
+    public DoubleProgressEmitter doubleProgress(Double total) {
+      return null; // not under test
+    }
+
+    @Override
+    public LongProgressEmitter longProgress(Long total) {
+      return null; // not under test
+    }
+
+    @Override
+    public CountingProgressEmitter countingProgress(Long total) {
+      return null; // not under test
+    }
+
+    @Override
+    public PercentageCompleteProgressEmitter percentProgress() {
+      return null; // not under test
     }
 
     @Override

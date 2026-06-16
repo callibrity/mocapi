@@ -60,3 +60,4 @@ authored at decision time and dated accordingly.
 - [ADR-0022 — MCP 2026-07-28 features deliberately not implemented](0022-2026-07-28-features-not-implemented.md)
 - [ADR-0023 — Guard denial moves to `-32010`; spec claims `-32003`/`-32004`](0023-guard-denial-code-relocation.md)
 - [ADR-0024 — `McpElicitor`: elicitation from prompt and resource handlers](0024-mcp-elicitor-spi.md)
+- [ADR-0025 — Typed progress emitters and the `MrtrContext` super-interface](0025-progress-emitters-and-mrtr-context.md)

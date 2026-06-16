@@ -102,6 +102,7 @@ public final class GetPromptHandlers {
       ConversionService conversionService,
       List<ParameterResolver<? super Map<String, String>>> userResolvers) {
     List<ParameterResolver<? super Map<String, String>>> out = new ArrayList<>(userResolvers);
+    out.add(new McpPromptContextResolver());
     out.add(new McpElicitorResolver());
     out.add(new StringMapArgResolver(conversionService));
     return List.copyOf(out);

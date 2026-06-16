@@ -158,8 +158,7 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
     McpExchange exchange = McpExchange.CURRENT.isBound() ? McpExchange.CURRENT.get() : null;
     ValueNode progressToken = params.meta() != null ? params.meta().progressToken() : null;
     DefaultMcpToolContext ctx =
-        new DefaultMcpToolContext(
-            transport, objectMapper, progressToken, elicitationEngine, exchange, name);
+        new DefaultMcpToolContext(transport, progressToken, elicitationEngine, exchange, name);
 
     try {
       Object result =

@@ -70,14 +70,14 @@ class DefaultMcpToolContextTest {
   class Progress {
 
     @Test
-    void send_progress_sends_notification_through_transport() {
+    void emitter_sends_notification_through_transport() {
       var transport = mock(McpTransport.class);
       var token = JsonNodeFactory.instance.stringNode("progress-1");
       var ctx =
           new DefaultMcpToolContext(
-              transport, mapper, token, elicitationDispatcher, formCapableExchange(), "tool");
+              transport, token, elicitationDispatcher, formCapableExchange(), "tool");
 
-      ctx.sendProgress(5, 10);
+      ctx.longProgress(10L).emit(5, "halfway");
 
       var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
       verify(transport).send(captor.capture());
@@ -86,16 +86,17 @@ class DefaultMcpToolContextTest {
       assertThat(msg.params().get("progressToken").asString()).isEqualTo("progress-1");
       assertThat(msg.params().get("progress").asDouble()).isEqualTo(5.0);
       assertThat(msg.params().get("total").asDouble()).isEqualTo(10.0);
+      assertThat(msg.params().get("message").asString()).isEqualTo("halfway");
     }
 
     @Test
-    void send_progress_with_null_token_is_no_op() {
+    void emitter_with_null_token_is_no_op() {
       var transport = mock(McpTransport.class);
       var ctx =
           new DefaultMcpToolContext(
-              transport, mapper, null, elicitationDispatcher, formCapableExchange(), "tool");
+              transport, null, elicitationDispatcher, formCapableExchange(), "tool");
 
-      ctx.sendProgress(5, 10);
+      ctx.percentProgress().complete(0.5);
 
       verifyNoInteractions(transport);
     }
@@ -111,12 +112,7 @@ class DefaultMcpToolContextTest {
     void elicit_routes_to_dispatcher_when_client_is_form_capable() {
       var ctx =
           new DefaultMcpToolContext(
-              mock(McpTransport.class),
-              mapper,
-              null,
-              elicitationDispatcher,
-              formCapableExchange(),
-              "tool");
+              mock(McpTransport.class), null, elicitationDispatcher, formCapableExchange(), "tool");
       var expectedResult = new ElicitResult(ElicitAction.ACCEPT, mapper.createObjectNode());
       when(elicitationDispatcher.elicit(requestParams)).thenReturn(expectedResult);
 
@@ -131,7 +127,6 @@ class DefaultMcpToolContextTest {
       var ctx =
           new DefaultMcpToolContext(
               mock(McpTransport.class),
-              mapper,
               null,
               elicitationDispatcher,
               exchange(new ClientCapabilities(null, null, null, null, null)),
@@ -147,7 +142,7 @@ class DefaultMcpToolContextTest {
     void elicit_throws_not_supported_when_exchange_is_absent() {
       var ctx =
           new DefaultMcpToolContext(
-              mock(McpTransport.class), mapper, null, elicitationDispatcher, null, "tool");
+              mock(McpTransport.class), null, elicitationDispatcher, null, "tool");
 
       assertThatThrownBy(() -> ctx.elicit(requestParams))
           .isInstanceOf(McpElicitationNotSupportedException.class);
@@ -158,12 +153,7 @@ class DefaultMcpToolContextTest {
     void bare_elicitation_capability_counts_as_form_support() {
       var ctx =
           new DefaultMcpToolContext(
-              mock(McpTransport.class),
-              mapper,
-              null,
-              elicitationDispatcher,
-              formCapableExchange(),
-              "tool");
+              mock(McpTransport.class), null, elicitationDispatcher, formCapableExchange(), "tool");
       when(elicitationDispatcher.elicit(requestParams))
           .thenReturn(new ElicitResult(ElicitAction.DECLINE, null));
 
@@ -176,7 +166,6 @@ class DefaultMcpToolContextTest {
     var ctx =
         new DefaultMcpToolContext(
             mock(McpTransport.class),
-            mapper,
             null,
             elicitationDispatcher,
             formCapableExchange(),

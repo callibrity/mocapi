@@ -72,8 +72,9 @@ class ToolsCallInteractiveComplianceTest {
             null,
             arguments -> {
               McpToolContext ctx = McpToolContext.CURRENT.get();
-              ctx.sendProgress(1, 2);
-              ctx.sendProgress(2, 2);
+              var progress = ctx.longProgress(2L);
+              progress.emit(1);
+              progress.emit(2);
               return Map.of("done", true);
             },
             List.of(),
