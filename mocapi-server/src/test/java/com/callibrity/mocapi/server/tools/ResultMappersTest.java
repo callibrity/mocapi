@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server.tools;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ImageContent;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.List;
@@ -148,6 +149,28 @@ class ResultMappersTest {
       assertThat(out.structuredContent().isNumber()).isTrue();
       assertThat(out.structuredContent().asInt()).isEqualTo(42);
       assertThat(((TextContent) out.content().getFirst()).text()).isEqualTo("42");
+    }
+  }
+
+  @Nested
+  class ContentBlockResultMapper_tests {
+
+    @Test
+    void single_content_block_becomes_the_sole_content_item_with_no_structured_content() {
+      var image = new ImageContent("base64data", "image/png", null);
+
+      CallToolResult out = ContentBlockResultMapper.INSTANCE.map(image);
+
+      assertThat(out.isError()).isNull();
+      assertThat(out.structuredContent()).isNull();
+      assertThat(out.content()).containsExactly(image);
+    }
+
+    @Test
+    void null_input_produces_empty_content_without_structured_content() {
+      CallToolResult out = ContentBlockResultMapper.INSTANCE.map(null);
+      assertThat(out.content()).isEmpty();
+      assertThat(out.structuredContent()).isNull();
     }
   }
 

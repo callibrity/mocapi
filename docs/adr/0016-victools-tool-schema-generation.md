@@ -75,7 +75,11 @@ is the one rejected case: its element type is erased on the return
 signature, so no schema can be derived — return the value directly or a
 `CallToolResult`. (Earlier mocapi enforced the 2025-11-25 object-only
 rule; this relaxation finished a migration the model already reflected,
-`structuredContent` being typed `JsonNode`.)
+`structuredContent` being typed `JsonNode`.) A single `ContentBlock` return
+(`ImageContent`, `AudioContent`, `ResourceLink`, `EmbeddedResource`,
+`TextContent`) is a separate ergonomic shortcut: it is wrapped as the sole
+`content` item with no structured content or schema, sparing the author a
+hand-built `CallToolResult` for the common single-non-text-block case.
 
 ## Consequences
 
@@ -106,6 +110,7 @@ the tool path, where the JSON-Schema-shaped `inputSchema` /
 **Code anchors:** `mocapi-server/.../tools/DefaultMethodSchemaGenerator.java`;
 return-type classification and schema advertisement in
 `mocapi-server/.../tools/CallToolHandlers.java` (`createResultMapper`);
-structured mapping in `mocapi-server/.../tools/StructuredResultMapper.java`.
+structured mapping in `mocapi-server/.../tools/StructuredResultMapper.java`;
+single-block mapping in `mocapi-server/.../tools/ContentBlockResultMapper.java`.
 Required-by-default for record components landed in commit `fe420b43` and
 shipped in 0.17.0.

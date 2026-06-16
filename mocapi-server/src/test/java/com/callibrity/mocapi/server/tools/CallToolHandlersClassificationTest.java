@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ImageContent;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.lang.reflect.Method;
@@ -140,6 +141,18 @@ class CallToolHandlersClassificationTest {
       var handler = build(RecordBean.class);
       var props = (ObjectNode) handler.descriptor().outputSchema().get("properties");
       assertThat(props.propertyNames()).contains("name", "age");
+    }
+  }
+
+  @Nested
+  class When_effective_type_is_a_ContentBlock {
+
+    @Test
+    void single_ContentBlock_return_picks_the_content_block_mapper_and_advertises_no_schema() {
+      var handler = build(ImageContentBean.class);
+      assertThat(handler.resultMapper()).isSameAs(ContentBlockResultMapper.INSTANCE);
+      assertThat(handler.descriptor().outputSchema()).isNull();
+      assertThat(hasAwaitInterceptor(handler)).isFalse();
     }
   }
 
@@ -272,6 +285,14 @@ class CallToolHandlersClassificationTest {
     }
 
     @Test
+    void CompletionStage_of_ContentBlock_unwraps_to_content_block_mapper() {
+      var handler = build(CompletionStageOfImageContentBean.class);
+      assertThat(hasAwaitInterceptor(handler)).isTrue();
+      assertThat(handler.resultMapper()).isSameAs(ContentBlockResultMapper.INSTANCE);
+      assertThat(handler.descriptor().outputSchema()).isNull();
+    }
+
+    @Test
     void CompletionStage_of_String_unwraps_to_text_mapper() {
       var handler = build(CompletionStageOfStringBean.class);
       assertThat(hasAwaitInterceptor(handler)).isTrue();
@@ -390,6 +411,20 @@ class CallToolHandlersClassificationTest {
     @com.callibrity.mocapi.api.tools.McpTool
     public String m() {
       return "hi";
+    }
+  }
+
+  public static class ImageContentBean {
+    @com.callibrity.mocapi.api.tools.McpTool
+    public ImageContent m() {
+      return new ImageContent("data", "image/png", null);
+    }
+  }
+
+  public static class CompletionStageOfImageContentBean {
+    @com.callibrity.mocapi.api.tools.McpTool
+    public CompletionStage<ImageContent> m() {
+      return CompletableFuture.completedFuture(new ImageContent("data", "image/png", null));
     }
   }
 

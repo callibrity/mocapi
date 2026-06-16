@@ -60,6 +60,11 @@ All notable changes to this project are documented in this file. The format is b
   returns at registration; the model field was already widened to `JsonNode`,
   so this finishes that migration. `Optional<T>` remains rejected (its element
   type is erased — return the value directly or a `CallToolResult`).
+- **Tools may return a single `ContentBlock` directly.** A return type of
+  `ImageContent` / `AudioContent` / `ResourceLink` / `EmbeddedResource` /
+  `TextContent` (or a `CompletionStage` of one) is wrapped as the sole item of
+  the result's `content` — an ergonomic shortcut for returning one non-text
+  content item without hand-building a `CallToolResult`.
 - **Per-request SSE streams are now leak-proof.** The response stream is closed
   on every terminating path: a serialization failure for one message is logged
   and dropped without tearing down the stream; the terminal response always

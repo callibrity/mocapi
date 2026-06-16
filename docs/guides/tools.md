@@ -130,6 +130,7 @@ The signature determines exactly how mocapi maps the value to a `CallToolResult`
 | `void` / `Void` | Empty `CallToolResult` (text-only, no structured content) | — |
 | `CallToolResult` | Author constructs the result manually; passed through as-is | — |
 | `CharSequence` (typically `String`) | `toString()` becomes a single text content block; no structured content | — |
+| A single `ContentBlock` (`ImageContent`, `AudioContent`, `ResourceLink`, `EmbeddedResource`, `TextContent`) | Wrapped as the sole item of the result's `content` list; no structured content | — |
 | Any other type | Jackson-serialized to `structuredContent` with a matching text block | Advertised when a concrete schema type is derivable |
 
 Since MCP 2026-07-28, `structuredContent` may be any JSON value, so the last row covers records/POJOs **and** collections, arrays, maps, and scalars:
@@ -176,6 +177,19 @@ public String motd() {
     return "Be excellent to each other.";
 }
 ```
+
+### Single Content Block Return
+
+A tool that wants to return one non-text content item — an image, audio clip, resource link, or embedded resource — can return the `ContentBlock` directly instead of hand-building a `CallToolResult`. The block becomes the sole item of the result's `content`; no structured content is produced.
+
+```java
+@McpTool(name = "chart", description = "Renders a chart as a PNG")
+public ImageContent chart(String series) {
+    return new ImageContent(renderPngBase64(series), "image/png", null);
+}
+```
+
+For multiple content blocks, return a `CallToolResult` and assemble the list yourself.
 
 ### Void Tools
 

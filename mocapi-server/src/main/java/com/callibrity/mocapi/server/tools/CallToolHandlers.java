@@ -23,6 +23,7 @@ import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ContentBlock;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.elicitation.McpElicitorResolver;
 import com.callibrity.mocapi.server.guards.Guard;
@@ -159,6 +160,9 @@ public final class CallToolHandlers {
     if (resultType.isCharSequence()) {
       return new MapperAndSchema(TextContentResultMapper.INSTANCE, null);
     }
+    if (resultType.isContentBlock()) {
+      return new MapperAndSchema(ContentBlockResultMapper.INSTANCE, null);
+    }
     if (resultType.rawType() == Optional.class) {
       throw rejectReturnType(
           bean,
@@ -224,6 +228,10 @@ public final class CallToolHandlers {
 
     boolean isCharSequence() {
       return CharSequence.class.isAssignableFrom(rawType);
+    }
+
+    boolean isContentBlock() {
+      return ContentBlock.class.isAssignableFrom(rawType);
     }
   }
 
