@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ImageContent;
+import com.callibrity.mocapi.model.ResourceLink;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.List;
@@ -170,6 +171,16 @@ class ResultMappersTest {
     void null_input_produces_empty_content_without_structured_content() {
       CallToolResult out = ContentBlockResultMapper.INSTANCE.map(null);
       assertThat(out.content()).isEmpty();
+      assertThat(out.structuredContent()).isNull();
+    }
+
+    @Test
+    void wraps_a_non_image_content_block_subtype_too() {
+      var link = new ResourceLink("file:///doc", "text/plain", null);
+
+      CallToolResult out = ContentBlockResultMapper.INSTANCE.map(link);
+
+      assertThat(out.content()).containsExactly(link);
       assertThat(out.structuredContent()).isNull();
     }
   }

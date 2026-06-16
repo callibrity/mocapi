@@ -20,12 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ImageContent;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
+import com.callibrity.mocapi.server.tools.ContentBlockResultMapper;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.PassthroughResultMapper;
 import com.callibrity.mocapi.server.tools.ResultMapper;
@@ -103,6 +105,13 @@ class ToolsCallComplianceTest {
         makeTool(
             "structured", inputSchema, args -> Map.of("key", "structured-value"), structuredMapper);
 
+    CallToolHandler imageTool =
+        makeTool(
+            "image",
+            inputSchema,
+            args -> new ImageContent("base64data", "image/png", null),
+            ContentBlockResultMapper.INSTANCE);
+
     var toolsService =
         new McpToolsService(
             List.of(
@@ -111,7 +120,8 @@ class ToolsCallComplianceTest {
                 directResultTool,
                 throwingJsonRpcTool,
                 throwingOtherTool,
-                structuredTool),
+                structuredTool,
+                imageTool),
             MAPPER,
             ComplianceTestSupport.mrtrEngine());
 
@@ -143,6 +153,23 @@ class ToolsCallComplianceTest {
     var result = captureResult(transport);
     var content = result.result().path("content");
     assertThat(content.isArray()).isTrue();
+  }
+
+  @Test
+  void tool_returning_a_single_content_block_yields_one_content_item_and_no_structured_content() {
+    var transport = mock(McpTransport.class);
+
+    server.handleCall(
+        call("tools/call", Map.of("name", "image", "arguments", Map.of("input", "test"))),
+        transport);
+
+    var result = captureResult(transport);
+    var content = result.result().path("content");
+    assertThat(content.isArray()).isTrue();
+    assertThat(content.size()).isEqualTo(1);
+    assertThat(content.get(0).path("type").asString()).isEqualTo("image");
+    assertThat(content.get(0).path("mimeType").asString()).isEqualTo("image/png");
+    assertThat(result.result().has("structuredContent")).isFalse();
   }
 
   @Test

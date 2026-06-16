@@ -20,8 +20,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ImageContent;
+import com.callibrity.mocapi.model.ResourceLink;
+import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.lang.reflect.Method;
@@ -153,6 +156,22 @@ class CallToolHandlersClassificationTest {
       assertThat(handler.resultMapper()).isSameAs(ContentBlockResultMapper.INSTANCE);
       assertThat(handler.descriptor().outputSchema()).isNull();
       assertThat(hasAwaitInterceptor(handler)).isFalse();
+    }
+
+    @Test
+    void ResourceLink_return_picks_the_content_block_mapper() {
+      var handler = build(ResourceLinkBean.class);
+      assertThat(handler.resultMapper()).isSameAs(ContentBlockResultMapper.INSTANCE);
+      assertThat(handler.descriptor().outputSchema()).isNull();
+    }
+
+    @Test
+    void TextContent_return_routes_to_the_content_block_mapper_not_the_text_mapper() {
+      // TextContent is a ContentBlock but not a CharSequence, so it becomes a single content block
+      // rather than the toString() text shortcut.
+      var handler = build(TextContentBean.class);
+      assertThat(handler.resultMapper()).isSameAs(ContentBlockResultMapper.INSTANCE);
+      assertThat(handler.descriptor().outputSchema()).isNull();
     }
   }
 
@@ -387,203 +406,217 @@ class CallToolHandlersClassificationTest {
   record Nothing() {}
 
   public static class PrimitiveVoidBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public void m() {
       // Intentionally empty: exercises the classifier's `void` branch.
     }
   }
 
   public static class BoxedVoidBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Void m() {
       return null;
     }
   }
 
   public static class CallToolResultBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CallToolResult m() {
       return null;
     }
   }
 
   public static class StringBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public String m() {
       return "hi";
     }
   }
 
   public static class ImageContentBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public ImageContent m() {
       return new ImageContent("data", "image/png", null);
     }
   }
 
   public static class CompletionStageOfImageContentBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<ImageContent> m() {
       return CompletableFuture.completedFuture(new ImageContent("data", "image/png", null));
     }
   }
 
+  public static class ResourceLinkBean {
+    @McpTool
+    public ResourceLink m() {
+      return new ResourceLink("file:///doc", "text/plain", null);
+    }
+  }
+
+  public static class TextContentBean {
+    @McpTool
+    public TextContent m() {
+      return new TextContent("hi", null);
+    }
+  }
+
   public static class StringBuilderBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public StringBuilder m() {
       return new StringBuilder("hi");
     }
   }
 
   public static class CharSequenceBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CharSequence m() {
       return "hi";
     }
   }
 
   public static class RecordBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Person m() {
       return new Person("Ada", 36);
     }
   }
 
   public static class ObjectBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Object m() {
       return null;
     }
   }
 
   public static class IntBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public int m() {
       return 1;
     }
   }
 
   public static class DoubleBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public double m() {
       return 1.0;
     }
   }
 
   public static class BoxedBooleanBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Boolean m() {
       return Boolean.TRUE;
     }
   }
 
   public static class ListBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public List<Person> m() {
       return List.of();
     }
   }
 
   public static class ArrayBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Person[] m() {
       return new Person[0];
     }
   }
 
   public static class MapBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Map<String, Person> m() {
       return Map.of();
     }
   }
 
   public static class JsonNodeBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public JsonNode m() {
       return null;
     }
   }
 
   public static class ObjectNodeBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public ObjectNode m() {
       return null;
     }
   }
 
   public static class OptionalBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Optional<Person> m() {
       return Optional.empty();
     }
   }
 
   public static class EmptyRecordBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Nothing m() {
       return new Nothing();
     }
   }
 
   public static class CompletionStageOfRecordBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<Person> m() {
       return CompletableFuture.completedFuture(new Person("Ada", 36));
     }
   }
 
   public static class CompletableFutureOfRecordBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletableFuture<Person> m() {
       return CompletableFuture.completedFuture(new Person("Ada", 36));
     }
   }
 
   public static class CompletionStageOfVoidBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<Void> m() {
       return CompletableFuture.completedFuture(null);
     }
   }
 
   public static class CompletionStageOfCallToolResultBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<CallToolResult> m() {
       return CompletableFuture.completedFuture(null);
     }
   }
 
   public static class CompletionStageOfStringBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<String> m() {
       return CompletableFuture.completedFuture("hi");
     }
   }
 
   public static class CompletionStageOfListBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<List<Person>> m() {
       return CompletableFuture.completedFuture(List.of());
     }
   }
 
   public static class WildcardCompletionStageBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<?> m() {
       return CompletableFuture.completedFuture(null);
     }
   }
 
   public static class TypeVariableCompletionStageBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public <T> CompletionStage<T> m() {
       return CompletableFuture.completedFuture(null);
     }
   }
 
   public static class NestedCompletionStageBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<CompletionStage<Person>> m() {
       return CompletableFuture.completedFuture(
           CompletableFuture.completedFuture(new Person("Ada", 36)));
@@ -591,7 +624,7 @@ class CallToolHandlersClassificationTest {
   }
 
   public static class FutureOfStageBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletableFuture<CompletionStage<Person>> m() {
       return CompletableFuture.completedFuture(
           CompletableFuture.completedFuture(new Person("Ada", 36)));
