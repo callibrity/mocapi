@@ -31,10 +31,8 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>example-autoconfigure</module>
-        <module>in-memory</module>
+        <module>http</module>
         <module>stdio</module>
-        <module>jakarta-validation</module>
     </modules>
 
     <!--

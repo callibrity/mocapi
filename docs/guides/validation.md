@@ -130,7 +130,7 @@ The rejected input value is deliberately *omitted*. Reflecting it back can leak 
 
 ## Runnable example
 
-See [`examples/jakarta-validation`](../../examples/jakarta-validation) for a minimal streamable-http app showing all three handler types with jakarta constraints. Run with `mvn spring-boot:run` after `mvn install` at the repo root.
+See [`examples/http`](../../examples/http) for a runnable streamable-http app showing jakarta constraints on a tool parameter (`GreetTool`) and a resource-template variable (`ConfigResources`). Run with `mvn spring-boot:run` from `examples/http` after `mvn install` at the repo root.
 
 ## Not covered
 

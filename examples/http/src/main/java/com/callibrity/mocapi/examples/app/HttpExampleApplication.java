@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.examples.validation;
+package com.callibrity.mocapi.examples.app;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ValidationExampleApplication {
+public class HttpExampleApplication {
 
-  static void main(String[] args) {
-    SpringApplication.run(ValidationExampleApplication.class, args);
+  public static void main(String[] args) {
+    SpringApplication.run(HttpExampleApplication.class, args);
   }
 }

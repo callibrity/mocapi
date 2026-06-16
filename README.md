@@ -230,15 +230,15 @@ Each module is plain Java + an optional Spring Boot autoconfig (hosted in `mocap
 
 Working examples are in the [`examples/`](examples/) directory:
 
-| Example | Backend | Description |
-|---------|---------|-------------|
-| [In-Memory](examples/in-memory) | In-memory, HTTP | Simplest setup, no external dependencies |
-| [Stdio](examples/stdio) | In-memory, stdio | Minimal echo server launchable by Claude Desktop or MCP Inspector over stdio |
+| Example | Transport | Description |
+|---------|-----------|-------------|
+| [HTTP](examples/http) | Streamable HTTP | Comprehensive app: tools, resources, prompts, elicitation, and Jakarta Bean Validation |
+| [Stdio](examples/stdio) | stdio | Minimal echo server launchable by Claude Desktop or MCP Inspector over stdio |
 
-To run the in-memory HTTP example:
+To run the HTTP example:
 
 ```bash
-cd examples/in-memory
+cd examples/http
 mvn spring-boot:run
 ```
 

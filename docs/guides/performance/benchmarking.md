@@ -1,7 +1,7 @@
 # Mocapi Performance Benchmarking
 
 Periodic soak-testing + CPU/GC profiling for mocapi running against the
-in-memory example. Run this workflow when you want to detect
+HTTP example. Run this workflow when you want to detect
 regressions, validate a performance-focused change, or publish
 steady-state numbers.
 
@@ -35,7 +35,7 @@ docker run -d --rm --name jaeger \
 The example modules ship minimal by default — no observability stack,
 no actuator, no tracing — because demo apps shouldn't pay for what
 they don't need. Add these to
-`examples/in-memory/pom.xml` **for the duration of the benchmarking
+`examples/http/pom.xml` **for the duration of the benchmarking
 run only**, then back them out when you're done:
 
 ```xml
@@ -61,7 +61,7 @@ run only**, then back them out when you're done:
 ```
 
 And add these properties to
-`examples/in-memory/src/main/resources/application.properties`
+`examples/http/src/main/resources/application.properties`
 for the duration of the run:
 
 ```properties
@@ -82,7 +82,7 @@ any of this wired in.
 
 ## Workflow
 
-Assume the in-memory example is running on `localhost:8080` via
+Assume the HTTP example is running on `localhost:8080` via
 whatever you use (IntelliJ, `mvn spring-boot:run`, a built jar).
 
 ### 1. Initialize a session
@@ -209,7 +209,7 @@ echo "GCs: $(jfr print --events jdk.GarbageCollection /tmp/mocapi-soak.jfr | gre
 
 ### 6. Spot-check slow traces in Jaeger
 
-Open `http://localhost:16686`, filter service `mocapi-example-in-memory`,
+Open `http://localhost:16686`, filter service `mocapi-example-http`,
 set "Min Duration" to 100ms, limit 50. Any traces beyond your
 expected p99 are candidates for investigation. Drill into the
 waterfall — the child `mcp.server.operation` span vs parent `http post /mcp`

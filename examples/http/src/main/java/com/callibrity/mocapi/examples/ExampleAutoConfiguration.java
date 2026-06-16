@@ -21,14 +21,16 @@ import com.callibrity.mocapi.examples.resources.DocsResources;
 import com.callibrity.mocapi.examples.tools.CountdownTool;
 import com.callibrity.mocapi.examples.tools.HelloTool;
 import com.callibrity.mocapi.examples.tools.Rot13Tool;
+import com.callibrity.mocapi.examples.validation.ConfigResources;
+import com.callibrity.mocapi.examples.validation.GreetTool;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 
 /**
- * Shared auto-configuration for mocapi example applications. Registers example tool, prompt, and
- * resource beans so every backend example (in-memory, redis, postgresql, nats, stdio) exposes the
- * same set of capabilities simply by depending on this module.
+ * Auto-configuration for the HTTP example application. Registers the example tool, prompt, and
+ * resource beans (including the Jakarta Bean Validation tool and resource template) that the single
+ * HTTP example app exposes.
  *
  * <p>Registered before {@link MocapiServerAutoConfiguration} so that the example beans are present
  * when mocapi's {@code HandlerMethodsCache} scans for beans with {@code @McpTool} /
@@ -60,5 +62,15 @@ public class ExampleAutoConfiguration {
   @Bean
   public DocsResources docsResources() {
     return new DocsResources();
+  }
+
+  @Bean
+  public GreetTool greetTool() {
+    return new GreetTool();
+  }
+
+  @Bean
+  public ConfigResources configResources() {
+    return new ConfigResources();
   }
 }
