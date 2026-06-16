@@ -21,27 +21,18 @@ import com.callibrity.mocapi.model.TextContent;
 import java.util.List;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Mapper for tools whose declared return type derives to an object-shaped JSON schema. Serializes
- * the return value via Jackson, uses the resulting {@link ObjectNode} as both the {@code text}
- * content block (stringified) and the {@code structuredContent} field of the {@link
- * CallToolResult}.
+ * Mapper for tools that return structured output. Serializes the return value via Jackson and uses
+ * the resulting node as both the {@code structuredContent} field and a stringified {@code text}
+ * content block of the {@link CallToolResult}.
  *
- * <p>{@link ToolReturnTypeClassifier} verifies at registration time that the declared return type
- * produces a JSON schema of {@code type: object} with declared properties, so the runtime {@code
- * valueToTree} result should always be an {@link ObjectNode}. If a tool somehow returns a value
- * that serializes to a non-object node (e.g., via a custom Jackson serializer), that's a contract
- * violation and the mapper throws — surfacing the drift rather than silently dropping {@code
- * structuredContent}.
+ * <p>MCP 2026-07-28 widened {@code structuredContent} from a JSON object to <em>any</em> JSON value
+ * (object, array, string, number, boolean, or null), so the serialized node is passed through
+ * whatever its shape. The mirrored text block satisfies the spec's backwards-compatibility
+ * recommendation that a tool returning structured content also return the serialized JSON as text.
  */
 public final class StructuredResultMapper implements ResultMapper {
-
-  private static final String NON_OBJECT_RUNTIME_SHAPE =
-      "Tool return value serialized to a %s node, but structuredContent must be a JSON object. "
-          + "The declared return type advertised an object-shaped schema; a custom Jackson "
-          + "serializer or unexpected subclass likely changed the runtime shape.";
 
   private final ObjectMapper objectMapper;
 
@@ -58,10 +49,7 @@ public final class StructuredResultMapper implements ResultMapper {
       return new CallToolResult(List.of(), null, null, ResultTypes.COMPLETE);
     }
     JsonNode node = objectMapper.valueToTree(result);
-    if (!(node instanceof ObjectNode obj)) {
-      throw new IllegalStateException(String.format(NON_OBJECT_RUNTIME_SHAPE, node.getNodeType()));
-    }
     return new CallToolResult(
-        List.of(new TextContent(obj.toString(), null)), null, obj, ResultTypes.COMPLETE);
+        List.of(new TextContent(node.toString(), null)), null, node, ResultTypes.COMPLETE);
   }
 }

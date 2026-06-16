@@ -38,6 +38,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.reflect.TypeUtils;
@@ -158,31 +159,21 @@ public final class CallToolHandlers {
     if (resultType.isCharSequence()) {
       return new MapperAndSchema(TextContentResultMapper.INSTANCE, null);
     }
+    if (resultType.rawType() == Optional.class) {
+      throw rejectReturnType(
+          bean,
+          method,
+          "return type java.util.Optional has an erased element type, so no structuredContent "
+              + "schema can be derived. Return the value directly, or return CallToolResult to "
+              + "build the result manually.");
+    }
+    // MCP 2026-07-28 widened structuredContent from a JSON object to any JSON value, so any
+    // non-void/CallToolResult/CharSequence return type is structured. Advertise the derived schema
+    // when it carries a concrete type; an untyped empty schema (e.g. Object) conveys nothing, so
+    // advertise no outputSchema while still mapping the value into structuredContent.
     ObjectNode outputSchema = generator.generateSchema(resultType.rawType());
-    String schemaType =
-        outputSchema.get("type") == null ? "(none)" : outputSchema.get("type").asString();
-    if (!"object".equals(schemaType)) {
-      throw rejectReturnType(
-          bean,
-          method,
-          "return type "
-              + resultType.rawType().getName()
-              + " produces a JSON schema of type \""
-              + schemaType
-              + "\"; structuredContent must be a JSON object. Wrap the value in a record/POJO, "
-              + "or return CallToolResult to build the result manually.");
-    }
-    if (outputSchema.get("properties") == null) {
-      throw rejectReturnType(
-          bean,
-          method,
-          "return type "
-              + resultType.rawType().getName()
-              + " produces an object schema with no declared properties ("
-              + outputSchema
-              + "). Use a concrete record/class with named fields, or return CallToolResult.");
-    }
-    return new MapperAndSchema(new StructuredResultMapper(objectMapper), outputSchema);
+    ObjectNode advertised = outputSchema.get("type") == null ? null : outputSchema;
+    return new MapperAndSchema(new StructuredResultMapper(objectMapper), advertised);
   }
 
   private record MapperAndSchema(ResultMapper mapper, ObjectNode outputSchema) {}

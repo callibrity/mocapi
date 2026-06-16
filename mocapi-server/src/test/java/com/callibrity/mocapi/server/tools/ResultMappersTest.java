@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.server.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ResultTypes;
@@ -133,15 +132,22 @@ class ResultMappersTest {
     }
 
     @Test
-    void value_that_serializes_to_a_non_object_node_throws_illegal_state() {
-      // Registration-time classifier guarantees a structured handler only pairs with object-shaped
-      // schemas, so this should never happen in practice — but a custom Jackson serializer or an
-      // unexpected subclass could still produce a non-object node at runtime, in which case the
-      // mapper fails loudly rather than silently dropping structuredContent.
-      List<String> nonObjectPayload = List.of("not", "an", "object");
-      assertThatThrownBy(() -> structured.map(nonObjectPayload))
-          .isInstanceOf(IllegalStateException.class)
-          .hasMessageContaining("structuredContent must be a JSON object");
+    void array_value_is_serialized_into_array_structured_content_and_text_content() {
+      // MCP 2026-07-28: structuredContent may be any JSON value, not only an object.
+      CallToolResult out = structured.map(List.of("a", "b"));
+      assertThat(out.structuredContent()).isNotNull();
+      assertThat(out.structuredContent().isArray()).isTrue();
+      assertThat(out.structuredContent().get(0).asString()).isEqualTo("a");
+      assertThat(out.content()).hasSize(1);
+      assertThat(((TextContent) out.content().getFirst()).text()).isEqualTo("[\"a\",\"b\"]");
+    }
+
+    @Test
+    void scalar_value_is_serialized_into_scalar_structured_content_and_text_content() {
+      CallToolResult out = structured.map(42);
+      assertThat(out.structuredContent().isNumber()).isTrue();
+      assertThat(out.structuredContent().asInt()).isEqualTo(42);
+      assertThat(((TextContent) out.content().getFirst()).text()).isEqualTo("42");
     }
   }
 

@@ -144,91 +144,94 @@ class CallToolHandlersClassificationTest {
   }
 
   @Nested
-  class When_effective_type_is_rejected {
+  class When_effective_type_is_structured_non_object {
+
+    // MCP 2026-07-28 widened structuredContent from a JSON object to any JSON value, so non-object
+    // return types are accepted and advertise a schema of their derived JSON type.
 
     @Test
-    void Object_return_is_rejected() {
-      // Jackson emits an empty schema {} for Object — the rejection comes from the "not
-      // type:object" branch with type literal "(none)" in the message.
-      assertThatThrownBy(() -> build(ObjectBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"(none)\"");
+    void primitive_int_return_advertises_an_integer_schema() {
+      var handler = build(IntBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("integer");
     }
 
     @Test
-    void primitive_int_return_is_rejected_for_yielding_an_integer_schema() {
-      assertThatThrownBy(() -> build(IntBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"integer\"");
+    void primitive_double_return_advertises_a_number_schema() {
+      var handler = build(DoubleBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("number");
     }
 
     @Test
-    void primitive_double_return_is_rejected_for_yielding_a_number_schema() {
-      assertThatThrownBy(() -> build(DoubleBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"number\"");
+    void boxed_Boolean_return_advertises_a_boolean_schema() {
+      var handler = build(BoxedBooleanBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("boolean");
     }
 
     @Test
-    void boxed_Boolean_return_is_rejected_for_yielding_a_boolean_schema() {
-      assertThatThrownBy(() -> build(BoxedBooleanBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"boolean\"");
+    void List_return_advertises_an_array_schema() {
+      var handler = build(ListBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("array");
     }
 
     @Test
-    void List_return_is_rejected_for_yielding_an_array_schema() {
-      assertThatThrownBy(() -> build(ListBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"array\"");
+    void array_return_advertises_an_array_schema() {
+      var handler = build(ArrayBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("array");
     }
 
     @Test
-    void array_return_is_rejected_for_yielding_an_array_schema() {
-      assertThatThrownBy(() -> build(ArrayBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"array\"");
+    void Map_return_advertises_an_object_schema() {
+      var handler = build(MapBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
     }
 
     @Test
-    void Map_return_is_rejected_for_having_no_declared_properties() {
-      assertThatThrownBy(() -> build(MapBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("object schema with no declared properties");
+    void JsonNode_return_advertises_an_object_schema() {
+      var handler = build(JsonNodeBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
     }
 
     @Test
-    void JsonNode_return_is_rejected_for_having_no_declared_properties() {
-      assertThatThrownBy(() -> build(JsonNodeBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("object schema with no declared properties");
+    void ObjectNode_return_advertises_an_object_schema() {
+      var handler = build(ObjectNodeBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
     }
 
     @Test
-    void ObjectNode_return_is_rejected_for_having_no_declared_properties() {
-      assertThatThrownBy(() -> build(ObjectNodeBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("object schema with no declared properties");
+    void empty_record_return_advertises_an_object_schema() {
+      var handler = build(EmptyRecordBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
     }
 
     @Test
-    void Optional_return_is_rejected() {
+    void Object_return_is_structured_with_no_advertised_schema() {
+      // Jackson emits an empty schema {} for Object — there is no meaningful type to advertise, so
+      // no outputSchema is attached, but the value is still mapped to structuredContent.
+      var handler = build(ObjectBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema()).isNull();
+    }
+  }
+
+  @Nested
+  class When_effective_type_cannot_be_mapped {
+
+    @Test
+    void Optional_return_is_rejected_because_its_element_type_is_erased() {
+      // Optional is a Java container, not a JSON type; its element type is erased on the return
+      // signature, so no meaningful structuredContent schema can be derived.
       assertThatThrownBy(() -> build(OptionalBean.class))
-          .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void empty_record_return_is_rejected_for_having_no_declared_properties() {
-      assertThatThrownBy(() -> build(EmptyRecordBean.class))
           .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("object schema with no declared properties");
-    }
-
-    @Test
-    void rejection_message_names_the_offending_class() {
-      assertThatThrownBy(() -> build(ListBean.class))
-          .hasMessageContaining(ListBean.class.getName())
-          .hasMessageContaining("m");
+          .hasMessageContaining("Optional");
     }
   }
 
@@ -277,10 +280,11 @@ class CallToolHandlersClassificationTest {
     }
 
     @Test
-    void CompletionStage_of_List_is_rejected_for_yielding_an_array_schema_after_unwrap() {
-      assertThatThrownBy(() -> build(CompletionStageOfListBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"array\"");
+    void CompletionStage_of_List_unwraps_to_a_structured_array_mapper() {
+      var handler = build(CompletionStageOfListBean.class);
+      assertThat(hasAwaitInterceptor(handler)).isTrue();
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("array");
     }
 
     @Test

@@ -51,6 +51,15 @@ All notable changes to this project are documented in this file. The format is b
   `McpPromptContext`, and `McpResourceContext`, so **prompt and resource
   handlers can now report progress** (and therefore stream over SSE), not just
   tools.
+- **Tool structured output may now be any JSON value** (MCP 2026-07-28). A tool
+  return type other than `void` / `CallToolResult` / `CharSequence` is mapped to
+  `structuredContent` of whatever shape it serializes to — records/maps →
+  object, `List`/array → array, primitives → scalar — and the derived
+  `outputSchema` is advertised when a concrete type is derivable. Previously
+  mocapi enforced the older spec's object-only rule and rejected array/scalar
+  returns at registration; the model field was already widened to `JsonNode`,
+  so this finishes that migration. `Optional<T>` remains rejected (its element
+  type is erased — return the value directly or a `CallToolResult`).
 - **Per-request SSE streams are now leak-proof.** The response stream is closed
   on every terminating path: a serialization failure for one message is logged
   and dropped without tearing down the stream; the terminal response always
