@@ -74,9 +74,14 @@ those two properties. For replay prevention the token follows the spec's
 SHOULDs: a short TTL (`issuedAt` + `mocapi.mrtr.ttl`), the originating
 request (`method` + `originalParams`, rejecting cross-method/cross-target
 reuse), and the **authenticated principal** — bound via the
-`McpPrincipalSource` seam (default unauthenticated; an authenticated
-deployment supplies the principal, e.g. the OAuth2 JWT subject) so a token
-minted for one caller cannot be replayed by another. Single-use is *not*
+`McpPrincipalSource` seam so a token minted for one caller cannot be
+replayed by another. The core default is unauthenticated (null principal);
+`mocapi-oauth2` ships a `SecurityContextMcpPrincipalSource` (the Spring
+Security principal / JWT subject), wired ahead of the core default, and a
+user bean overrides both. It reads `SecurityContextHolder`, which the
+transport already propagates to the dispatch virtual thread via
+`ContextSnapshotFactory.captureAll()` (Spring Security registers a
+`SecurityContextHolderThreadLocalAccessor` through the service loader). Single-use is *not*
 enforced (the replay model is intentionally idempotent); a handler needing
 exactly-once semantics must enforce that itself.
 
