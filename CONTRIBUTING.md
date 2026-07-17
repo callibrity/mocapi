@@ -37,23 +37,31 @@ If you’d like to contribute code:
 
 Please follow idiomatic Java practices and keep your code clean and well-documented. For larger changes, consider opening an issue first to discuss the approach.
 
+Non-trivial changes (new features, new/changed SPIs, transport/contract
+changes) follow the spec-driven-development pipeline described in
+[`docs/superpowers/README.md`](docs/superpowers/README.md).
+
 For architecturally significant changes — adding a new transport, changing
-how customizers compose, altering the storage SPIs, etc. — add an
-Architecture Decision Record under [`docs/adr/`](docs/adr/) using the
-[template](docs/adr/_template.md), and update the affected
+how customizers compose, changing the `McpServer`↔`McpTransport` contract,
+etc. — add an Architecture Decision Record under [`docs/adr/`](docs/adr/)
+using the [template](docs/adr/_template.md), and update the affected
 [design docs](docs/design/) in the same PR. Don't let the design docs
-drift behind the decisions that change them.
+drift behind the decisions that change them. The load-bearing invariants a
+change must not violate are catalogued in
+[`docs/constitution.md`](docs/constitution.md).
 
 ## 🧱 Project Structure
 
+- `mocapi-server`: Core MCP server — JSON-RPC dispatch, protocol handling
 - `mocapi-streamable-http-spring-boot-starter` / `mocapi-stdio-spring-boot-starter`: Spring Boot starters bundling `mocapi-server` with a specific transport
-- `mocapi-tools`: Tool support for building MCP tools via `@ToolService`
-- `mocapi-prompts`: Prompt support for building structured prompt handlers via `@PromptService`
-- `examples/`: Sample applications and usage demonstrations
+- Tools and prompts are declared with `@McpTool` / `@McpPrompt` on Spring components
+- `examples/`: Sample applications (`examples/http`, `examples/stdio`)
+
+For the full module map, see [`docs/design/architecture-overview.md`](docs/design/architecture-overview.md).
 
 ## 📜 Code Style and Conventions
 
-- Use Java 23+ features judiciously — prefer clarity and simplicity
+- Use Java 25 features judiciously — prefer clarity and simplicity
 - Format using the default IntelliJ Java conventions or Google Java Style
 - Public methods and classes should be Javadoc'd
 - Keep method visibility as narrow as possible
