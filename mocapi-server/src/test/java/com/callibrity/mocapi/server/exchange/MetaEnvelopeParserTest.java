@@ -79,6 +79,28 @@ class MetaEnvelopeParserTest {
 
       assertThat(parser.parse(params).supportsElicitationForm()).isTrue();
     }
+
+    @Test
+    void envelope_without_clientInfo_parses_successfully() {
+      ObjectNode params = validParams();
+      meta(params).remove(McpMetaKeys.CLIENT_INFO);
+
+      McpExchange exchange = parser.parse(params);
+
+      assertThat(exchange.protocolVersion()).isEqualTo(McpServer.PROTOCOL_VERSION);
+      assertThat(exchange.clientInfo()).isNull();
+      assertThat(exchange.clientCapabilities()).isNotNull();
+    }
+
+    @Test
+    void present_but_malformed_clientInfo_still_fails() {
+      ObjectNode params = validParams();
+      ((ObjectNode) meta(params).get(McpMetaKeys.CLIENT_INFO)).remove("version");
+
+      assertThatThrownBy(() -> parser.parse(params))
+          .isInstanceOf(JsonRpcException.class)
+          .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcProtocol.INVALID_PARAMS);
+    }
   }
 
   @Nested
@@ -132,17 +154,6 @@ class MetaEnvelopeParserTest {
           .isInstanceOf(JsonRpcException.class)
           .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcProtocol.INVALID_PARAMS)
           .hasMessageContaining(McpMetaKeys.PROTOCOL_VERSION);
-    }
-
-    @Test
-    void missing_client_info_is_invalid_params() {
-      ObjectNode params = validParams();
-      meta(params).remove(McpMetaKeys.CLIENT_INFO);
-
-      assertThatThrownBy(() -> parser.parse(params))
-          .isInstanceOf(JsonRpcException.class)
-          .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcProtocol.INVALID_PARAMS)
-          .hasMessageContaining(McpMetaKeys.CLIENT_INFO);
     }
 
     @Test
@@ -240,7 +251,7 @@ class MetaEnvelopeParserTest {
       // the version check only runs once the envelope has proven well-formed.
       ObjectNode params = validParams();
       meta(params).put(McpMetaKeys.PROTOCOL_VERSION, "2025-11-25");
-      meta(params).remove(McpMetaKeys.CLIENT_INFO);
+      meta(params).remove(McpMetaKeys.CLIENT_CAPABILITIES);
 
       assertThatThrownBy(() -> parser.parse(params))
           .isInstanceOf(JsonRpcException.class)

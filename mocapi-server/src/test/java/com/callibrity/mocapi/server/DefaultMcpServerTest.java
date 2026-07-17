@@ -152,7 +152,7 @@ class DefaultMcpServerTest {
     @Test
     void call_with_missing_required_meta_key_gets_invalid_params() {
       ObjectNode params = paramsWithEnvelope(McpServer.PROTOCOL_VERSION);
-      ((ObjectNode) params.get("_meta")).remove(McpMetaKeys.CLIENT_INFO);
+      ((ObjectNode) params.get("_meta")).remove(McpMetaKeys.CLIENT_CAPABILITIES);
       JsonRpcCall call =
           JsonRpcCall.of("tools/list", params, JsonNodeFactory.instance.numberNode(9));
 

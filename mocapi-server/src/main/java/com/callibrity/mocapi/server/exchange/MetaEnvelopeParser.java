@@ -78,8 +78,8 @@ public class MetaEnvelopeParser {
     }
 
     String protocolVersion = requiredString(meta, McpMetaKeys.PROTOCOL_VERSION);
-    Implementation clientInfo = requiredObject(meta, McpMetaKeys.CLIENT_INFO, Implementation.class);
-    if (clientInfo.name() == null || clientInfo.version() == null) {
+    Implementation clientInfo = optionalObject(meta, McpMetaKeys.CLIENT_INFO, Implementation.class);
+    if (clientInfo != null && (clientInfo.name() == null || clientInfo.version() == null)) {
       throw invalidParams(
           "Malformed _meta key " + McpMetaKeys.CLIENT_INFO + ": name and version are required");
     }
@@ -129,6 +129,19 @@ public class MetaEnvelopeParser {
     if (node == null) {
       throw invalidParams("Missing required _meta key: " + key);
     }
+    return parseObject(node, key, type);
+  }
+
+  /** Like {@link #requiredObject}, but returns {@code null} rather than throwing when absent. */
+  private <T> T optionalObject(JsonNode meta, String key, Class<T> type) {
+    JsonNode node = meta.get(key);
+    if (node == null) {
+      return null;
+    }
+    return parseObject(node, key, type);
+  }
+
+  private <T> T parseObject(JsonNode node, String key, Class<T> type) {
     if (!node.isObject()) {
       throw invalidParams("Malformed _meta key " + key + ": expected an object");
     }
