@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.server.discover;
 
 import com.callibrity.mocapi.model.DiscoverResult;
-import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.ServerCapabilities;
@@ -40,22 +39,16 @@ import java.util.List;
  */
 public class DiscoverHandler {
 
-  private final Implementation serverInfo;
   private final String instructions;
   private final ServerCapabilities capabilities;
   private final CacheSettings cacheSettings;
 
-  public DiscoverHandler(
-      Implementation serverInfo, String instructions, ServerCapabilities capabilities) {
-    this(serverInfo, instructions, capabilities, CacheSettings.defaults());
+  public DiscoverHandler(String instructions, ServerCapabilities capabilities) {
+    this(instructions, capabilities, CacheSettings.defaults());
   }
 
   public DiscoverHandler(
-      Implementation serverInfo,
-      String instructions,
-      ServerCapabilities capabilities,
-      CacheSettings cacheSettings) {
-    this.serverInfo = serverInfo;
+      String instructions, ServerCapabilities capabilities, CacheSettings cacheSettings) {
     this.instructions = instructions;
     this.capabilities = capabilities;
     this.cacheSettings = cacheSettings;
@@ -67,7 +60,6 @@ public class DiscoverHandler {
         // The draft sentinel is an RC-window alias — drop at Task 9.3.
         List.of(McpServer.PROTOCOL_VERSION, McpServer.DRAFT_PROTOCOL_VERSION),
         capabilities,
-        serverInfo,
         instructions,
         cacheSettings.listTtlMs(),
         cacheSettings.scope(),

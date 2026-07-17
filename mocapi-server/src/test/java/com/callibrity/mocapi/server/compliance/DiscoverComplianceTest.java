@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.compliance;
 
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.PROTOCOL_VERSION;
+import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.SERVER_INFO;
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.buildServer;
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.call;
 import static com.callibrity.mocapi.server.compliance.ComplianceTestSupport.callWithMeta;
@@ -27,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.model.CompletionsCapability;
-import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.model.McpMetaKeys;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.ToolsCapability;
@@ -61,7 +62,6 @@ class DiscoverComplianceTest {
   void setUp() {
     var handler =
         new DiscoverHandler(
-            new Implementation("test-server", "Test Server", "1.0.0", null),
             "Use the tools wisely.",
             new ServerCapabilities(
                 null,
@@ -92,14 +92,15 @@ class DiscoverComplianceTest {
     }
 
     @Test
-    void advertises_server_identity_and_instructions() {
+    void advertises_server_identity_via_meta_and_instructions() {
       var transport = mock(McpTransport.class);
 
       server.handleCall(call(McpMethods.SERVER_DISCOVER), transport);
 
       var result = captureResult(transport).result();
-      assertThat(result.path("serverInfo").path("name").asString()).isEqualTo("test-server");
-      assertThat(result.path("serverInfo").path("version").asString()).isEqualTo("1.0.0");
+      var serverInfo = result.path("_meta").path(McpMetaKeys.SERVER_INFO);
+      assertThat(serverInfo.path("name").asString()).isEqualTo(SERVER_INFO.name());
+      assertThat(serverInfo.path("version").asString()).isEqualTo(SERVER_INFO.version());
       assertThat(result.path("instructions").asString()).isEqualTo("Use the tools wisely.");
     }
 

@@ -186,8 +186,8 @@ public class MocapiServerAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(DiscoverHandler.class)
   public DiscoverHandler mcpDiscoverHandler(
-      Implementation serverInfo, ServerCapabilities capabilities, CacheSettings cacheSettings) {
-    return new DiscoverHandler(serverInfo, props.instructions(), capabilities, cacheSettings);
+      ServerCapabilities capabilities, CacheSettings cacheSettings) {
+    return new DiscoverHandler(props.instructions(), capabilities, cacheSettings);
   }
 
   @Bean

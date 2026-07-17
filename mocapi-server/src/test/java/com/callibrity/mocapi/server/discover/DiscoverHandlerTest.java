@@ -18,7 +18,6 @@ package com.callibrity.mocapi.server.discover;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.CacheScope;
-import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.ToolsCapability;
@@ -33,10 +32,9 @@ import org.junit.jupiter.api.Test;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DiscoverHandlerTest {
 
-  private final Implementation serverInfo = new Implementation("test-server", "Test", "1.0", null);
   private final ServerCapabilities capabilities =
       new ServerCapabilities(null, new ToolsCapability(null), null, null, null, null, Map.of());
-  private final DiscoverHandler handler = new DiscoverHandler(serverInfo, "be nice", capabilities);
+  private final DiscoverHandler handler = new DiscoverHandler("be nice", capabilities);
 
   @Test
   void advertises_the_supported_protocol_versions() {
@@ -46,10 +44,9 @@ class DiscoverHandlerTest {
   }
 
   @Test
-  void returns_server_identity_and_instructions() {
+  void returns_the_configured_instructions() {
     var result = handler.discover();
 
-    assertThat(result.serverInfo()).isSameAs(serverInfo);
     assertThat(result.instructions()).isEqualTo("be nice");
   }
 
@@ -73,7 +70,7 @@ class DiscoverHandlerTest {
   @Test
   void carries_configured_list_ttl_and_scope_when_cache_settings_are_supplied() {
     var settings = new CacheSettings(Duration.ofMinutes(10), Duration.ZERO, CacheScope.PUBLIC);
-    var configured = new DiscoverHandler(serverInfo, "be nice", capabilities, settings);
+    var configured = new DiscoverHandler("be nice", capabilities, settings);
 
     var result = configured.discover();
 

@@ -272,7 +272,6 @@ class MocapiStartupBannerTest {
                   List.of(McpServer.PROTOCOL_VERSION, McpServer.DRAFT_PROTOCOL_VERSION),
                   null,
                   null,
-                  null,
                   0L,
                   CacheScope.PRIVATE,
                   ResultTypes.COMPLETE));

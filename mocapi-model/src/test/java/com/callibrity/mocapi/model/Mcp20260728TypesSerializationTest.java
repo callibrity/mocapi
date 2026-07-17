@@ -42,7 +42,6 @@ class Mcp20260728TypesSerializationTest {
               List.of("2026-07-28"),
               new ServerCapabilities(
                   null, new ToolsCapability(false), null, null, null, null, Map.of()),
-              new Implementation("mocapi", null, "1.0.0", null),
               "An example server",
               60000L,
               CacheScope.PUBLIC,
@@ -50,7 +49,6 @@ class Mcp20260728TypesSerializationTest {
       String json = mapper.writeValueAsString(original);
       assertThat(json)
           .contains("\"supportedVersions\":[\"2026-07-28\"]")
-          .contains("\"serverInfo\":{\"name\":\"mocapi\"")
           .contains("\"instructions\":\"An example server\"")
           .contains("\"ttlMs\":60000")
           .contains("\"cacheScope\":\"public\"")
@@ -59,7 +57,6 @@ class Mcp20260728TypesSerializationTest {
       var deserialized = mapper.readValue(json, DiscoverResult.class);
       assertThat(deserialized.supportedVersions()).containsExactly("2026-07-28");
       assertThat(deserialized.capabilities().tools().listChanged()).isFalse();
-      assertThat(deserialized.serverInfo().name()).isEqualTo("mocapi");
     }
   }
 
