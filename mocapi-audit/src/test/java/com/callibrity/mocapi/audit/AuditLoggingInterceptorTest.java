@@ -107,6 +107,18 @@ class AuditLoggingInterceptorTest {
   }
 
   @Test
+  void omits_client_name_when_exchange_has_no_client_info() {
+    var interceptor = newInterceptor(HandlerKind.TOOL, "weather", false);
+    var exchange = new McpExchange("2026-07-28", null, null);
+    ScopedValue.where(McpExchange.CURRENT, exchange)
+        .run(() -> interceptor.intercept(invocation(Map.of(), () -> "ok")));
+
+    Map<String, Object> kv = keyValues(appender.list.getFirst());
+    assertThat(kv).containsEntry(AuditFieldKeys.PROTOCOL_VERSION, "2026-07-28");
+    assertThat(kv.get(AuditFieldKeys.CLIENT_NAME)).isNull();
+  }
+
+  @Test
   void classifies_forbidden() {
     var interceptor = newInterceptor(HandlerKind.TOOL, "wipe", false);
     var invocation =
