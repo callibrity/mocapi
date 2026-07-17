@@ -56,9 +56,10 @@ StreamableHttpController (transport)
     |
     v
 DefaultMcpServer (protocol)
-    |-- parses the _meta envelope (protocolVersion, clientInfo,
-    |       clientCapabilities) → McpExchange; missing/malformed → -32602,
-    |       unsupported version → -32022 with the supported-version list
+    |-- parses the _meta envelope (protocolVersion, clientCapabilities
+    |       required; clientInfo optional) → McpExchange;
+    |       missing/malformed → -32602, unsupported version → -32022
+    |       with the supported-version list
     |-- binds McpExchange and McpTransport as ScopedValues
     |-- dispatches to RipCurl JSON-RPC dispatcher
     |-- RipCurl routes to @JsonRpcMethod handlers
@@ -69,6 +70,13 @@ McpToolsService / McpPromptsService / McpResourcesService / etc.
     |-- invokes tool method via Methodical
     |-- wraps result in CallToolResult (resultType: "complete")
     |       — or InputRequiredResult when an elicitation is pending (MRTR)
+    |
+    v
+DefaultMcpServer (protocol)
+    |-- on every successful result, stamps
+    |       _meta["io.modelcontextprotocol/serverInfo"] if absent
+    |       (opt-out: mocapi.emit-server-info, default true) — see
+    |       ADR-0026
 ```
 
 The same flow applies to stdio, with `StdioServer` / `StdioTransport`

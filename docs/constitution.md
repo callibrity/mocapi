@@ -32,7 +32,8 @@ mocapi tracks the current MCP revision (**2026-07-28**) with a clean-break
 philosophy: features the same revision deprecates at introduction are not
 adopted.
 → [ADR-0019](adr/0019-clean-break-2026-07-28.md),
-[ADR-0022](adr/0022-2026-07-28-features-not-implemented.md)
+[ADR-0022](adr/0022-2026-07-28-features-not-implemented.md),
+[ADR-0026](adr/0026-response-meta-serverinfo-injection.md)
 
 ### I4 — Module boundaries & packaging
 The module split (api / model / server / transports / autoconfigure /

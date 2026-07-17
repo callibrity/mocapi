@@ -41,6 +41,20 @@ Every subagent dispatch names the specific design docs, ADRs, and
 fresh-context worker loads the right material. See CLAUDE.md's
 "Read-before-you-touch" subsystem map.
 
+## Spec vs ADR — when each
+
+A spec (`specs/`) is a **build document**: it captures intent for one
+feature at the moment it's being built, then goes stale once the
+feature ships — it is not maintained afterward.
+
+An ADR is the durable, citable, supersedable **why**. Write one only
+when a change creates or alters an invariant (see
+[constitution.md](../constitution.md)), changes a public contract
+(SPI, transport, capability), or establishes a pattern other code must
+follow. Most feature specs do **not** produce an ADR — only the subset
+that meets CLAUDE.md's "architecturally significant" bar does. When in
+doubt, ask before writing code rather than skip the ADR.
+
 ## Where things live
 
 | Directory | Holds |

@@ -12,6 +12,7 @@ Mocapi is stateless under MCP 2026-07-28: there are no sessions, no session stor
 | `mocapi.server-title` | `Callibrity Mocapi MCP Server` | Human-readable server title. |
 | `mocapi.server-version` | `unknown` | Server version. Overridden automatically if Spring Boot's `BuildProperties` are available (via `spring-boot-maven-plugin` build-info goal). |
 | `mocapi.instructions` | (none) | Optional instructions string included in the `server/discover` result. Provides guidance to the LLM about how to use this server's tools. |
+| `mocapi.emit-server-info` | `true` | Emit `io.modelcontextprotocol/serverInfo` in every response's `_meta` (MCP 2026-07-28 SHOULD). Set `false` to disable. |
 
 ## Transport Properties
 
