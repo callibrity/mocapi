@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server.compliance;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
+import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.McpMetaKeys;
 import com.callibrity.mocapi.server.DefaultMcpServer;
 import com.callibrity.mocapi.server.McpServer;
@@ -63,6 +64,8 @@ final class ComplianceTestSupport {
 
   static final String PROTOCOL_VERSION = McpServer.PROTOCOL_VERSION;
   static final ObjectMapper MAPPER = new ObjectMapper();
+  static final Implementation SERVER_INFO =
+      new Implementation("compliance-test-server", "Compliance Test Server", "0.0.0", null);
 
   /** Fixed MRTR secret so requestState tokens round-trip across separately built servers. */
   static final String MRTR_SECRET =
@@ -117,7 +120,8 @@ final class ComplianceTestSupport {
     allServices[0] = new McpLifecycleService();
     System.arraycopy(services, 0, allServices, 1, services.length);
     var dispatcher = buildDispatcher(allServices);
-    return new DefaultMcpServer(dispatcher, new MetaEnvelopeParser(MAPPER), MAPPER);
+    return new DefaultMcpServer(
+        dispatcher, new MetaEnvelopeParser(MAPPER), MAPPER, SERVER_INFO, true);
   }
 
   // --- Envelope builders ---

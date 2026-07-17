@@ -15,6 +15,8 @@
  */
 package com.callibrity.mocapi.server;
 
+import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.model.McpMetaKeys;
 import com.callibrity.mocapi.model.UnsupportedProtocolVersionErrorData;
 import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.exchange.MetaEnvelopeParser;
@@ -25,10 +27,13 @@ import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcErrorDetail;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
+import com.callibrity.ripcurl.core.JsonRpcResult;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Default {@link McpServer}: per-request {@code _meta} envelope parsing followed by JSON-RPC
@@ -41,12 +46,20 @@ public class DefaultMcpServer implements McpServer {
   private final JsonRpcDispatcher dispatcher;
   private final MetaEnvelopeParser envelopeParser;
   private final ObjectMapper objectMapper;
+  private final Implementation serverInfo;
+  private final boolean emitServerInfo;
 
   public DefaultMcpServer(
-      JsonRpcDispatcher dispatcher, MetaEnvelopeParser envelopeParser, ObjectMapper objectMapper) {
+      JsonRpcDispatcher dispatcher,
+      MetaEnvelopeParser envelopeParser,
+      ObjectMapper objectMapper,
+      Implementation serverInfo,
+      boolean emitServerInfo) {
     this.dispatcher = dispatcher;
     this.envelopeParser = envelopeParser;
     this.objectMapper = objectMapper;
+    this.serverInfo = serverInfo;
+    this.emitServerInfo = emitServerInfo;
   }
 
   @Override
@@ -69,8 +82,23 @@ public class DefaultMcpServer implements McpServer {
             .where(McpTransport.CURRENT, transport)
             .call(() -> dispatcher.dispatch(call));
     if (response != null) {
-      transport.send(response);
+      transport.send(withServerInfo(call, response));
     }
+  }
+
+  private JsonRpcResponse withServerInfo(JsonRpcCall call, JsonRpcResponse response) {
+    if (!emitServerInfo || !(response instanceof JsonRpcResult result)) {
+      return response;
+    }
+    JsonNode resultNode = result.result();
+    if (!(resultNode instanceof ObjectNode objectResult)) {
+      return response;
+    }
+    ObjectNode meta = objectResult.withObjectProperty("_meta");
+    if (!meta.has(McpMetaKeys.SERVER_INFO)) {
+      meta.set(McpMetaKeys.SERVER_INFO, objectMapper.valueToTree(serverInfo));
+    }
+    return call.result(objectResult);
   }
 
   @Override

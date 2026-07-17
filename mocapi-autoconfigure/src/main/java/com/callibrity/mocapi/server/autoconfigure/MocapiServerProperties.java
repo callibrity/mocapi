@@ -19,6 +19,7 @@ import com.callibrity.mocapi.model.CacheScope;
 import java.time.Duration;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
 
 @ConfigurationProperties(prefix = "mocapi")
 public record MocapiServerProperties(
@@ -28,6 +29,7 @@ public record MocapiServerProperties(
     String instructions,
     List<String> allowedOrigins,
     Duration streamTimeout,
+    @DefaultValue("true") boolean emitServerInfo,
     Mrtr mrtr,
     Cache cache,
     Pagination pagination) {

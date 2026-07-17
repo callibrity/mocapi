@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.McpMetaKeys;
 import com.callibrity.mocapi.model.UnsupportedProtocolVersionErrorData;
 import com.callibrity.mocapi.server.exchange.McpExchange;
@@ -51,6 +52,7 @@ import tools.jackson.databind.node.ObjectNode;
 class DefaultMcpServerTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final Implementation SERVER_INFO = new Implementation("srv", "Srv", "1.2.3", null);
 
   @Mock private JsonRpcDispatcher dispatcher;
 
@@ -59,7 +61,8 @@ class DefaultMcpServerTest {
 
   @BeforeEach
   void setUp() {
-    server = new DefaultMcpServer(dispatcher, new MetaEnvelopeParser(MAPPER), MAPPER);
+    server =
+        new DefaultMcpServer(dispatcher, new MetaEnvelopeParser(MAPPER), MAPPER, SERVER_INFO, true);
     transport = mock(McpTransport.class);
   }
 
@@ -108,7 +111,10 @@ class DefaultMcpServerTest {
       verify(dispatcher).dispatch(call);
       var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
       verify(transport).send(captor.capture());
-      assertThat(captor.getValue()).isSameAs(dispatchResult);
+      var sent = (JsonRpcResult) captor.getValue();
+      assertThat(sent.id()).isEqualTo(dispatchResult.id());
+      assertThat(sent.result().path("_meta").path(McpMetaKeys.SERVER_INFO).path("name").asString())
+          .isEqualTo("srv");
     }
 
     @Test
@@ -184,6 +190,67 @@ class DefaultMcpServerTest {
       assertThat(error.error().data().path("requested").asString()).isEqualTo("2025-11-25");
       assertThat(error.id()).isEqualTo(call.id());
       verifyNoInteractions(dispatcher);
+    }
+  }
+
+  @Nested
+  class ServerInfo_injection {
+
+    @Test
+    void successful_result_carries_serverInfo_in_meta() {
+      JsonRpcCall call = validCall("tools/list");
+      when(dispatcher.dispatch(any(JsonRpcCall.class)))
+          .thenAnswer(_ -> call.result(JsonNodeFactory.instance.objectNode()));
+
+      server.handleCall(call, transport);
+
+      var sent = (JsonRpcResult) captureSent();
+      assertThat(sent.result().path("_meta").path(McpMetaKeys.SERVER_INFO))
+          .isEqualTo(MAPPER.valueToTree(SERVER_INFO));
+    }
+
+    @Test
+    void error_response_has_no_serverInfo() {
+      JsonRpcCall call = validCall("tools/list");
+      JsonRpcError errorResponse = call.error(JsonRpcProtocol.INTERNAL_ERROR, "boom");
+      when(dispatcher.dispatch(any(JsonRpcCall.class))).thenReturn(errorResponse);
+
+      server.handleCall(call, transport);
+
+      var sent = captureSent();
+      assertThat(sent).isSameAs(errorResponse);
+    }
+
+    @Test
+    void emit_disabled_skips_injection() {
+      server =
+          new DefaultMcpServer(
+              dispatcher, new MetaEnvelopeParser(MAPPER), MAPPER, SERVER_INFO, false);
+      JsonRpcCall call = validCall("tools/list");
+      when(dispatcher.dispatch(any(JsonRpcCall.class)))
+          .thenAnswer(_ -> call.result(JsonNodeFactory.instance.objectNode()));
+
+      server.handleCall(call, transport);
+
+      var sent = (JsonRpcResult) captureSent();
+      assertThat(sent.result().path("_meta").isMissingNode()).isTrue();
+    }
+
+    @Test
+    void existing_result_meta_is_preserved() {
+      JsonRpcCall call = validCall("tools/list");
+      ObjectNode result = JsonNodeFactory.instance.objectNode();
+      ObjectNode meta = result.putObject("_meta");
+      meta.put("someOtherKey", "someOtherValue");
+      when(dispatcher.dispatch(any(JsonRpcCall.class))).thenAnswer(_ -> call.result(result));
+
+      server.handleCall(call, transport);
+
+      var sent = (JsonRpcResult) captureSent();
+      assertThat(sent.result().path("_meta").path("someOtherKey").asString())
+          .isEqualTo("someOtherValue");
+      assertThat(sent.result().path("_meta").path(McpMetaKeys.SERVER_INFO))
+          .isEqualTo(MAPPER.valueToTree(SERVER_INFO));
     }
   }
 

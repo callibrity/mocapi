@@ -199,7 +199,11 @@ public class MocapiServerAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(McpServer.class)
   public DefaultMcpServer mcpProtocol(
-      JsonRpcDispatcher dispatcher, MetaEnvelopeParser envelopeParser, ObjectMapper objectMapper) {
-    return new DefaultMcpServer(dispatcher, envelopeParser, objectMapper);
+      JsonRpcDispatcher dispatcher,
+      MetaEnvelopeParser envelopeParser,
+      ObjectMapper objectMapper,
+      Implementation serverInfo) {
+    return new DefaultMcpServer(
+        dispatcher, envelopeParser, objectMapper, serverInfo, props.emitServerInfo());
   }
 }

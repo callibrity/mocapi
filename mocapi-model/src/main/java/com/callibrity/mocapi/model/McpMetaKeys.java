@@ -51,5 +51,11 @@ public final class McpMetaKeys {
   /** W3C Baggage {@code baggage} (unprefixed exception to the prefix rule). */
   public static final String BAGGAGE = "baggage";
 
+  /**
+   * Server implementation info ({@link Implementation}). Servers SHOULD include this in the {@code
+   * _meta} of every successful response.
+   */
+  public static final String SERVER_INFO = "io.modelcontextprotocol/serverInfo";
+
   private McpMetaKeys() {}
 }
