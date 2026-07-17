@@ -815,3 +815,35 @@ These do not alter mocapi's implemented wire surface and were left as-is:
   `{ _meta?: MetaObject }`. `roots/list` is a server→client input request
   mocapi never issues (`ListRootsResult` exists for union fidelity only); no
   change.
+
+## 2026-07-17 re-diff #2 — upstream 71e30695 (PR #3002)
+
+Re-pulled `docs/plans/2026-07-28-schema.ts` and `docs/plans/2026-07-28-schema.json`
+from upstream `main`, re-pinning past the prior 2026-07-15 pin.
+
+- **New pinned SHA:** `71e306956a4959c9655e5036be215d41986596e6` (PR #3002),
+  superseding the previous pin `9a4ff8af92ba00cbddbf94672dfade9279987e66`.
+  `LATEST_PROTOCOL_VERSION` remains `"2026-07-28"`.
+
+### Semantic deltas versus the prior pin (9a4ff8af)
+
+1. **`io.modelcontextprotocol/clientInfo` demoted from REQUIRED to OPTIONAL**
+   in `RequestMetaObject`. The required set on every client request `_meta`
+   is now just `io.modelcontextprotocol/protocolVersion` +
+   `io.modelcontextprotocol/clientCapabilities`. → **mocapi:**
+   `MetaEnvelopeParser` already parses `clientInfo` only when present (still
+   `-32602` if present-but-malformed); downstream consumers were already
+   null-safe. No code change required.
+2. **NEW `io.modelcontextprotocol/serverInfo` (an `Implementation`) added to
+   `ResultMetaObject`**; servers SHOULD include it on every response. →
+   **mocapi:** `DefaultMcpServer` injects it into every successful result's
+   `_meta` (merge, never clobber an existing `_meta` entry), default-on,
+   opt-out via the `mocapi.emit-server-info` property (default `true`).
+3. **Top-level `serverInfo` field REMOVED from `DiscoverResult`** (now
+   delivered only via `_meta`, per delta 2 above). → **mocapi:** removed the
+   `DiscoverResult.serverInfo` record component; discover clients now receive
+   `serverInfo` via the `_meta` injection from delta 2. Keeps the model 1:1
+   with the schema (constitution I7).
+
+No other semantic deltas affecting mocapi's implemented surface were found
+in this re-diff.
