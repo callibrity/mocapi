@@ -274,7 +274,7 @@ class McpHeaderValidatorTest {
 
     @Test
     void header_mismatch_code_is_minus_32001() {
-      assertThat(McpHeaderValidator.HEADER_MISMATCH_CODE).isEqualTo(-32001);
+      assertThat(McpHeaderValidator.HEADER_MISMATCH_CODE).isEqualTo(-32020);
     }
 
     @Test

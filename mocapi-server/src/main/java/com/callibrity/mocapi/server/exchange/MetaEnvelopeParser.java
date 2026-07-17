@@ -36,7 +36,7 @@ import tools.jackson.databind.ObjectMapper;
  *   <li>missing/malformed envelope, or a missing/malformed required key — JSON-RPC {@code -32602}
  *       Invalid params ({@link JsonRpcException});
  *   <li>a well-formed envelope carrying an unsupported protocol version — {@link
- *       UnsupportedProtocolVersionException} ({@code -32004} on the wire, with the supported-list
+ *       UnsupportedProtocolVersionException} ({@code -32022} on the wire, with the supported-list
  *       data that serves as the version bootstrap).
  * </ul>
  *

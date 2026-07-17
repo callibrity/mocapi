@@ -17,8 +17,14 @@ package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import tools.jackson.databind.node.ObjectNode;
 
+/**
+ * The {@code _meta} envelope of a {@link SubscriptionsListenResult}: the spec's {@code
+ * SubscriptionsListenResultMeta}. It carries the required {@code
+ * io.modelcontextprotocol/subscriptionId} (a JSON-RPC {@code RequestId}, so {@code String} or
+ * number — modeled as {@code Object}), identifying the subscription stream this response closes.
+ * mocapi does not implement subscriptions (ADR-0022); this type exists for 1:1 model fidelity.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ElicitationCompleteNotificationParams(
-    String elicitationId, @JsonProperty("_meta") ObjectNode meta) {}
+public record SubscriptionsListenResultMeta(
+    @JsonProperty(McpMetaKeys.SUBSCRIPTION_ID) Object subscriptionId) {}

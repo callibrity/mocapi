@@ -65,7 +65,7 @@ curl -s localhost:8080/actuator/mcp | jq
         "interceptors": [
           "Stamps SLF4J MDC correlation keys for tool 'get_weather'",
           "Records Micrometer 'mcp.handler.execution' observations (OpenTelemetry MCP semconv) for tool 'get_weather'",
-          "Evaluates guards [RequiresScope(weather:read)] and rejects denied calls with JSON-RPC -32003 Forbidden",
+          "Evaluates guards [RequiresScope(weather:read)] and rejects denied calls with JSON-RPC -32010 Forbidden",
           "Validates tool arguments against the tool's input JSON schema",
           "Validates method parameters and return value against Jakarta Bean Validation constraints"
         ]

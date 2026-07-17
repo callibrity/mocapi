@@ -75,7 +75,7 @@ import tools.jackson.databind.node.ObjectNode;
  * MCP 2026-07-28 § Multi Round-Trip Requests — elicitation by replay (ADR-0021), exercised over the
  * full {@link McpServer} dispatch path: {@code _meta} envelope, JSON-RPC dispatch, MRTR engine,
  * handler re-execution, and the wire shapes of {@code InputRequiredResult}, retry params, and the
- * spec error codes ({@code -32602} invalid state, {@code -32003} missing client capability).
+ * spec error codes ({@code -32602} invalid state, {@code -32021} missing client capability).
  */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MrtrElicitationComplianceTest {
@@ -520,7 +520,7 @@ class MrtrElicitationComplianceTest {
       server.handleCall(callWithMeta("tools/call", params, envelope()), transport);
 
       var error = captureError(transport).error();
-      assertThat(error.code()).isEqualTo(-32003);
+      assertThat(error.code()).isEqualTo(-32021);
       assertThat(
               error.data().path("requiredCapabilities").path("elicitation").path("form").isObject())
           .isTrue();

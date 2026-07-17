@@ -47,4 +47,28 @@ missing-capability errors are now unambiguous on the wire. ADR-0012
 remains the authority on Guard semantics; this ADR amends only the
 error-code choice.
 
+## 2026-07-15 update — spec renumbered its codes off the low band
+
+Upstream renumbered the spec-defined error codes (commits `f505a6c7` +
+`73ab7d2f`, still protocol version `2026-07-28`). The implementation-defined
+server-error range is now explicitly partitioned: `-32000` to `-32019` stays
+implementation-defined (grandfathered SDK usage), and `-32020` to `-32099`
+is reserved for spec-defined errors. Consequently the spec-defined codes moved
+out of the low band:
+
+- `MissingRequiredClientCapabilityError`: `-32003` → **`-32021`**
+- `UnsupportedProtocolVersionError`: `-32004` → **`-32022`**
+- `HeaderMismatch`: `-32001` → **`-32020`**
+
+`-32003` is therefore **no longer spec-claimed** — the original collision
+that motivated relocating guard denial is gone. The decision nonetheless
+stands: **guard denial remains `-32010`**, which sits squarely inside the
+implementation-defined sub-range (`-32000` to `-32019`) that the spec has now
+formally reserved for implementations. No re-relocation is warranted; keeping
+`-32010` stable avoids churn and stays clear of the spec-reserved band. Status
+remains **Accepted**.
+
+See `docs/plans/2026-07-28-schema-diff.md` (§ "2026-07-15 re-diff") for the
+full re-diff.
+
 **Code anchors:** `mocapi-server/src/main/java/com/callibrity/mocapi/server/JsonRpcErrorCodes.java`, `mocapi-server/src/main/java/com/callibrity/mocapi/server/guards/GuardEvaluationInterceptor.java`.

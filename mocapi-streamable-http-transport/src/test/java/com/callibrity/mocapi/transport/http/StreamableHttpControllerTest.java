@@ -290,7 +290,7 @@ class StreamableHttpControllerTest {
     void unsupported_protocol_version_maps_to_400() throws Exception {
       serverSends(
           new JsonRpcError(
-              -32004, "Unsupported protocol version", JsonNodeFactory.instance.numberNode(1)));
+              -32022, "Unsupported protocol version", JsonNodeFactory.instance.numberNode(1)));
       ObjectNode body = callBody("tools/list");
       ((ObjectNode) body.get("params").get("_meta"))
           .put(McpMetaKeys.PROTOCOL_VERSION, "1999-01-01");
@@ -300,7 +300,7 @@ class StreamableHttpControllerTest {
       var response = post(body, headers);
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-      assertThat(errorBody(response).error().code()).isEqualTo(-32004);
+      assertThat(errorBody(response).error().code()).isEqualTo(-32022);
     }
 
     @Test

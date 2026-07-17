@@ -26,5 +26,5 @@ import java.util.List;
 public record UnsupportedProtocolVersionErrorData(List<String> supported, String requested) {
 
   /** The spec's {@code UNSUPPORTED_PROTOCOL_VERSION} JSON-RPC error code. */
-  public static final int CODE = -32004;
+  public static final int CODE = -32022;
 }

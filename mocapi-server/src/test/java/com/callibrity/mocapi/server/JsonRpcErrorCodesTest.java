@@ -33,17 +33,17 @@ class JsonRpcErrorCodesTest {
 
   @Test
   void forbidden_does_not_collide_with_the_spec_defined_codes() {
-    // MCP 2026-07-28 assigns -32003 (MissingRequiredClientCapability) and -32004
-    // (UnsupportedProtocolVersion); -32001 is the transport's HeaderMismatch. ADR-0023.
+    // MCP 2026-07-28 assigns -32021 (MissingRequiredClientCapability) and -32022
+    // (UnsupportedProtocolVersion); -32020 is the transport's HeaderMismatch. ADR-0023.
     assertThat(JsonRpcErrorCodes.FORBIDDEN)
         .isNotEqualTo(MissingRequiredClientCapabilityErrorData.CODE)
         .isNotEqualTo(UnsupportedProtocolVersionErrorData.CODE)
-        .isNotEqualTo(-32001);
+        .isNotEqualTo(-32020);
   }
 
   @Test
   void spec_error_code_constants_match_the_schema() {
-    assertThat(MissingRequiredClientCapabilityErrorData.CODE).isEqualTo(-32003);
-    assertThat(UnsupportedProtocolVersionErrorData.CODE).isEqualTo(-32004);
+    assertThat(MissingRequiredClientCapabilityErrorData.CODE).isEqualTo(-32021);
+    assertThat(UnsupportedProtocolVersionErrorData.CODE).isEqualTo(-32022);
   }
 }

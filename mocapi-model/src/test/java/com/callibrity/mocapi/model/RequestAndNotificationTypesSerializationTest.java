@@ -280,10 +280,9 @@ class RequestAndNotificationTypesSerializationTest {
 
     @Test
     void url_params_round_trip() throws Exception {
-      ElicitRequestParams params =
-          new ElicitRequestURLParams("Click link", "elicit-1", "https://example.com");
+      ElicitRequestParams params = new ElicitRequestURLParams("Click link", "https://example.com");
       String json = mapper.writeValueAsString(params);
-      assertThat(json).contains("\"mode\":\"url\"").contains("\"elicitationId\":\"elicit-1\"");
+      assertThat(json).contains("\"mode\":\"url\"").contains("\"message\":\"Click link\"");
 
       var deserialized = mapper.readValue(json, ElicitRequestParams.class);
       assertThat(deserialized).isInstanceOf(ElicitRequestURLParams.class);
@@ -335,16 +334,6 @@ class RequestAndNotificationTypesSerializationTest {
 
       var deserialized = mapper.readValue(json, ResourceUpdatedNotificationParams.class);
       assertThat(deserialized.uri()).isEqualTo("file:///updated.txt");
-    }
-
-    @Test
-    void elicitation_complete_notification_round_trip() throws Exception {
-      var params = new ElicitationCompleteNotificationParams("elicit-42", null);
-      String json = mapper.writeValueAsString(params);
-      assertThat(json).isEqualTo("{\"elicitationId\":\"elicit-42\"}");
-
-      var deserialized = mapper.readValue(json, ElicitationCompleteNotificationParams.class);
-      assertThat(deserialized.elicitationId()).isEqualTo("elicit-42");
     }
   }
 }

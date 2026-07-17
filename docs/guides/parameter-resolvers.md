@@ -203,7 +203,7 @@ their own propagation story.
   [customizers.md](customizers.md#strata)).
 - **Authorization decisions.** Use a `Guard` (see
   [guards.md](guards.md)). Guards run before the invocation with
-  proper error mapping to `-32003 Forbidden`; a parameter resolver
+  proper error mapping to `-32010 Forbidden`; a parameter resolver
   that throws mid-invocation produces a less-clean error shape.
 
 ## Non-goals

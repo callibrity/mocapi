@@ -27,9 +27,9 @@ import tools.jackson.databind.JsonNode;
  * Validates the MCP 2026-07-28 routing headers against the request body, before dispatch. The
  * Streamable HTTP transport spec requires every POST to carry headers that mirror the body so
  * intermediaries can route without parsing JSON; the server must reject any disagreement with the
- * transport-prose {@code HeaderMismatch} error ({@code -32001}, HTTP 400). The constant lives here
- * — not in {@code mocapi-model} — because the spec defines it in transport prose, not in {@code
- * schema.ts}.
+ * transport-prose {@code HeaderMismatch} error ({@code -32020}, HTTP 400). The constant lives here
+ * — not in {@code mocapi-model} — because mocapi sources it from the transport spec; the value now
+ * also appears in {@code schema.ts} as {@code HEADER_MISMATCH}.
  *
  * <p>Rules:
  *
@@ -48,7 +48,7 @@ import tools.jackson.databind.JsonNode;
  * <p>When the body lacks the comparable value (missing {@code _meta} envelope, missing {@code
  * params.name}), header validation does not fail on its own: the body-side failure belongs to the
  * server's envelope/params validation ({@code -32602}), which runs after this check. A request that
- * fails both gets the transport's {@code -32001} first only when a header itself is missing or
+ * fails both gets the transport's {@code -32020} first only when a header itself is missing or
  * contradicts a value the body does carry.
  *
  * <p>Header name lookups are case-insensitive ({@link HttpHeaders} semantics).
@@ -69,9 +69,9 @@ public class McpHeaderValidator {
    * Deliberately a transport-side constant: it is not part of {@code schema.ts}, so it does not
    * belong in {@code mocapi-model}.
    */
-  public static final int HEADER_MISMATCH_CODE = -32001;
+  public static final int HEADER_MISMATCH_CODE = -32020;
 
-  /** The spec's name for the {@code -32001} error. */
+  /** The spec's name for the {@code -32020} error. */
   public static final String HEADER_MISMATCH_NAME = "HeaderMismatch";
 
   private static final String META_FIELD = "_meta";

@@ -50,7 +50,7 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * Wires the full autoconfig — the Spring-Security-backed guard customizers plus the rest of mocapi
  * — and drives requests through {@link JsonRpcDispatcher} with {@link SecurityContextHolder}
- * populated or empty, to verify list-time filtering and call-time {@code -32003 Forbidden}
+ * populated or empty, to verify list-time filtering and call-time {@code -32010 Forbidden}
  * end-to-end.
  */
 @SpringBootTest(

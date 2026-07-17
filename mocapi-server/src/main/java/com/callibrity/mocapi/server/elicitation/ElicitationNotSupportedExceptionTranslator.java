@@ -28,9 +28,9 @@ import tools.jackson.databind.node.JsonNodeFactory;
 /**
  * Maps {@link McpElicitationNotSupportedException} — a handler elicited but the client did not
  * declare the {@code elicitation} capability — onto the spec's {@code
- * MissingRequiredClientCapabilityError}: JSON-RPC code {@code -32003} with {@code
+ * MissingRequiredClientCapabilityError}: JSON-RPC code {@code -32021} with {@code
  * data.requiredCapabilities} naming form-mode elicitation ({@code {"elicitation":{"form":{}}}}).
- * Streamable HTTP additionally surfaces {@code -32003} as {@code 400 Bad Request}.
+ * Streamable HTTP additionally surfaces {@code -32021} as {@code 400 Bad Request}.
  */
 public class ElicitationNotSupportedExceptionTranslator
     implements JsonRpcExceptionTranslator<McpElicitationNotSupportedException> {

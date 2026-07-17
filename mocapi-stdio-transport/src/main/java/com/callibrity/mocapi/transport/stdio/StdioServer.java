@@ -41,7 +41,7 @@ import tools.jackson.databind.node.JsonNodeFactory;
  * <p>MCP 2026-07-28 is stateless (ADR-0019, ADR-0020): there is no handshake and no per-client
  * state, so every line is an independent request or notification. {@code server/discover} — the
  * back-compat probe — is answerable at any time, including as the very first message. All envelope
- * semantics ({@code _meta} parsing, {@code -32602}/{@code -32004}) live in the server core; this
+ * semantics ({@code _meta} parsing, {@code -32602}/{@code -32022}) live in the server core; this
  * transport only frames messages and relays responses.
  *
  * <p>Each message runs on its own virtual thread so a slow handler doesn't stall the reader thread.

@@ -39,7 +39,7 @@ event-ID machinery and the Odyssey-backed named/resumable streams
 (`DefaultSseStream`/`DefaultSseStreamFactory`) were deleted with it;
 [ADR-0005](../adr/0005-encrypted-sse-event-ids.md) is historical.
 
-### Routing-header validation (`-32001 HeaderMismatch`)
+### Routing-header validation (`-32020 HeaderMismatch`)
 
 The 2026-07-28 transport spec requires routing headers on every POST so
 intermediaries can route without parsing the body. `McpHeaderValidator`
@@ -55,12 +55,13 @@ validates them against the body **before** dispatch:
   expected on any other method.
 
 Any missing/mismatched/malformed header → HTTP `400` + JSON-RPC error
-`-32001` (`HeaderMismatch`). The constant lives in the transport module
-because the spec defines it in transport prose, not `schema.ts`. Body
-envelope semantics (`-32602` invalid params, `-32004` unsupported
-protocol version) remain the server core's job; a request that fails
-both header and envelope validation fails with `-32001` (transport
-first). Unrecognized `Mcp-Param-*` headers are ignored — mocapi
+`-32020` (`HeaderMismatch`). The constant lives in the transport module;
+mocapi sources it from the transport spec (the value now also appears in
+`schema.ts` as `HEADER_MISMATCH`). Body envelope semantics (`-32602`
+invalid params, `-32022` unsupported protocol version) remain the server
+core's job; a request that fails both header and envelope validation
+fails with `-32020` (transport first). Unrecognized `Mcp-Param-*` headers
+are ignored — mocapi
 designates no custom parameter headers
 ([ADR-0022](../adr/0022-2026-07-28-features-not-implemented.md)).
 
@@ -71,7 +72,7 @@ in a single table (`HttpStatusMapping`):
 
 | JSON-RPC code | HTTP status |
 |---|---|
-| `-32700`, `-32600`, `-32602`, `-32001`, `-32003`, `-32004` | `400 Bad Request` |
+| `-32700`, `-32600`, `-32602`, `-32020`, `-32021`, `-32022` | `400 Bad Request` |
 | `-32601` (method not found) | `404 Not Found` — distinguishes a modern server from a legacy HTTP+SSE endpoint |
 | anything else (internal/application errors) | `200 OK` — the error is a well-formed JSON-RPC response |
 

@@ -172,7 +172,7 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
       // MRTR control flow and capability gating must reach the engine / dispatch error handling,
       // not be wrapped into an isError CallToolResult: the pending signal becomes the
       // InputRequiredResult, the ledger mismatch becomes -32602, and the missing capability
-      // becomes the spec's MissingRequiredClientCapabilityError (-32003).
+      // becomes the spec's MissingRequiredClientCapabilityError (-32021).
       throw e;
     } catch (McpToolException e) {
       // Tool authors' preferred way to signal a tool-execution failure with structured detail.

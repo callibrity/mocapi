@@ -30,8 +30,8 @@ import org.springframework.http.HttpStatus;
  * <ul>
  *   <li>{@code -32601} Method not found → {@code 404 Not Found} — distinguishes a modern server's
  *       unknown-RPC-method from a legacy HTTP+SSE endpoint 404.
- *   <li>{@code -32700}, {@code -32600}, {@code -32602}, {@code -32001} ({@code HeaderMismatch}),
- *       {@code -32003} ({@code MissingRequiredClientCapabilityError}), {@code -32004} ({@code
+ *   <li>{@code -32700}, {@code -32600}, {@code -32602}, {@code -32020} ({@code HeaderMismatch}),
+ *       {@code -32021} ({@code MissingRequiredClientCapabilityError}), {@code -32022} ({@code
  *       UnsupportedProtocolVersionError}) → {@code 400 Bad Request}.
  *   <li>Everything else (internal errors, application-level errors) → {@code 200 OK}: the error is
  *       a well-formed JSON-RPC response, so the HTTP exchange itself succeeded.

@@ -205,7 +205,7 @@ Every request carries the client's capabilities in `_meta`
 (`io.modelcontextprotocol/clientCapabilities`). If the client did not
 declare the `elicitation` capability and your tool calls `ctx.elicit()`,
 the request fails with the spec's `MissingRequiredClientCapabilityError`
-(JSON-RPC `-32003`, HTTP 400) telling the client exactly which capability
+(JSON-RPC `-32021`, HTTP 400) telling the client exactly which capability
 is required. There is no timeout involved -- the rejection is immediate.
 
 ### Server configuration

@@ -32,7 +32,7 @@ import java.util.function.Consumer;
  *
  * <p>Calling {@code elicit} when the client did not declare the {@code elicitation} capability
  * throws {@link McpElicitationNotSupportedException}, surfaced on the wire as the spec's {@code
- * -32003 MissingRequiredClientCapabilityError}.
+ * -32021 MissingRequiredClientCapabilityError}.
  */
 public interface McpElicitor {
 

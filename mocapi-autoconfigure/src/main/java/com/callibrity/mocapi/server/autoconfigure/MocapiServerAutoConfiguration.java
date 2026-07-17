@@ -170,7 +170,7 @@ public class MocapiServerAutoConfiguration {
     return new MrtrElicitationEngine(codec, objectMapper, principalSource);
   }
 
-  /** Maps {@code McpElicitationNotSupportedException} to {@code -32003} on the wire. */
+  /** Maps {@code McpElicitationNotSupportedException} to {@code -32021} on the wire. */
   @Bean
   public ElicitationNotSupportedExceptionTranslator mcpElicitationNotSupportedTranslator(
       ObjectMapper objectMapper) {

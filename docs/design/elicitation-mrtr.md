@@ -204,7 +204,7 @@ capability in the per-request `_meta`
 a client that did not declare it, `AbstractMrtrContext` throws
 `McpElicitationNotSupportedException`, which
 `ElicitationNotSupportedExceptionTranslator` maps onto the spec's
-`MissingRequiredClientCapabilityError`: JSON-RPC code `-32003` with
+`MissingRequiredClientCapabilityError`: JSON-RPC code `-32021` with
 `data.requiredCapabilities = {"elicitation": {"form": {}}}` (HTTP 400).
 
 ## The idempotency contract

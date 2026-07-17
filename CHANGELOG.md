@@ -34,15 +34,17 @@ All notable changes to this project are documented in this file. The format is b
     bean overrides both.
   - **POST-only Streamable HTTP** with required routing headers
     (`MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name`); mismatches return
-    `-32001 HeaderMismatch`. The GET SSE stream and `Last-Event-ID`
+    `-32020 HeaderMismatch`. The GET SSE stream and `Last-Event-ID`
     resumability are gone from the protocol.
   - **Cache directives**: list/read/discover results carry the required
     `ttlMs`/`cacheScope` fields, configurable via `mocapi.cache.list-ttl`,
     `mocapi.cache.read-ttl`, and `mocapi.cache.scope`; tool/prompt/resource
     listings are deterministically ordered.
-  - **Error codes**: spec codes `-32003` (missing client capability) and
-    `-32004` (unsupported protocol version) adopted; guard denials moved
-    from `-32003` to `-32010` ([ADR-0023](docs/adr/0023-guard-denial-code-relocation.md));
+  - **Error codes**: spec codes `-32021` (missing client capability),
+    `-32022` (unsupported protocol version), and `-32020` (`HeaderMismatch`)
+    adopted — the spec reserves `-32020`..`-32099` for spec-defined errors
+    and leaves `-32000`..`-32019` implementation-defined; guard denials are a
+    mocapi-private `-32010` ([ADR-0023](docs/adr/0023-guard-denial-code-relocation.md));
     resource-not-found is `-32602`.
 - **Typed progress emitters and the `MrtrContext` super-interface**
   ([ADR-0025](docs/adr/0025-progress-emitters-and-mrtr-context.md)). Progress

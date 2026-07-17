@@ -726,3 +726,92 @@ Schema 2020-12 and admits any 2020-12 keyword beside the mandatory root
 `type: "object"`, and `outputSchema` is any 2020-12 schema — mocapi's
 `ObjectNode` representation already accommodates this; the behavioral work
 is Phase 5, Task 5.3.)
+
+---
+
+## 2026-07-15 re-diff against upstream `main`
+
+The RC snapshot above was pinned on 2026-06-11 from commit `77cb2648`.
+Upstream `schema/draft/schema.ts` has since moved. Re-pulled on 2026-07-15
+from `https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/main/schema/draft/schema.{ts,json}`.
+
+- **Last commit touching `schema/draft/schema.ts` at re-fetch time:**
+  `9a4ff8af92ba00cbddbf94672dfade9279987e66`. (`LATEST_PROTOCOL_VERSION`
+  remains `"2026-07-28"`.)
+- **Refreshed snapshots committed alongside this doc:**
+  `docs/plans/2026-07-28-schema.ts`, `docs/plans/2026-07-28-schema.json`.
+
+### Semantic deltas that touched mocapi's implemented surface (fixed)
+
+1. **Error codes renumbered** (upstream `f505a6c7` + `73ab7d2f`). The
+   implementation-defined server-error range is now partitioned: `-32000`
+   to `-32019` stays implementation-defined (grandfathered SDK usage) and
+   `-32020` to `-32099` is reserved for spec-defined errors. New values:
+
+   | Error | Old (RC) | New |
+   | --- | --- | --- |
+   | `HeaderMismatch` | `-32001` | `-32020` |
+   | `MissingRequiredClientCapabilityError` | `-32003` | `-32021` |
+   | `UnsupportedProtocolVersionError` | `-32004` | `-32022` |
+
+   Updated `MissingRequiredClientCapabilityErrorData.CODE`,
+   `UnsupportedProtocolVersionErrorData.CODE`,
+   `McpHeaderValidator.HEADER_MISMATCH_CODE`, and every javadoc/comment/test
+   citing the old numbers (semantic mapping, by meaning). mocapi's guard
+   denial (`JsonRpcErrorCodes.FORBIDDEN = -32010`) sits in the
+   implementation-defined sub-range and is unchanged (ADR-0023).
+
+2. **`ElicitationCompleteNotification` /
+   `ElicitationCompleteNotificationParams` removed** from the spec. Deleted
+   `ElicitationCompleteNotificationParams.java` and its serialization test.
+   `ClientNotification` also dropped `ProgressNotification`, and
+   `ServerNotification` dropped `ElicitationCompleteNotification`.
+
+3. **URL-mode elicitation `elicitationId` removed.** `ElicitRequestURLParams`
+   is now `{ mode, message, url }`; the Java record is now
+   `(String message, String url)`. Test assertions updated.
+
+4. **`SubscriptionsListenResult` added.** New result type
+   (`extends Result`) with a required `resultType` and a required `_meta`
+   (`SubscriptionsListenResultMeta`) carrying the required
+   `io.modelcontextprotocol/subscriptionId` (a `RequestId`). Added
+   `SubscriptionsListenResult` + `SubscriptionsListenResultMeta` records and
+   a round-trip test. mocapi does not implement subscriptions (ADR-0022);
+   these exist for 1:1 model fidelity, matching
+   `SubscriptionsListenRequestParams`.
+
+5. **`CancelledNotificationParams.requestId` reverted to REQUIRED.** No code
+   change: mocapi already models it as a non-optional `Object` component and
+   the existing round-trips exercise both string and numeric IDs. Prose also
+   narrowed cancellation to client-initiated, with a stdio-only carve-out for
+   the server to terminate a `subscriptions/listen` stream.
+
+### Additional upstream deltas observed (prose/semantic only — NOT fixed)
+
+These do not alter mocapi's implemented wire surface and were left as-is:
+
+- **`HeaderMismatch` now appears in `schema.ts`** as a `HEADER_MISMATCH`
+  const (`-32020`) plus a `HeaderMismatchError` interface. Previously it was
+  transport-prose only. mocapi still sources the constant transport-side in
+  `McpHeaderValidator` (not `mocapi-model`); relocating it would be an
+  architecturally significant change requiring its own ADR. Flagged, not moved.
+- **`NotificationMetaObject`** — `NotificationParams._meta` is now typed as
+  `NotificationMetaObject` (adds an optional `io.modelcontextprotocol/subscriptionId`).
+  mocapi models notification `_meta` as an untyped `ObjectNode`, so no change.
+- **List-changed notification prose** (`resources`/`prompts`/`tools`
+  `list_changed`) now says delivery happens only on a `subscriptions/listen`
+  stream when requested via the matching `*ListChanged` filter field.
+  Subscriptions are not implemented (ADR-0022); no code change.
+- **`SubscriptionsAcknowledgedNotification`** prose tightened
+  (first-message ordering per subscription ID). Not implemented; no change.
+- **`CacheableResult.cacheScope`** prose redefined `public`/`private` in
+  terms of authorization context rather than user; the field shape is
+  unchanged, so no code change.
+- **`Tool.inputSchema`** prose adds an optional `x-mcp-header` property-schema
+  annotation (mirror an argument into an HTTP header on Streamable HTTP).
+  mocapi carries `inputSchema` as an opaque `ObjectNode`, so no structural
+  change; this is a potential future feature, not a model gap.
+- **`ListRootsRequest.params`** narrowed from `RequestParams` to
+  `{ _meta?: MetaObject }`. `roots/list` is a server→client input request
+  mocapi never issues (`ListRootsResult` exists for union fidelity only); no
+  change.

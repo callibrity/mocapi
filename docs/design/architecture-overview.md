@@ -50,7 +50,7 @@ Client HTTP POST
 StreamableHttpController (transport)
     |-- validates Accept, Origin, Content-Type
     |-- validates routing headers (MCP-Protocol-Version, Mcp-Method, Mcp-Name)
-    |       against the body — mismatch → 400 / -32001 HeaderMismatch
+    |       against the body — mismatch → 400 / -32020 HeaderMismatch
     |-- delegates to server.handleCall / handleNotification
     |-- maps JSON-RPC error codes to HTTP status (single mapping table)
     |
@@ -58,7 +58,7 @@ StreamableHttpController (transport)
 DefaultMcpServer (protocol)
     |-- parses the _meta envelope (protocolVersion, clientInfo,
     |       clientCapabilities) → McpExchange; missing/malformed → -32602,
-    |       unsupported version → -32004 with the supported-version list
+    |       unsupported version → -32022 with the supported-version list
     |-- binds McpExchange and McpTransport as ScopedValues
     |-- dispatches to RipCurl JSON-RPC dispatcher
     |-- RipCurl routes to @JsonRpcMethod handlers
@@ -75,7 +75,7 @@ The same flow applies to stdio, with `StdioServer` / `StdioTransport`
 in place of the controller (see [Transports — Stdio](transports.md#stdio)).
 There is no handshake: `server/discover` is an ordinary request that may
 be sent at any time (and serves as the version probe — an unsupported
-version in its envelope earns `-32004` carrying the server's supported
+version in its envelope earns `-32022` carrying the server's supported
 list).
 
 ## Server capabilities

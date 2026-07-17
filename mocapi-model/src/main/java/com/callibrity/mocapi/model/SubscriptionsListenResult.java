@@ -16,12 +16,15 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Parameters of a URL-mode elicitation, embedded in an {@link ElicitRequest}. The required {@code
- * mode: "url"} discriminator is contributed by {@link ElicitRequestParams}'s type info; there is no
- * {@code _meta} — this is an embedded object, not JSON-RPC request params. URL-mode elicitation is
- * declared not implemented by mocapi (ADR-0022).
+ * The response to a {@code subscriptions/listen} request, signalling that the subscription has
+ * ended gracefully (e.g. during server shutdown). Both the spec-required {@code resultType} and the
+ * {@code _meta} envelope (carrying {@code io.modelcontextprotocol/subscriptionId}) are present; the
+ * result body is otherwise empty. mocapi does not implement subscriptions (ADR-0022) and never
+ * sends this; the type exists for 1:1 model fidelity.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ElicitRequestURLParams(String message, String url) implements ElicitRequestParams {}
+public record SubscriptionsListenResult(
+    @JsonProperty("_meta") SubscriptionsListenResultMeta meta, String resultType) {}

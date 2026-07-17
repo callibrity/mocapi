@@ -43,7 +43,7 @@ them without Java camelCase bleeding in. The constants live on
 | Value | Trigger |
 |---|---|
 | `success` | The invocation completed without an infrastructure-level exception. A tool returning `CallToolResult.isError=true` still counts as `success` here — it's a model-visible tool error, not an audit-level failure. |
-| `forbidden` | A `JsonRpcException` with code `-32003 Forbidden` (a guard denial — see `mocapi-spring-security-guards`). |
+| `forbidden` | A `JsonRpcException` with code `-32010 Forbidden` (a guard denial — see `mocapi-spring-security-guards`). |
 | `invalid_params` | A `JsonRpcException` with code `-32602 Invalid params` (e.g., Jakarta Validation rejected the inputs). |
 | `error` | Any other thrown exception. Stack traces are not emitted — only `error_class`. |
 
@@ -146,7 +146,7 @@ stratum model). The outer-to-inner sequence around it is:
 1. **CORRELATION** (MDC) — stamps `mcp.protocol.version` / `mcp.client.name` / `mcp.handler.kind` / `mcp.handler.name` / `mcp.request.id`.
 2. **OBSERVATION** (Micrometer observation) — wraps the rest.
 3. **AUDIT** (this module) — records the attempt, times it end-to-end. Sees post-guard outcomes, so a denial surfaces as `outcome=forbidden`.
-4. **AUTHORIZATION** — guards evaluated here; denial short-circuits with `-32003`.
+4. **AUTHORIZATION** — guards evaluated here; denial short-circuits with `-32010`.
 5. **VALIDATION** — JSON input-schema for tools first (rejections surface as `outcome=invalid_params`), then user-contributed validation (e.g. Jakarta Bean Validation).
 6. **INVOCATION** — any user-contributed invocation interceptors, then the reflective method call.
 

@@ -54,8 +54,8 @@ import tools.jackson.databind.node.JsonNodeFactory;
  *       Last-Event-ID} is ignored — the spec removed SSE resumability.
  *   <li>Routing headers ({@code MCP-Protocol-Version}, {@code Mcp-Method}, {@code Mcp-Name}) are
  *       validated against the body before dispatch ({@link McpHeaderValidator}); failures are
- *       {@code 400} + JSON-RPC {@code -32001 HeaderMismatch}. Body envelope semantics ({@code
- *       -32602}/{@code -32004}) remain the server's job.
+ *       {@code 400} + JSON-RPC {@code -32020 HeaderMismatch}. Body envelope semantics ({@code
+ *       -32602}/{@code -32022}) remain the server's job.
  *   <li>Unrecognized {@code Mcp-Param-*} headers are ignored — mocapi designates no custom
  *       parameter headers (ADR-0022).
  *   <li>Direct JSON replies carry an HTTP status mapped from the JSON-RPC error code ({@link

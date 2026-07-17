@@ -21,7 +21,7 @@ import java.util.List;
 /**
  * Thrown when a well-formed {@code _meta} envelope carries a protocol version the server does not
  * support. Dispatch maps it onto the spec's {@code UnsupportedProtocolVersionError} (JSON-RPC code
- * {@code -32004}, HTTP {@code 400 Bad Request}) whose {@code data.supported} lists the server's
+ * {@code -32022}, HTTP {@code 400 Bad Request}) whose {@code data.supported} lists the server's
  * versions — the spec's bootstrap path for clients probing an unknown server.
  *
  * <p>Distinct from a malformed/missing envelope, which is JSON-RPC {@code -32602} Invalid params.

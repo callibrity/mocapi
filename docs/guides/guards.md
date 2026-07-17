@@ -75,8 +75,9 @@ single guard class.
 
 **Call time.** After lookup, the service evaluates the guard list. If any
 guard denies, the call throws a `JsonRpcException` with code `-32010`
-(`JsonRpcErrorCodes.FORBIDDEN`; relocated from `-32003` by ADR-0023 —
-the 2026-07-28 spec claims `-32003` for `MissingRequiredClientCapabilityError`) and message `"Forbidden: <reason>"`, where
+(`JsonRpcErrorCodes.FORBIDDEN`; a mocapi-private code in JSON-RPC's
+implementation-defined sub-range, ADR-0023 — the 2026-07-28 spec's
+`MissingRequiredClientCapabilityError` lives at `-32021`) and message `"Forbidden: <reason>"`, where
 `<reason>` comes from the first denying guard. Tools do *not* return
 `CallToolResult.isError=true` for guard denies — that would invite an LLM
 to "self-correct" on an auth failure, which is nonsense. Guard failure is
@@ -115,7 +116,7 @@ Both guards (`ScopeGuard`, `RoleGuard`) read
 no reflection on the hot path. Deny reasons include which scope(s) are
 missing for the scope case, or `"insufficient role"` for the role case.
 Denial of either hides the handler at list time and returns JSON-RPC
-`-32003` with that reason at call time. See
+`-32010` with that reason at call time. See
 [authorization.md](authorization.md) for the enterprise deployment
 shape (`mocapi-oauth2` + `mocapi-spring-security-guards` + a transport
 starter). Other guard packages (tenant checks, rate limits, custom auth

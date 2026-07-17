@@ -24,5 +24,5 @@ package com.callibrity.mocapi.model;
 public record MissingRequiredClientCapabilityErrorData(ClientCapabilities requiredCapabilities) {
 
   /** The spec's {@code MISSING_REQUIRED_CLIENT_CAPABILITY} JSON-RPC error code. */
-  public static final int CODE = -32003;
+  public static final int CODE = -32021;
 }

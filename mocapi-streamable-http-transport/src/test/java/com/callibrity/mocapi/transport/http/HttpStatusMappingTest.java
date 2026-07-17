@@ -36,9 +36,9 @@ class HttpStatusMappingTest {
     "-32600, BAD_REQUEST", // invalid request
     "-32601, NOT_FOUND", // method not found — modern server, not a legacy 404
     "-32602, BAD_REQUEST", // invalid params (incl. missing _meta envelope)
-    "-32001, BAD_REQUEST", // HeaderMismatch (transport prose)
-    "-32003, BAD_REQUEST", // MissingRequiredClientCapabilityError
-    "-32004, BAD_REQUEST", // UnsupportedProtocolVersionError
+    "-32020, BAD_REQUEST", // HeaderMismatch (transport prose)
+    "-32021, BAD_REQUEST", // MissingRequiredClientCapabilityError
+    "-32022, BAD_REQUEST", // UnsupportedProtocolVersionError
     "-32603, OK", // internal error — valid JSON-RPC response, HTTP exchange succeeded
     "-32010, OK", // mocapi guard denial — application-level error
     "1234, OK" // application-defined error
