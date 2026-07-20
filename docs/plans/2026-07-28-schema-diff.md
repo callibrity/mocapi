@@ -847,3 +847,33 @@ from upstream `main`, re-pinning past the prior 2026-07-15 pin.
 
 No other semantic deltas affecting mocapi's implemented surface were found
 in this re-diff.
+
+## 2026-07-20 monitor-and-converge check — no drift found
+
+Daily monitor run. Checked `https://github.com/modelcontextprotocol/modelcontextprotocol/commits/main/schema/draft/schema.ts`
+for commits landed since the currently pinned SHA.
+
+- **Pinned SHA (unchanged):** `71e306956a4959c9655e5036be215d41986596e6`
+  (PR #3002, 2026-07-16), as re-pinned in the 2026-07-17 re-diff above.
+- **Upstream HEAD for `schema/draft/schema.ts` as of this check:** still
+  `71e306956a4959c9655e5036be215d41986596e6` — no commits have landed on
+  that path since Jul 16, 2026. The prior 16-commit drift window this
+  routine was briefed to process (baseline `77cb2648` → `71e3069`) was
+  already fully converged by the 2026-07-15 and 2026-07-17 re-diffs above
+  (prior work on this branch, dated 2026-07-15/17) — the newest commit in
+  that window (`71e3069`, the `serverInfo`/`clientInfo` change) is exactly
+  the current pin.
+- **Spot checks against a fresh fetch of the raw file:** `LATEST_PROTOCOL_VERSION`
+  is still `"2026-07-28"`; `io.modelcontextprotocol/clientInfo` is still
+  optional (`?`) on `RequestMetaObject`; `io.modelcontextprotocol/serverInfo`
+  still present on the result `_meta` object; the file's final export is
+  still the `InputRequiredResult`-terminated result union, matching the
+  pinned snapshot's last line. (A raw WebFetch of the file reported a
+  truncated/summarized line count, per the known WebFetch large-file
+  caveat — the pinned 3184-line snapshot and its content markers are the
+  source of truth here, not that count.)
+- **RELEASE status:** upstream `schema/` on `main` still has no
+  `2026-07-28` directory — the spec remains **draft**, not finalized.
+- **Conclusion:** no convergence work needed today. No `mocapi-model` /
+  `mocapi-server` / transport code changes, no re-pin, no new ADR. This
+  addendum is the only change from this run.
