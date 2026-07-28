@@ -44,9 +44,11 @@ This handles **user code automatically** — downstream apps don't write hints f
 
 ### `MocapiRuntimeHints`
 
-Registers binding hints for two sets of mocapi-owned types that cross a codec boundary without appearing in a `@...Method` signature:
+Registers binding hints for the mocapi-owned types that cross a Jackson codec boundary without appearing in a `@...Method` signature:
 
-1. **`McpExchange`** — the per-request protocol context record bound during dispatch. Explicit single-type registration.
+1. **Explicit non-model registrations** — types Jackson serializes at runtime that live *outside* `mocapi-model`, so the package scan below does not reach them:
+   - **`McpExchange`** — the per-request protocol context record bound during dispatch.
+   - **`RequestStatePayload`** — the MRTR `requestState` token payload. `RequestStateCodec` serializes it into the opaque, AES-256-GCM-encrypted `requestState` string and reads it back on replay; its `ResponseLedgerEntry` → `ElicitResult` graph is pulled in transitively. It lives in `...server.mrtr`, **not** `mocapi-model`, because the spec treats `requestState` as an opaque server-owned string (ADR-0021) — so it is deliberately not a wire type, yet still needs a hint or native-image elicitation replay breaks.
 2. **Every class in `com.callibrity.mocapi.model` (and any future subpackage)** — scanned at AOT build time via Spring's `ClassPathScanningCandidateComponentProvider`. Covers tool/prompt/resource results (`CallToolResult`, `GetPromptResult`, `ListToolsResult`, …), descriptors (`Tool`, `Prompt`, `Resource`), sealed hierarchies (`ContentBlock`, `ResourceContents`), enums (`Role`, `LoggingLevel`), and arrays (`PromptArgument[]`, `Tool[]`, `Resource[]`) — ~92 types, no enumeration required.
 
 The scanner is configured with `useDefaultFilters=false`, `isCandidateComponent` overridden to `return true`, and a pass-through include filter. That combination surfaces every class under the package — sealed interfaces, abstract classes, records, enums, and anything introduced in a subpackage in the future — without any per-release curation. New mocapi-model types are picked up automatically.
@@ -59,15 +61,16 @@ The scanner is configured with `useDefaultFilters=false`, `isCandidateComponent`
 
 ## Tests
 
-`mocapi-server/src/test/java/.../aot/MocapiRuntimeHintsTest.java` asserts coverage on representative types:
+`mocapi-autoconfigure/src/test/java/.../aot/MocapiRuntimeHintsTest.java` asserts coverage on representative types:
 
 - `McpExchange`
+- `RequestStatePayload` — the MRTR `requestState` payload; it lives outside `mocapi-model`, so it needs an explicit assertion (the package scan would not catch its regression)
 - Envelope results (`CallToolResult`, `GetPromptResult`, `ReadResourceResult`, `ListToolsResult`)
 - Descriptors (`Tool`, `Prompt`, `Resource`, `ServerCapabilities`)
 - Sealed hierarchies — `ContentBlock` + `TextContent`, `ResourceContents` + `TextResourceContents` + `BlobResourceContents`
 - Nested (`PromptMessage`)
 
-`mocapi-server/src/test/java/.../aot/MocapiServicesAotProcessorTest.java` covers the per-bean processor.
+`mocapi-autoconfigure/src/test/java/.../aot/MocapiServicesAotProcessorTest.java` covers the per-bean processor.
 
 When new model types land, these tests currently pass automatically because of the package scan — but it's worth adding an assertion for anything with a non-trivial shape (new sealed hierarchies especially) to catch regressions if the scan filters ever change.
 
@@ -77,6 +80,6 @@ The cowork-connector-example at `~/IdeaProjects/cowork-connector-example` is the
 
 1. Bump `mocapi.version` in its pom.
 2. `mvn -Pnative spring-boot:build-image -DBP_NATIVE_IMAGE=true`.
-3. Run the resulting image and exercise `server/discover`, `tools/list`, each `tools/call`, `prompts/list`, and each `prompts/get`.
+3. Run the resulting image and exercise `server/discover`, `tools/list`, each `tools/call`, `prompts/list`, each `prompts/get`, and — critically — a full **elicitation round-trip** (a tool that calls `ctx.elicit(...)`, then the client retry carrying `requestState` + answers). Elicitation replay is the only path that exercises the MRTR `requestState` codec, and thus the only way to catch a missing `RequestStatePayload` hint. A discover/tools/prompts-only smoke check would have shipped that gap.
 
 If any call errors with `MissingReflectionRegistrationError` or a Jackson `InvalidDefinitionException`, the offending class tells you whether it's mocapi's responsibility (extend `MocapiRuntimeHints` or `MocapiServicesAotProcessor`) or a consumer's (file bug in the appropriate repo).

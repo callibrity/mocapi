@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.autoconfigure.aot;
 
 import com.callibrity.mocapi.server.exchange.McpExchange;
+import com.callibrity.mocapi.server.mrtr.RequestStatePayload;
 import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -24,9 +25,11 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.util.ClassUtils;
 
 /**
- * Registers Jackson binding hints for every type in the {@code mocapi-model} package plus {@link
- * McpExchange}, so Mocapi's wire envelopes (tool/prompt/resource results, content blocks, sealed
- * hierarchies, etc.) and the per-request exchange record survive a GraalVM native-image build.
+ * Registers Jackson binding hints for every type in the {@code mocapi-model} package plus the
+ * non-model types Jackson still serializes at runtime — {@link McpExchange} and the MRTR {@link
+ * RequestStatePayload} — so Mocapi's wire envelopes (tool/prompt/resource results, content blocks,
+ * sealed hierarchies, etc.), the per-request exchange record, and the {@code requestState} token
+ * payload survive a GraalVM native-image build.
  *
  * <p>Per-user return types are covered separately by {@link MocapiServicesAotProcessor}; Ripcurl's
  * {@code RipCurlRuntimeHints} covers the {@code JsonRpcMessage} hierarchy.
@@ -42,7 +45,12 @@ public class MocapiRuntimeHints implements RuntimeHintsRegistrar {
 
   @Override
   public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+    // Non-model types Jackson serializes at runtime that the model-package scan does not reach:
+    // the per-request exchange, and the MRTR requestState token payload (its ResponseLedgerEntry /
+    // ElicitResult graph is pulled in transitively by the binding registrar). requestState lives
+    // outside mocapi-model by design — the spec treats it as an opaque server-owned string.
     BINDING.registerReflectionHints(hints.reflection(), McpExchange.class);
+    BINDING.registerReflectionHints(hints.reflection(), RequestStatePayload.class);
     scanner()
         .findCandidateComponents(MODEL_PACKAGE)
         .forEach(

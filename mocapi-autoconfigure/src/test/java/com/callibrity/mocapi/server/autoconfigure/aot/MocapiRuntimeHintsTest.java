@@ -32,6 +32,7 @@ import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.exchange.McpExchange;
+import com.callibrity.mocapi.server.mrtr.RequestStatePayload;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,15 @@ class MocapiRuntimeHintsTest {
   @Test
   void registers_binding_hints_for_mcp_session() {
     assertTypeHintRegistered(McpExchange.class);
+  }
+
+  @Test
+  void registers_binding_hints_for_the_mrtr_request_state_payload() {
+    // requestState lives outside mocapi-model (opaque server-owned token, ADR-0021), so the
+    // model-package scan does not reach it — it must be registered explicitly or native-image
+    // elicitation replay breaks. The ResponseLedgerEntry / ElicitResult graph rides in
+    // transitively.
+    assertTypeHintRegistered(RequestStatePayload.class);
   }
 
   @Test
