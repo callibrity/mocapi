@@ -110,3 +110,9 @@ This ADR supersedes [ADR-0007](0007-substrate-storage-spi.md)
 (Substrate storage SPI and session store) and
 [ADR-0009](0009-mcpcontextresult-sealed-validation.md) (session
 lifecycle validation via `McpContextResult`).
+
+**Code anchors:** `mocapi-server/.../server/DefaultMcpServer.java`
+(stateless `handleCall`), `mocapi-server/.../server/exchange/McpExchange.java`
+(per-request immutable exchange replacing `McpSession`),
+`mocapi-server/.../server/exchange/MetaEnvelopeParser.java` (parses the
+`_meta` protocol-version / client-info / client-capabilities envelope).

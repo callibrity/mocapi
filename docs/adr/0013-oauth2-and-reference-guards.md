@@ -111,5 +111,5 @@ does not own a tenant model, a rate-limit model, or any RBAC scheme
 beyond the two reference annotations — those live in user code or
 third-party modules built on the Guard SPI.
 
-**Code anchors:** `mocapi-oauth2/.../MocapiOAuth2AutoConfiguration.java` (filter chains, `McpTokenStrategy` impls, `McpMetadataCustomizer` impls); `mocapi-spring-security-guards/`. See also
+**Code anchors:** `mocapi-autoconfigure/.../oauth2/MocapiOAuth2AutoConfiguration.java` (filter chains); the `McpTokenStrategy` and `McpMetadataCustomizer` implementations live in `mocapi-oauth2/`; `mocapi-spring-security-guards/`. See also
 [authorization.md](../guides/authorization.md).

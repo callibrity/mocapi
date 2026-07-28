@@ -131,3 +131,13 @@ see [ADR-0022](0022-2026-07-28-features-not-implemented.md)).
 
 This ADR supersedes [ADR-0008](0008-mailbox-elicitation-sampling.md)
 (Substrate Mailbox rendezvous for elicitation/sampling).
+
+**Code anchors:** `mocapi-server/.../server/mrtr/MrtrElicitationEngine.java`
+(the replay engine), `mocapi-server/.../server/mrtr/RequestStateCodec.java`
+(AES-256-GCM `requestState` encode/decode) with
+`RequestStatePayload.java` and `ResponseLedgerEntry.java`,
+`mocapi-server/.../server/mrtr/McpPrincipalSource.java` (principal-binding
+seam; `mocapi-oauth2/.../SecurityContextMcpPrincipalSource.java` is the
+Spring Security implementation), and the `mocapi-server/.../server/mrtr/`
+exception family (`InputRequiredException`, `InvalidRequestStateException`,
+`ExpiredRequestStateException`, `ElicitationLedgerMismatchException`).

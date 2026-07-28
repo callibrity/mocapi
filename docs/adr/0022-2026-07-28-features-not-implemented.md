@@ -200,3 +200,9 @@ been formally decided either way — file an issue.
 This ADR supersedes
 [ADR-0018](0018-mcp-spec-features-not-implemented.md), which recorded
 the equivalent stances for the 2025-11-25 revision.
+
+**Code anchors:** `mocapi-server/.../server/discover/DiscoverHandler.java`
+(builds the `server/discover` result advertising supported capabilities)
+and `mocapi-model/.../model/ServerCapabilities.java` (the advertised
+capability set, whose `extensions` map is empty — no extension
+implemented).

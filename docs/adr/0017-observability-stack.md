@@ -28,7 +28,7 @@ membership.
 
 ## Decision
 
-Mocapi ships four optional observability starters. Each has its own
+Mocapi ships five optional observability starters. Each has its own
 code module and its own Spring Boot starter. They are independently
 activatable — adding any one to the classpath enables it; removing it
 disables it; no module depends on another.
@@ -37,6 +37,7 @@ disables it; no module depends on another.
 |---|---|---|
 | `mocapi-logging` | CORRELATION | SLF4J MDC: `mcp.session`, `mcp.handler.kind`, `mcp.handler.name`, `mcp.request` |
 | `mocapi-o11y` | OBSERVATION | Micrometer `Observation` per handler call |
+| `mocapi-otel` | OBSERVATION | Source-less bundle: `mocapi-o11y` + `spring-boot-starter-opentelemetry` (Observation → OpenTelemetry tracing) |
 | `mocapi-audit` | AUDIT | Structured audit on a dedicated SLF4J logger |
 | `mocapi-actuator` | (separate from MCP protocol) | `/actuator/mcp` read-only inventory endpoint |
 
@@ -58,6 +59,18 @@ covers both. Low-cardinality keys (`mcp.handler.kind`,
 hot path has zero reflection. The module also contributes a
 `JsonRpcMethodHandlerCustomizer` that emits an outer `jsonrpc.server`
 observation around the entire JSON-RPC dispatch.
+
+**`mocapi-otel`.** A source-less dependency bundle (the same pattern as
+`mocapi-jakarta-validation`): it declares `mocapi-o11y` plus Spring
+Boot's `spring-boot-starter-opentelemetry` so that the Micrometer
+`Observation`s `mocapi-o11y` already emits are bridged to OpenTelemetry
+tracing. No observation code of its own, no backend exporter (that is
+deployment-specific), and no default properties. With it on the
+classpath, traces flow `http → jsonrpc.server → mcp.handler.execution`,
+and a request whose `_meta` carries W3C trace-context keys joins the
+client's remote-parent trace. Added after the original four starters;
+[ADR-0022](0022-2026-07-28-features-not-implemented.md) cites it as the
+spec-suggested replacement for the deprecated MCP Logging feature.
 
 **`mocapi-audit`.** Attaches an `AuditLoggingInterceptor` per handler
 kind via the AUDIT stratum. Emits one structured event per invocation
@@ -105,4 +118,4 @@ Prometheus scrape config, an OpenTelemetry collector setup, or a
 Splunk parser. Those are deployment concerns; the modules just emit
 the data.
 
-**Code anchors:** `mocapi-logging/`, `mocapi-o11y/`, `mocapi-audit/`, `mocapi-actuator/`. MDC key constants in `mocapi-logging/.../McpMdcKeys.java`.
+**Code anchors:** `mocapi-logging/`, `mocapi-o11y/`, `mocapi-otel/` (source-less bundle — see `mocapi-otel/pom.xml`), `mocapi-audit/`, `mocapi-actuator/`. MDC key constants in `mocapi-logging/.../McpMdcKeys.java`.

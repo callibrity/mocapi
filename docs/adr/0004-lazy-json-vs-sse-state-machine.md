@@ -3,6 +3,17 @@
 - **Status:** Accepted
 - **Date:** 2025-07-09
 
+> **Amended 2026-07-28 (ADR-0020):** the sealed `MessageWriter` state
+> machine (`DirectMessageWriter` / `SseMessageWriter` / `ClosedMessageWriter`)
+> and the lazy JSON-vs-SSE decision are unchanged. Two implementation
+> details below are now dead: the SSE upgrade no longer pulls an
+> `OdysseyStream` from a supplier — Odyssey is gone
+> ([ADR-0020](0020-stateless-request-model.md)), replaced by a plain
+> Spring `SseEmitter` wrapped in `PerRequestSseStream` scoped to the
+> single POST — and there is no `MCP-Session-Id` header or
+> `SessionInitialized` event to stamp, since sessions were removed.
+> Corrections are marked inline.
+
 ## Context
 
 The MCP Streamable HTTP spec lets a server respond to a POSTed
@@ -47,21 +58,25 @@ sealed interface MessageWriter
   - On `send(JsonRpcResponse)`: completes the future with an
     `application/json` body whose entity is the response. Transitions to
     `ClosedMessageWriter`.
-  - On `send(JsonRpcRequest)` (notification or server-initiated call):
-    pulls a fresh `OdysseyStream` from the supplier, builds an
-    `SseEmitter`, completes the future with a `text/event-stream` body,
-    publishes the first message to the stream, and transitions to
-    `SseMessageWriter`.
-- **`SseMessageWriter`** — wraps the live Odyssey stream. Each `send`
+  - On `send(JsonRpcRequest)` (a request-scoped notification): builds a
+    Spring `SseEmitter` (wrapped in `PerRequestSseStream`), completes the
+    future with a `text/event-stream` body, publishes the first message
+    to the stream, and transitions to `SseMessageWriter`.
+    **(Amended, ADR-0020):** the earlier design pulled a fresh
+    `OdysseyStream` from a supplier here; Odyssey was removed with
+    sessions, and the response stream is now a plain per-POST `SseEmitter`.
+- **`SseMessageWriter`** — wraps the live per-POST SSE stream. Each `send`
   publishes the message; a terminal `JsonRpcResponse` additionally calls
   `stream.complete()` and transitions to `ClosedMessageWriter`.
 - **`ClosedMessageWriter`** — every `send` throws `IllegalStateException`.
   Either the JSON response was committed and no further writes are
   legal, or the SSE stream was completed.
 
-`McpEvent.SessionInitialized` is captured on `emit` and stashed; both
+~~`McpEvent.SessionInitialized` is captured on `emit` and stashed; both
 upgrade paths set the `MCP-Session-Id` header from it before completing
-the future.
+the future.~~ **(Amended, ADR-0020):** sessions were removed, so there is
+no `SessionInitialized` event and no `MCP-Session-Id` header to stamp;
+the transport just completes the future with the chosen body.
 
 The handler runs on a fresh virtual thread for every `JsonRpcCall`,
 including `initialize` and other one-shot methods. Uniformity beats

@@ -1,7 +1,15 @@
 # ADR-0012 — Guard SPI: unified visibility and call-time authorization
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0023](0023-guard-denial-code-relocation.md))
 - **Date:** 2026-04-19
+
+> **Amended 2026-07-28 (ADR-0023):** the Guard SPI, the visibility ≡
+> invocation guarantee, and all semantics below stand. Only the wire
+> error code for a guard denial changed: the `-32003` referenced in
+> "Call time" and the Consequences was relocated to `-32010` by
+> [ADR-0023](0023-guard-denial-code-relocation.md) (which reserves
+> `-32003` for the spec's missing-capability meaning). See ADR-0023 for
+> the current code.
 
 ## Context
 

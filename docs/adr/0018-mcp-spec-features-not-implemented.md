@@ -110,7 +110,11 @@ context.
 
 The TypeScript SDK supports a stateless mode (no session IDs, no
 session store) for serverless deployments. Mocapi always creates
-sessions and requires a session store.
+sessions and requires a session store. *(Superseded — see
+[ADR-0020](0020-stateless-request-model.md): mocapi is now stateless,
+creates no sessions, and requires no session store. This line reflects
+the 2025-11-25-era design only and is kept as the frozen historical
+record.)*
 
 **Rationale:** Mocapi is designed for stateful, multi-node deployments
 where sessions, elicitation, and sampling require durable state. A

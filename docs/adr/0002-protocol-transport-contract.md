@@ -1,7 +1,22 @@
 # ADR-0002 — `McpServer` / `McpTransport` is the only coupling between protocol and transport
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0020](0020-stateless-request-model.md)
 - **Date:** 2025-07-09
+
+> **Superseded 2026-07-28 (ADR-0020):** the clean break to stateless MCP
+> 2026-07-28 collapsed this contract. `McpServer` now exposes only
+> `handleCall(JsonRpcCall, McpTransport)` and
+> `handleNotification(JsonRpcNotification)`; `createContext`,
+> `handleResponse`, and `terminate(sessionId)` are gone with sessions
+> ([ADR-0020](0020-stateless-request-model.md)). `McpTransport` is now a
+> single `send(JsonRpcMessage)` method — `emit(McpEvent)`, the
+> `McpEvent` sealed type, and `SessionInitialized` were deleted along
+> with the session lifecycle. Server-initiated requests and their
+> `handleResponse` return path were removed by
+> [ADR-0021](0021-mrtr-elicitation-replay.md). The two-interface split
+> below is still the only coupling between protocol and transport; only
+> the method surface shrank. The Context/Decision text is preserved as
+> the historical record.
 
 ## Context
 
@@ -97,4 +112,4 @@ APIs. Tool authors depend on `mocapi-api` (see
 [ADR-0001](0001-module-structure-and-packaging.md)); the server resolves
 those through registries built at startup.
 
-**Code anchors:** `mocapi-server/.../McpServer.java`, `McpTransport.java`, `McpEvent.java`.
+**Code anchors:** `mocapi-server/.../McpServer.java`, `mocapi-server/.../McpTransport.java`. (The `McpEvent.java` sealed type referenced by the original decision was deleted under [ADR-0020](0020-stateless-request-model.md).)

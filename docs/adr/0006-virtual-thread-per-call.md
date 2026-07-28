@@ -3,13 +3,23 @@
 - **Status:** Accepted
 - **Date:** 2026-04-12
 
+> **Amended 2026-07-28 (ADR-0020):** the core decision — one virtual
+> thread per JSON-RPC call with `ContextSnapshot` propagation — is intact
+> and still current. Two references below are stale: elicitation no
+> longer parks a thread on a Substrate Mailbox (Substrate is gone;
+> elicitation is now MRTR replay, [ADR-0021](0021-mrtr-elicitation-replay.md),
+> and sampling was removed, [ADR-0022](0022-2026-07-28-features-not-implemented.md)),
+> and `McpSession.CURRENT` no longer exists (sessions were removed,
+> [ADR-0020](0020-stateless-request-model.md); the per-request handle is
+> now the immutable `McpExchange`). Corrections are marked inline.
+
 ## Context
 
-MCP handlers may block. Elicitation and sampling each park a tool's
-execution thread on a Substrate Mailbox until the client responds (or a
-timeout fires; see [ADR-0008](0008-mailbox-elicitation-sampling.md)).
-A tool that does I/O against a database, a downstream API, or a slow
-filesystem also blocks. Pinning a Tomcat worker to such a handler limits
+MCP handlers may block. A tool that does I/O against a database, a downstream API, or a slow
+filesystem blocks its execution thread; MRTR elicitation
+([ADR-0021](0021-mrtr-elicitation-replay.md)) re-executes the handler on
+each round trip, and each re-execution can block on that same I/O.
+Pinning a Tomcat worker to such a handler limits
 concurrency to the worker pool size — fine for a handful of clients,
 catastrophic for a multi-tenant deployment.
 
@@ -69,11 +79,13 @@ Thread.ofVirtual().start(snapshot.wrap(() -> {
    version). Spring Security 6 and Micrometer Observation already ship
    accessors via the SPI; users get propagation for free in the common
    case.
-5. Mocapi's own per-request state (`McpSession.CURRENT`,
-   `McpToolContext.CURRENT`, `McpTransport.CURRENT`) is bound inside
-   `server.handleCall` via `ScopedValue.where(...).run(...)`. ScopedValues
-   propagate naturally to the VT body; nothing in the transport layer
-   needs to forward them.
+5. Mocapi's own per-request state (the `MrtrContext` /
+   `McpToolContext.CURRENT` family, `McpTransport.CURRENT`, and the
+   per-request `McpExchange`) is bound inside `server.handleCall` via
+   `ScopedValue.where(...).run(...)`. ScopedValues propagate naturally to
+   the VT body; nothing in the transport layer needs to forward them.
+   **(Amended, ADR-0020):** the original rule listed `McpSession.CURRENT`;
+   sessions were removed and the immutable `McpExchange` replaced it.
 
 The stdio transport does not spawn a handler VT per call — it dispatches
 each stdin line on a VT inside its reader loop, but there is no "request
@@ -111,4 +123,4 @@ itself. Per-request state is in `McpContext` or `ScopedValue`. The
 context-propagation mechanism enables third-party integrations; it is
 not a place to add mocapi-specific propagation logic.
 
-**Code anchors:** `mocapi-streamable-http-transport/.../StreamableHttpController.java` (`ContextSnapshot` capture); `StreamableHttpAutoConfiguration.java` (`ContextSnapshotFactory` bean). Landed in commit `75de336d` (2026-04-12).
+**Code anchors:** `mocapi-streamable-http-transport/.../StreamableHttpController.java` (`ContextSnapshot` capture); `mocapi-autoconfigure/.../transport/http/StreamableHttpAutoConfiguration.java` (`ContextSnapshotFactory` bean). Landed in commit `75de336d` (2026-04-12).

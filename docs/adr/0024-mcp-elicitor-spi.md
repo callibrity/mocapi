@@ -43,10 +43,15 @@ public interface McpElicitor {
 2. The server binds `McpElicitor.CURRENT` during dispatch of all
    three MRTR-capable methods: tools bind their `McpToolContext`
    (which is an `McpElicitor`); prompts and resources bind a
-   `DefaultMcpElicitor` (capability pre-check + the
-   `ElicitationDispatcher` seam, identical semantics to the tool
-   path: absent capability → `McpElicitationNotSupportedException`
-   → `-32003` on the wire).
+   dedicated context object, identical elicitation semantics to the
+   tool path: absent capability → `McpElicitationNotSupportedException`
+   → `-32003` on the wire.
+   **(Amended, [ADR-0025](0025-progress-emitters-and-mrtr-context.md)):**
+   the original single `DefaultMcpElicitor` was replaced when ADR-0025
+   introduced the shared base class `AbstractMrtrContext`; prompts now
+   bind `DefaultMcpPromptContext` and resources bind
+   `DefaultMcpResourceContext` (both extend `AbstractMrtrContext`, which
+   supplies the elicitation surface).
 3. Prompt, resource, and tool handler methods may declare an
    `McpElicitor` parameter; a structural `McpElicitorResolver`
    (the `ScopedValueResolver` pattern) resolves it. The flat-schema
@@ -56,9 +61,14 @@ public interface McpElicitor {
    last `elicit(...)` re-executes once per round trip.
 
 **Code anchors:** `mocapi-api/.../elicitation/McpElicitor.java`,
-`mocapi-server/.../elicitation/DefaultMcpElicitor.java`,
 `mocapi-server/.../elicitation/McpElicitorResolver.java`,
-`McpPromptsService.java`, `McpResourcesService.java`.
+`mocapi-server/.../context/AbstractMrtrContext.java`,
+`mocapi-server/.../prompts/DefaultMcpPromptContext.java`,
+`mocapi-server/.../resources/DefaultMcpResourceContext.java`,
+`mocapi-server/.../prompts/McpPromptsService.java`,
+`mocapi-server/.../resources/McpResourcesService.java`.
+(The original `DefaultMcpElicitor` was superseded by `AbstractMrtrContext`
+under [ADR-0025](0025-progress-emitters-and-mrtr-context.md).)
 
 ## Consequences
 

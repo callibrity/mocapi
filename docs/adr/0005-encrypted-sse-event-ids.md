@@ -1,7 +1,21 @@
 # ADR-0005 — Encrypt SSE event IDs with AES-256-GCM bound to the session
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0020](0020-stateless-request-model.md)
 - **Date:** 2026-04-17
+
+> **Superseded 2026-07-28 (ADR-0020):** the entire SSE-event-ID
+> encryption subsystem was deleted. Both purposes it served are gone:
+> `Last-Event-ID` resumption was removed when the 2026-07-28 transport
+> dropped resumable SSE streams ([ADR-0020](0020-stateless-request-model.md),
+> which also removed Odyssey and `DefaultSseStreamFactory`), and
+> server-initiated-request correlation was removed when elicitation moved
+> to the MRTR replay model ([ADR-0021](0021-mrtr-elicitation-replay.md)).
+> The only SSE that remains is a per-POST response stream with no
+> resumption and no server-initiated request IDs to encrypt. Note that
+> `requestState` MRTR tokens are still AES-256-GCM protected — see
+> [ADR-0021](0021-mrtr-elicitation-replay.md) — but that is a separate
+> mechanism, not this event-ID codec. The Context/Decision text is
+> preserved as the historical record.
 
 ## Context
 
@@ -92,4 +106,4 @@ A captured-and-replayed `Last-Event-ID` from the same session reconnects
 to the same stream (which is the legitimate use case). Cross-session
 replay is blocked by the AAD binding.
 
-**Code anchors:** `mocapi-streamable-http-transport/.../DefaultSseStreamFactory.java`. Encrypted-event-id refactor landed in commit `53d9cbc4` (2026-04-17).
+**Code anchors:** none — the `DefaultSseStreamFactory` (and the `Ciphers` helper) this decision described were deleted under [ADR-0020](0020-stateless-request-model.md). The encrypted-event-id refactor originally landed in commit `53d9cbc4` (2026-04-17).
