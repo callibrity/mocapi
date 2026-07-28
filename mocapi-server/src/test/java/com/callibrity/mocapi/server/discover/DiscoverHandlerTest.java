@@ -38,9 +38,7 @@ class DiscoverHandlerTest {
 
   @Test
   void advertises_the_supported_protocol_versions() {
-    // The draft sentinel rides along during the RC window only (drop at Task 9.3).
-    assertThat(handler.discover().supportedVersions())
-        .containsExactly(McpServer.PROTOCOL_VERSION, McpServer.DRAFT_PROTOCOL_VERSION);
+    assertThat(handler.discover().supportedVersions()).containsExactly(McpServer.PROTOCOL_VERSION);
   }
 
   @Test

@@ -185,9 +185,7 @@ class MocapiStartupBannerTest {
     @Test
     void shows_the_versions_the_discover_handler_advertises() {
       String banner = banner().withDiscover().build().render();
-      assertThat(banner)
-          .contains(
-              "Protocol: " + McpServer.PROTOCOL_VERSION + ", " + McpServer.DRAFT_PROTOCOL_VERSION);
+      assertThat(banner).contains("Protocol: " + McpServer.PROTOCOL_VERSION);
     }
 
     @Test
@@ -269,7 +267,7 @@ class MocapiStartupBannerTest {
       when(discoverHandler.discover())
           .thenReturn(
               new DiscoverResult(
-                  List.of(McpServer.PROTOCOL_VERSION, McpServer.DRAFT_PROTOCOL_VERSION),
+                  List.of(McpServer.PROTOCOL_VERSION),
                   null,
                   null,
                   0L,

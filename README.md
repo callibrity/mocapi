@@ -262,7 +262,7 @@ See [`examples/stdio/README.md`](examples/stdio/README.md) for Claude Desktop co
 
 ## MCP Conformance
 
-Mocapi targets the [MCP 2026-07-28](https://modelcontextprotocol.io/specification/draft) specification (release candidate until 2026-07-28). Conformance is validated against the official suite's draft track — see [mocapi-conformance/README.md](mocapi-conformance/README.md) for current results and the expected-failures baseline:
+Mocapi targets the [MCP 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28) specification. Conformance is validated against the official suite via `--spec-version 2026-07-28` — see [mocapi-conformance/README.md](mocapi-conformance/README.md) for current results and the expected-failures baseline:
 
 ```bash
 # Start the conformance server

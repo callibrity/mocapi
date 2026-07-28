@@ -6,12 +6,18 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Removed
+
+- **`DRAFT-2026-v1` protocol alias** ([ADR-0027](docs/adr/0027-remove-draft-2026-v1-alias.md)).
+  The release-candidate-window sentinel is gone now that the final 2026-07-28
+  spec has shipped; `2026-07-28` is the sole accepted and advertised protocol
+  version. Conformance now runs against `--spec-version 2026-07-28`.
+
 ### Changed
 
 - **Clean-break rewrite for MCP 2026-07-28** ([ADR-0019](docs/adr/0019-clean-break-2026-07-28.md)).
-  Mocapi now implements protocol revision `2026-07-28` exclusively (plus the
-  `DRAFT-2026-v1` sentinel as a release-candidate-window alias, removed when
-  the final spec ships). The stateful 2025-11-25 architecture is gone:
+  Mocapi now implements protocol revision `2026-07-28` exclusively. The
+  stateful 2025-11-25 architecture is gone:
   - **Stateless core** ([ADR-0020](docs/adr/0020-stateless-request-model.md)):
     the `initialize` handshake, sessions, and `Mcp-Session-Id` are removed;
     every request carries protocol version, client info, and client

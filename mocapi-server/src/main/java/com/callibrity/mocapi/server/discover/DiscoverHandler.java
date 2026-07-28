@@ -57,8 +57,7 @@ public class DiscoverHandler {
   @JsonRpcMethod(McpMethods.SERVER_DISCOVER)
   public DiscoverResult discover() {
     return new DiscoverResult(
-        // The draft sentinel is an RC-window alias — drop at Task 9.3.
-        List.of(McpServer.PROTOCOL_VERSION, McpServer.DRAFT_PROTOCOL_VERSION),
+        List.of(McpServer.PROTOCOL_VERSION),
         capabilities,
         instructions,
         cacheSettings.listTtlMs(),

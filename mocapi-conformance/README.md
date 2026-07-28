@@ -19,25 +19,30 @@ mvn spring-boot:run -pl mocapi-conformance
 
 The server starts on port 8081 with the MCP endpoint at `/mcp`.
 
-### 2. Run the 2026-07-28 draft suite
+### 2. Run the 2026-07-28 suite
 
-The 2026-07-28 scenarios live on the suite's `0.2.0-alpha.x` track and are
-tagged `DRAFT-2026-v1` — the pre-release sentinel the suite sends as the
-protocol version while the spec is a release candidate (mocapi accepts it as
-an alias of `2026-07-28` during the RC window; see
-`McpServer.DRAFT_PROTOCOL_VERSION`).
+The 2026-07-28 spec is final; the conformance tool targets it as a first-class
+dated version via `--spec-version 2026-07-28` (which drives the stateless
+lifecycle), replacing the RC-era `--suite draft` track that sent the
+`DRAFT-2026-v1` sentinel (removed in [ADR-0027](../docs/adr/0027-remove-draft-2026-v1-alias.md)).
 
 ```bash
-npx @modelcontextprotocol/conformance@0.2.0-alpha.2 server \
-  --url http://localhost:8081/mcp --suite draft \
+npx @modelcontextprotocol/conformance@0.2.0-alpha.10 server \
+  --url http://localhost:8081/mcp --suite active --spec-version 2026-07-28 \
   --expected-failures mocapi-conformance/conformance-expected-failures.yaml
 ```
 
-## Current conformance status (2026-07-28 draft track)
+## Current conformance status (2026-07-28)
 
-Last full run (`@modelcontextprotocol/conformance@0.2.0-alpha.2 --suite draft`,
-2026-06-12): **51 checks passed, 5 scenarios failed — all five explained and
-baselined** in `conformance-expected-failures.yaml`.
+> **Pending regeneration.** The numbers below are from the RC-era draft run
+> (`--suite draft`, 2026-06-12) and are stale relative to both the final-spec
+> `--spec-version 2026-07-28` invocation above and the `McpElicitor` SPI landing
+> (ADR-0024). Re-run and reconcile before the 1.0.0 release. Treat the table
+> below as indicative only.
+
+Last RC-era run (`@0.2.0-alpha.2 --suite draft`, 2026-06-12): **51 checks
+passed, 5 scenarios failed — all five explained and baselined** in
+`conformance-expected-failures.yaml`.
 
 ### Passing scenarios
 
