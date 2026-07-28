@@ -15,7 +15,7 @@
  */
 package com.callibrity.mocapi.server.autoconfigure.aot;
 
-import com.callibrity.mocapi.server.session.McpSession;
+import com.callibrity.mocapi.server.exchange.McpExchange;
 import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -25,8 +25,8 @@ import org.springframework.util.ClassUtils;
 
 /**
  * Registers Jackson binding hints for every type in the {@code mocapi-model} package plus {@link
- * McpSession}, so Mocapi's wire envelopes (tool/prompt/resource results, content blocks, sealed
- * hierarchies, etc.) and the session record survive a GraalVM native-image build.
+ * McpExchange}, so Mocapi's wire envelopes (tool/prompt/resource results, content blocks, sealed
+ * hierarchies, etc.) and the per-request exchange record survive a GraalVM native-image build.
  *
  * <p>Per-user return types are covered separately by {@link MocapiServicesAotProcessor}; Ripcurl's
  * {@code RipCurlRuntimeHints} covers the {@code JsonRpcMessage} hierarchy.
@@ -42,7 +42,7 @@ public class MocapiRuntimeHints implements RuntimeHintsRegistrar {
 
   @Override
   public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
-    BINDING.registerReflectionHints(hints.reflection(), McpSession.class);
+    BINDING.registerReflectionHints(hints.reflection(), McpExchange.class);
     scanner()
         .findCandidateComponents(MODEL_PACKAGE)
         .forEach(

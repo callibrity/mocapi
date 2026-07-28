@@ -20,13 +20,11 @@ import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerProperties;
-import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
 import io.micrometer.context.ContextSnapshotFactory;
-import java.util.Base64;
+import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.odyssey.core.Odyssey;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -36,19 +34,11 @@ import tools.jackson.databind.ObjectMapper;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class StreamableHttpAutoConfigurationTest {
 
-  private static final String MASTER_KEY = Base64.getEncoder().encodeToString(new byte[32]);
-
   private final WebApplicationContextRunner contextRunner =
       new WebApplicationContextRunner()
           .withConfiguration(AutoConfigurations.of(StreamableHttpAutoConfiguration.class))
           .withUserConfiguration(InfrastructureConfig.class)
-          .withPropertyValues(
-              "mocapi.session-encryption-master-key=" + MASTER_KEY,
-              "mocapi.session-timeout=PT1H",
-              "mocapi.elicitation.timeout=PT5M",
-              "mocapi.sampling.timeout=PT30S",
-              "mocapi.pagination.page-size=50",
-              "mocapi.allowed-origins=localhost");
+          .withPropertyValues("mocapi.pagination.page-size=50", "mocapi.allowed-origins=localhost");
 
   @Configuration(proxyBeanMethods = false)
   static class InfrastructureConfig {
@@ -56,11 +46,6 @@ class StreamableHttpAutoConfigurationTest {
     @Bean
     McpServer mcpServer() {
       return mock(McpServer.class);
-    }
-
-    @Bean
-    Odyssey odyssey() {
-      return mock(Odyssey.class);
     }
 
     @Bean
@@ -74,6 +59,7 @@ class StreamableHttpAutoConfigurationTest {
     contextRunner.run(
         context -> {
           assertThat(context).hasSingleBean(McpRequestValidator.class);
+          assertThat(context).hasSingleBean(McpHeaderValidator.class);
           assertThat(context).hasSingleBean(StreamableHttpController.class);
           assertThat(context).hasSingleBean(ContextSnapshotFactory.class);
         });
@@ -93,7 +79,7 @@ class StreamableHttpAutoConfigurationTest {
 
   @Test
   void custom_request_validator_overrides_default() {
-    McpRequestValidator custom = new McpRequestValidator(java.util.List.of("example.com"));
+    McpRequestValidator custom = new McpRequestValidator(List.of("example.com"));
     contextRunner
         .withBean(McpRequestValidator.class, () -> custom)
         .run(
@@ -118,17 +104,14 @@ class StreamableHttpAutoConfigurationTest {
   static class CustomControllerConfig {
 
     @Bean
-    StreamableHttpController customController(
-        McpServer protocol,
-        SseStreamFactory sseStreamFactory,
-        ObjectMapper objectMapper,
-        ContextSnapshotFactory contextSnapshotFactory) {
+    StreamableHttpController customController(McpServer protocol, ObjectMapper objectMapper) {
       return new StreamableHttpController(
           protocol,
-          new McpRequestValidator(java.util.List.of("localhost")),
-          sseStreamFactory,
+          new McpRequestValidator(List.of("localhost")),
+          new McpHeaderValidator(),
           objectMapper,
-          contextSnapshotFactory);
+          ContextSnapshotFactory.builder().build(),
+          0L);
     }
   }
 
@@ -136,65 +119,11 @@ class StreamableHttpAutoConfigurationTest {
   void beans_are_not_created_when_mcp_server_bean_is_missing() {
     new WebApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(StreamableHttpAutoConfiguration.class))
-        .withPropertyValues(
-            "mocapi.session-encryption-master-key=" + MASTER_KEY,
-            "mocapi.session-timeout=PT1H",
-            "mocapi.elicitation.timeout=PT5M",
-            "mocapi.sampling.timeout=PT30S",
-            "mocapi.pagination.page-size=50",
-            "mocapi.allowed-origins=localhost")
+        .withPropertyValues("mocapi.pagination.page-size=50", "mocapi.allowed-origins=localhost")
         .run(
             context -> {
               assertThat(context).doesNotHaveBean(McpRequestValidator.class);
               assertThat(context).doesNotHaveBean(StreamableHttpController.class);
-            });
-  }
-
-  @Test
-  void missing_master_key_fails_with_helpful_message() {
-    contextRunner
-        .withPropertyValues("mocapi.session-encryption-master-key=")
-        .run(
-            context -> {
-              assertThat(context).hasFailed();
-              assertThat(context)
-                  .getFailure()
-                  .hasRootCauseInstanceOf(IllegalStateException.class)
-                  .hasStackTraceContaining("mocapi.session-encryption-master-key is required")
-                  .hasStackTraceContaining("openssl rand -base64 32");
-            });
-  }
-
-  @Test
-  void invalid_base64_master_key_fails_with_helpful_message() {
-    contextRunner
-        .withPropertyValues("mocapi.session-encryption-master-key=not!!!valid~base64")
-        .run(
-            context -> {
-              assertThat(context).hasFailed();
-              assertThat(context)
-                  .getFailure()
-                  .hasRootCauseInstanceOf(IllegalArgumentException.class)
-                  .hasStackTraceContaining("not valid base64")
-                  .hasStackTraceContaining("openssl rand -base64 32");
-            });
-  }
-
-  @Test
-  void wrong_length_master_key_fails_with_helpful_message() {
-    // 16 bytes encoded — base64-valid but AES-256 needs 32.
-    String shortKey = java.util.Base64.getEncoder().encodeToString(new byte[16]);
-    contextRunner
-        .withPropertyValues("mocapi.session-encryption-master-key=" + shortKey)
-        .run(
-            context -> {
-              assertThat(context).hasFailed();
-              assertThat(context)
-                  .getFailure()
-                  .rootCause()
-                  .isInstanceOf(IllegalStateException.class)
-                  .hasMessageContaining("16 bytes")
-                  .hasMessageContaining("AES-256 requires exactly 32");
             });
   }
 

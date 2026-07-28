@@ -19,8 +19,9 @@ import java.net.URI;
 import java.util.List;
 
 /**
- * Validates MCP transport-level headers. Protocol validation (session, protocol version) is handled
- * by {@link com.callibrity.mocapi.server.McpServer#createContext}.
+ * Validates the {@code Origin} header against the allowed-origins list (DNS-rebinding protection).
+ * Routing-header validation lives in {@link McpHeaderValidator}; body envelope validation is the
+ * server's job.
  */
 public class McpRequestValidator {
 

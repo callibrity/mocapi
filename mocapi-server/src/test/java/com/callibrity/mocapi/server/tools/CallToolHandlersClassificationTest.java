@@ -20,7 +20,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ImageContent;
+import com.callibrity.mocapi.model.ResourceLink;
+import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.lang.reflect.Method;
@@ -144,91 +148,122 @@ class CallToolHandlersClassificationTest {
   }
 
   @Nested
-  class When_effective_type_is_rejected {
+  class When_effective_type_is_a_ContentBlock {
 
     @Test
-    void Object_return_is_rejected() {
-      // Jackson emits an empty schema {} for Object — the rejection comes from the "not
-      // type:object" branch with type literal "(none)" in the message.
-      assertThatThrownBy(() -> build(ObjectBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"(none)\"");
+    void single_ContentBlock_return_picks_the_content_block_mapper_and_advertises_no_schema() {
+      var handler = build(ImageContentBean.class);
+      assertThat(handler.resultMapper()).isSameAs(ContentBlockResultMapper.INSTANCE);
+      assertThat(handler.descriptor().outputSchema()).isNull();
+      assertThat(hasAwaitInterceptor(handler)).isFalse();
     }
 
     @Test
-    void primitive_int_return_is_rejected_for_yielding_an_integer_schema() {
-      assertThatThrownBy(() -> build(IntBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"integer\"");
+    void ResourceLink_return_picks_the_content_block_mapper() {
+      var handler = build(ResourceLinkBean.class);
+      assertThat(handler.resultMapper()).isSameAs(ContentBlockResultMapper.INSTANCE);
+      assertThat(handler.descriptor().outputSchema()).isNull();
     }
 
     @Test
-    void primitive_double_return_is_rejected_for_yielding_a_number_schema() {
-      assertThatThrownBy(() -> build(DoubleBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"number\"");
+    void TextContent_return_routes_to_the_content_block_mapper_not_the_text_mapper() {
+      // TextContent is a ContentBlock but not a CharSequence, so it becomes a single content block
+      // rather than the toString() text shortcut.
+      var handler = build(TextContentBean.class);
+      assertThat(handler.resultMapper()).isSameAs(ContentBlockResultMapper.INSTANCE);
+      assertThat(handler.descriptor().outputSchema()).isNull();
+    }
+  }
+
+  @Nested
+  class When_effective_type_is_structured_non_object {
+
+    // MCP 2026-07-28 widened structuredContent from a JSON object to any JSON value, so non-object
+    // return types are accepted and advertise a schema of their derived JSON type.
+
+    @Test
+    void primitive_int_return_advertises_an_integer_schema() {
+      var handler = build(IntBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("integer");
     }
 
     @Test
-    void boxed_Boolean_return_is_rejected_for_yielding_a_boolean_schema() {
-      assertThatThrownBy(() -> build(BoxedBooleanBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"boolean\"");
+    void primitive_double_return_advertises_a_number_schema() {
+      var handler = build(DoubleBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("number");
     }
 
     @Test
-    void List_return_is_rejected_for_yielding_an_array_schema() {
-      assertThatThrownBy(() -> build(ListBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"array\"");
+    void boxed_Boolean_return_advertises_a_boolean_schema() {
+      var handler = build(BoxedBooleanBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("boolean");
     }
 
     @Test
-    void array_return_is_rejected_for_yielding_an_array_schema() {
-      assertThatThrownBy(() -> build(ArrayBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"array\"");
+    void List_return_advertises_an_array_schema() {
+      var handler = build(ListBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("array");
     }
 
     @Test
-    void Map_return_is_rejected_for_having_no_declared_properties() {
-      assertThatThrownBy(() -> build(MapBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("object schema with no declared properties");
+    void array_return_advertises_an_array_schema() {
+      var handler = build(ArrayBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("array");
     }
 
     @Test
-    void JsonNode_return_is_rejected_for_having_no_declared_properties() {
-      assertThatThrownBy(() -> build(JsonNodeBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("object schema with no declared properties");
+    void Map_return_advertises_an_object_schema() {
+      var handler = build(MapBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
     }
 
     @Test
-    void ObjectNode_return_is_rejected_for_having_no_declared_properties() {
-      assertThatThrownBy(() -> build(ObjectNodeBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("object schema with no declared properties");
+    void JsonNode_return_advertises_an_object_schema() {
+      var handler = build(JsonNodeBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
     }
 
     @Test
-    void Optional_return_is_rejected() {
+    void ObjectNode_return_advertises_an_object_schema() {
+      var handler = build(ObjectNodeBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
+    }
+
+    @Test
+    void empty_record_return_advertises_an_object_schema() {
+      var handler = build(EmptyRecordBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("object");
+    }
+
+    @Test
+    void Object_return_is_structured_with_no_advertised_schema() {
+      // Jackson emits an empty schema {} for Object — there is no meaningful type to advertise, so
+      // no outputSchema is attached, but the value is still mapped to structuredContent.
+      var handler = build(ObjectBean.class);
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema()).isNull();
+    }
+  }
+
+  @Nested
+  class When_effective_type_cannot_be_mapped {
+
+    @Test
+    void Optional_return_is_rejected_because_its_element_type_is_erased() {
+      // Optional is a Java container, not a JSON type; its element type is erased on the return
+      // signature, so no meaningful structuredContent schema can be derived.
       assertThatThrownBy(() -> build(OptionalBean.class))
-          .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void empty_record_return_is_rejected_for_having_no_declared_properties() {
-      assertThatThrownBy(() -> build(EmptyRecordBean.class))
           .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("object schema with no declared properties");
-    }
-
-    @Test
-    void rejection_message_names_the_offending_class() {
-      assertThatThrownBy(() -> build(ListBean.class))
-          .hasMessageContaining(ListBean.class.getName())
-          .hasMessageContaining("m");
+          .hasMessageContaining("Optional");
     }
   }
 
@@ -269,6 +304,14 @@ class CallToolHandlersClassificationTest {
     }
 
     @Test
+    void CompletionStage_of_ContentBlock_unwraps_to_content_block_mapper() {
+      var handler = build(CompletionStageOfImageContentBean.class);
+      assertThat(hasAwaitInterceptor(handler)).isTrue();
+      assertThat(handler.resultMapper()).isSameAs(ContentBlockResultMapper.INSTANCE);
+      assertThat(handler.descriptor().outputSchema()).isNull();
+    }
+
+    @Test
     void CompletionStage_of_String_unwraps_to_text_mapper() {
       var handler = build(CompletionStageOfStringBean.class);
       assertThat(hasAwaitInterceptor(handler)).isTrue();
@@ -277,10 +320,11 @@ class CallToolHandlersClassificationTest {
     }
 
     @Test
-    void CompletionStage_of_List_is_rejected_for_yielding_an_array_schema_after_unwrap() {
-      assertThatThrownBy(() -> build(CompletionStageOfListBean.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("\"array\"");
+    void CompletionStage_of_List_unwraps_to_a_structured_array_mapper() {
+      var handler = build(CompletionStageOfListBean.class);
+      assertThat(hasAwaitInterceptor(handler)).isTrue();
+      assertThat(handler.resultMapper()).isInstanceOf(StructuredResultMapper.class);
+      assertThat(handler.descriptor().outputSchema().get("type").asString()).isEqualTo("array");
     }
 
     @Test
@@ -362,189 +406,217 @@ class CallToolHandlersClassificationTest {
   record Nothing() {}
 
   public static class PrimitiveVoidBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public void m() {
       // Intentionally empty: exercises the classifier's `void` branch.
     }
   }
 
   public static class BoxedVoidBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Void m() {
       return null;
     }
   }
 
   public static class CallToolResultBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CallToolResult m() {
       return null;
     }
   }
 
   public static class StringBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public String m() {
       return "hi";
     }
   }
 
+  public static class ImageContentBean {
+    @McpTool
+    public ImageContent m() {
+      return new ImageContent("data", "image/png", null);
+    }
+  }
+
+  public static class CompletionStageOfImageContentBean {
+    @McpTool
+    public CompletionStage<ImageContent> m() {
+      return CompletableFuture.completedFuture(new ImageContent("data", "image/png", null));
+    }
+  }
+
+  public static class ResourceLinkBean {
+    @McpTool
+    public ResourceLink m() {
+      return new ResourceLink("file:///doc", "text/plain", null);
+    }
+  }
+
+  public static class TextContentBean {
+    @McpTool
+    public TextContent m() {
+      return new TextContent("hi", null);
+    }
+  }
+
   public static class StringBuilderBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public StringBuilder m() {
       return new StringBuilder("hi");
     }
   }
 
   public static class CharSequenceBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CharSequence m() {
       return "hi";
     }
   }
 
   public static class RecordBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Person m() {
       return new Person("Ada", 36);
     }
   }
 
   public static class ObjectBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Object m() {
       return null;
     }
   }
 
   public static class IntBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public int m() {
       return 1;
     }
   }
 
   public static class DoubleBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public double m() {
       return 1.0;
     }
   }
 
   public static class BoxedBooleanBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Boolean m() {
       return Boolean.TRUE;
     }
   }
 
   public static class ListBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public List<Person> m() {
       return List.of();
     }
   }
 
   public static class ArrayBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Person[] m() {
       return new Person[0];
     }
   }
 
   public static class MapBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Map<String, Person> m() {
       return Map.of();
     }
   }
 
   public static class JsonNodeBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public JsonNode m() {
       return null;
     }
   }
 
   public static class ObjectNodeBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public ObjectNode m() {
       return null;
     }
   }
 
   public static class OptionalBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Optional<Person> m() {
       return Optional.empty();
     }
   }
 
   public static class EmptyRecordBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public Nothing m() {
       return new Nothing();
     }
   }
 
   public static class CompletionStageOfRecordBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<Person> m() {
       return CompletableFuture.completedFuture(new Person("Ada", 36));
     }
   }
 
   public static class CompletableFutureOfRecordBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletableFuture<Person> m() {
       return CompletableFuture.completedFuture(new Person("Ada", 36));
     }
   }
 
   public static class CompletionStageOfVoidBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<Void> m() {
       return CompletableFuture.completedFuture(null);
     }
   }
 
   public static class CompletionStageOfCallToolResultBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<CallToolResult> m() {
       return CompletableFuture.completedFuture(null);
     }
   }
 
   public static class CompletionStageOfStringBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<String> m() {
       return CompletableFuture.completedFuture("hi");
     }
   }
 
   public static class CompletionStageOfListBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<List<Person>> m() {
       return CompletableFuture.completedFuture(List.of());
     }
   }
 
   public static class WildcardCompletionStageBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<?> m() {
       return CompletableFuture.completedFuture(null);
     }
   }
 
   public static class TypeVariableCompletionStageBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public <T> CompletionStage<T> m() {
       return CompletableFuture.completedFuture(null);
     }
   }
 
   public static class NestedCompletionStageBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletionStage<CompletionStage<Person>> m() {
       return CompletableFuture.completedFuture(
           CompletableFuture.completedFuture(new Person("Ada", 36)));
@@ -552,7 +624,7 @@ class CallToolHandlersClassificationTest {
   }
 
   public static class FutureOfStageBean {
-    @com.callibrity.mocapi.api.tools.McpTool
+    @McpTool
     public CompletableFuture<CompletionStage<Person>> m() {
       return CompletableFuture.completedFuture(
           CompletableFuture.completedFuture(new Person("Ada", 36)));

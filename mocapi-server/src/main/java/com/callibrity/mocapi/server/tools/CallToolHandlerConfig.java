@@ -33,7 +33,7 @@ import tools.jackson.databind.JsonNode;
  *   <li>{@link #observationInterceptor observation} — traces, metrics
  *   <li>{@link #auditInterceptor audit} — persistent record of each attempt
  *   <li>AUTHORIZATION — {@link #guard(Guard) guards}, wired by the builder into a single evaluation
- *       interceptor so denied calls short-circuit with {@code -32003}
+ *       interceptor so denied calls short-circuit with {@code -32010}
  *   <li>VALIDATION — the tool's compiled input JSON schema (wired by the builder), followed by any
  *       customizer-contributed {@link #validationInterceptor validation} interceptors
  *   <li>{@link #invocationInterceptor invocation} — escape hatch that wraps the reflective call

@@ -22,7 +22,9 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record RequestedSchema(
-    Map<String, PrimitiveSchemaDefinition> properties, List<String> required) {
+    Map<String, PrimitiveSchemaDefinition> properties,
+    List<String> required,
+    @JsonProperty("$schema") String schema) {
   @JsonProperty("type")
   public String type() {
     return "object";

@@ -19,7 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.guards.GuardDecision;
@@ -62,7 +64,10 @@ class ReadResourceTemplateHandlerTest {
     @McpResourceTemplate(uriTemplate = "test://items/{id}", name = "Item", mimeType = "text/plain")
     public ReadResourceResult item(int id) {
       return new ReadResourceResult(
-          List.of(new TextResourceContents("test://items/" + id, "text/plain", "item " + id)));
+          List.of(new TextResourceContents("test://items/" + id, "text/plain", "item " + id)),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -70,7 +75,10 @@ class ReadResourceTemplateHandlerTest {
     @McpResourceTemplate(uriTemplate = "test://greet/{name}", name = "Greet")
     public ReadResourceResult greet(String name) {
       return new ReadResourceResult(
-          List.of(new TextResourceContents("test://greet/" + name, "text/plain", "hi " + name)));
+          List.of(new TextResourceContents("test://greet/" + name, "text/plain", "hi " + name)),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -78,7 +86,10 @@ class ReadResourceTemplateHandlerTest {
     @McpResourceTemplate(uriTemplate = "test://raw/{a}/{b}", name = "Raw")
     public ReadResourceResult raw(Map<String, String> vars) {
       return new ReadResourceResult(
-          List.of(new TextResourceContents("test://raw", "text/plain", vars.toString())));
+          List.of(new TextResourceContents("test://raw", "text/plain", vars.toString())),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -86,7 +97,10 @@ class ReadResourceTemplateHandlerTest {
     @McpResourceTemplate(uriTemplate = "test://defaulted/{x}")
     public ReadResourceResult defaulted(String x) {
       return new ReadResourceResult(
-          List.of(new TextResourceContents("test://defaulted/" + x, "text/plain", x)));
+          List.of(new TextResourceContents("test://defaulted/" + x, "text/plain", x)),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -311,7 +325,10 @@ class ReadResourceTemplateHandlerTest {
       return new ReadResourceResult(
           List.of(
               new TextResourceContents(
-                  "test://tenants/" + id, "text/plain", "tenant=" + tenant + " id=" + id)));
+                  "test://tenants/" + id, "text/plain", "tenant=" + tenant + " id=" + id)),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -319,7 +336,10 @@ class ReadResourceTemplateHandlerTest {
     @McpResourceTemplate(uriTemplate = "test://echo/{value}")
     public ReadResourceResult echo(String value) {
       return new ReadResourceResult(
-          List.of(new TextResourceContents("test://echo/" + value, "text/plain", value)));
+          List.of(new TextResourceContents("test://echo/" + value, "text/plain", value)),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
   }
 

@@ -15,227 +15,175 @@
  */
 package com.callibrity.mocapi.transport.http;
 
-import static com.callibrity.mocapi.model.McpMethods.INITIALIZE;
-import static com.callibrity.mocapi.transport.http.StreamableHttpTransport.SESSION_ID_HEADER;
-import static com.callibrity.ripcurl.core.JsonRpcProtocol.VERSION;
-
-import com.callibrity.mocapi.server.McpContext;
-import com.callibrity.mocapi.server.McpContextResult.ProtocolVersionMismatch;
-import com.callibrity.mocapi.server.McpContextResult.SessionIdRequired;
-import com.callibrity.mocapi.server.McpContextResult.SessionNotFound;
-import com.callibrity.mocapi.server.McpContextResult.ValidContext;
 import com.callibrity.mocapi.server.McpServer;
-import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
+import com.callibrity.mocapi.transport.http.sse.PerRequestSseStream;
 import com.callibrity.ripcurl.core.JsonRpcCall;
+import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
+import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 /**
- * Thin HTTP adapter for the MCP Streamable HTTP transport. Delegates all protocol logic to {@link
- * McpServer}; all SSE/encryption plumbing lives behind {@link SseStreamFactory}.
+ * The MCP 2026-07-28 Streamable HTTP endpoint: POST-only, stateless, one response stream per
+ * request (ADR-0019, ADR-0020).
+ *
+ * <ul>
+ *   <li>{@code GET} and {@code DELETE} → {@code 405 Method Not Allowed}: there is no standalone SSE
+ *       stream and no session to terminate.
+ *   <li>An incoming {@code Mcp-Session-Id} header is ignored — never minted, never echoed. {@code
+ *       Last-Event-ID} is ignored — the spec removed SSE resumability.
+ *   <li>Routing headers ({@code MCP-Protocol-Version}, {@code Mcp-Method}, {@code Mcp-Name}) are
+ *       validated against the body before dispatch ({@link McpHeaderValidator}); failures are
+ *       {@code 400} + JSON-RPC {@code -32020 HeaderMismatch}. Body envelope semantics ({@code
+ *       -32602}/{@code -32022}) remain the server's job.
+ *   <li>Unrecognized {@code Mcp-Param-*} headers are ignored — mocapi designates no custom
+ *       parameter headers (ADR-0022).
+ *   <li>Direct JSON replies carry an HTTP status mapped from the JSON-RPC error code ({@link
+ *       HttpStatusMapping}); notably unknown method ({@code -32601}) → {@code 404}.
+ * </ul>
  */
 @RestController
 @RequestMapping("${mocapi.endpoint:/mcp}")
 public class StreamableHttpController {
 
-  public static final String MCP_PROTOCOL_VERSION_HEADER = "MCP-Protocol-Version";
-  public static final String LAST_EVENT_ID_HEADER = "Last-Event-ID";
   public static final String INVALID_ORIGIN_MESSAGE = "Forbidden: Invalid Origin";
 
   private final McpServer server;
   private final McpRequestValidator validator;
-  private final SseStreamFactory sseStreamFactory;
+  private final McpHeaderValidator headerValidator;
   private final ObjectMapper objectMapper;
   private final ContextSnapshotFactory contextSnapshotFactory;
+  private final long streamTimeoutMillis;
 
   public StreamableHttpController(
       McpServer server,
       McpRequestValidator validator,
-      SseStreamFactory sseStreamFactory,
+      McpHeaderValidator headerValidator,
       ObjectMapper objectMapper,
-      ContextSnapshotFactory contextSnapshotFactory) {
+      ContextSnapshotFactory contextSnapshotFactory,
+      long streamTimeoutMillis) {
     this.server = server;
     this.validator = validator;
-    this.sseStreamFactory = sseStreamFactory;
+    this.headerValidator = headerValidator;
     this.objectMapper = objectMapper;
     this.contextSnapshotFactory = contextSnapshotFactory;
+    this.streamTimeoutMillis = streamTimeoutMillis;
   }
 
   @PostMapping(produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE})
   public CompletableFuture<ResponseEntity<Object>> handlePost(
-      @RequestBody JsonRpcMessage message,
-      @RequestHeader(value = MCP_PROTOCOL_VERSION_HEADER, required = false) String protocolVersion,
-      @RequestHeader(value = SESSION_ID_HEADER, required = false) String sessionId,
-      @RequestHeader(value = "Accept", required = false) String accept,
-      @RequestHeader(value = "Origin", required = false) String origin) {
-    if (!acceptsJsonAndSse(accept)) {
+      @RequestBody JsonRpcMessage message, @RequestHeader HttpHeaders headers) {
+    if (!acceptsJsonAndSse(headers.getFirst(HttpHeaders.ACCEPT))) {
       return CompletableFuture.completedFuture(
           jsonRpcError(
               HttpStatus.NOT_ACCEPTABLE,
               -32000,
-              "Not Acceptable: Client must accept both application/json and text/event-stream"));
+              "Not Acceptable: Client must accept both application/json and text/event-stream",
+              null));
     }
-    if (!validator.isValidOrigin(origin)) {
+    if (!validator.isValidOrigin(headers.getFirst(HttpHeaders.ORIGIN))) {
       return CompletableFuture.completedFuture(
-          jsonRpcError(HttpStatus.FORBIDDEN, -32000, INVALID_ORIGIN_MESSAGE));
+          jsonRpcError(HttpStatus.FORBIDDEN, -32000, INVALID_ORIGIN_MESSAGE, null));
     }
 
     return switch (message) {
-      case JsonRpcCall call -> {
-        if (INITIALIZE.equals(call.method())) {
-          yield handleCall(McpContext.empty(), call);
-        }
-        yield withContextAsync(sessionId, protocolVersion, ctx -> handleCall(ctx, call));
-      }
-      case JsonRpcNotification notification ->
-          withContextAsync(
-              sessionId, protocolVersion, ctx -> handleNotification(ctx, notification));
-      case JsonRpcResponse response ->
-          withContextAsync(sessionId, protocolVersion, ctx -> handleResponse(ctx, response));
+      case JsonRpcCall call -> handleCall(headers, call);
+      case JsonRpcNotification notification -> handleNotification(headers, notification);
+      case JsonRpcResponse _ ->
+          CompletableFuture.completedFuture(
+              jsonRpcError(
+                  HttpStatus.BAD_REQUEST,
+                  JsonRpcProtocol.INVALID_REQUEST,
+                  "Invalid Request: MCP 2026-07-28 has no server-initiated requests, so clients"
+                      + " have no responses to deliver",
+                  null));
     };
+  }
+
+  /**
+   * The spec allows only POST on the MCP endpoint: GET (the old standalone SSE stream) and DELETE
+   * (the old session termination) are gone with sessions and resumability.
+   */
+  @RequestMapping(method = {RequestMethod.GET, RequestMethod.DELETE})
+  public ResponseEntity<Object> handleNonPost() {
+    return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+        .header(HttpHeaders.ALLOW, "POST")
+        .build();
   }
 
   @ExceptionHandler(HttpMessageNotReadableException.class)
   public ResponseEntity<Object> handleUnreadableBody(HttpMessageNotReadableException ex) {
-    return jsonRpcError(HttpStatus.BAD_REQUEST, -32700, "Parse error: " + rootCauseMessage(ex));
-  }
-
-  @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public ResponseEntity<Object> handleGet(
-      @RequestHeader(SESSION_ID_HEADER) String sessionId,
-      @RequestHeader(value = MCP_PROTOCOL_VERSION_HEADER, required = false) String protocolVersion,
-      @RequestHeader(value = LAST_EVENT_ID_HEADER, required = false) String lastEventId,
-      @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept,
-      @RequestHeader(value = HttpHeaders.ORIGIN, required = false) String origin) {
-    if (!acceptsSse(accept)) {
-      return jsonRpcError(
-          HttpStatus.NOT_ACCEPTABLE,
-          -32000,
-          "Not Acceptable: Client must accept text/event-stream");
-    }
-    if (!validator.isValidOrigin(origin)) {
-      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, INVALID_ORIGIN_MESSAGE);
-    }
-
-    return withContext(sessionId, protocolVersion, ctx -> handleGetStream(ctx, lastEventId));
-  }
-
-  @DeleteMapping
-  public ResponseEntity<Object> handleDelete(
-      @RequestHeader(SESSION_ID_HEADER) String sessionId,
-      @RequestHeader(value = MCP_PROTOCOL_VERSION_HEADER, required = false) String protocolVersion,
-      @RequestHeader(value = HttpHeaders.ORIGIN, required = false) String origin) {
-
-    if (!validator.isValidOrigin(origin)) {
-      return jsonRpcError(HttpStatus.FORBIDDEN, -32000, INVALID_ORIGIN_MESSAGE);
-    }
-
-    return withContext(
-        sessionId,
-        protocolVersion,
-        ctx -> {
-          server.terminate(ctx);
-          return ResponseEntity.ok().build();
-        });
-  }
-
-  private ResponseEntity<Object> withContext(
-      String sessionId,
-      String protocolVersion,
-      Function<McpContext, ResponseEntity<Object>> action) {
-    return switch (server.createContext(sessionId, protocolVersion)) {
-      case ValidContext(var ctx) -> action.apply(ctx);
-      case SessionIdRequired(var code, var msg) -> jsonRpcError(HttpStatus.BAD_REQUEST, code, msg);
-      case SessionNotFound(var code, var msg) -> jsonRpcError(HttpStatus.NOT_FOUND, code, msg);
-      case ProtocolVersionMismatch(var code, var msg) ->
-          jsonRpcError(HttpStatus.BAD_REQUEST, code, msg);
-    };
-  }
-
-  private CompletableFuture<ResponseEntity<Object>> withContextAsync(
-      String sessionId,
-      String protocolVersion,
-      Function<McpContext, CompletableFuture<ResponseEntity<Object>>> action) {
-    return switch (server.createContext(sessionId, protocolVersion)) {
-      case ValidContext(var ctx) -> action.apply(ctx);
-      case SessionIdRequired(var code, var msg) ->
-          CompletableFuture.completedFuture(jsonRpcError(HttpStatus.BAD_REQUEST, code, msg));
-      case SessionNotFound(var code, var msg) ->
-          CompletableFuture.completedFuture(jsonRpcError(HttpStatus.NOT_FOUND, code, msg));
-      case ProtocolVersionMismatch(var code, var msg) ->
-          CompletableFuture.completedFuture(jsonRpcError(HttpStatus.BAD_REQUEST, code, msg));
-    };
-  }
-
-  private ResponseEntity<Object> handleGetStream(McpContext context, String lastEventId) {
-    try {
-      var stream =
-          lastEventId != null
-              ? sseStreamFactory.resumeStream(context, lastEventId)
-              : sseStreamFactory.sessionStream(context);
-      return ResponseEntity.ok().body(stream.createEmitter());
-    } catch (IllegalArgumentException _) {
-      return ResponseEntity.badRequest().build();
-    }
+    return jsonRpcError(
+        HttpStatus.BAD_REQUEST,
+        JsonRpcProtocol.PARSE_ERROR,
+        "Parse error: " + rootCauseMessage(ex),
+        null);
   }
 
   private CompletableFuture<ResponseEntity<Object>> handleCall(
-      McpContext context, JsonRpcCall call) {
-    var transport = new StreamableHttpTransport(() -> sseStreamFactory.responseStream(context));
+      HttpHeaders headers, JsonRpcCall call) {
+    Optional<String> headerFailure = headerValidator.validate(headers, call);
+    if (headerFailure.isPresent()) {
+      return CompletableFuture.completedFuture(headerMismatch(headerFailure.get(), call.id()));
+    }
+    var transport =
+        new StreamableHttpTransport(
+            () -> new PerRequestSseStream(objectMapper, streamTimeoutMillis));
     ContextSnapshot snapshot = contextSnapshotFactory.captureAll();
     Thread.ofVirtual()
         .start(
             snapshot.wrap(
                 () -> {
                   try {
-                    server.handleCall(context, call, transport);
+                    server.handleCall(call, transport);
                   } catch (Exception e) {
-                    transport.response().completeExceptionally(e);
+                    transport.abort(e);
                   }
                 }));
     return transport.response();
   }
 
   private CompletableFuture<ResponseEntity<Object>> handleNotification(
-      McpContext context, JsonRpcNotification notification) {
-    server.handleNotification(context, notification);
+      HttpHeaders headers, JsonRpcNotification notification) {
+    Optional<String> headerFailure = headerValidator.validate(headers, notification);
+    if (headerFailure.isPresent()) {
+      return CompletableFuture.completedFuture(headerMismatch(headerFailure.get(), null));
+    }
+    server.handleNotification(notification);
     return CompletableFuture.completedFuture(ResponseEntity.accepted().build());
   }
 
-  private CompletableFuture<ResponseEntity<Object>> handleResponse(
-      McpContext context, JsonRpcResponse response) {
-    server.handleResponse(context, response);
-    return CompletableFuture.completedFuture(ResponseEntity.accepted().build());
+  private ResponseEntity<Object> headerMismatch(String message, JsonNode id) {
+    return jsonRpcError(
+        HttpStatus.BAD_REQUEST, McpHeaderValidator.HEADER_MISMATCH_CODE, message, id);
   }
 
-  private ResponseEntity<Object> jsonRpcError(HttpStatus status, int code, String message) {
-    ObjectNode node = objectMapper.createObjectNode();
-    node.put("jsonrpc", VERSION);
-    ObjectNode error = node.putObject("error");
-    error.put("code", code);
-    error.put("message", message);
-    node.putNull("id");
-    return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(node);
+  private ResponseEntity<Object> jsonRpcError(
+      HttpStatus status, int code, String message, JsonNode id) {
+    JsonNode errorId = id == null ? JsonNodeFactory.instance.nullNode() : id;
+    return ResponseEntity.status(status)
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(new JsonRpcError(code, message, errorId));
   }
 
   private static String rootCauseMessage(Throwable t) {
@@ -254,14 +202,6 @@ public class StreamableHttpController {
       if (!json && MediaType.APPLICATION_JSON.equals(t)) json = true;
       if (!sse && MediaType.TEXT_EVENT_STREAM.equals(t)) sse = true;
       if (json && sse) return true;
-    }
-    return false;
-  }
-
-  private static boolean acceptsSse(String accept) {
-    if (accept == null) return false;
-    for (MediaType t : MediaType.parseMediaTypes(accept)) {
-      if (MediaType.TEXT_EVENT_STREAM.equals(t)) return true;
     }
     return false;
   }

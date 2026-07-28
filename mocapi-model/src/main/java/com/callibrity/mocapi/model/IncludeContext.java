@@ -21,7 +21,12 @@ import com.fasterxml.jackson.annotation.JsonValue;
 /**
  * Hint to the client about which server contexts to include when sampling. Per MCP spec: {@code
  * "none"}, {@code "thisServer"}, or {@code "allServers"}.
+ *
+ * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577) along with the sampling
+ *     feature; the {@code "thisServer"}/{@code "allServers"} values are separately deprecated
+ *     (SEP-2596) — omit the field or use {@code "none"}.
  */
+@Deprecated(since = "2026-07-28")
 public enum IncludeContext {
   NONE("none"),
   THIS_SERVER("thisServer"),

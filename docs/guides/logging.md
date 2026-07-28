@@ -1,4 +1,4 @@
-# Logging
+# Logging (MDC Correlation)
 
 Mocapi ships an optional SLF4J MDC (Mapped Diagnostic Context) correlation
 layer. Add `mocapi-logging` to your application and every
@@ -6,14 +6,27 @@ log line emitted during an MCP handler invocation — including lines from
 user handler code — carries correlation keys automatically. Remove the
 starter and the keys stop appearing. No mocapi API calls required either way.
 
+> **Looking for MCP Logging (`notifications/message` to the client)?** MCP
+> 2026-07-28 deprecates the MCP Logging feature (SEP-2577), and mocapi does
+> not implement deprecated features — there is no `ctx.logger(...)`. Per the
+> spec's migration guidance: log to stderr (for stdio servers) or use
+> OpenTelemetry, which `mocapi-otel` covers. See ADR-0022 and the
+> [OTel guide](opentelemetry.md).
+
 ## Keys
 
-| Key                | Value                                                                   |
-|--------------------|-------------------------------------------------------------------------|
-| `mcp.session`      | Current MCP session id (only set when a session is bound to the call). |
-| `mcp.handler.kind` | One of `tool`, `prompt`, `resource`, `resource_template`.              |
-| `mcp.handler.name` | Tool / prompt name, or resource URI / URI template.                    |
-| `mcp.request`      | Reserved for JSON-RPC request id; wired by a follow-up spec.           |
+MCP 2026-07-28 is stateless — there is no session id. Correlation context
+is per-request, read from the request's `_meta` envelope. Each key is set
+only when its source value is available:
+
+| Key                    | Value                                                              |
+|------------------------|--------------------------------------------------------------------|
+| `mcp.handler.kind`     | One of `tool`, `prompt`, `resource`, `resource_template`.          |
+| `mcp.handler.name`     | Tool / prompt name, or resource URI / URI template.                |
+| `mcp.handler.class`    | Simple name of the (unwrapped) bean class hosting the handler.     |
+| `mcp.protocol.version` | Protocol version from the request's `_meta` envelope.              |
+| `mcp.client.name`      | Client name from the envelope's `clientInfo`.                      |
+| `mcp.request.id`       | JSON-RPC request id for the current call (absent for notifications). |
 
 The interceptor removes exactly the keys it added. Pre-existing MDC
 entries populated by upstream servlet filters, tracing agents, or custom
@@ -46,7 +59,7 @@ A minimal logback pattern that surfaces the keys:
 <configuration>
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%d{HH:mm:ss.SSS} %-5level [%X{mcp.session:-},%X{mcp.handler.kind:-}/%X{mcp.handler.name:-}] %logger - %msg%n</pattern>
+      <pattern>%d{HH:mm:ss.SSS} %-5level [%X{mcp.client.name:-},%X{mcp.handler.kind:-}/%X{mcp.handler.name:-},%X{mcp.request.id:-}] %logger - %msg%n</pattern>
     </encoder>
   </appender>
 
@@ -127,13 +140,13 @@ Which class emits what:
 | Logger (autoconfig FQN)                                                              | Attaches                        |
 |--------------------------------------------------------------------------------------|---------------------------------|
 | `com.callibrity.mocapi.logging.MocapiLoggingAutoConfiguration`                       | `McpMdcInterceptor`             |
-| `com.callibrity.mocapi.o11y.MocapiO11yAutoConfiguration`                             | `McpObservationInterceptor`     |
+| `com.callibrity.mocapi.o11y.MocapiO11yAutoConfiguration`                             | `McpHandlerObservationInterceptor` |
 | `com.callibrity.mocapi.jakarta.MocapiJakartaValidationAutoConfiguration`             | `JakartaValidationInterceptor`  |
 | `com.callibrity.mocapi.security.spring.autoconfigure.MocapiSpringSecurityGuardsAutoConfiguration` | `ScopeGuard` / `RoleGuard` (only when `@RequiresScope` / `@RequiresRole` is present) |
 
 Quick debugging recipes:
 
-- *"Why don't my metrics show up?"* — `grep 'Attached McpObservationInterceptor'`
+- *"Why don't my metrics show up?"* — `grep 'Attached McpHandlerObservationInterceptor'`
   on startup output. Zero lines means the o11y autoconfig didn't activate
   (likely no `ObservationRegistry` bean). N lines means it's wired — look
   elsewhere (exposure, actual tool invocations).

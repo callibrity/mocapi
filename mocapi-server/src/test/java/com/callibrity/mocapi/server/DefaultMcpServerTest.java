@@ -22,249 +22,256 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.model.LoggingLevel;
-import com.callibrity.mocapi.server.session.McpSession;
-import com.callibrity.mocapi.server.session.McpSessionService;
+import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.model.McpMetaKeys;
+import com.callibrity.mocapi.model.UnsupportedProtocolVersionErrorData;
+import com.callibrity.mocapi.server.exchange.McpExchange;
+import com.callibrity.mocapi.server.exchange.MetaEnvelopeParser;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
-import com.callibrity.ripcurl.core.JsonRpcResponse;
+import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResult;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DefaultMcpServerTest {
 
-  private static final String PROTOCOL_VERSION = "2025-11-25";
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final Implementation SERVER_INFO = new Implementation("srv", "Srv", "1.2.3", null);
 
-  @Mock private McpSessionService sessionService;
   @Mock private JsonRpcDispatcher dispatcher;
-  @Mock private McpResponseCorrelationService correlationService;
 
   private DefaultMcpServer server;
   private McpTransport transport;
 
   @BeforeEach
   void setUp() {
-    server = new DefaultMcpServer(sessionService, dispatcher, correlationService);
+    server =
+        new DefaultMcpServer(dispatcher, new MetaEnvelopeParser(MAPPER), MAPPER, SERVER_INFO, true);
     transport = mock(McpTransport.class);
   }
 
-  @Test
-  void initialize_call_is_dispatched_with_transport_bound() {
-    JsonRpcResult dispatchResult =
-        new JsonRpcResult(
-            JsonNodeFactory.instance.objectNode().put("protocolVersion", PROTOCOL_VERSION),
-            JsonNodeFactory.instance.numberNode(1));
-    when(dispatcher.dispatch(any(JsonRpcCall.class)))
-        .thenAnswer(
-            _ -> {
-              assertThat(McpTransport.CURRENT.isBound()).isTrue();
-              assertThat(McpTransport.CURRENT.get()).isSameAs(transport);
-              assertThat(McpSession.CURRENT.isBound()).isFalse();
-              return dispatchResult;
-            });
+  private static ObjectNode paramsWithEnvelope(String protocolVersion) {
+    ObjectNode params = JsonNodeFactory.instance.objectNode();
+    ObjectNode meta = params.putObject("_meta");
+    meta.put(McpMetaKeys.PROTOCOL_VERSION, protocolVersion);
+    ObjectNode clientInfo = meta.putObject(McpMetaKeys.CLIENT_INFO);
+    clientInfo.put("name", "test-client");
+    clientInfo.put("version", "1.0");
+    meta.putObject(McpMetaKeys.CLIENT_CAPABILITIES);
+    return params;
+  }
 
-    JsonRpcCall call = JsonRpcCall.of("initialize", null, JsonNodeFactory.instance.numberNode(1));
+  private static JsonRpcCall validCall(String method) {
+    return JsonRpcCall.of(
+        method,
+        paramsWithEnvelope(McpServer.PROTOCOL_VERSION),
+        JsonNodeFactory.instance.numberNode(1));
+  }
 
-    server.handleCall(McpContext.empty(), call, transport);
+  @Nested
+  class When_the_envelope_is_valid {
 
-    verify(dispatcher).dispatch(call);
+    @Test
+    void dispatches_with_exchange_and_transport_bound() {
+      JsonRpcResult dispatchResult =
+          new JsonRpcResult(
+              JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(1));
+      when(dispatcher.dispatch(any(JsonRpcCall.class)))
+          .thenAnswer(
+              _ -> {
+                assertThat(McpTransport.CURRENT.isBound()).isTrue();
+                assertThat(McpTransport.CURRENT.get()).isSameAs(transport);
+                assertThat(McpExchange.CURRENT.isBound()).isTrue();
+                McpExchange exchange = McpExchange.CURRENT.get();
+                assertThat(exchange.protocolVersion()).isEqualTo(McpServer.PROTOCOL_VERSION);
+                assertThat(exchange.clientInfo().name()).isEqualTo("test-client");
+                return dispatchResult;
+              });
+
+      JsonRpcCall call = validCall("tools/list");
+
+      server.handleCall(call, transport);
+
+      verify(dispatcher).dispatch(call);
+      var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+      verify(transport).send(captor.capture());
+      var sent = (JsonRpcResult) captor.getValue();
+      assertThat(sent.id()).isEqualTo(dispatchResult.id());
+      assertThat(sent.result().path("_meta").path(McpMetaKeys.SERVER_INFO).path("name").asString())
+          .isEqualTo("srv");
+    }
+
+    @Test
+    void null_dispatch_result_sends_nothing() {
+      when(dispatcher.dispatch(any(JsonRpcCall.class))).thenReturn(null);
+
+      server.handleCall(validCall("tools/list"), transport);
+
+      verify(dispatcher).dispatch(any(JsonRpcCall.class));
+      verifyNoInteractions(transport);
+    }
+  }
+
+  @Nested
+  class When_the_envelope_is_missing_or_malformed {
+
+    @Test
+    void call_without_params_gets_invalid_params_and_is_never_dispatched() {
+      JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(7));
+
+      server.handleCall(call, transport);
+
+      var error = (JsonRpcError) captureSent();
+      assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);
+      verifyNoInteractions(dispatcher);
+    }
+
+    @Test
+    void call_with_params_but_no_meta_gets_invalid_params() {
+      ObjectNode params = JsonNodeFactory.instance.objectNode().put("name", "some-tool");
+      JsonRpcCall call =
+          JsonRpcCall.of("tools/call", params, JsonNodeFactory.instance.numberNode(8));
+
+      server.handleCall(call, transport);
+
+      var error = (JsonRpcError) captureSent();
+      assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);
+      verifyNoInteractions(dispatcher);
+    }
+
+    @Test
+    void call_with_missing_required_meta_key_gets_invalid_params() {
+      ObjectNode params = paramsWithEnvelope(McpServer.PROTOCOL_VERSION);
+      ((ObjectNode) params.get("_meta")).remove(McpMetaKeys.CLIENT_CAPABILITIES);
+      JsonRpcCall call =
+          JsonRpcCall.of("tools/list", params, JsonNodeFactory.instance.numberNode(9));
+
+      server.handleCall(call, transport);
+
+      var error = (JsonRpcError) captureSent();
+      assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);
+      verifyNoInteractions(dispatcher);
+    }
+  }
+
+  @Nested
+  class When_the_protocol_version_is_unsupported {
+
+    @Test
+    void responds_with_unsupported_protocol_version_error_listing_supported_versions() {
+      JsonRpcCall call =
+          JsonRpcCall.of(
+              "tools/list",
+              paramsWithEnvelope("2025-11-25"),
+              JsonNodeFactory.instance.numberNode(10));
+
+      server.handleCall(call, transport);
+
+      var error = (JsonRpcError) captureSent();
+      assertThat(error.error().code()).isEqualTo(UnsupportedProtocolVersionErrorData.CODE);
+      assertThat(error.error().data().path("supported").get(0).asString())
+          .isEqualTo(McpServer.PROTOCOL_VERSION);
+      assertThat(error.error().data().path("requested").asString()).isEqualTo("2025-11-25");
+      assertThat(error.id()).isEqualTo(call.id());
+      verifyNoInteractions(dispatcher);
+    }
+  }
+
+  @Nested
+  class ServerInfo_injection {
+
+    @Test
+    void successful_result_carries_serverInfo_in_meta() {
+      JsonRpcCall call = validCall("tools/list");
+      when(dispatcher.dispatch(any(JsonRpcCall.class)))
+          .thenAnswer(_ -> call.result(JsonNodeFactory.instance.objectNode()));
+
+      server.handleCall(call, transport);
+
+      var sent = (JsonRpcResult) captureSent();
+      assertThat(sent.result().path("_meta").path(McpMetaKeys.SERVER_INFO))
+          .isEqualTo(MAPPER.valueToTree(SERVER_INFO));
+    }
+
+    @Test
+    void error_response_has_no_serverInfo() {
+      JsonRpcCall call = validCall("tools/list");
+      JsonRpcError errorResponse = call.error(JsonRpcProtocol.INTERNAL_ERROR, "boom");
+      when(dispatcher.dispatch(any(JsonRpcCall.class))).thenReturn(errorResponse);
+
+      server.handleCall(call, transport);
+
+      var sent = captureSent();
+      assertThat(sent).isSameAs(errorResponse);
+    }
+
+    @Test
+    void emit_disabled_skips_injection() {
+      server =
+          new DefaultMcpServer(
+              dispatcher, new MetaEnvelopeParser(MAPPER), MAPPER, SERVER_INFO, false);
+      JsonRpcCall call = validCall("tools/list");
+      when(dispatcher.dispatch(any(JsonRpcCall.class)))
+          .thenAnswer(_ -> call.result(JsonNodeFactory.instance.objectNode()));
+
+      server.handleCall(call, transport);
+
+      var sent = (JsonRpcResult) captureSent();
+      assertThat(sent.result().path("_meta").isMissingNode()).isTrue();
+    }
+
+    @Test
+    void existing_result_meta_is_preserved() {
+      JsonRpcCall call = validCall("tools/list");
+      ObjectNode result = JsonNodeFactory.instance.objectNode();
+      ObjectNode meta = result.putObject("_meta");
+      meta.put("someOtherKey", "someOtherValue");
+      when(dispatcher.dispatch(any(JsonRpcCall.class))).thenAnswer(_ -> call.result(result));
+
+      server.handleCall(call, transport);
+
+      var sent = (JsonRpcResult) captureSent();
+      assertThat(sent.result().path("_meta").path("someOtherKey").asString())
+          .isEqualTo("someOtherValue");
+      assertThat(sent.result().path("_meta").path(McpMetaKeys.SERVER_INFO))
+          .isEqualTo(MAPPER.valueToTree(SERVER_INFO));
+    }
+  }
+
+  @Nested
+  class Notifications {
+
+    @Test
+    void notifications_are_dispatched_without_envelope_parsing() {
+      JsonRpcNotification notification =
+          new JsonRpcNotification("2.0", "notifications/cancelled", null);
+      when(dispatcher.dispatch(notification)).thenReturn(null);
+
+      server.handleNotification(notification);
+
+      verify(dispatcher).dispatch(notification);
+    }
+  }
+
+  private JsonRpcMessage captureSent() {
     var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
     verify(transport).send(captor.capture());
-    assertThat(captor.getValue()).isSameAs(dispatchResult);
-  }
-
-  @Test
-  void initialize_call_does_not_require_session_id() {
-    when(dispatcher.dispatch(any(JsonRpcCall.class))).thenReturn(null);
-
-    JsonRpcCall call = JsonRpcCall.of("initialize", null, JsonNodeFactory.instance.numberNode(1));
-
-    server.handleCall(McpContext.empty(), call, transport);
-
-    verify(dispatcher).dispatch(call);
-    verifyNoInteractions(sessionService);
-  }
-
-  @Test
-  void create_context_returns_session_id_required_for_null_session_id() {
-    assertThat(server.createContext(null, null))
-        .isInstanceOf(McpContextResult.SessionIdRequired.class);
-  }
-
-  @Test
-  void create_context_returns_session_id_required_for_empty_session_id() {
-    assertThat(server.createContext("", null))
-        .isInstanceOf(McpContextResult.SessionIdRequired.class);
-  }
-
-  @Test
-  void create_context_returns_session_not_found_for_non_existent_session() {
-    when(sessionService.find("unknown")).thenReturn(Optional.empty());
-    assertThat(server.createContext("unknown", PROTOCOL_VERSION))
-        .isInstanceOf(McpContextResult.SessionNotFound.class);
-  }
-
-  @Test
-  void create_context_returns_valid_context_for_known_session() {
-    McpSession session = session("known", true);
-    when(sessionService.find("known")).thenReturn(Optional.of(session));
-    var result = server.createContext("known", PROTOCOL_VERSION);
-    assertThat(result).isInstanceOf(McpContextResult.ValidContext.class);
-    var ctx = ((McpContextResult.ValidContext) result).context();
-    assertThat(ctx.sessionId()).isEqualTo("known");
-    assertThat(ctx.session()).isPresent().hasValue(session);
-  }
-
-  @Test
-  void create_context_returns_protocol_version_mismatch_for_bad_version() {
-    McpSession session = session("valid", true);
-    when(sessionService.find("valid")).thenReturn(Optional.of(session));
-    assertThat(server.createContext("valid", "9999-01-01"))
-        .isInstanceOf(McpContextResult.ProtocolVersionMismatch.class);
-  }
-
-  @Test
-  void create_context_returns_valid_context_for_null_protocol_version() {
-    McpSession session = session("valid", true);
-    when(sessionService.find("valid")).thenReturn(Optional.of(session));
-    assertThat(server.createContext("valid", null))
-        .isInstanceOf(McpContextResult.ValidContext.class);
-  }
-
-  @Test
-  void call_with_valid_session_dispatches_and_sends_result() {
-    McpSession session = session("valid", true);
-
-    JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(2));
-    JsonRpcResult dispatchResult =
-        new JsonRpcResult(
-            JsonNodeFactory.instance.objectNode().put("tools", "[]"),
-            JsonNodeFactory.instance.numberNode(2));
-    when(dispatcher.dispatch(call)).thenReturn(dispatchResult);
-
-    server.handleCall(contextWithSession(session), call, transport);
-
-    verify(dispatcher).dispatch(call);
-    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
-    verify(transport).send(captor.capture());
-    assertThat(captor.getValue()).isSameAs(dispatchResult);
-  }
-
-  @Test
-  void call_with_valid_session_binds_session_to_scoped_value() {
-    McpSession session = session("valid", true);
-
-    JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(3));
-    when(dispatcher.dispatch(call))
-        .thenAnswer(
-            _ -> {
-              assertThat(McpSession.CURRENT.isBound()).isTrue();
-              assertThat(McpSession.CURRENT.get()).isSameAs(session);
-              return new JsonRpcResult(
-                  JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(3));
-            });
-
-    server.handleCall(contextWithSession(session), call, transport);
-
-    verify(dispatcher).dispatch(call);
-  }
-
-  @Test
-  void call_dispatch_returning_null_sends_nothing() {
-    McpSession session = session("valid", true);
-
-    JsonRpcCall call = JsonRpcCall.of("tools/list", null, JsonNodeFactory.instance.numberNode(4));
-    when(dispatcher.dispatch(call)).thenReturn(null);
-
-    server.handleCall(contextWithSession(session), call, transport);
-
-    verify(dispatcher).dispatch(call);
-    verifyNoInteractions(transport);
-  }
-
-  @Test
-  void notification_with_valid_session_dispatches() {
-    McpSession session = session("valid", true);
-
-    JsonRpcNotification notification =
-        new JsonRpcNotification("2.0", "notifications/initialized", null);
-    when(dispatcher.dispatch(notification)).thenReturn(null);
-
-    server.handleNotification(contextWithSession(session), notification);
-
-    verify(dispatcher).dispatch(notification);
-  }
-
-  @Test
-  void notification_with_valid_session_binds_session_to_scoped_value() {
-    McpSession session = session("valid", true);
-
-    JsonRpcNotification notification =
-        new JsonRpcNotification("2.0", "notifications/initialized", null);
-    when(dispatcher.dispatch(notification))
-        .thenAnswer(
-            _ -> {
-              assertThat(McpSession.CURRENT.isBound()).isTrue();
-              assertThat(McpSession.CURRENT.get()).isSameAs(session);
-              return null;
-            });
-
-    server.handleNotification(contextWithSession(session), notification);
-
-    verify(dispatcher).dispatch(notification);
-  }
-
-  @Test
-  void response_messages_are_delivered_to_correlation_service() {
-    JsonRpcResponse response =
-        new JsonRpcResult(
-            JsonNodeFactory.instance.objectNode(), JsonNodeFactory.instance.numberNode(1));
-
-    server.handleResponse(McpContext.empty(), response);
-
-    verify(correlationService).deliver(response);
-
-    verifyNoInteractions(dispatcher);
-  }
-
-  @Test
-  void terminate_deletes_session() {
-    McpSession session =
-        new McpSession(
-            "session-to-delete",
-            PROTOCOL_VERSION,
-            null,
-            null,
-            com.callibrity.mocapi.model.LoggingLevel.WARNING,
-            true);
-    McpContext context = new SessionMcpContext(session, PROTOCOL_VERSION);
-
-    server.terminate(context);
-
-    verify(sessionService).delete("session-to-delete");
-    verifyNoInteractions(dispatcher);
-    verifyNoInteractions(correlationService);
-  }
-
-  private static McpSession session(String sessionId, boolean initialized) {
-    return new McpSession(
-        sessionId, PROTOCOL_VERSION, null, null, LoggingLevel.WARNING, initialized);
-  }
-
-  private static McpContext contextWithSession(McpSession session) {
-    return new SessionMcpContext(session, PROTOCOL_VERSION);
+    return captor.getValue();
   }
 }

@@ -25,9 +25,9 @@ public class InteractiveTool {
   @McpTool(name = "interactive-greet", description = "Greets with progress")
   public HelloResponse greet(
       @Schema(description = "The name to greet") String name, McpToolContext ctx) {
-    ctx.sendProgress(1, 2);
-    ctx.logger("interactive-greet").info("Processing {}", name);
-    ctx.sendProgress(2, 2);
+    var progress = ctx.longProgress(2L);
+    progress.emit(1);
+    progress.emit(2);
     return new HelloResponse(String.format("Hello, %s!", name));
   }
 }

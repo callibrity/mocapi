@@ -15,37 +15,42 @@
  */
 package com.callibrity.mocapi.transport.http;
 
-import com.callibrity.mocapi.server.McpEvent;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.transport.http.sse.SseStream;
 import com.callibrity.mocapi.transport.http.writer.DirectMessageWriter;
 import com.callibrity.mocapi.transport.http.writer.MessageWriter;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 
 /**
- * Adapts the {@link MessageWriter} state machine to the {@link McpTransport} SPI. Holds a future
- * that resolves to the HTTP response once the first outbound message commits the response shape.
+ * Adapts the {@link MessageWriter} state machine to the {@link McpTransport} SPI for a single POST
+ * request. Holds a future that resolves to the HTTP response once the first outbound message
+ * commits the response shape (plain JSON for an immediate response, SSE when request-scoped
+ * notifications come first — ADR-0004). Strictly per-request: MCP 2026-07-28 has no sessions and no
+ * cross-request delivery channel (ADR-0020).
  */
 final class StreamableHttpTransport implements McpTransport {
-
-  public static final String SESSION_ID_HEADER = "MCP-Session-Id";
 
   private final Logger log = LoggerFactory.getLogger(StreamableHttpTransport.class);
 
   private final CompletableFuture<ResponseEntity<Object>> response = new CompletableFuture<>();
-  private final List<Consumer<ResponseEntity<Object>>> decorators = new ArrayList<>();
   private MessageWriter writer;
+  private SseStream committedStream;
 
   StreamableHttpTransport(Supplier<SseStream> sseStreamProvider) {
-    this.writer = new DirectMessageWriter(sseStreamProvider, this::commit);
+    // Capture the SSE stream the moment it is created so abort() can release the emitter if a
+    // dispatch failure happens after the response has already committed as SSE.
+    Supplier<SseStream> capturing =
+        () -> {
+          SseStream stream = sseStreamProvider.get();
+          this.committedStream = stream;
+          return stream;
+        };
+    this.writer = new DirectMessageWriter(capturing, this::commit);
   }
 
   public CompletableFuture<ResponseEntity<Object>> response() {
@@ -57,16 +62,23 @@ final class StreamableHttpTransport implements McpTransport {
     writer = writer.write(message);
   }
 
-  @Override
-  public void emit(McpEvent event) {
-    if (event instanceof McpEvent.SessionInitialized si) {
-      decorators.add(entity -> entity.getHeaders().add(SESSION_ID_HEADER, si.sessionId()));
+  /**
+   * Aborts the request after a dispatch failure. Before the response shape commits this fails the
+   * pending future (a plain error reply); once an SSE stream has committed the future is already
+   * resolved, so instead the committed stream is closed to release the emitter — otherwise a
+   * post-commit throw would leak the connection (no SSE timeout is configured).
+   */
+  void abort(Throwable t) {
+    // completeExceptionally returns false when the future is already settled — i.e. the response
+    // shape has committed. In that case the only way to end the request is to close the committed
+    // SSE stream (a JSON reply has nothing left to release).
+    if (!response.completeExceptionally(t) && committedStream != null) {
+      committedStream.close();
     }
   }
 
   private void commit(ResponseEntity<Object> entity) {
     log.debug("Committing {} response", entity.getHeaders().getContentType());
-    decorators.forEach(d -> d.accept(entity));
     response.complete(entity);
   }
 }

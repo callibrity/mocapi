@@ -23,7 +23,7 @@ import org.jwcarman.methodical.MethodInvocation;
 
 /**
  * MethodInvoker-chain interceptor that evaluates a handler's guard list at call time and aborts the
- * invocation with a {@code -32003 Forbidden} JSON-RPC error when any guard returns {@link
+ * invocation with a {@code -32010 Forbidden} JSON-RPC error when any guard returns {@link
  * GuardDecision.Deny}. Guards are captured once per handler at build time; no allocation occurs per
  * invocation beyond what {@link Guards#evaluate(List)} performs.
  *
@@ -58,7 +58,7 @@ public final class GuardEvaluationInterceptor implements MethodInterceptor<Objec
       }
       sb.append(guards.get(i));
     }
-    sb.append("] and rejects denied calls with JSON-RPC -32003 Forbidden");
+    sb.append("] and rejects denied calls with JSON-RPC -32010 Forbidden");
     return sb.toString();
   }
 }

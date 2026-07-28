@@ -25,7 +25,8 @@ To silence audit temporarily without removing the module, set
 | Key | Always present? | Value |
 |---|---|---|
 | `caller` | yes | Authenticated principal name from the pluggable `AuditCallerIdentityProvider`, or `anonymous`. |
-| `session_id` | yes (may be `null`) | The MCP session id when a session is bound to the invocation. `null` during the `initialize` handshake. |
+| `protocol_version` | yes | Protocol version from the request's `_meta` envelope. |
+| `client_name` | yes (may be `null`) | Client name from the envelope's `clientInfo`. |
 | `handler_kind` | yes | One of `tool`, `prompt`, `resource`, `resource_template`. |
 | `handler_name` | yes | Tool / prompt name, or resource URI / URI template. |
 | `outcome` | yes | One of `success`, `forbidden`, `invalid_params`, `error`. |
@@ -42,7 +43,7 @@ them without Java camelCase bleeding in. The constants live on
 | Value | Trigger |
 |---|---|
 | `success` | The invocation completed without an infrastructure-level exception. A tool returning `CallToolResult.isError=true` still counts as `success` here — it's a model-visible tool error, not an audit-level failure. |
-| `forbidden` | A `JsonRpcException` with code `-32003 Forbidden` (a guard denial — see `mocapi-spring-security-guards`). |
+| `forbidden` | A `JsonRpcException` with code `-32010 Forbidden` (a guard denial — see `mocapi-spring-security-guards`). |
 | `invalid_params` | A `JsonRpcException` with code `-32602 Invalid params` (e.g., Jakarta Validation rejected the inputs). |
 | `error` | Any other thrown exception. Stack traces are not emitted — only `error_class`. |
 
@@ -120,7 +121,8 @@ installed, the structured fields flow into the JSON document automatically:
   "logger_name": "mocapi.audit",
   "message": "mcp.audit",
   "caller": "alice",
-  "session_id": "5d3cb2b3",
+  "protocol_version": "2026-07-28",
+  "client_name": "ExampleClient",
   "handler_kind": "tool",
   "handler_name": "get_weather",
   "outcome": "success",
@@ -132,7 +134,7 @@ With a plain console encoder the same fields render as `key=value` tails on
 each line:
 
 ```
-2026-04-19T17:22:11.043Z INFO mocapi.audit - mcp.audit caller=alice session_id=5d3cb2b3 handler_kind=tool handler_name=get_weather outcome=success duration_ms=42
+2026-04-19T17:22:11.043Z INFO mocapi.audit - mcp.audit caller=alice protocol_version=2026-07-28 client_name=ExampleClient handler_kind=tool handler_name=get_weather outcome=success duration_ms=42
 ```
 
 ## Interceptor ordering
@@ -141,10 +143,10 @@ each line:
 handler chain (see [customizers.md](customizers.md#strata) for the full
 stratum model). The outer-to-inner sequence around it is:
 
-1. **CORRELATION** (MDC) — stamps `mcp.session` / `mcp.handler.kind` / `mcp.handler.name`.
+1. **CORRELATION** (MDC) — stamps `mcp.protocol.version` / `mcp.client.name` / `mcp.handler.kind` / `mcp.handler.name` / `mcp.request.id`.
 2. **OBSERVATION** (Micrometer observation) — wraps the rest.
 3. **AUDIT** (this module) — records the attempt, times it end-to-end. Sees post-guard outcomes, so a denial surfaces as `outcome=forbidden`.
-4. **AUTHORIZATION** — guards evaluated here; denial short-circuits with `-32003`.
+4. **AUTHORIZATION** — guards evaluated here; denial short-circuits with `-32010`.
 5. **VALIDATION** — JSON input-schema for tools first (rejections surface as `outcome=invalid_params`), then user-contributed validation (e.g. Jakarta Bean Validation).
 6. **INVOCATION** — any user-contributed invocation interceptors, then the reflective method call.
 

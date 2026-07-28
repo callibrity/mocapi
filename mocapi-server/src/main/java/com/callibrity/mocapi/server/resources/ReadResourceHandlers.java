@@ -22,6 +22,7 @@ import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrNull;
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
+import com.callibrity.mocapi.server.elicitation.McpElicitorResolver;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardEvaluationInterceptor;
 import com.callibrity.mocapi.server.handler.MutableHandlerState;
@@ -43,8 +44,8 @@ public final class ReadResourceHandlers {
 
   /**
    * Builds one {@link ReadResourceHandler} for the given {@code (bean, method)} pair. Resource
-   * methods have no structural parameter resolvers; any resolvers attached by customizers are the
-   * only ones wired into the invoker.
+   * methods get two structural parameter resolvers — {@link McpResourceContextResolver} (ADR-0025)
+   * and {@link McpElicitorResolver} (ADR-0024); resolvers attached by customizers follow them.
    */
   public static ReadResourceHandler build(
       Object bean,
@@ -63,6 +64,8 @@ public final class ReadResourceHandlers {
     customizers.forEach(c -> c.customize(config));
     MutableHandlerState<Object> state = config.state;
     MethodInvoker.Builder<Object> builder = MethodInvoker.builder(method, bean, Object.class);
+    builder.resolver(new McpResourceContextResolver());
+    builder.resolver(new McpElicitorResolver());
     state.resolvers.forEach(builder::resolver);
     state.correlation.forEach(builder::interceptor);
     state.observation.forEach(builder::interceptor);

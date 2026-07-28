@@ -17,8 +17,18 @@ package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
 import tools.jackson.databind.JsonNode;
 
+/**
+ * Extends the spec's {@code InputResponseRequestParams}: an MRTR retry of {@code tools/call}
+ * re-sends the original params plus {@code inputResponses} (keyed identically to the server's
+ * {@code inputRequests} map) and the opaque {@code requestState}.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CallToolRequestParams(
-    String name, JsonNode arguments, TaskMetadata task, @JsonProperty("_meta") RequestMeta meta) {}
+    String name,
+    JsonNode arguments,
+    Map<String, InputResponse> inputResponses,
+    String requestState,
+    @JsonProperty("_meta") RequestMeta meta) {}

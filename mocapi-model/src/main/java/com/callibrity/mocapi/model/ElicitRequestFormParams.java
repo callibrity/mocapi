@@ -16,12 +16,13 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * Parameters of a form-mode elicitation, embedded in an {@link ElicitRequest} inside {@link
+ * InputRequiredResult#inputRequests()}. The {@code mode} discriminator ({@code "form"}, optional on
+ * the wire) is contributed by {@link ElicitRequestParams}'s type info; there is no {@code _meta} —
+ * this is an embedded object, not JSON-RPC request params.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ElicitRequestFormParams(
-    String mode,
-    String message,
-    RequestedSchema requestedSchema,
-    TaskMetadata task,
-    @JsonProperty("_meta") RequestMeta meta) {}
+public record ElicitRequestFormParams(String message, RequestedSchema requestedSchema)
+    implements ElicitRequestParams {}

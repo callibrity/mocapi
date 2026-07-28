@@ -27,6 +27,7 @@ import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.List;
@@ -82,7 +83,9 @@ class MocapiServicesAotProcessorTest {
     @McpPrompt(name = "prompt-side")
     public GetPromptResult asPrompt(String who) {
       return new GetPromptResult(
-          null, List.of(new PromptMessage(Role.USER, new TextContent(who, null))));
+          null,
+          List.of(new PromptMessage(Role.USER, new TextContent(who, null))),
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -90,7 +93,9 @@ class MocapiServicesAotProcessorTest {
     @McpPrompt(name = "say-hi")
     public GetPromptResult sayHi(String name) {
       return new GetPromptResult(
-          null, List.of(new PromptMessage(Role.USER, new TextContent("hi " + name, null))));
+          null,
+          List.of(new PromptMessage(Role.USER, new TextContent("hi " + name, null))),
+          ResultTypes.COMPLETE);
     }
   }
 

@@ -19,6 +19,17 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import tools.jackson.databind.node.ObjectNode;
 
+/**
+ * Params of a {@code notifications/message} log notification.
+ *
+ * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577) along with the Logging
+ *     feature; remains in the specification for at least twelve months. The spec's suggested
+ *     migration is logging to stderr (stdio) or OpenTelemetry.
+ */
+@Deprecated(since = "2026-07-28")
+// SEP-2577 spec contract: LoggingLevel is deprecated alongside this type; the reference is
+// required for 1:1 fidelity.
+@SuppressWarnings("deprecation")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record LoggingMessageNotificationParams(
     LoggingLevel level, String logger, Object data, @JsonProperty("_meta") ObjectNode meta) {}

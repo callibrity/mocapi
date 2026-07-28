@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.tools;
 
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.List;
 
@@ -38,6 +39,7 @@ public final class TextContentResultMapper implements ResultMapper {
   @Override
   public CallToolResult map(Object result) {
     String text = result == null ? "" : result.toString();
-    return new CallToolResult(List.of(new TextContent(text, null)), null, null);
+    return new CallToolResult(
+        List.of(new TextContent(text, null)), null, null, ResultTypes.COMPLETE);
   }
 }

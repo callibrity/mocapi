@@ -20,6 +20,7 @@ import com.callibrity.mocapi.model.EmbeddedResource;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.ImageContent;
 import com.callibrity.mocapi.model.PromptMessage;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.TextResourceContents;
@@ -113,7 +114,8 @@ public class ConformancePrompts {
         "A simple test prompt",
         List.of(
             new PromptMessage(
-                Role.USER, new TextContent("This is a simple prompt for testing.", null))));
+                Role.USER, new TextContent("This is a simple prompt for testing.", null))),
+        ResultTypes.COMPLETE);
   }
 
   @McpPrompt(name = "test_prompt_with_arguments", description = "A test prompt with arguments")
@@ -127,7 +129,8 @@ public class ConformancePrompts {
                 Role.USER,
                 new TextContent(
                     String.format("Prompt with arguments: arg1='%s', arg2='%s'", arg1, arg2),
-                    null))));
+                    null))),
+        ResultTypes.COMPLETE);
   }
 
   @McpPrompt(
@@ -145,7 +148,8 @@ public class ConformancePrompts {
                         resourceUri, "text/plain", "Embedded resource content for testing."),
                     null)),
             new PromptMessage(
-                Role.USER, new TextContent("Please process the embedded resource above.", null))));
+                Role.USER, new TextContent("Please process the embedded resource above.", null))),
+        ResultTypes.COMPLETE);
   }
 
   @McpPrompt(name = "test_prompt_with_image", description = "A test prompt with an image")
@@ -154,7 +158,7 @@ public class ConformancePrompts {
         "A test prompt with an image",
         List.of(
             new PromptMessage(Role.USER, new ImageContent(TINY_PNG, "image/png", null)),
-            new PromptMessage(
-                Role.USER, new TextContent("Please analyze the image above.", null))));
+            new PromptMessage(Role.USER, new TextContent("Please analyze the image above.", null))),
+        ResultTypes.COMPLETE);
   }
 }

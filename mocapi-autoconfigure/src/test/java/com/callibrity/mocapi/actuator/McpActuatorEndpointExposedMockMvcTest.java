@@ -44,7 +44,7 @@ class McpActuatorEndpointExposedMockMvcTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.server.name").value("mocapi"))
         .andExpect(jsonPath("$.server.version").value("9.9.9"))
-        .andExpect(jsonPath("$.server.protocolVersion").value("2025-11-25"))
+        .andExpect(jsonPath("$.server.protocolVersion").value("2026-07-28"))
         .andExpect(jsonPath("$.counts.tools").value(1))
         .andExpect(jsonPath("$.counts.prompts").value(1))
         .andExpect(jsonPath("$.counts.resources").value(1))

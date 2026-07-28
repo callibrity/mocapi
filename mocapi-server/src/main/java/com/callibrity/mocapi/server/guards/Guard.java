@@ -21,7 +21,7 @@ package com.callibrity.mocapi.server.guards;
  * handler from list operations and rejects invocation with a JSON-RPC forbidden error.
  *
  * <p>Implementations pull whatever runtime state they need (Spring Security's context, {@code
- * McpSession.CURRENT}, servlet request, etc.) from their own framework of choice — the mocapi core
+ * McpExchange.CURRENT}, servlet request, etc.) from their own framework of choice — the mocapi core
  * does not pass anything implementation-specific at check time. A guard should typically close over
  * any handler metadata (annotation values, method, bean) at attachment time.
  */

@@ -20,19 +20,20 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.callibrity.mocapi.model.CacheScope;
+import com.callibrity.mocapi.model.DiscoverResult;
 import com.callibrity.mocapi.model.Prompt;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.discover.DiscoverHandler;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.resources.ReadResourceHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
-import com.callibrity.mocapi.server.session.McpSession;
-import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.mocapi.server.tools.McpToolsService;
-import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -124,22 +125,6 @@ class MocapiStartupBannerTest {
   }
 
   @Nested
-  class Session_store_line {
-
-    @Test
-    void reports_simple_class_name_when_a_store_bean_is_present() {
-      String banner = banner().withSessionStore().build().render();
-      assertThat(banner).contains("Session store: TestSessionStore");
-    }
-
-    @Test
-    void reports_none_when_no_store_bean_is_registered() {
-      String banner = banner().build().render();
-      assertThat(banner).contains("Session store: (none)");
-    }
-  }
-
-  @Nested
   class OAuth2_line {
 
     @Test
@@ -194,6 +179,24 @@ class MocapiStartupBannerTest {
     }
   }
 
+  @Nested
+  class Protocol_line {
+
+    @Test
+    void shows_the_versions_the_discover_handler_advertises() {
+      String banner = banner().withDiscover().build().render();
+      assertThat(banner)
+          .contains(
+              "Protocol: " + McpServer.PROTOCOL_VERSION + ", " + McpServer.DRAFT_PROTOCOL_VERSION);
+    }
+
+    @Test
+    void falls_back_to_the_compiled_in_version_without_a_discover_bean() {
+      String banner = banner().build().render();
+      assertThat(banner).contains("Protocol: " + McpServer.PROTOCOL_VERSION);
+    }
+  }
+
   // --- builder ----------------------------------------------------------
 
   private static Builder banner() {
@@ -206,7 +209,7 @@ class MocapiStartupBannerTest {
     private McpToolsService toolsService;
     private McpPromptsService promptsService;
     private McpResourcesService resourcesService;
-    private McpSessionStore store;
+    private DiscoverHandler discoverHandler;
 
     Builder() {
       // Mockito's default return for an unstubbed `String[]` method is null, which would NPE
@@ -261,8 +264,17 @@ class MocapiStartupBannerTest {
       return withBeanOfType("com.callibrity.mocapi.transport.stdio.StdioServer");
     }
 
-    Builder withSessionStore() {
-      this.store = new TestSessionStore();
+    Builder withDiscover() {
+      this.discoverHandler = mock(DiscoverHandler.class);
+      when(discoverHandler.discover())
+          .thenReturn(
+              new DiscoverResult(
+                  List.of(McpServer.PROTOCOL_VERSION, McpServer.DRAFT_PROTOCOL_VERSION),
+                  null,
+                  null,
+                  0L,
+                  CacheScope.PRIVATE,
+                  ResultTypes.COMPLETE));
       return this;
     }
 
@@ -286,7 +298,7 @@ class MocapiStartupBannerTest {
           provider(toolsService),
           provider(promptsService),
           provider(resourcesService),
-          provider(store),
+          provider(discoverHandler),
           env,
           ctx);
     }
@@ -316,38 +328,6 @@ class MocapiStartupBannerTest {
           return value;
         }
       };
-    }
-  }
-
-  /**
-   * Concrete McpSessionStore so the banner reports its simple name as "TestSessionStore". The
-   * banner only ever calls {@code getClass().getSimpleName()} on the store, so every persistence
-   * operation here is intentionally a no-op stub.
-   */
-  static class TestSessionStore implements McpSessionStore {
-    @Override
-    public void save(McpSession session, Duration ttl) {
-      // no-op: banner never invokes this
-    }
-
-    @Override
-    public void update(String sessionId, McpSession session) {
-      // no-op: banner never invokes this
-    }
-
-    @Override
-    public Optional<McpSession> find(String sessionId) {
-      return Optional.empty();
-    }
-
-    @Override
-    public void touch(String sessionId, Duration ttl) {
-      // no-op: banner never invokes this
-    }
-
-    @Override
-    public void delete(String sessionId) {
-      // no-op: banner never invokes this
     }
   }
 }

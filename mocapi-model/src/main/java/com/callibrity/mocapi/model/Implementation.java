@@ -18,4 +18,4 @@ package com.callibrity.mocapi.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record Implementation(String name, String title, String version) {}
+public record Implementation(String name, String title, String version, String description) {}

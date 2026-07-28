@@ -19,6 +19,14 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Locale;
 
+/**
+ * RFC 5424 log severities.
+ *
+ * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577) along with the Logging
+ *     feature; still referenced by the (deprecated) {@code io.modelcontextprotocol/logLevel} {@code
+ *     _meta} key. The spec's suggested migration is logging to stderr (stdio) or OpenTelemetry.
+ */
+@Deprecated(since = "2026-07-28")
 public enum LoggingLevel {
   DEBUG,
   INFO,

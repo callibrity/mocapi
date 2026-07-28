@@ -62,6 +62,25 @@ the framework generates it from the return type the same way. Output
 schema validation at runtime is also opt-in (it has a real cost, and
 not every deployment wants to validate the server's own outputs).
 
+**Structured output may be any JSON value (MCP 2026-07-28).** The spec
+widened `structuredContent` from a JSON object to any JSON value
+(object, array, string, number, boolean, or null), so any tool return
+type that is not `void`, `CallToolResult`, or a `CharSequence` is mapped
+to `structuredContent` of whatever shape it serializes to — a record or
+`Map` becomes an object, a `List`/array becomes an array, a primitive
+becomes a scalar. The derived schema is advertised as the `outputSchema`
+when it carries a concrete `type`; an untyped empty schema (e.g. raw
+`Object`) is mapped structurally but advertises no schema. `Optional<T>`
+is the one rejected case: its element type is erased on the return
+signature, so no schema can be derived — return the value directly or a
+`CallToolResult`. (Earlier mocapi enforced the 2025-11-25 object-only
+rule; this relaxation finished a migration the model already reflected,
+`structuredContent` being typed `JsonNode`.) A single `ContentBlock` return
+(`ImageContent`, `AudioContent`, `ResourceLink`, `EmbeddedResource`,
+`TextContent`) is a separate ergonomic shortcut: it is wrapped as the sole
+`content` item with no structured content or schema, sparing the author a
+hand-built `CallToolResult` for the common single-non-text-block case.
+
 ## Consequences
 
 **What this buys us.** Adding a tool parameter automatically updates
@@ -88,4 +107,10 @@ the tool path, where the JSON-Schema-shaped `inputSchema` /
 `outputSchema` fields live. Elicitation does not use Victools at all
 ([ADR-0015](0015-constrained-elicitation-schema-builder.md)).
 
-**Code anchors:** `mocapi-server/.../tools/DefaultMethodSchemaGenerator.java`. Required-by-default for record components landed in commit `fe420b43` and shipped in 0.17.0.
+**Code anchors:** `mocapi-server/.../tools/DefaultMethodSchemaGenerator.java`;
+return-type classification and schema advertisement in
+`mocapi-server/.../tools/CallToolHandlers.java` (`createResultMapper`);
+structured mapping in `mocapi-server/.../tools/StructuredResultMapper.java`;
+single-block mapping in `mocapi-server/.../tools/ContentBlockResultMapper.java`.
+Required-by-default for record components landed in commit `fe420b43` and
+shipped in 0.17.0.

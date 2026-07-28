@@ -1,0 +1,422 @@
+### Countdown Tool (streams notifications/progress over SSE)
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: countdown
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": {
+        "name": "httpie",
+        "version": "1.0"
+      },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "progressToken": "demo-1"
+    },
+    "arguments": {
+      "from": 5
+    },
+    "name": "countdown"
+  }
+}
+
+### Countdown Tool — no progressToken (plain JSON; progress is silently skipped, no SSE)
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: countdown
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": {
+        "name": "httpie",
+        "version": "1.0"
+      },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "arguments": {
+      "from": 5
+    },
+    "name": "countdown"
+  }
+}
+
+### server/discover (advertised versions + capabilities)
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: server/discover
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "server/discover",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    }
+  }
+}
+
+### tools/list
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/list
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "tools/list",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    }
+  }
+}
+
+### prompts/list
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: prompts/list
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "prompts/list",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    }
+  }
+}
+
+### resources/list
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: resources/list
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "resources/list",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    }
+  }
+}
+
+### resources/templates/list
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: resources/templates/list
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "resources/templates/list",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    }
+  }
+}
+
+### hello tool
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: hello
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "name": "hello",
+    "arguments": { "name": "World" }
+  }
+}
+
+### rot13 tool (the tool name is "encode" — derived from the method)
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: encode
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "name": "encode",
+    "arguments": { "text": "Hello, MCP" }
+  }
+}
+
+### greet tool — valid (structured output: structuredContent + mirrored text)
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: greet
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "name": "greet",
+    "arguments": { "name": "Ada" }
+  }
+}
+
+### greet tool — invalid (blank name) -> isError result with the Jakarta validation message
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: greet
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "name": "greet",
+    "arguments": { "name": "" }
+  }
+}
+
+### summarize prompt (detail: BRIEF | STANDARD | DETAILED)
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: prompts/get
+Mcp-Name: summarize
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "prompts/get",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "name": "summarize",
+    "arguments": {
+      "text": "MCP is a protocol for tool-using models.",
+      "detail": "DETAILED"
+    }
+  }
+}
+
+### resources/read — fixed resource docs://readme
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: resources/read
+Mcp-Name: docs://readme
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "resources/read",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "uri": "docs://readme"
+  }
+}
+
+### resources/read — template env://{stage}/config (stage: DEV | STAGE | PROD)
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: resources/read
+Mcp-Name: env://PROD/config
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "resources/read",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "uri": "env://PROD/config"
+  }
+}
+
+### resources/read — template config://{env}/app, valid (env must be ^[a-z]+$)
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: resources/read
+Mcp-Name: config://prod/app
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "resources/read",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "uri": "config://prod/app"
+  }
+}
+
+### resources/read — template config://{env}/app, invalid (uppercase) -> -32602
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: resources/read
+Mcp-Name: config://PROD/app
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "resources/read",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "uri": "config://PROD/app"
+  }
+}
+
+### Elicitation (MRTR) round 1 — returns resultType "input_required"
+# The response handler captures requestState + the input key for round 2.
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: hello-elicitation
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": { "elicitation": {} },
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "name": "hello-elicitation",
+    "arguments": {}
+  }
+}
+
+> {%
+    client.global.set("requestState", response.body.result.requestState);
+    client.global.set("elicitKey", Object.keys(response.body.result.inputRequests)[0]);
+%}
+
+### Elicitation (MRTR) round 2 — replays with the captured state + answers
+# Run round 1 first so {{requestState}} and {{elicitKey}} are populated.
+POST http://localhost:8080/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: hello-elicitation
+
+{
+  "id": 2,
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": { "elicitation": {} },
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "name": "hello-elicitation",
+    "arguments": {},
+    "requestState": "{{requestState}}",
+    "inputResponses": {
+      "{{elicitKey}}": {
+        "action": "accept",
+        "content": { "firstName": "Ada", "lastName": "Lovelace" }
+      }
+    }
+  }
+}

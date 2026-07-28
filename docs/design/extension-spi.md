@@ -69,7 +69,7 @@ VALIDATION (schema for tools, then user's validation) → INVOCATION
 | CORRELATION | `correlationInterceptor(...)` | MDC, request-id propagation. Outermost so every downstream log carries correlation. |
 | OBSERVATION | `observationInterceptor(...)` | Traces, metrics. Wraps the rest so denials + validation failures are observed. |
 | AUDIT | `auditInterceptor(...)` | Persistent record of every attempt. Inside observation; sees post-guard outcomes. |
-| AUTHORIZATION | (no method — use `guard(...)`) | Guards. Wired by the builder into a single evaluation interceptor that short-circuits with `-32003 Forbidden` on denial. |
+| AUTHORIZATION | (no method — use `guard(...)`) | Guards. Wired by the builder into a single evaluation interceptor that short-circuits with `-32010 Forbidden` on denial. |
 | VALIDATION | `validationInterceptor(...)` | Semantic validation (Jakarta Bean Validation, cross-field checks). For tools, the compiled input JSON schema check is wired by the builder as the first VALIDATION step — a wire-level schema miss short-circuits before semantic validation runs. |
 | INVOCATION | `invocationInterceptor(...)` | Escape hatch that wraps the reflective call itself — retries, timeouts. |
 
@@ -104,7 +104,7 @@ semantics and short-circuits on the first `Deny`. Empty list →
 
 **At call time**, the builder wires guards into a single
 `GuardEvaluationInterceptor` in the AUTHORIZATION stratum. A denial
-throws `JsonRpcException` with code `-32003` and message
+throws `JsonRpcException` with code `-32010` (ADR-0023) and message
 `"Forbidden: <reason>"`. Tools do *not* return
 `CallToolResult.isError=true` for guard denials — that would invite
 an LLM to "self-correct" on an auth failure.

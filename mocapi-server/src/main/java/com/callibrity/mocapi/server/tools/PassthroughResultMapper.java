@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.tools;
 
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ResultTypes;
 import java.util.List;
 
 /**
@@ -38,7 +39,7 @@ public final class PassthroughResultMapper implements ResultMapper {
   @Override
   public CallToolResult map(Object result) {
     if (result == null) {
-      return new CallToolResult(List.of(), null, null);
+      return new CallToolResult(List.of(), null, null, ResultTypes.COMPLETE);
     }
     return (CallToolResult) result;
   }

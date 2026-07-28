@@ -2,12 +2,15 @@
 
 How mocapi is layered, how requests flow through it, and the
 ScopedValue model that ties request-scoped state to handler code.
+Since MCP 2026-07-28 ([ADR-0019](../adr/0019-clean-break-2026-07-28.md),
+[ADR-0020](../adr/0020-stateless-request-model.md)) the server is
+stateless: every request is self-contained, and there are no sessions
+anywhere in the stack.
 
 For deeper coverage of specific concerns, see:
 
 - [Transports](transports.md) — Streamable HTTP and stdio specifics
-- [Session & Context](session-and-context.md) — `McpContext`, validation results, session lifecycle
-- [Storage & Substrate](storage-and-substrate.md) — pluggable session/mailbox/journal/notifier
+- [Elicitation — MRTR Replay](elicitation-mrtr.md) — multi-round-trip elicitation
 - [Extension SPI](extension-spi.md) — customizer model, interceptor strata
 - [Handlers](handlers.md) — internal handler classes
 - [Observability Stack](observability-stack.md) — logging / o11y / audit / actuator
@@ -21,36 +24,43 @@ Mocapi separates protocol concerns from transport concerns:
 
 - **mocapi-api** — user-facing annotations and interfaces. Tool authors depend on this.
 - **mocapi-model** — MCP protocol types (`Tool`, `CallToolResult`, `ElicitResult`, etc.) translated 1:1 from the official `schema.ts` (see [ADR-0014](../adr/0014-mocapi-model-from-schema-ts.md)).
-- **mocapi-server** — stateful MCP server: session management, JSON-RPC dispatch, tool invocation, initialization lifecycle.
-- **mocapi-streamable-http-transport** — Streamable HTTP transport: HTTP endpoints, SSE streaming, encrypted event IDs.
+- **mocapi-server** — stateless MCP server: `_meta` envelope parsing, JSON-RPC dispatch, tool invocation, `server/discover`, the MRTR elicitation replay engine.
+- **mocapi-streamable-http-transport** — Streamable HTTP transport: the POST-only MCP endpoint, routing-header validation, per-request SSE response streams.
 - **mocapi-stdio-transport** — Stdio transport: newline-delimited JSON-RPC on stdin/stdout, for subprocess-launched MCP clients.
 - **mocapi-streamable-http-spring-boot-starter** — Spring Boot starter bundling `mocapi-server` + Streamable HTTP transport.
 - **mocapi-stdio-spring-boot-starter** — Spring Boot starter bundling `mocapi-server` + stdio transport.
 
 The server knows nothing about HTTP or stdio. Transports know nothing
-about sessions or tools. The `McpServer` + `McpTransport` interface
-pair is the contract between them — the server calls
-`transport.send(message)` / `transport.emit(event)`, and the transport
-calls back into `server.handleCall` / `handleNotification` /
-`handleResponse`. Two transports ship today; any future transport
-(Unix socket, WebSocket, named pipe, etc.) drops into the same
-contract.
+about tools. The `McpServer` + `McpTransport` interface pair is the
+contract between them — the transport calls `server.handleCall` /
+`server.handleNotification`, and the server replies through
+`transport.send(message)` on the response channel of the request being
+handled. There is no server-initiated channel: MCP 2026-07-28 has no
+server→client requests (see
+[Elicitation — MRTR Replay](elicitation-mrtr.md)). Two transports ship
+today; any future transport (Unix socket, WebSocket, named pipe, etc.)
+drops into the same contract.
 
 ## Request flow
 
 ```
-Client HTTP Request
+Client HTTP POST
     |
     v
 StreamableHttpController (transport)
     |-- validates Accept, Origin, Content-Type
-    |-- for non-initialize: calls server.createContext(sessionId, protocolVersion)
-    |-- maps McpContextResult errors to HTTP status codes
-    |-- for valid contexts: delegates to server.handleCall/handleNotification/handleResponse
+    |-- validates routing headers (MCP-Protocol-Version, Mcp-Method, Mcp-Name)
+    |       against the body — mismatch → 400 / -32020 HeaderMismatch
+    |-- delegates to server.handleCall / handleNotification
+    |-- maps JSON-RPC error codes to HTTP status (single mapping table)
     |
     v
 DefaultMcpServer (protocol)
-    |-- binds McpSession and McpTransport as ScopedValues
+    |-- parses the _meta envelope (protocolVersion, clientCapabilities
+    |       required; clientInfo optional) → McpExchange;
+    |       missing/malformed → -32602, unsupported version → -32022
+    |       with the supported-version list
+    |-- binds McpExchange and McpTransport as ScopedValues
     |-- dispatches to RipCurl JSON-RPC dispatcher
     |-- RipCurl routes to @JsonRpcMethod handlers
     |
@@ -58,30 +68,42 @@ DefaultMcpServer (protocol)
 McpToolsService / McpPromptsService / McpResourcesService / etc.
     |-- validates input schema
     |-- invokes tool method via Methodical
-    |-- wraps result in CallToolResult
+    |-- wraps result in CallToolResult (resultType: "complete")
+    |       — or InputRequiredResult when an elicitation is pending (MRTR)
+    |
+    v
+DefaultMcpServer (protocol)
+    |-- on every successful result, stamps
+    |       _meta["io.modelcontextprotocol/serverInfo"] if absent
+    |       (opt-out: mocapi.emit-server-info, default true) — see
+    |       ADR-0026
 ```
 
 The same flow applies to stdio, with `StdioServer` / `StdioTransport`
 in place of the controller (see [Transports — Stdio](transports.md#stdio)).
+There is no handshake: `server/discover` is an ordinary request that may
+be sent at any time (and serves as the version probe — an unsupported
+version in its envelope earns `-32022` carrying the server's supported
+list).
 
 ## Server capabilities
 
-The server declares static capabilities during initialization:
+The server's static capabilities are advertised via `server/discover`:
 
 - **tools** — tool listing and invocation
 - **prompts** — prompt listing and retrieval
 - **resources** — resource listing, reading, and template expansion
-- **logging** — log level management
+- **completions** — argument completion
+- **extensions** — advertised as an empty map (no extensions implemented)
 
 Capabilities are built as a `ServerCapabilities` bean in
-auto-configuration and passed to `McpSessionService`. They describe
-what the framework supports, not what is currently registered. A
-server with no tools still declares `tools` capability.
+auto-configuration and served by `DiscoverHandler`. They describe what
+the framework supports, not what is currently registered. A server with
+no tools still declares `tools` capability. The deprecated `logging`
+capability is not advertised ([ADR-0022](../adr/0022-2026-07-28-features-not-implemented.md)).
 
-The capability bits for subscription, list-change notifications, etc.
-are advertised as `false`; see
-[ADR-0018](../adr/0018-mcp-spec-features-not-implemented.md) for the
-deliberate non-implementations.
+The capability bits for list-change notifications are advertised as
+`false`; see ADR-0022 for the deliberate non-implementations.
 
 ## Startup logging
 
@@ -120,16 +142,14 @@ so they don't corrupt the protocol stream on stdout).
 
 The server uses Java's `ScopedValue` to bind request-scoped context:
 
-- `McpSession.CURRENT` — the current session
+- `McpExchange.CURRENT` — the per-request protocol context parsed from
+  the `_meta` envelope (protocol version, client info, client
+  capabilities, trace context)
 - `McpTransport.CURRENT` — the current transport
 - `McpToolContext.CURRENT` — the tool execution context
 
 These are resolved as method parameters via `ScopedValueResolver<T>`
-subclasses:
-
-- `McpSessionResolver` — resolves `McpSession` parameters
-- `McpTransportResolver` — resolves `McpTransport` parameters
-- `McpToolContextResolver` — resolves `McpToolContext` parameters
+subclasses (e.g. `McpTransportResolver`, `McpToolContextResolver`).
 
 For thread-local-style state that lives outside ScopedValue (Spring
 Security's `SecurityContextHolder`, Micrometer observation scope,
@@ -137,12 +157,22 @@ SLF4J MDC), see the context-propagation pattern documented in
 [Transports — Thread-local context propagation](transports.md#thread-local-context-propagation)
 and [ADR-0006](../adr/0006-virtual-thread-per-call.md).
 
+## Application state without sessions
+
+Mocapi holds no per-client state between calls. Tools that need
+cross-call state use the spec's explicit-handle pattern: return an
+identifier (`basket_id`) and take it back as an argument on subsequent
+calls, backed by whatever store the application already has. This is a
+userland pattern — mocapi ships no framework machinery for it
+([ADR-0020](../adr/0020-stateless-request-model.md)).
+
 ## What mocapi does not implement
 
 The MCP specification defines several features mocapi deliberately does
-not implement: resource subscriptions, URL-mode elicitation, JSON-RPC
-batching, cancellation processing, list-change notifications, roots,
-and stateless mode. Each omission has a stated rationale.
+not implement: `subscriptions/listen`, the Tasks and MCP Apps
+extensions, URL-mode elicitation, JSON-RPC batching, full cancellation
+processing, `x-mcp-header` parameter mirroring, and the deprecated
+Roots/Sampling/Logging features. Each omission has a stated rationale.
 
-See [ADR-0018](../adr/0018-mcp-spec-features-not-implemented.md) for
+See [ADR-0022](../adr/0022-2026-07-28-features-not-implemented.md) for
 the full list and reasoning.

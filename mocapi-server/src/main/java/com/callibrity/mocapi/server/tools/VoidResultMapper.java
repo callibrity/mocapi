@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.tools;
 
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ResultTypes;
 import java.util.List;
 
 /**
@@ -36,6 +37,6 @@ public final class VoidResultMapper implements ResultMapper {
 
   @Override
   public CallToolResult map(Object result) {
-    return new CallToolResult(List.of(), null, null);
+    return new CallToolResult(List.of(), null, null, ResultTypes.COMPLETE);
   }
 }

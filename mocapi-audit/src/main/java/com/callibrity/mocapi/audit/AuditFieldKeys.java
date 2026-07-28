@@ -25,8 +25,17 @@ public final class AuditFieldKeys {
   /** Caller identity — typically the authenticated principal name, or {@code anonymous}. */
   public static final String CALLER = "caller";
 
-  /** MCP session id; {@code null} when no session is bound (e.g., initialize-time). */
-  public static final String SESSION_ID = "session_id";
+  /**
+   * MCP protocol version declared in the request's {@code _meta} envelope; {@code null} when no
+   * exchange is bound (e.g., outside a dispatch).
+   */
+  public static final String PROTOCOL_VERSION = "protocol_version";
+
+  /**
+   * Client name from the envelope's {@code io.modelcontextprotocol/clientInfo}; {@code null} when
+   * no exchange is bound.
+   */
+  public static final String CLIENT_NAME = "client_name";
 
   /** One of {@code tool} / {@code prompt} / {@code resource} / {@code resource_template}. */
   public static final String HANDLER_KIND = "handler_kind";

@@ -15,11 +15,11 @@
  */
 package com.callibrity.mocapi.logging;
 
+import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.handler.HandlerKind;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
-import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import org.jwcarman.methodical.MethodInterceptor;
 import org.slf4j.Logger;
@@ -38,7 +38,12 @@ import org.springframework.core.annotation.Order;
  * hot path does no reflection.
  */
 @AutoConfiguration
-@ConditionalOnClass({McpMdcInterceptor.class, MDC.class, MethodInterceptor.class, McpSession.class})
+@ConditionalOnClass({
+  McpMdcInterceptor.class,
+  MDC.class,
+  MethodInterceptor.class,
+  McpExchange.class
+})
 public class MocapiLoggingAutoConfiguration {
 
   private final Logger log = LoggerFactory.getLogger(MocapiLoggingAutoConfiguration.class);

@@ -23,9 +23,8 @@ import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptArgument;
 import com.callibrity.mocapi.model.PromptMessage;
-import com.callibrity.mocapi.model.PromptsCapability;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Role;
-import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
@@ -61,7 +60,8 @@ class PromptsListComplianceTest {
               name,
               List.of(
                   new PromptMessage(
-                      Role.USER, new TextContent("Hello " + typed.get("name"), null))));
+                      Role.USER, new TextContent("Hello " + typed.get("name"), null))),
+              ResultTypes.COMPLETE);
         },
         List.of(),
         List.of());
@@ -72,20 +72,15 @@ class PromptsListComplianceTest {
     GetPromptHandler greet =
         handler("greet", List.of(new PromptArgument("name", "Person's name", true)));
     GetPromptHandler simple = handler("simple", null);
-    var service = new McpPromptsService(List.of(greet, simple));
-    server =
-        buildServer(
-            inMemorySessionStore(),
-            new ServerCapabilities(null, null, null, null, new PromptsCapability(null)),
-            service);
+    var service = new McpPromptsService(List.of(greet, simple), ComplianceTestSupport.mrtrEngine());
+    server = buildServer(service);
   }
 
   @Test
   void returns_all_registered_prompts() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId, server), call("prompts/list"), transport);
+    server.handleCall(call("prompts/list"), transport);
 
     var result = captureResult(transport);
     var prompts = result.result().path("prompts");
@@ -95,10 +90,9 @@ class PromptsListComplianceTest {
 
   @Test
   void each_prompt_has_name_and_description() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId, server), call("prompts/list"), transport);
+    server.handleCall(call("prompts/list"), transport);
 
     var result = captureResult(transport);
     var first = result.result().path("prompts").get(0);
@@ -108,10 +102,9 @@ class PromptsListComplianceTest {
 
   @Test
   void prompt_with_arguments_includes_them() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
-    server.handleCall(withSession(sessionId, server), call("prompts/list"), transport);
+    server.handleCall(call("prompts/list"), transport);
 
     var result = captureResult(transport);
     var prompts = result.result().path("prompts");
@@ -133,16 +126,12 @@ class PromptsListComplianceTest {
       prompts.add(handler("prompt-" + i, null));
     }
 
-    var service = new McpPromptsService(List.copyOf(prompts), 2);
-    var pagedServer =
-        buildServer(
-            inMemorySessionStore(),
-            new ServerCapabilities(null, null, null, null, new PromptsCapability(null)),
-            service);
+    var service =
+        new McpPromptsService(List.copyOf(prompts), ComplianceTestSupport.mrtrEngine(), 2);
+    var pagedServer = buildServer(service);
 
-    var sessionId = initializeAndGetSessionId(pagedServer);
     var transport1 = mock(McpTransport.class);
-    pagedServer.handleCall(withSession(sessionId, pagedServer), call("prompts/list"), transport1);
+    pagedServer.handleCall(call("prompts/list"), transport1);
     var page1 = captureResult(transport1);
     assertThat(page1.result().path("prompts").size()).isEqualTo(2);
     assertThat(page1.result().has("nextCursor")).isTrue();

@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
@@ -76,7 +77,8 @@ class GetPromptHandlerTest {
       var level = detail == null ? Detail.STANDARD : detail;
       return new GetPromptResult(
           "summary",
-          List.of(new PromptMessage(Role.USER, new TextContent(level + ": " + text, null))));
+          List.of(new PromptMessage(Role.USER, new TextContent(level + ": " + text, null))),
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -84,7 +86,9 @@ class GetPromptHandlerTest {
     @McpPrompt(name = "raw")
     public GetPromptResult raw(Map<String, String> args) {
       return new GetPromptResult(
-          "raw", List.of(new PromptMessage(Role.USER, new TextContent(args.toString(), null))));
+          "raw",
+          List.of(new PromptMessage(Role.USER, new TextContent(args.toString(), null))),
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -312,7 +316,9 @@ class GetPromptHandlerTest {
     @McpPrompt(name = "tenant")
     public GetPromptResult tenant(@CurrentTenant String tenant) {
       return new GetPromptResult(
-          null, List.of(new PromptMessage(Role.USER, new TextContent("tenant=" + tenant, null))));
+          null,
+          List.of(new PromptMessage(Role.USER, new TextContent("tenant=" + tenant, null))),
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -320,7 +326,9 @@ class GetPromptHandlerTest {
     @McpPrompt(name = "string-arg")
     public GetPromptResult echo(String value) {
       return new GetPromptResult(
-          null, List.of(new PromptMessage(Role.USER, new TextContent(value, null))));
+          null,
+          List.of(new PromptMessage(Role.USER, new TextContent(value, null))),
+          ResultTypes.COMPLETE);
     }
   }
 

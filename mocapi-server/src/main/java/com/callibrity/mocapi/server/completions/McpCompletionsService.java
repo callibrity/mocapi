@@ -23,6 +23,7 @@ import com.callibrity.mocapi.model.CompletionRef;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.PromptReference;
 import com.callibrity.mocapi.model.ResourceTemplateReference;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
 import java.util.HashMap;
@@ -88,7 +89,8 @@ public class McpCompletionsService {
             .filter(s -> Strings.CI.startsWith(s, prefix))
             .limit(MAX_VALUES)
             .toList();
-    return new CompleteResult(new Completion(filtered, filtered.size(), false));
+    return new CompleteResult(
+        new Completion(filtered, filtered.size(), false), ResultTypes.COMPLETE);
   }
 
   private List<String> candidatesFor(CompletionRef ref, String argumentName) {
@@ -103,6 +105,6 @@ public class McpCompletionsService {
   }
 
   private static CompleteResult emptyResult() {
-    return new CompleteResult(new Completion(List.of(), 0, false));
+    return new CompleteResult(new Completion(List.of(), 0, false), ResultTypes.COMPLETE);
   }
 }

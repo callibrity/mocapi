@@ -16,30 +16,28 @@
 package com.callibrity.mocapi.server.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.model.CreateMessageRequestParams;
-import com.callibrity.mocapi.model.CreateMessageResult;
+import com.callibrity.mocapi.api.elicitation.McpElicitationNotSupportedException;
+import com.callibrity.mocapi.model.ClientCapabilities;
 import com.callibrity.mocapi.model.ElicitAction;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.ElicitResult;
-import com.callibrity.mocapi.model.LoggingLevel;
-import com.callibrity.mocapi.model.McpMethods;
-import com.callibrity.mocapi.model.Role;
-import com.callibrity.mocapi.model.TextContent;
-import com.callibrity.mocapi.server.McpResponseCorrelationService;
+import com.callibrity.mocapi.model.ElicitationCapability;
+import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.session.McpSession;
+import com.callibrity.mocapi.server.elicitation.ElicitationDispatcher;
+import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
-import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -54,205 +52,125 @@ class DefaultMcpToolContextTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
 
-  @Mock private McpResponseCorrelationService correlationService;
+  @Mock private ElicitationDispatcher elicitationDispatcher;
 
-  @Test
-  void send_progress_sends_notification_through_transport() {
-    var transport = mock(McpTransport.class);
-    var token = JsonNodeFactory.instance.stringNode("progress-1");
-    var ctx = new DefaultMcpToolContext(transport, mapper, token, correlationService);
+  private static McpExchange exchange(ClientCapabilities capabilities) {
+    return new McpExchange(
+        McpServer.PROTOCOL_VERSION,
+        new Implementation("test-client", null, "1.0", null),
+        capabilities);
+  }
 
-    ctx.sendProgress(5, 10);
+  private static McpExchange formCapableExchange() {
+    return exchange(
+        new ClientCapabilities(null, null, null, new ElicitationCapability(null, null), null));
+  }
 
-    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
-    verify(transport).send(captor.capture());
-    var msg = (JsonRpcNotification) captor.getValue();
-    assertThat(msg.method()).isEqualTo("notifications/progress");
-    assertThat(msg.params().get("progressToken").asString()).isEqualTo("progress-1");
-    assertThat(msg.params().get("progress").asDouble()).isEqualTo(5.0);
-    assertThat(msg.params().get("total").asDouble()).isEqualTo(10.0);
+  @Nested
+  class Progress {
+
+    @Test
+    void emitter_sends_notification_through_transport() {
+      var transport = mock(McpTransport.class);
+      var token = JsonNodeFactory.instance.stringNode("progress-1");
+      var ctx =
+          new DefaultMcpToolContext(
+              transport, token, elicitationDispatcher, formCapableExchange(), "tool");
+
+      ctx.longProgress(10L).emit(5, "halfway");
+
+      var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+      verify(transport).send(captor.capture());
+      var msg = (JsonRpcNotification) captor.getValue();
+      assertThat(msg.method()).isEqualTo("notifications/progress");
+      assertThat(msg.params().get("progressToken").asString()).isEqualTo("progress-1");
+      assertThat(msg.params().get("progress").asDouble()).isEqualTo(5.0);
+      assertThat(msg.params().get("total").asDouble()).isEqualTo(10.0);
+      assertThat(msg.params().get("message").asString()).isEqualTo("halfway");
+    }
+
+    @Test
+    void emitter_with_null_token_is_no_op() {
+      var transport = mock(McpTransport.class);
+      var ctx =
+          new DefaultMcpToolContext(
+              transport, null, elicitationDispatcher, formCapableExchange(), "tool");
+
+      ctx.percentProgress().complete(0.5);
+
+      verifyNoInteractions(transport);
+    }
+  }
+
+  @Nested
+  class Elicitation {
+
+    private final ElicitRequestFormParams requestParams =
+        new ElicitRequestFormParams("Please provide info", null);
+
+    @Test
+    void elicit_routes_to_dispatcher_when_client_is_form_capable() {
+      var ctx =
+          new DefaultMcpToolContext(
+              mock(McpTransport.class), null, elicitationDispatcher, formCapableExchange(), "tool");
+      var expectedResult = new ElicitResult(ElicitAction.ACCEPT, mapper.createObjectNode());
+      when(elicitationDispatcher.elicit(requestParams)).thenReturn(expectedResult);
+
+      var result = ctx.elicit(requestParams);
+
+      assertThat(result).isSameAs(expectedResult);
+      verify(elicitationDispatcher).elicit(requestParams);
+    }
+
+    @Test
+    void elicit_throws_not_supported_when_capability_is_absent() {
+      var ctx =
+          new DefaultMcpToolContext(
+              mock(McpTransport.class),
+              null,
+              elicitationDispatcher,
+              exchange(new ClientCapabilities(null, null, null, null, null)),
+              "tool");
+
+      assertThatThrownBy(() -> ctx.elicit(requestParams))
+          .isInstanceOf(McpElicitationNotSupportedException.class)
+          .hasMessageContaining("elicitation");
+      verifyNoInteractions(elicitationDispatcher);
+    }
+
+    @Test
+    void elicit_throws_not_supported_when_exchange_is_absent() {
+      var ctx =
+          new DefaultMcpToolContext(
+              mock(McpTransport.class), null, elicitationDispatcher, null, "tool");
+
+      assertThatThrownBy(() -> ctx.elicit(requestParams))
+          .isInstanceOf(McpElicitationNotSupportedException.class);
+      verifyNoInteractions(elicitationDispatcher);
+    }
+
+    @Test
+    void bare_elicitation_capability_counts_as_form_support() {
+      var ctx =
+          new DefaultMcpToolContext(
+              mock(McpTransport.class), null, elicitationDispatcher, formCapableExchange(), "tool");
+      when(elicitationDispatcher.elicit(requestParams))
+          .thenReturn(new ElicitResult(ElicitAction.DECLINE, null));
+
+      assertThat(ctx.elicit(requestParams).action()).isEqualTo(ElicitAction.DECLINE);
+    }
   }
 
   @Test
-  void five_arg_constructor_uses_default_handler_name_of_mcp() {
-    var transport = mock(McpTransport.class);
-    var toolsService = mock(McpToolsService.class);
-    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService, toolsService);
+  void handler_name_is_reported() {
+    var ctx =
+        new DefaultMcpToolContext(
+            mock(McpTransport.class),
+            null,
+            elicitationDispatcher,
+            formCapableExchange(),
+            "my-tool");
 
-    assertThat(ctx.handlerName()).isEqualTo("mcp");
-  }
-
-  @Test
-  void sample_builder_overload_wires_tools_service_and_delegates_to_correlation() {
-    var transport = mock(McpTransport.class);
-    var toolsService = mock(McpToolsService.class);
-    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService, toolsService);
-    var expected = mock(CreateMessageResult.class);
-    when(correlationService.sendAndAwait(
-            eq(McpMethods.SAMPLING_CREATE_MESSAGE),
-            any(CreateMessageRequestParams.class),
-            eq(CreateMessageResult.class),
-            any(McpTransport.class)))
-        .thenReturn(expected);
-
-    var actual = ctx.sample(cfg -> cfg.systemPrompt("you are a test").userMessage("hello"));
-
-    assertThat(actual).isSameAs(expected);
-  }
-
-  @Test
-  void send_progress_with_null_token_is_no_op() {
-    var transport = mock(McpTransport.class);
-    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
-
-    ctx.sendProgress(5, 10);
-
-    verifyNoInteractions(transport);
-  }
-
-  @Test
-  void logger_info_sends_notification_through_transport() {
-    var transport = mock(McpTransport.class);
-    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
-
-    ctx.logger("test-logger").info("hello");
-
-    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
-    verify(transport).send(captor.capture());
-    var msg = (JsonRpcNotification) captor.getValue();
-    assertThat(msg.method()).isEqualTo("notifications/message");
-    assertThat(msg.params().get("level").asString()).isEqualTo("info");
-    assertThat(msg.params().get("logger").asString()).isEqualTo("test-logger");
-    assertThat(msg.params().get("data").asString()).isEqualTo("hello");
-  }
-
-  @Test
-  void logger_drops_messages_below_session_log_level() {
-    var transport = mock(McpTransport.class);
-    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
-    var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.WARNING);
-
-    ScopedValue.where(McpSession.CURRENT, session).run(() -> ctx.logger("test").debug("dropped"));
-
-    verifyNoInteractions(transport);
-  }
-
-  @Test
-  void logger_sends_messages_at_or_above_session_log_level() {
-    var transport = mock(McpTransport.class);
-    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
-    var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.WARNING);
-
-    ScopedValue.where(McpSession.CURRENT, session).run(() -> ctx.logger("test").error("sent"));
-
-    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
-    verify(transport).send(captor.capture());
-    assertThat(captor.getValue()).isInstanceOf(JsonRpcNotification.class);
-  }
-
-  @Test
-  void elicit_delegates_to_correlation_service() {
-    var transport = mock(McpTransport.class);
-    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
-    var requestParams =
-        new ElicitRequestFormParams("form", "Please provide info", null, null, null);
-    var expectedResult = new ElicitResult(ElicitAction.ACCEPT, mapper.createObjectNode());
-    when(correlationService.sendAndAwait(
-            eq(McpMethods.ELICITATION_CREATE),
-            eq(requestParams),
-            eq(ElicitResult.class),
-            any(McpTransport.class)))
-        .thenReturn(expectedResult);
-
-    var result = ctx.elicit(requestParams);
-
-    assertThat(result).isSameAs(expectedResult);
-    verify(correlationService)
-        .sendAndAwait(McpMethods.ELICITATION_CREATE, requestParams, ElicitResult.class, transport);
-  }
-
-  @Test
-  void sample_delegates_to_correlation_service() {
-    var transport = mock(McpTransport.class);
-    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
-    var requestParams =
-        new CreateMessageRequestParams(
-            List.of(), null, null, null, null, 100, null, null, null, null, null, null);
-    var expectedResult =
-        new CreateMessageResult(Role.ASSISTANT, new TextContent("Hello", null), "model-1", "end");
-    when(correlationService.sendAndAwait(
-            eq(McpMethods.SAMPLING_CREATE_MESSAGE),
-            eq(requestParams),
-            eq(CreateMessageResult.class),
-            any(McpTransport.class)))
-        .thenReturn(expectedResult);
-
-    var result = ctx.sample(requestParams);
-
-    assertThat(result).isSameAs(expectedResult);
-    verify(correlationService)
-        .sendAndAwait(
-            McpMethods.SAMPLING_CREATE_MESSAGE,
-            requestParams,
-            CreateMessageResult.class,
-            transport);
-  }
-
-  @Test
-  void handler_name_defaults_to_mcp() {
-    var transport = mock(McpTransport.class);
-    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
-
-    assertThat(ctx.handlerName()).isEqualTo("mcp");
-  }
-
-  @Test
-  void handler_name_from_constructor_is_returned() {
-    var transport = mock(McpTransport.class);
-    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService, null, "greet");
-
-    assertThat(ctx.handlerName()).isEqualTo("greet");
-  }
-
-  @Test
-  void logger_routes_through_log_with_handler_name() {
-    var transport = mock(McpTransport.class);
-    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService, null, "greet");
-
-    ctx.logger().info("hi {}", "there");
-
-    var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
-    verify(transport).send(captor.capture());
-    var msg = (JsonRpcNotification) captor.getValue();
-    assertThat(msg.method()).isEqualTo("notifications/message");
-    assertThat(msg.params().get("level").asString()).isEqualTo("info");
-    assertThat(msg.params().get("logger").asString()).isEqualTo("greet");
-    assertThat(msg.params().get("data").asString()).isEqualTo("hi there");
-  }
-
-  @Test
-  void logger_is_enabled_respects_session_log_level() {
-    var transport = mock(McpTransport.class);
-    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
-    var session = new McpSession("s1", "2025-11-25", null, null, LoggingLevel.WARNING);
-    var logger = ctx.logger("test");
-
-    ScopedValue.where(McpSession.CURRENT, session)
-        .run(
-            () -> {
-              assertThat(logger.isDebugEnabled()).isFalse();
-              assertThat(logger.isWarnEnabled()).isTrue();
-              assertThat(logger.isErrorEnabled()).isTrue();
-            });
-  }
-
-  @Test
-  void logger_is_enabled_permits_everything_when_no_session_is_bound() {
-    var transport = mock(McpTransport.class);
-    var ctx = new DefaultMcpToolContext(transport, mapper, null, correlationService);
-    var logger = ctx.logger("test");
-
-    assertThat(logger.isDebugEnabled()).isTrue();
-    assertThat(logger.isEmergencyEnabled()).isTrue();
+    assertThat(ctx.handlerName()).isEqualTo("my-tool");
   }
 }

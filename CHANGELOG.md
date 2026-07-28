@@ -6,6 +6,98 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Changed
+
+- **Clean-break rewrite for MCP 2026-07-28** ([ADR-0019](docs/adr/0019-clean-break-2026-07-28.md)).
+  Mocapi now implements protocol revision `2026-07-28` exclusively (plus the
+  `DRAFT-2026-v1` sentinel as a release-candidate-window alias, removed when
+  the final spec ships). The stateful 2025-11-25 architecture is gone:
+  - **Stateless core** ([ADR-0020](docs/adr/0020-stateless-request-model.md)):
+    the `initialize` handshake, sessions, and `Mcp-Session-Id` are removed;
+    every request carries protocol version, client info, and client
+    capabilities in its `_meta` envelope; `server/discover` advertises
+    versions and capabilities. Cross-call application state uses the spec's
+    explicit-handle pattern.
+  - **MRTR elicitation** ([ADR-0021](docs/adr/0021-mrtr-elicitation-replay.md)):
+    `ctx.elicit(...)` now works by replay — the server returns
+    `InputRequiredResult` with a self-contained AES-256-GCM `requestState`
+    token and re-executes the handler when the client retries with answers.
+    Code before a handler's last `elicit()` call runs once per round trip
+    (see the [interactive tools guide](docs/guides/interactive-tools.md)).
+    Configure via `mocapi.mrtr.secret` / `mocapi.mrtr.ttl`. The
+    `requestState` binds to the authenticated principal via the new
+    `McpPrincipalSource` SPI, so a token minted for one caller is rejected
+    if replayed by another (the spec's MRTR replay-prevention guidance).
+    `mocapi-oauth2` ships a `SecurityContextMcpPrincipalSource` (the Spring
+    Security principal / JWT subject) that's wired automatically; the core
+    default is unauthenticated, and a user-supplied `McpPrincipalSource`
+    bean overrides both.
+  - **POST-only Streamable HTTP** with required routing headers
+    (`MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name`); mismatches return
+    `-32020 HeaderMismatch`. The GET SSE stream and `Last-Event-ID`
+    resumability are gone from the protocol.
+  - **Cache directives**: list/read/discover results carry the required
+    `ttlMs`/`cacheScope` fields, configurable via `mocapi.cache.list-ttl`,
+    `mocapi.cache.read-ttl`, and `mocapi.cache.scope`; tool/prompt/resource
+    listings are deterministically ordered.
+  - **Error codes**: spec codes `-32021` (missing client capability),
+    `-32022` (unsupported protocol version), and `-32020` (`HeaderMismatch`)
+    adopted — the spec reserves `-32020`..`-32099` for spec-defined errors
+    and leaves `-32000`..`-32019` implementation-defined; guard denials are a
+    mocapi-private `-32010` ([ADR-0023](docs/adr/0023-guard-denial-code-relocation.md));
+    resource-not-found is `-32602`.
+- **Typed progress emitters and the `MrtrContext` super-interface**
+  ([ADR-0025](docs/adr/0025-progress-emitters-and-mrtr-context.md)). Progress
+  reporting moves from `McpToolContext.sendProgress(long, long)` to a family
+  of stateful emitters obtained from the handler context —
+  `doubleProgress(Double)`, `longProgress(Long)`, `countingProgress(Long)`
+  (auto-increments by one per `emit`), and `percentProgress()` (a `0.0–1.0`
+  fraction). Emitters expose the spec's full progress shape — floating-point
+  `progress`/`total` and the human-readable `message` field — and enforce the
+  spec's strictly-increasing rule, throwing `IllegalArgumentException`
+  otherwise. The new `MrtrContext` (extending `McpElicitor` and the new
+  `McpProgressSource`) is the shared base of `McpToolContext`,
+  `McpPromptContext`, and `McpResourceContext`, so **prompt and resource
+  handlers can now report progress** (and therefore stream over SSE), not just
+  tools.
+- **Tool structured output may now be any JSON value** (MCP 2026-07-28). A tool
+  return type other than `void` / `CallToolResult` / `CharSequence` is mapped to
+  `structuredContent` of whatever shape it serializes to — records/maps →
+  object, `List`/array → array, primitives → scalar — and the derived
+  `outputSchema` is advertised when a concrete type is derivable. Previously
+  mocapi enforced the older spec's object-only rule and rejected array/scalar
+  returns at registration; the model field was already widened to `JsonNode`,
+  so this finishes that migration. `Optional<T>` remains rejected (its element
+  type is erased — return the value directly or a `CallToolResult`).
+- **Tools may return a single `ContentBlock` directly.** A return type of
+  `ImageContent` / `AudioContent` / `ResourceLink` / `EmbeddedResource` /
+  `TextContent` (or a `CompletionStage` of one) is wrapped as the sole item of
+  the result's `content` — an ergonomic shortcut for returning one non-text
+  content item without hand-building a `CallToolResult`.
+- **Per-request SSE streams are now leak-proof.** The response stream is closed
+  on every terminating path: a serialization failure for one message is logged
+  and dropped without tearing down the stream; the terminal response always
+  closes the stream even if writing it throws; and a handler exception thrown
+  after the SSE response has committed now closes the committed stream instead
+  of hanging. A configurable backstop async timeout (`mocapi.stream-timeout`,
+  default 5 minutes) bounds a handler that hangs without ever sending its final
+  response — previously such a stream had no timeout and held the connection
+  indefinitely.
+
+### Removed
+
+- `McpToolContext.sendProgress(long, long)` — superseded by the typed progress
+  emitters above ([ADR-0025](docs/adr/0025-progress-emitters-and-mrtr-context.md)).
+  Migrate `ctx.sendProgress(p, t)` to `ctx.longProgress(t).emit(p)`.
+- `ctx.sample(...)` and `ctx.logger(...)` — the MCP Sampling and Logging
+  features are deprecated by SEP-2577 and not carried into the rewrite
+  ([ADR-0022](docs/adr/0022-2026-07-28-features-not-implemented.md));
+  integrate with your LLM provider directly, and log to stderr or
+  OpenTelemetry.
+- The Substrate and Odyssey dependencies, the pluggable session-store
+  backends, and the Redis/PostgreSQL/NATS examples — all session-era
+  machinery with no role in a stateless server.
+
 ## [0.17.0] - 2026-05-07
 
 ### Changed

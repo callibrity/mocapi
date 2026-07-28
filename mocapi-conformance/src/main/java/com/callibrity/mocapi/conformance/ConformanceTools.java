@@ -20,8 +20,6 @@ import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.model.AudioContent;
 import com.callibrity.mocapi.model.BooleanSchema;
 import com.callibrity.mocapi.model.CallToolResult;
-import com.callibrity.mocapi.model.CreateMessageRequestParams;
-import com.callibrity.mocapi.model.CreateMessageResult;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.EmbeddedResource;
 import com.callibrity.mocapi.model.EnumItemsSchema;
@@ -31,8 +29,7 @@ import com.callibrity.mocapi.model.LegacyTitledEnumSchema;
 import com.callibrity.mocapi.model.NumberSchema;
 import com.callibrity.mocapi.model.PrimitiveSchemaDefinition;
 import com.callibrity.mocapi.model.RequestedSchema;
-import com.callibrity.mocapi.model.Role;
-import com.callibrity.mocapi.model.SamplingMessage;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.StringSchema;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.TextResourceContents;
@@ -55,6 +52,11 @@ import org.springframework.stereotype.Component;
  *     Specification</a>
  */
 @Component
+// Phase 9: the 2026-07-28 conformance scenario rewrite. Removed during the clean-break compile
+// fix because their features left the protocol/API: test_tool_with_logging (MCP Logging feature
+// deprecated; ctx.logger removed), test_sampling (sampling deprecated; ctx.sample removed).
+// Elicitation scenarios must be reshaped to MRTR replay semantics when the official suite ships
+// 2026-07-28 scenarios.
 public class ConformanceTools {
 
   private static final String VALUE_1 = "value1";
@@ -70,7 +72,8 @@ public class ConformanceTools {
     return new CallToolResult(
         List.of(new TextContent("Elicitation completed: action=" + result.action().toJson(), null)),
         null,
-        null);
+        null,
+        ResultTypes.COMPLETE);
   }
 
   private static final String TEST_TOOL_WITH_LOGGING = "test_tool_with_logging";
@@ -215,7 +218,10 @@ public class ConformanceTools {
       description = "Returns simple text content for conformance testing")
   public CallToolResult simpleText() {
     return new CallToolResult(
-        List.of(new TextContent("This is a simple text response for testing.", null)), null, null);
+        List.of(new TextContent("This is a simple text response for testing.", null)),
+        null,
+        null,
+        ResultTypes.COMPLETE);
   }
 
   /**
@@ -229,7 +235,8 @@ public class ConformanceTools {
       name = "test_image_content",
       description = "Returns image content for conformance testing")
   public CallToolResult imageContent() {
-    return new CallToolResult(List.of(new ImageContent(TINY_PNG, "image/png", null)), null, null);
+    return new CallToolResult(
+        List.of(new ImageContent(TINY_PNG, "image/png", null)), null, null, ResultTypes.COMPLETE);
   }
 
   /**
@@ -243,7 +250,8 @@ public class ConformanceTools {
       name = "test_audio_content",
       description = "Returns audio content for conformance testing")
   public CallToolResult audioContent() {
-    return new CallToolResult(List.of(new AudioContent(TINY_WAV, "audio/wav", null)), null, null);
+    return new CallToolResult(
+        List.of(new AudioContent(TINY_WAV, "audio/wav", null)), null, null, ResultTypes.COMPLETE);
   }
 
   /**
@@ -266,7 +274,8 @@ public class ConformanceTools {
                     "This is an embedded resource content."),
                 null)),
         null,
-        null);
+        null,
+        ResultTypes.COMPLETE);
   }
 
   /**
@@ -291,29 +300,8 @@ public class ConformanceTools {
                     "{\"test\":\"data\",\"value\":123}"),
                 null)),
         null,
-        null);
-  }
-
-  /**
-   * Conformance tool for the {@code tools-call-with-logging} scenario. Sends three {@code
-   * notifications/message} log entries during execution.
-   *
-   * @see <a
-   *     href="https://modelcontextprotocol.io/specification/2025-11-25/server/utilities/logging">MCP
-   *     Logging Specification</a>
-   */
-  @McpTool(
-      name = TEST_TOOL_WITH_LOGGING,
-      description = "Sends log messages during execution for conformance testing")
-  public CallToolResult withLogging(McpToolContext ctx) throws InterruptedException {
-    var logger = ctx.logger(TEST_TOOL_WITH_LOGGING);
-    logger.info("Tool execution started");
-    Thread.sleep(50);
-    logger.info("Tool processing data");
-    Thread.sleep(50);
-    logger.info("Tool execution completed");
-    return new CallToolResult(
-        List.of(new TextContent("Logging test completed successfully", null)), null, null);
+        null,
+        ResultTypes.COMPLETE);
   }
 
   /**
@@ -330,7 +318,8 @@ public class ConformanceTools {
     return new CallToolResult(
         List.of(new TextContent("This tool intentionally returns an error for testing", null)),
         true,
-        null);
+        null,
+        ResultTypes.COMPLETE);
   }
 
   /**
@@ -344,41 +333,17 @@ public class ConformanceTools {
       name = "test_tool_with_progress",
       description = "Reports progress notifications for conformance testing")
   public CallToolResult withProgress(McpToolContext ctx) throws InterruptedException {
-    ctx.sendProgress(0, 100);
+    var progress = ctx.longProgress(100L);
+    progress.emit(0);
     Thread.sleep(50);
-    ctx.sendProgress(50, 100);
+    progress.emit(50);
     Thread.sleep(50);
-    ctx.sendProgress(100, 100);
+    progress.emit(100);
     return new CallToolResult(
-        List.of(new TextContent("Progress test completed successfully", null)), null, null);
-  }
-
-  /**
-   * Conformance tool for the {@code tools-call-sampling} scenario. Issues a {@code
-   * sampling/createMessage} request to the client and returns the LLM response.
-   *
-   * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/client/sampling">MCP
-   *     Sampling Specification</a>
-   */
-  @McpTool(name = "test_sampling", description = "Tests sampling/createMessage for conformance")
-  public CallToolResult testSampling(String prompt, McpToolContext ctx) {
-    var params =
-        new CreateMessageRequestParams(
-            List.of(new SamplingMessage(Role.USER, new TextContent(prompt, null))),
-            null,
-            null,
-            null,
-            null,
-            100,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null);
-    CreateMessageResult result = ctx.sample(params);
-    String text = result.text();
-    return new CallToolResult(List.of(new TextContent("LLM response: " + text, null)), null, null);
+        List.of(new TextContent("Progress test completed successfully", null)),
+        null,
+        null,
+        ResultTypes.COMPLETE);
   }
 
   /**
@@ -395,8 +360,8 @@ public class ConformanceTools {
         USERNAME_PROP, new StringSchema("User's response", null, null, null, null, null));
     properties.put(
         EMAIL_PROP, new StringSchema("User's email address", null, null, null, null, null));
-    var schema = new RequestedSchema(properties, List.of(USERNAME_PROP, EMAIL_PROP));
-    var params = new ElicitRequestFormParams("form", message, schema, null, null);
+    var schema = new RequestedSchema(properties, List.of(USERNAME_PROP, EMAIL_PROP), null);
+    var params = new ElicitRequestFormParams(message, schema);
     var result = ctx.elicit(params);
     String content = result.isAccepted() ? result.getString(USERNAME_PROP) : "n/a";
     return new CallToolResult(
@@ -405,7 +370,8 @@ public class ConformanceTools {
                 "User response: action=" + result.action().toJson() + ", content=" + content,
                 null)),
         null,
-        null);
+        null,
+        ResultTypes.COMPLETE);
   }
 
   /**
@@ -428,9 +394,8 @@ public class ConformanceTools {
         new UntitledSingleSelectEnumSchema(
             null, null, List.of("active", "inactive", "pending"), "active"));
     properties.put("verified", new BooleanSchema("Verified", null, true));
-    var schema = new RequestedSchema(properties, List.of());
-    var params =
-        new ElicitRequestFormParams("form", "Enter defaults test data", schema, null, null);
+    var schema = new RequestedSchema(properties, List.of(), null);
+    var params = new ElicitRequestFormParams("Enter defaults test data", schema);
     var result = ctx.elicit(params);
     return elicitationResult(result);
   }
@@ -494,8 +459,8 @@ public class ConformanceTools {
                     new EnumOption(VALUE_2, "Second Choice"),
                     new EnumOption(VALUE_3, "Third Choice"))),
             null));
-    var schema = new RequestedSchema(properties, List.of());
-    var params = new ElicitRequestFormParams("form", "Enum variants test", schema, null, null);
+    var schema = new RequestedSchema(properties, List.of(), null);
+    var params = new ElicitRequestFormParams("Enum variants test", schema);
     var result = ctx.elicit(params);
     return elicitationResult(result);
   }

@@ -22,13 +22,16 @@ import com.callibrity.mocapi.model.CallToolResult;
  * per handler at registration time by {@link ToolReturnTypeClassifier}, driven purely by the
  * method's declared return type — no runtime type inspection.
  *
- * <p>The four permitted implementations correspond to the four permitted tool return shapes:
+ * <p>The permitted implementations correspond to the permitted tool return shapes:
  *
  * <ul>
  *   <li>{@link VoidResultMapper} for {@code void} / {@code Void}
  *   <li>{@link PassthroughResultMapper} for {@link CallToolResult}
  *   <li>{@link TextContentResultMapper} for {@link CharSequence} (ergonomic text-only shortcut)
- *   <li>{@link StructuredResultMapper} for a POJO/record whose derived JSON schema is an object
+ *   <li>{@link ContentBlockResultMapper} for a single {@code ContentBlock} (ergonomic single-block
+ *       shortcut)
+ *   <li>{@link StructuredResultMapper} for any other type — serialized to {@code structuredContent}
+ *       of whatever JSON shape it produces (object, array, scalar)
  * </ul>
  *
  * <p>For async tools ({@code CompletionStage<X>}), the await interceptor unwraps the future before
@@ -38,6 +41,7 @@ public sealed interface ResultMapper
     permits VoidResultMapper,
         PassthroughResultMapper,
         TextContentResultMapper,
+        ContentBlockResultMapper,
         StructuredResultMapper {
 
   CallToolResult map(Object result);

@@ -19,6 +19,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 
+/**
+ * Extends the spec's {@code InputResponseRequestParams}: an MRTR retry of {@code prompts/get}
+ * re-sends the original params plus {@code inputResponses} and the opaque {@code requestState}.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record GetPromptRequestParams(
-    String name, Map<String, String> arguments, @JsonProperty("_meta") RequestMeta meta) {}
+    String name,
+    Map<String, String> arguments,
+    Map<String, InputResponse> inputResponses,
+    String requestState,
+    @JsonProperty("_meta") RequestMeta meta) {}

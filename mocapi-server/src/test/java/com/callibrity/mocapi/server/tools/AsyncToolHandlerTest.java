@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
@@ -272,7 +273,8 @@ class AsyncToolHandlerTest {
     @McpTool
     public CompletionStage<CallToolResult> make() {
       return CompletableFuture.completedFuture(
-          new CallToolResult(List.of(new TextContent("hand-built", null)), null, null));
+          new CallToolResult(
+              List.of(new TextContent("hand-built", null)), null, null, ResultTypes.COMPLETE));
     }
   }
 

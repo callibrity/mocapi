@@ -1,6 +1,6 @@
 # ADR-0008 — Substrate Mailbox is the cross-node rendezvous for elicitation and sampling
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0021](0021-mrtr-elicitation-replay.md)
 - **Date:** 2026-04-12
 
 ## Context

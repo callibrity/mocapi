@@ -27,17 +27,12 @@
 
     <artifactId>mocapi-examples</artifactId>
     <name>Mocapi - Examples</name>
-    <description>Example applications demonstrating mocapi on various backends</description>
+    <description>Example applications demonstrating mocapi</description>
     <packaging>pom</packaging>
 
     <modules>
-        <module>example-autoconfigure</module>
-        <module>in-memory</module>
-        <module>redis</module>
-        <module>postgresql</module>
-        <module>nats</module>
+        <module>http</module>
         <module>stdio</module>
-        <module>jakarta-validation</module>
     </modules>
 
     <!--

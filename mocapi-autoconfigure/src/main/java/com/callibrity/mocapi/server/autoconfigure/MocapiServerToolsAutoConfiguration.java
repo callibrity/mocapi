@@ -16,7 +16,8 @@
 package com.callibrity.mocapi.server.autoconfigure;
 
 import com.callibrity.mocapi.api.tools.McpTool;
-import com.callibrity.mocapi.server.McpResponseCorrelationService;
+import com.callibrity.mocapi.server.cache.CacheSettings;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlers;
@@ -52,7 +53,8 @@ public class MocapiServerToolsAutoConfiguration {
       HandlerMethodsCache cache,
       MethodSchemaGenerator generator,
       ObjectMapper objectMapper,
-      McpResponseCorrelationService correlationService,
+      MrtrElicitationEngine elicitationEngine,
+      CacheSettings cacheSettings,
       @Autowired(required = false) List<CallToolHandlerCustomizer> toolCustomizers,
       StringValueResolver mcpAnnotationValueResolver) {
     List<CallToolHandlerCustomizer> customizers =
@@ -78,7 +80,11 @@ public class MocapiServerToolsAutoConfiguration {
                 })
             .toList();
     return new McpToolsService(
-        handlers, objectMapper, correlationService, mocapiProperties.pagination().pageSize());
+        handlers,
+        objectMapper,
+        elicitationEngine,
+        mocapiProperties.pagination().pageSize(),
+        cacheSettings);
   }
 
   @Bean

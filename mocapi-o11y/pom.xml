@@ -59,6 +59,18 @@
             <artifactId>micrometer-observation-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Real OTel bridge for the remote-parent joining test: a fixed traceparent from the
+             request _meta must become the exported span's trace id / parent span id. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-sdk-testing</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

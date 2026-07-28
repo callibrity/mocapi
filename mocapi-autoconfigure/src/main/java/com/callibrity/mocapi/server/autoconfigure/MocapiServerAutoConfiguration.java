@@ -21,30 +21,27 @@ import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.model.CompletionsCapability;
 import com.callibrity.mocapi.model.Implementation;
-import com.callibrity.mocapi.model.LoggingCapability;
 import com.callibrity.mocapi.model.PromptsCapability;
 import com.callibrity.mocapi.model.ResourcesCapability;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.model.ToolsCapability;
 import com.callibrity.mocapi.server.DefaultMcpServer;
-import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransportResolver;
+import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
+import com.callibrity.mocapi.server.discover.DiscoverHandler;
+import com.callibrity.mocapi.server.elicitation.ElicitationNotSupportedExceptionTranslator;
+import com.callibrity.mocapi.server.exchange.MetaEnvelopeParser;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
-import com.callibrity.mocapi.server.logging.McpLoggingService;
-import com.callibrity.mocapi.server.ping.McpPingService;
-import com.callibrity.mocapi.server.session.AtomMcpSessionStore;
-import com.callibrity.mocapi.server.session.McpSessionResolver;
-import com.callibrity.mocapi.server.session.McpSessionService;
-import com.callibrity.mocapi.server.session.McpSessionStore;
+import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
+import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
-import org.jwcarman.substrate.atom.AtomFactory;
-import org.jwcarman.substrate.core.autoconfigure.SubstrateAutoConfiguration;
-import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -57,8 +54,8 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.util.StringValueResolver;
 import tools.jackson.databind.ObjectMapper;
 
-/** Auto-configuration for MCP protocol beans. */
-@AutoConfiguration(after = {ProjectInfoAutoConfiguration.class, SubstrateAutoConfiguration.class})
+/** Auto-configuration for MCP protocol beans (stateless 2026-07-28 model, ADR-0020). */
+@AutoConfiguration(after = ProjectInfoAutoConfiguration.class)
 @EnableConfigurationProperties(MocapiServerProperties.class)
 @PropertySource("classpath:mocapi-server-defaults.properties")
 @RequiredArgsConstructor
@@ -91,19 +88,7 @@ public class MocapiServerAutoConfiguration {
   @ConditionalOnMissingBean
   public Implementation mcpServerInfo(@Nullable BuildProperties buildProperties) {
     String version = buildProperties != null ? buildProperties.getVersion() : "unknown";
-    return new Implementation(props.serverName(), props.serverTitle(), version);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(McpSessionStore.class)
-  public McpSessionStore mcpProtocolSessionStore(AtomFactory atomFactory) {
-    return new AtomMcpSessionStore(atomFactory, props.sessionTimeout());
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(McpSessionResolver.class)
-  public McpSessionResolver mcpProtocolSessionResolver() {
-    return new McpSessionResolver();
+    return new Implementation(props.serverName(), props.serverTitle(), version, null);
   }
 
   @Bean
@@ -113,19 +98,15 @@ public class MocapiServerAutoConfiguration {
   }
 
   /**
-   * Attaches mocapi's ScopedValue-backed resolvers ({@link McpSessionResolver}, {@link
-   * McpTransportResolver}) to every ripcurl {@code @JsonRpcMethod} handler. Ripcurl 2.8 removed the
-   * blind {@code List<ParameterResolver<? super JsonNode>>} autowiring path; per-handler attachment
-   * via a customizer is the replacement contract.
+   * Attaches mocapi's ScopedValue-backed {@link McpTransportResolver} to every ripcurl
+   * {@code @JsonRpcMethod} handler. Ripcurl 2.8 removed the blind {@code List<ParameterResolver<?
+   * super JsonNode>>} autowiring path; per-handler attachment via a customizer is the replacement
+   * contract.
    */
   @Bean
   public com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerCustomizer
-      mocapiResolverCustomizer(
-          McpSessionResolver sessionResolver, McpTransportResolver transportResolver) {
-    return config -> {
-      config.resolver(sessionResolver);
-      config.resolver(transportResolver);
-    };
+      mocapiResolverCustomizer(McpTransportResolver transportResolver) {
+    return config -> config.resolver(transportResolver);
   }
 
   @Bean
@@ -138,53 +119,91 @@ public class MocapiServerAutoConfiguration {
   @ConditionalOnMissingBean(ServerCapabilities.class)
   public ServerCapabilities mcpServerCapabilities() {
     return new ServerCapabilities(
+        null,
         new ToolsCapability(false),
-        new LoggingCapability(),
+        null,
         new CompletionsCapability(),
         new ResourcesCapability(false, false),
-        new PromptsCapability(false));
+        new PromptsCapability(false),
+        Map.of());
   }
 
   @Bean
-  @ConditionalOnMissingBean(McpSessionService.class)
-  public McpSessionService mcpProtocolSessionService(
-      McpSessionStore store, Implementation serverInfo, ServerCapabilities capabilities) {
-    return new McpSessionService(
-        store, props.sessionTimeout(), serverInfo, props.instructions(), capabilities);
+  @ConditionalOnMissingBean(CacheSettings.class)
+  public CacheSettings mcpCacheSettings() {
+    var cache = props.cache();
+    return cache == null
+        ? CacheSettings.defaults()
+        : new CacheSettings(cache.listTtl(), cache.readTtl(), cache.scope());
+  }
+
+  /**
+   * The MRTR requestState codec (ADR-0021). A blank {@code mocapi.mrtr.secret} yields an ephemeral
+   * key — the codec factory logs the production warning itself.
+   */
+  @Bean
+  @ConditionalOnMissingBean(RequestStateCodec.class)
+  public RequestStateCodec mcpRequestStateCodec(ObjectMapper objectMapper) {
+    var mrtr = props.mrtr();
+    var ttl = mrtr == null || mrtr.ttl() == null ? RequestStateCodec.DEFAULT_TTL : mrtr.ttl();
+    String secret = mrtr == null ? null : mrtr.secret();
+    return secret == null || secret.isBlank()
+        ? RequestStateCodec.withEphemeralKey(ttl, objectMapper)
+        : RequestStateCodec.withSecret(secret, ttl, objectMapper);
+  }
+
+  /**
+   * Default {@link McpPrincipalSource}: unauthenticated (no principal). An authenticated deployment
+   * supplies its own bean — e.g. one reading the OAuth2 JWT subject — to bind {@code requestState}
+   * tokens to their caller and reject cross-principal replay.
+   */
+  @Bean
+  @ConditionalOnMissingBean(McpPrincipalSource.class)
+  public McpPrincipalSource mcpPrincipalSource() {
+    return () -> null;
   }
 
   @Bean
-  @ConditionalOnMissingBean(McpResponseCorrelationService.class)
-  public McpResponseCorrelationService mcpProtocolCorrelationService(
-      MailboxFactory mailboxFactory, ObjectMapper objectMapper) {
-    return new McpResponseCorrelationService(
-        mailboxFactory, objectMapper, props.elicitation().timeout());
+  @ConditionalOnMissingBean(MrtrElicitationEngine.class)
+  public MrtrElicitationEngine mcpElicitationEngine(
+      RequestStateCodec codec, ObjectMapper objectMapper, McpPrincipalSource principalSource) {
+    return new MrtrElicitationEngine(codec, objectMapper, principalSource);
+  }
+
+  /** Maps {@code McpElicitationNotSupportedException} to {@code -32021} on the wire. */
+  @Bean
+  public ElicitationNotSupportedExceptionTranslator mcpElicitationNotSupportedTranslator(
+      ObjectMapper objectMapper) {
+    return new ElicitationNotSupportedExceptionTranslator(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(MetaEnvelopeParser.class)
+  public MetaEnvelopeParser mcpMetaEnvelopeParser(ObjectMapper objectMapper) {
+    return new MetaEnvelopeParser(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(DiscoverHandler.class)
+  public DiscoverHandler mcpDiscoverHandler(
+      ServerCapabilities capabilities, CacheSettings cacheSettings) {
+    return new DiscoverHandler(props.instructions(), capabilities, cacheSettings);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(McpLifecycleService.class)
+  public McpLifecycleService mcpProtocolLifecycleService() {
+    return new McpLifecycleService();
   }
 
   @Bean
   @ConditionalOnMissingBean(McpServer.class)
   public DefaultMcpServer mcpProtocol(
-      McpSessionService sessionService,
       JsonRpcDispatcher dispatcher,
-      McpResponseCorrelationService correlationService) {
-    return new DefaultMcpServer(sessionService, dispatcher, correlationService);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(McpPingService.class)
-  public McpPingService mcpProtocolPingService() {
-    return new McpPingService();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(McpLifecycleService.class)
-  public McpLifecycleService mcpProtocolLifecycleService(McpSessionService sessionService) {
-    return new McpLifecycleService(sessionService);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(McpLoggingService.class)
-  public McpLoggingService mcpProtocolLoggingService(McpSessionService sessionService) {
-    return new McpLoggingService(sessionService);
+      MetaEnvelopeParser envelopeParser,
+      ObjectMapper objectMapper,
+      Implementation serverInfo) {
+    return new DefaultMcpServer(
+        dispatcher, envelopeParser, objectMapper, serverInfo, props.emitServerInfo());
   }
 }

@@ -43,7 +43,7 @@ curl -s localhost:8080/actuator/mcp | jq
   "server": {
     "name": "mocapi",
     "version": "0.14.0",
-    "protocolVersion": "2025-11-25"
+    "protocolVersion": "2026-07-28"
   },
   "counts": {
     "tools": 12,
@@ -65,7 +65,7 @@ curl -s localhost:8080/actuator/mcp | jq
         "interceptors": [
           "Stamps SLF4J MDC correlation keys for tool 'get_weather'",
           "Records Micrometer 'mcp.handler.execution' observations (OpenTelemetry MCP semconv) for tool 'get_weather'",
-          "Evaluates guards [RequiresScope(weather:read)] and rejects denied calls with JSON-RPC -32003 Forbidden",
+          "Evaluates guards [RequiresScope(weather:read)] and rejects denied calls with JSON-RPC -32010 Forbidden",
           "Validates tool arguments against the tool's input JSON schema",
           "Validates method parameters and return value against Jakarta Bean Validation constraints"
         ]
@@ -144,10 +144,6 @@ curl -s localhost:8080/actuator/mcp | jq
   be large; MCP clients already get them via `tools/list` on the
   protocol endpoint. The digest is enough to detect drift across
   deployments ("did this tool's schema change?").
-- **Session state.** Mocapi is multi-node; sessions live in the
-  backing store (Redis / PostgreSQL / NATS / Hazelcast), not on
-  any single node. Querying the store to count sessions cluster-
-  wide would be a different endpoint with a different shape.
 - **Metrics snapshot.** Metrics are already at
   `/actuator/metrics` and `/actuator/prometheus`. Duplicating
   them here would create two sources of truth.

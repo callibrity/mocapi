@@ -28,7 +28,6 @@ import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerPromptsAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerResourcesAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerToolsAutoConfiguration;
-import com.callibrity.mocapi.server.autoconfigure.SubstrateOrderingAutoConfiguration;
 import com.callibrity.mocapi.server.handler.HandlerDescriptor;
 import com.callibrity.mocapi.server.handler.HandlerKind;
 import com.callibrity.mocapi.server.prompts.GetPromptHandler;
@@ -41,34 +40,31 @@ import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.transport.http.StreamableHttpAutoConfiguration;
 import com.callibrity.mocapi.transport.stdio.StdioAutoConfiguration;
 import java.util.List;
-import org.jwcarman.odyssey.autoconfigure.OdysseyAutoConfiguration;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 
 /**
  * Minimal Spring Boot test application for the MockMvc exposure tests. Excludes the mocapi-server
- * autoconfigs (they need Substrate {@code AtomFactory} and a full handler graph), while keeping the
- * standard web + actuator autoconfigs so {@code /actuator/mcp} is actually mapped and reachable.
+ * autoconfigs (they need a full handler graph), while keeping the standard web + actuator
+ * autoconfigs so {@code /actuator/mcp} is actually mapped and reachable.
  */
 @SpringBootConfiguration
 @EnableAutoConfiguration(
     exclude = {
-      SubstrateOrderingAutoConfiguration.class,
       MocapiServerToolsAutoConfiguration.class,
       MocapiServerPromptsAutoConfiguration.class,
       MocapiServerResourcesAutoConfiguration.class,
       MocapiServerAutoConfiguration.class,
       MocapiOAuth2AutoConfiguration.class,
       StreamableHttpAutoConfiguration.class,
-      StdioAutoConfiguration.class,
-      OdysseyAutoConfiguration.class
+      StdioAutoConfiguration.class
     })
 public class ActuatorMockMvcTestApp {
 
   @Bean
   Implementation serverInfo() {
-    return new Implementation("mocapi", "Mocapi", "9.9.9");
+    return new Implementation("mocapi", "Mocapi", "9.9.9", null);
   }
 
   @Bean

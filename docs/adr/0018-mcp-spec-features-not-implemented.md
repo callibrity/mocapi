@@ -1,6 +1,6 @@
 # ADR-0018 — MCP spec features mocapi deliberately does not implement
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0022](0022-2026-07-28-features-not-implemented.md)
 - **Date:** 2026-04-19
 
 ## Context

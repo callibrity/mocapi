@@ -21,7 +21,5 @@ public interface McpTransport {
 
   ScopedValue<McpTransport> CURRENT = ScopedValue.newInstance();
 
-  void emit(McpEvent event);
-
   void send(JsonRpcMessage message);
 }

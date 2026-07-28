@@ -22,37 +22,40 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.callibrity.mocapi.api.tools.McpTool;
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.CallToolRequestParams;
-import com.callibrity.mocapi.model.LoggingLevel;
+import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.RequestMeta;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
-import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardDecision;
-import com.callibrity.mocapi.server.session.McpSession;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
+import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.util.HelloTool;
 import com.callibrity.mocapi.server.tools.util.InteractiveTool;
 import com.callibrity.mocapi.server.tools.util.ThrowingTool;
-import com.callibrity.mocapi.server.tools.util.TimeoutTool;
 import com.callibrity.mocapi.server.tools.util.VoidTool;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaVersion;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
@@ -64,7 +67,10 @@ class McpToolsServiceTest {
   private final ObjectMapper mapper = new ObjectMapper();
   private final DefaultMethodSchemaGenerator generator =
       new DefaultMethodSchemaGenerator(mapper, SchemaVersion.DRAFT_2020_12);
-  @Mock private McpResponseCorrelationService correlationService;
+  private final MrtrElicitationEngine elicitationEngine =
+      new MrtrElicitationEngine(
+          RequestStateCodec.withEphemeralKey(RequestStateCodec.DEFAULT_TTL, new ObjectMapper()),
+          new ObjectMapper());
 
   private McpToolsService service;
 
@@ -81,7 +87,7 @@ class McpToolsServiceTest {
     handlers.addAll(createHandlers(new InteractiveTool()));
     handlers.addAll(createHandlers(new ThrowingTool()));
     handlers.addAll(createHandlers(new VoidTool()));
-    service = new McpToolsService(List.copyOf(handlers), mapper, correlationService);
+    service = new McpToolsService(List.copyOf(handlers), mapper, elicitationEngine);
   }
 
   @Test
@@ -112,9 +118,13 @@ class McpToolsServiceTest {
   void call_simple_tool_returns_result() {
     var params =
         new CallToolRequestParams(
-            "hello-tool.say-hello", mapper.createObjectNode().put("name", "World"), null, null);
+            "hello-tool.say-hello",
+            mapper.createObjectNode().put("name", "World"),
+            null,
+            null,
+            null);
 
-    var result = service.callTool(params);
+    var result = (CallToolResult) service.callTool(params);
 
     assertThat(result.isError()).isNull();
     assertThat(result.structuredContent()).isNotNull();
@@ -125,9 +135,9 @@ class McpToolsServiceTest {
   void call_void_tool_returns_empty_result() {
     var params =
         new CallToolRequestParams(
-            "fire-and-forget", mapper.createObjectNode().put("message", "hello"), null, null);
+            "fire-and-forget", mapper.createObjectNode().put("message", "hello"), null, null, null);
 
-    var result = service.callTool(params);
+    var result = (CallToolResult) service.callTool(params);
 
     assertThat(result.isError()).isNull();
     assertThat(result.structuredContent()).isNull();
@@ -137,24 +147,22 @@ class McpToolsServiceTest {
   @Test
   void call_interactive_tool_with_progress_and_result() {
     var transport = mock(McpTransport.class);
-    var session = new McpSession("test-session", "2025-11-25", null, null, LoggingLevel.DEBUG);
     var progressToken = JsonNodeFactory.instance.stringNode("tok-1");
-    var meta = new RequestMeta(progressToken);
+    var meta = new RequestMeta(progressToken, null, null, null);
     var params =
         new CallToolRequestParams(
-            "interactive-greet", mapper.createObjectNode().put("name", "Alice"), null, meta);
+            "interactive-greet", mapper.createObjectNode().put("name", "Alice"), null, null, meta);
 
     var result =
-        ScopedValue.where(McpTransport.CURRENT, transport)
-            .where(McpSession.CURRENT, session)
-            .call(() -> service.callTool(params));
+        (CallToolResult)
+            ScopedValue.where(McpTransport.CURRENT, transport).call(() -> service.callTool(params));
 
     assertThat(result.isError()).isNull();
     assertThat(result.structuredContent()).isNotNull();
     assertThat(result.structuredContent().get("message").stringValue()).isEqualTo("Hello, Alice!");
 
     var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
-    verify(transport, atLeast(3)).send(captor.capture());
+    verify(transport, atLeast(2)).send(captor.capture());
     var notifications = captor.getAllValues();
 
     // First message: progress 1/2
@@ -162,20 +170,16 @@ class McpToolsServiceTest {
     var progress1 = (JsonRpcNotification) notifications.get(0);
     assertThat(progress1.method()).isEqualTo("notifications/progress");
 
-    // Second message: log notification
+    // Second message: progress 2/2
     assertThat(notifications.get(1)).isInstanceOf(JsonRpcNotification.class);
-    var logNotif = (JsonRpcNotification) notifications.get(1);
-    assertThat(logNotif.method()).isEqualTo("notifications/message");
-
-    // Third message: progress 2/2
-    assertThat(notifications.get(2)).isInstanceOf(JsonRpcNotification.class);
-    var progress2 = (JsonRpcNotification) notifications.get(2);
+    var progress2 = (JsonRpcNotification) notifications.get(1);
     assertThat(progress2.method()).isEqualTo("notifications/progress");
   }
 
   @Test
   void call_missing_tool_throws_exception() {
-    var params = new CallToolRequestParams("nonexistent", mapper.createObjectNode(), null, null);
+    var params =
+        new CallToolRequestParams("nonexistent", mapper.createObjectNode(), null, null, null);
 
     assertThatThrownBy(() -> service.callTool(params))
         .isInstanceOf(JsonRpcException.class)
@@ -190,9 +194,10 @@ class McpToolsServiceTest {
     // so the calling LLM can self-correct, matching the MCP spec's "input validation errors belong
     // in the result body" guidance.
     var params =
-        new CallToolRequestParams("hello-tool.say-hello", mapper.createObjectNode(), null, null);
+        new CallToolRequestParams(
+            "hello-tool.say-hello", mapper.createObjectNode(), null, null, null);
 
-    var result = service.callTool(params);
+    var result = (CallToolResult) service.callTool(params);
 
     assertThat(result.isError()).isTrue();
     assertThat(result.content()).hasSize(1);
@@ -203,9 +208,13 @@ class McpToolsServiceTest {
   void call_throwing_tool_returns_error_result() {
     var params =
         new CallToolRequestParams(
-            "throwing-tool.explode", mapper.createObjectNode().put("input", "test"), null, null);
+            "throwing-tool.explode",
+            mapper.createObjectNode().put("input", "test"),
+            null,
+            null,
+            null);
 
-    var result = service.callTool(params);
+    var result = (CallToolResult) service.callTool(params);
 
     assertThat(result.isError()).isTrue();
     assertThat(result.content()).hasSize(1);
@@ -227,27 +236,8 @@ class McpToolsServiceTest {
 
   @Test
   void is_empty_returns_true_when_no_tools() {
-    var emptyService = new McpToolsService(List.of(), mapper, correlationService);
+    var emptyService = new McpToolsService(List.of(), mapper, elicitationEngine);
     assertThat(emptyService.isEmpty()).isTrue();
-  }
-
-  @Test
-  void call_tool_timeout_returns_error_result_with_descriptive_message() {
-    var timeoutHandlers = createHandlers(new TimeoutTool());
-    var timeoutService = new McpToolsService(timeoutHandlers, mapper, correlationService);
-    var params =
-        new CallToolRequestParams(
-            "timeout-tool.simulate-timeout",
-            mapper.createObjectNode().put("input", "x"),
-            null,
-            null);
-
-    var result = timeoutService.callTool(params);
-
-    assertThat(result.isError()).isTrue();
-    assertThat(result.content()).hasSize(1);
-    assertThat(((TextContent) result.content().getFirst()).text())
-        .contains("Timed out waiting for client response");
   }
 
   @Test
@@ -272,12 +262,12 @@ class McpToolsServiceTest {
 
   @Test
   void call_tool_with_null_arguments_falls_to_empty_object() {
-    var params = new CallToolRequestParams("fire-and-forget", null, null, null);
+    var params = new CallToolRequestParams("fire-and-forget", null, null, null, null);
 
     // Null arguments are replaced with an empty ObjectNode, which then fails schema validation
     // in the input-schema interceptor because the tool requires a "message" property — proving the
     // null-to-empty fallback executed.
-    var result = service.callTool(params);
+    var result = (CallToolResult) service.callTool(params);
 
     assertThat(result.isError()).isTrue();
     assertThat(((TextContent) result.content().getFirst()).text()).containsIgnoringCase("required");
@@ -323,10 +313,10 @@ class McpToolsServiceTest {
     Guard deny = () -> new GuardDecision.Deny("no-scope");
     var guardedService =
         new McpToolsService(
-            createHandlersWithGuards(new HelloTool(), deny), mapper, correlationService);
+            createHandlersWithGuards(new HelloTool(), deny), mapper, elicitationEngine);
     var params =
         new CallToolRequestParams(
-            "hello-tool.say-hello", mapper.createObjectNode().put("name", "X"), null, null);
+            "hello-tool.say-hello", mapper.createObjectNode().put("name", "X"), null, null, null);
 
     assertThatThrownBy(() -> guardedService.callTool(params))
         .isInstanceOf(JsonRpcException.class)
@@ -342,7 +332,7 @@ class McpToolsServiceTest {
     var handlers = new ArrayList<CallToolHandler>();
     handlers.addAll(createHandlersWithGuards(new HelloTool(), allow));
     handlers.addAll(createHandlersWithGuards(new VoidTool(), deny));
-    var guardedService = new McpToolsService(handlers, mapper, correlationService);
+    var guardedService = new McpToolsService(handlers, mapper, elicitationEngine);
 
     var names = guardedService.listTools(null).tools().stream().map(Tool::name).toList();
     assertThat(names).contains("hello-tool.say-hello").doesNotContain("fire-and-forget");
@@ -353,13 +343,13 @@ class McpToolsServiceTest {
     Guard allow = GuardDecision.Allow::new;
     Guard deny = () -> new GuardDecision.Deny("blocked");
     var handlers = createHandlersWithGuards(new HelloTool(), allow, deny);
-    var guardedService = new McpToolsService(handlers, mapper, correlationService);
+    var guardedService = new McpToolsService(handlers, mapper, elicitationEngine);
 
     assertThat(guardedService.listTools(null).tools()).isEmpty();
 
     var params =
         new CallToolRequestParams(
-            "hello-tool.say-hello", mapper.createObjectNode().put("name", "X"), null, null);
+            "hello-tool.say-hello", mapper.createObjectNode().put("name", "X"), null, null, null);
     assertThatThrownBy(() -> guardedService.callTool(params))
         .isInstanceOf(JsonRpcException.class)
         .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
@@ -375,5 +365,56 @@ class McpToolsServiceTest {
     assertThat(result.content()).hasSize(1);
     String text = ((TextContent) result.content().getFirst()).text();
     assertThat(text).isEqualTo(exception.toString());
+  }
+
+  @Nested
+  class Cache_directives {
+
+    @Test
+    void list_tools_carries_conservative_defaults_when_unconfigured() {
+      var result = service.listTools(null);
+
+      assertThat(result.ttlMs()).isZero();
+      assertThat(result.cacheScope()).isEqualTo(CacheScope.PRIVATE);
+      assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
+    }
+
+    @Test
+    void list_tools_carries_configured_list_ttl_and_scope() {
+      var settings = new CacheSettings(Duration.ofMinutes(5), Duration.ZERO, CacheScope.PUBLIC);
+      var configured =
+          new McpToolsService(
+              createHandlers(new HelloTool()),
+              mapper,
+              elicitationEngine,
+              McpToolsService.DEFAULT_PAGE_SIZE,
+              settings);
+
+      var result = configured.listTools(null);
+
+      assertThat(result.ttlMs()).isEqualTo(300_000L);
+      assertThat(result.cacheScope()).isEqualTo(CacheScope.PUBLIC);
+    }
+  }
+
+  @Nested
+  class Deterministic_ordering {
+
+    @Test
+    void list_tools_order_is_sorted_by_name_regardless_of_registration_order() {
+      var reversed = new ArrayList<CallToolHandler>();
+      reversed.addAll(createHandlers(new VoidTool()));
+      reversed.addAll(createHandlers(new ThrowingTool()));
+      reversed.addAll(createHandlers(new InteractiveTool()));
+      reversed.addAll(createHandlers(new HelloTool()));
+      var reversedRegistration = new McpToolsService(reversed, mapper, elicitationEngine);
+
+      assertThat(reversedRegistration.listTools(null).tools().stream().map(Tool::name).toList())
+          .containsExactly(
+              "fire-and-forget",
+              "hello-tool.say-hello",
+              "interactive-greet",
+              "throwing-tool.explode");
+    }
   }
 }

@@ -19,6 +19,10 @@ Docs live under `docs/` in three trees:
 The Ralph spec workflow has been retired; the historical specs that
 produced 0.1.0 → 0.17.0 were mined for ADRs and removed from the tree.
 
+New non-trivial work follows the superpowers SDD pipeline — see
+[`docs/superpowers/README.md`](docs/superpowers/README.md) for when it applies
+and where spec/plan artifacts live.
+
 ### When a change requires an ADR + design-doc update (rule)
 
 **Before writing code for an architecturally significant change, stop and
@@ -61,6 +65,23 @@ require an ADR.
 If you're not sure whether a change qualifies, ask before writing code.
 "I should have written an ADR for that" is harder to fix later than
 "I asked first and we agreed it didn't need one."
+
+## Architectural invariants
+
+The load-bearing invariants live in [`docs/constitution.md`](docs/constitution.md).
+Do not violate one without a superseding ADR (see the ADR rule above).
+
+## Read-before-you-touch (subsystems)
+
+Load the matching docs at the start of work in that area — and name them in
+every subagent dispatch, so a fresh-context worker loads the right material:
+
+- Transports / `McpServer`↔`McpTransport` → `docs/design/transports.md`, ADR-0002/0003/0004
+- Authorization (OAuth2, guards) → `docs/design/authorization-model.md`, ADR-0012/0013
+- Model / wire types → ADR-0014, `docs/plans/2026-07-28-schema.ts`
+- Handlers & discovery → `docs/design/handlers.md`, ADR-0010/0011
+- Elicitation / MRTR → `docs/design/elicitation-mrtr.md`, ADR-0021/0024/0025
+- Observability → `docs/design/observability-stack.md`, ADR-0017
 
 ## Code quality — project-specific
 

@@ -16,7 +16,9 @@
 package com.callibrity.mocapi.jakarta.fixture;
 
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import jakarta.validation.constraints.Pattern;
 import java.util.List;
@@ -36,6 +38,9 @@ public class ValidatedResources {
       mimeType = "text/plain")
   public ReadResourceResult readCoded(@Pattern(regexp = "^[A-Z]+$") String code) {
     return new ReadResourceResult(
-        List.of(new TextResourceContents("val://" + code, "text/plain", "code=" + code)));
+        List.of(new TextResourceContents("val://" + code, "text/plain", "code=" + code)),
+        0L,
+        CacheScope.PRIVATE,
+        ResultTypes.COMPLETE);
   }
 }

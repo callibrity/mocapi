@@ -16,24 +16,18 @@
 package com.callibrity.mocapi.transport.stdio;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.server.McpContext;
-import com.callibrity.mocapi.server.McpContextResult;
-import com.callibrity.mocapi.server.McpEvent;
+import com.callibrity.mocapi.model.McpMetaKeys;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.ripcurl.core.JsonRpcCall;
-import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.io.BufferedReader;
@@ -43,8 +37,7 @@ import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -60,220 +53,190 @@ import tools.jackson.databind.node.JsonNodeFactory;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class StdioServerTest {
 
+  private static final String ENVELOPE =
+      "\"_meta\":{\"%s\":\"%s\",\"%s\":{\"name\":\"test-client\",\"version\":\"1.0\"},\"%s\":{}}"
+          .formatted(
+              McpMetaKeys.PROTOCOL_VERSION,
+              McpServer.PROTOCOL_VERSION,
+              McpMetaKeys.CLIENT_INFO,
+              McpMetaKeys.CLIENT_CAPABILITIES);
+
   @Mock McpServer server;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private ByteArrayOutputStream buffer;
-  private PrintStream out;
-  private AtomicReference<String> sessionIdHolder;
   private StdioTransport transport;
 
   @BeforeEach
-  void setUp() {
+  void set_up() {
     buffer = new ByteArrayOutputStream();
-    out = new PrintStream(buffer, true, StandardCharsets.UTF_8);
-    sessionIdHolder = new AtomicReference<>();
-    transport = new StdioTransport(objectMapper, out, sessionIdHolder::set);
+    transport =
+        new StdioTransport(objectMapper, new PrintStream(buffer, true, StandardCharsets.UTF_8));
+  }
+
+  // --- helpers ---
+
+  private void runLines(String input) throws IOException {
+    var reader = new BufferedReader(new StringReader(input.isEmpty() ? "" : input + "\n"));
+    new StdioServer(server, objectMapper, transport, reader).run();
+  }
+
+  private String stdout() {
+    return buffer.toString(StandardCharsets.UTF_8);
   }
 
   @Nested
-  class Initialize_call {
+  class Stateless_dispatch {
 
     @Test
-    void dispatches_with_empty_context() throws Exception {
-      runLines("{\"jsonrpc\":\"2.0\",\"method\":\"initialize\",\"id\":1,\"params\":{}}");
+    void discover_is_answerable_as_the_first_message() throws Exception {
+      // No handshake gating: server/discover (the back-compat probe) dispatches immediately.
+      runLines(
+          "{\"jsonrpc\":\"2.0\",\"method\":\"server/discover\",\"id\":1,\"params\":{"
+              + ENVELOPE
+              + "}}");
 
       verify(server, timeout(2000))
-          .handleCall(eq(McpContext.empty()), any(JsonRpcCall.class), any());
+          .handleCall(
+              argThat((JsonRpcCall call) -> "server/discover".equals(call.method())),
+              eq(transport));
     }
 
     @Test
-    void handler_can_set_session_id_via_transport_emit() throws Exception {
+    void tool_call_with_envelope_dispatches_to_the_server() throws Exception {
+      runLines(
+          "{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"id\":2,\"params\":{\"name\":\"echo\","
+              + ENVELOPE
+              + "}}");
+
+      verify(server, timeout(2000))
+          .handleCall(
+              argThat(
+                  (JsonRpcCall call) ->
+                      "tools/call".equals(call.method())
+                          && call.params().get("_meta").has(McpMetaKeys.PROTOCOL_VERSION)),
+              eq(transport));
+    }
+
+    @Test
+    void server_response_is_relayed_to_stdout() throws Exception {
       doAnswer(
               inv -> {
-                McpTransport t = inv.getArgument(2);
-                t.emit(new McpEvent.SessionInitialized("new-sess", "2025-11-25"));
+                McpTransport t = inv.getArgument(1);
                 t.send(
                     new JsonRpcResult(
-                        JsonNodeFactory.instance.objectNode(),
+                        JsonNodeFactory.instance.objectNode().put("ok", true),
                         JsonNodeFactory.instance.numberNode(1)));
                 return null;
               })
           .when(server)
-          .handleCall(any(), any(), any());
+          .handleCall(any(), any());
 
-      runLines("{\"jsonrpc\":\"2.0\",\"method\":\"initialize\",\"id\":1,\"params\":{}}");
+      runLines(
+          "{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":1,\"params\":{" + ENVELOPE + "}}");
 
-      verify(server, timeout(2000)).handleCall(any(), any(), any());
-      await()
+      Awaitility.await()
           .atMost(Duration.ofSeconds(2))
-          .untilAsserted(() -> assertThat(sessionIdHolder.get()).isEqualTo("new-sess"));
+          .untilAsserted(() -> assertThat(stdout()).contains("\"ok\":true"));
+    }
+
+    @Test
+    void missing_envelope_error_from_the_server_is_relayed() throws Exception {
+      // Envelope semantics are the server core's job; the transport just relays its -32602.
+      doAnswer(
+              inv -> {
+                JsonRpcCall call = inv.getArgument(0);
+                McpTransport t = inv.getArgument(1);
+                t.send(call.error(-32602, "Missing required _meta envelope on request params"));
+                return null;
+              })
+          .when(server)
+          .handleCall(any(), any());
+
+      runLines("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":7}");
+
+      Awaitility.await()
+          .atMost(Duration.ofSeconds(2))
+          .untilAsserted(
+              () ->
+                  assertThat(stdout())
+                      .contains("-32602")
+                      .contains("Missing required _meta envelope")
+                      .contains("\"id\":7"));
     }
   }
 
   @Nested
-  class Post_initialize_calls {
+  class Notifications {
 
-    @BeforeEach
-    void session_already_initialized() {
-      sessionIdHolder.set("session-1");
+    @Test
+    void notification_dispatches_without_any_gating() throws Exception {
+      runLines("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\"}");
+
+      verify(server, timeout(2000))
+          .handleNotification(
+              argThat((JsonRpcNotification n) -> "notifications/cancelled".equals(n.method())));
+      assertThat(stdout()).isEmpty();
     }
 
     @Test
-    void call_dispatches_with_valid_context() throws Exception {
-      McpContext ctx = validContext("session-1");
-      when(server.createContext("session-1", null))
-          .thenReturn(new McpContextResult.ValidContext(ctx));
-
-      runLines("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":1}");
-
-      verify(server, timeout(2000)).handleCall(eq(ctx), any(JsonRpcCall.class), any());
-    }
-
-    @Test
-    void notification_dispatches_with_valid_context() throws Exception {
-      when(server.createContext("session-1", null))
-          .thenReturn(new McpContextResult.ValidContext(validContext("session-1")));
-
-      runLines("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
-
-      verify(server, timeout(2000)).handleNotification(any(), any(JsonRpcNotification.class));
-    }
-
-    @Test
-    void client_response_routes_to_correlation() throws Exception {
-      when(server.createContext("session-1", null))
-          .thenReturn(new McpContextResult.ValidContext(validContext("session-1")));
-
-      runLines("{\"jsonrpc\":\"2.0\",\"id\":\"req-1\",\"result\":{}}");
-
-      verify(server, timeout(2000)).handleResponse(any(), any());
-    }
-
-    @Test
-    void handler_exception_produces_json_rpc_error() throws Exception {
-      when(server.createContext("session-1", null))
-          .thenReturn(new McpContextResult.ValidContext(validContext("session-1")));
+    void notification_handler_exception_is_swallowed_and_logged() throws Exception {
       doAnswer(
               inv -> {
                 throw new RuntimeException("boom");
               })
           .when(server)
-          .handleCall(any(), any(), any());
+          .handleNotification(any());
 
-      runLines("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":42}");
+      runLines("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\"}");
 
-      verify(server, timeout(2000)).handleCall(any(), any(JsonRpcCall.class), any());
-      await()
-          .atMost(Duration.ofSeconds(2))
-          .untilAsserted(
-              () ->
-                  assertThat(buffer.toString(StandardCharsets.UTF_8))
-                      .contains("\"error\"")
-                      .contains("Internal error")
-                      .contains("boom"));
+      verify(server, timeout(2000)).handleNotification(any());
+      assertThat(stdout()).isEmpty();
     }
   }
 
   @Nested
-  class Context_failures {
+  class Client_responses {
 
     @Test
-    void session_id_required_produces_json_rpc_error() throws Exception {
-      when(server.createContext(any(), any()))
-          .thenReturn(new McpContextResult.SessionIdRequired(-32000, "session required"));
-
-      runLines("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":1}");
-
-      verify(server, timeout(2000)).createContext(any(), any());
-      verify(server, never()).handleCall(any(), any(), any());
-      assertThat(buffer.toString(StandardCharsets.UTF_8))
-          .contains("\"error\"")
-          .contains("session required");
-    }
-
-    @Test
-    void session_not_found_produces_json_rpc_error() throws Exception {
-      sessionIdHolder.set("gone");
-      when(server.createContext(anyString(), any()))
-          .thenReturn(new McpContextResult.SessionNotFound(-32001, "Session not found"));
-
-      runLines("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":1}");
-
-      verify(server, timeout(2000)).createContext(any(), any());
-      await()
-          .atMost(Duration.ofSeconds(2))
-          .untilAsserted(
-              () ->
-                  assertThat(buffer.toString(StandardCharsets.UTF_8))
-                      .contains("Session not found"));
-    }
-
-    @Test
-    void protocol_version_mismatch_produces_json_rpc_error() throws Exception {
-      sessionIdHolder.set("session-1");
-      when(server.createContext(anyString(), any()))
-          .thenReturn(new McpContextResult.ProtocolVersionMismatch(-32002, "mismatch"));
-
-      runLines("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":1}");
-
-      verify(server, timeout(2000)).createContext(any(), any());
-      await()
-          .atMost(Duration.ofSeconds(2))
-          .untilAsserted(
-              () -> assertThat(buffer.toString(StandardCharsets.UTF_8)).contains("mismatch"));
-    }
-
-    @Test
-    void error_response_echoes_call_id() throws Exception {
-      sessionIdHolder.set("gone");
-      when(server.createContext(anyString(), any()))
-          .thenReturn(new McpContextResult.SessionNotFound(-32001, "Session not found"));
-
-      runLines("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":77}");
-
-      verify(server, timeout(2000)).createContext(any(), any());
-      await()
-          .atMost(Duration.ofSeconds(2))
-          .untilAsserted(
-              () -> {
-                JsonRpcError parsed =
-                    objectMapper.readValue(
-                        buffer.toString(StandardCharsets.UTF_8).strip(), JsonRpcError.class);
-                assertThat(parsed.id().asInt()).isEqualTo(77);
-              });
-    }
-  }
-
-  @Nested
-  class Pre_initialize {
-
-    @Test
-    void notification_is_dropped_silently() throws Exception {
-      runLines("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
-
-      await()
-          .during(Duration.ofMillis(200))
-          .atMost(Duration.ofMillis(400))
-          .untilAsserted(
-              () -> {
-                verify(server, never()).handleNotification(any(), any());
-                verify(server, never()).createContext(any(), any());
-              });
-    }
-
-    @Test
-    void client_response_is_dropped_silently() throws Exception {
+    void client_response_is_dropped_without_dispatch() throws Exception {
+      // No server-initiated requests in 2026-07-28 — nothing to correlate a response to.
       runLines("{\"jsonrpc\":\"2.0\",\"id\":\"req-1\",\"result\":{}}");
 
-      await()
-          .during(Duration.ofMillis(200))
-          .atMost(Duration.ofMillis(400))
+      verify(server, never()).handleCall(any(), any());
+      verify(server, never()).handleNotification(any());
+      assertThat(stdout()).isEmpty();
+    }
+  }
+
+  @Nested
+  class Handler_failures {
+
+    @Test
+    void handler_exception_produces_internal_error_with_the_call_id() throws Exception {
+      doAnswer(
+              inv -> {
+                throw new RuntimeException("boom");
+              })
+          .when(server)
+          .handleCall(any(), any());
+
+      runLines(
+          "{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":42,\"params\":{"
+              + ENVELOPE
+              + "}}");
+
+      verify(server, timeout(2000)).handleCall(any(JsonRpcCall.class), any());
+      Awaitility.await()
+          .atMost(Duration.ofSeconds(2))
           .untilAsserted(
-              () -> {
-                verify(server, never()).handleResponse(any(), any());
-                verify(server, never()).createContext(any(), any());
-              });
+              () ->
+                  assertThat(stdout())
+                      .contains("\"error\"")
+                      .contains("-32603")
+                      .contains("Internal error")
+                      .contains("boom")
+                      .contains("\"id\":42"));
     }
   }
 
@@ -282,45 +245,20 @@ class StdioServerTest {
 
     @Test
     void malformed_json_line_is_dropped_and_reader_continues() throws Exception {
-      sessionIdHolder.set("session-1");
-      when(server.createContext("session-1", null))
-          .thenReturn(new McpContextResult.ValidContext(validContext("session-1")));
+      runLines(
+          "this is not json\n{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":1,\"params\":{"
+              + ENVELOPE
+              + "}}");
 
-      runLines("this is not json\n" + "{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":1}");
-
-      verify(server, timeout(2000)).handleCall(any(), any(JsonRpcCall.class), any());
+      verify(server, timeout(2000)).handleCall(any(JsonRpcCall.class), any());
     }
 
     @Test
     void eof_causes_run_to_return_cleanly() throws Exception {
       runLines("");
 
-      verify(server, never()).handleCall(any(), any(), any());
-      verify(server, never()).handleNotification(any(), any());
-    }
-  }
-
-  // --- helpers ---
-
-  private void runLines(String input) throws IOException {
-    var reader = new BufferedReader(new StringReader(input.isEmpty() ? "" : input + "\n"));
-    var stdio = new StdioServer(server, objectMapper, transport, reader, sessionIdHolder::get);
-    stdio.run();
-  }
-
-  private McpContext validContext(String sessionId) {
-    return new StubMcpContext(sessionId);
-  }
-
-  private record StubMcpContext(String sessionId) implements McpContext {
-    @Override
-    public String protocolVersion() {
-      return "2025-11-25";
-    }
-
-    @Override
-    public Optional<McpSession> session() {
-      return Optional.empty();
+      verify(server, never()).handleCall(any(), any());
+      verify(server, never()).handleNotification(any());
     }
   }
 }

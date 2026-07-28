@@ -17,15 +17,11 @@ package com.callibrity.mocapi.transport.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.when;
 
-import com.callibrity.mocapi.server.McpContext;
-import com.callibrity.mocapi.server.McpContextResult;
+import com.callibrity.mocapi.model.McpMetaKeys;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
-import com.callibrity.mocapi.transport.http.sse.SseStreamFactory;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import io.micrometer.context.ContextRegistry;
@@ -36,7 +32,6 @@ import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.ObservationView;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -46,6 +41,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
@@ -62,7 +58,6 @@ class ContextPropagationTest {
   private static final String POST_ACCEPT = "application/json, text/event-stream";
 
   @Mock private McpServer server;
-  @Mock private SseStreamFactory sseStreamFactory;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final McpRequestValidator validator = new McpRequestValidator(List.of("localhost"));
@@ -75,17 +70,16 @@ class ContextPropagationTest {
         ContextSnapshotFactory.builder().contextRegistry(registry).build();
     StreamableHttpController controller = newController(factory);
 
-    when(server.createContext(anyString(), any())).thenReturn(validContext("s1"));
     AtomicReference<String> observedInsideHandler = new AtomicReference<>();
     doAnswer(
             invocation -> {
               observedInsideHandler.set(tl.get());
-              McpTransport transport = invocation.getArgument(2);
+              McpTransport transport = invocation.getArgument(1);
               transport.send(okResult());
               return null;
             })
         .when(server)
-        .handleCall(any(), any(), any());
+        .handleCall(any(), any());
 
     tl.set("request-thread-value");
     try {
@@ -112,17 +106,16 @@ class ContextPropagationTest {
     ContextSnapshotFactory factory = ContextSnapshotFactory.builder().build();
     StreamableHttpController controller = newController(factory);
 
-    when(server.createContext(anyString(), any())).thenReturn(validContext("s1"));
     AtomicReference<SecurityContext> captured = new AtomicReference<>();
     doAnswer(
             invocation -> {
               captured.set(SecurityContextHolder.getContext());
-              McpTransport transport = invocation.getArgument(2);
+              McpTransport transport = invocation.getArgument(1);
               transport.send(okResult());
               return null;
             })
         .when(server)
-        .handleCall(any(), any(), any());
+        .handleCall(any(), any());
 
     var auth = new TestingAuthenticationToken("alice", "credentials");
     auth.setAuthenticated(true);
@@ -153,18 +146,17 @@ class ContextPropagationTest {
     ContextSnapshotFactory factory = ContextSnapshotFactory.builder().build();
     StreamableHttpController controller = newController(factory);
 
-    when(server.createContext(anyString(), any())).thenReturn(validContext("s1"));
     AtomicReference<ObservationView> childParent = new AtomicReference<>();
     doAnswer(
             invocation -> {
               Observation child = Observation.createNotStarted("mcp.tool", observationRegistry);
               childParent.set(child.getContextView().getParentObservation());
-              McpTransport transport = invocation.getArgument(2);
+              McpTransport transport = invocation.getArgument(1);
               transport.send(okResult());
               return null;
             })
         .when(server)
-        .handleCall(any(), any(), any());
+        .handleCall(any(), any());
 
     Observation outer = Observation.start("http.request", observationRegistry);
     try (var _ = outer.openScope()) {
@@ -180,17 +172,18 @@ class ContextPropagationTest {
   }
 
   private StreamableHttpController newController(ContextSnapshotFactory factory) {
-    return new StreamableHttpController(server, validator, sseStreamFactory, objectMapper, factory);
+    return new StreamableHttpController(
+        server, validator, new McpHeaderValidator(), objectMapper, factory, 0L);
   }
 
   private CompletableFuture<ResponseEntity<Object>> invokeHandlerOnVt(
       StreamableHttpController controller) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.set(HttpHeaders.ACCEPT, POST_ACCEPT);
+    headers.set(McpHeaderValidator.MCP_PROTOCOL_VERSION_HEADER, McpServer.PROTOCOL_VERSION);
+    headers.set(McpHeaderValidator.MCP_METHOD_HEADER, "tools/list");
     return controller.handlePost(
-        objectMapper.treeToValue(callRequest(), JsonRpcMessage.class),
-        null,
-        "s1",
-        POST_ACCEPT,
-        null);
+        objectMapper.treeToValue(callRequest(), JsonRpcMessage.class), headers);
   }
 
   private static JsonRpcResult okResult() {
@@ -201,24 +194,13 @@ class ContextPropagationTest {
   private ObjectNode callRequest() {
     ObjectNode request = objectMapper.createObjectNode();
     request.put("jsonrpc", "2.0");
-    request.put("method", "ping");
+    request.put("method", "tools/list");
     request.put("id", 1);
+    ObjectNode params = request.putObject("params");
+    ObjectNode meta = params.putObject("_meta");
+    meta.put(McpMetaKeys.PROTOCOL_VERSION, McpServer.PROTOCOL_VERSION);
+    meta.putObject(McpMetaKeys.CLIENT_INFO).put("name", "test-client").put("version", "1.0");
+    meta.putObject(McpMetaKeys.CLIENT_CAPABILITIES);
     return request;
-  }
-
-  private static McpContextResult validContext(String sessionId) {
-    return new McpContextResult.ValidContext(new StubMcpContext(sessionId));
-  }
-
-  private record StubMcpContext(String sessionId) implements McpContext {
-    @Override
-    public String protocolVersion() {
-      return "2025-11-25";
-    }
-
-    @Override
-    public Optional<com.callibrity.mocapi.server.session.McpSession> session() {
-      return Optional.empty();
-    }
   }
 }

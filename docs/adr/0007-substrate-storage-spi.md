@@ -1,6 +1,6 @@
 # ADR-0007 — All durable state goes through Substrate's four SPIs; no per-backend mocapi modules
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0020](0020-stateless-request-model.md)
 - **Date:** 2026-04-11
 
 ## Context

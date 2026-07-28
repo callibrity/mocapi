@@ -15,13 +15,20 @@
  */
 package com.callibrity.mocapi.server.prompts;
 
+import com.callibrity.mocapi.api.elicitation.McpElicitor;
+import com.callibrity.mocapi.api.prompts.McpPromptContext;
 import com.callibrity.mocapi.model.GetPromptRequestParams;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.ListPromptsResult;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.Prompt;
+import com.callibrity.mocapi.model.ResultTypes;
+import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.cache.CacheSettings;
+import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.guards.Guards;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
@@ -30,17 +37,29 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.node.ValueNode;
 
 /** Manages prompt registration and JSON-RPC dispatch. */
 public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt> {
 
   private final Logger log = LoggerFactory.getLogger(McpPromptsService.class);
+  private final MrtrElicitationEngine elicitationEngine;
+  private final CacheSettings cacheSettings;
 
-  public McpPromptsService(List<GetPromptHandler> handlers) {
-    this(handlers, DEFAULT_PAGE_SIZE);
+  public McpPromptsService(List<GetPromptHandler> handlers, MrtrElicitationEngine engine) {
+    this(handlers, engine, DEFAULT_PAGE_SIZE, CacheSettings.defaults());
   }
 
-  public McpPromptsService(List<GetPromptHandler> handlers, int pageSize) {
+  public McpPromptsService(
+      List<GetPromptHandler> handlers, MrtrElicitationEngine engine, int pageSize) {
+    this(handlers, engine, pageSize, CacheSettings.defaults());
+  }
+
+  public McpPromptsService(
+      List<GetPromptHandler> handlers,
+      MrtrElicitationEngine engine,
+      int pageSize,
+      CacheSettings cacheSettings) {
     super(
         handlers,
         GetPromptHandler::name,
@@ -48,19 +67,54 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
         Comparator.comparing(Prompt::name),
         "Prompt",
         pageSize);
+    this.elicitationEngine = engine;
+    this.cacheSettings = cacheSettings;
   }
 
+  /**
+   * Lists registered prompts sorted by prompt name — the deterministic ordering the spec recommends
+   * so clients can cache list responses and LLM prompt caches get stable prefixes. Cache directives
+   * ({@code ttlMs}/{@code cacheScope}) come from the configured {@link CacheSettings} list values.
+   */
   @JsonRpcMethod(McpMethods.PROMPTS_LIST)
   public ListPromptsResult listPrompts(@JsonRpcParams PaginatedRequestParams params) {
-    return paginate(h -> Guards.allows(h.guards()), params, ListPromptsResult::new);
+    return paginate(
+        h -> Guards.allows(h.guards()),
+        params,
+        (prompts, nextCursor) ->
+            new ListPromptsResult(
+                prompts,
+                nextCursor,
+                cacheSettings.listTtlMs(),
+                cacheSettings.scope(),
+                ResultTypes.COMPLETE));
   }
 
+  /**
+   * Returns either a {@link GetPromptResult} or an {@code InputRequiredResult} — the MRTR union the
+   * spec declares for {@code prompts/get} responses — so the declared type is {@link Object};
+   * ripcurl serializes the runtime type. The {@link MrtrElicitationEngine} wraps the invocation:
+   * this method is one of the exactly three MRTR-capable RPC seams (see the engine's javadoc).
+   */
   @JsonRpcMethod(McpMethods.PROMPTS_GET)
-  public GetPromptResult getPrompt(@JsonRpcParams GetPromptRequestParams params) {
+  public Object getPrompt(@JsonRpcParams GetPromptRequestParams params) {
     String name = params.name();
     log.debug("Received request to get prompt \"{}\"", name);
     GetPromptHandler handler = lookup(name);
     Map<String, String> arguments = params.arguments() != null ? params.arguments() : Map.of();
-    return handler.get(arguments);
+    McpTransport transport = McpTransport.CURRENT.isBound() ? McpTransport.CURRENT.get() : null;
+    McpExchange exchange = McpExchange.CURRENT.isBound() ? McpExchange.CURRENT.get() : null;
+    ValueNode progressToken = params.meta() != null ? params.meta().progressToken() : null;
+    DefaultMcpPromptContext ctx =
+        new DefaultMcpPromptContext(transport, progressToken, elicitationEngine, exchange, name);
+    return elicitationEngine.execute(
+        McpMethods.PROMPTS_GET,
+        params,
+        params.inputResponses(),
+        params.requestState(),
+        () ->
+            ScopedValue.where(McpPromptContext.CURRENT, ctx)
+                .where(McpElicitor.CURRENT, ctx)
+                .call(() -> handler.get(arguments)));
   }
 }

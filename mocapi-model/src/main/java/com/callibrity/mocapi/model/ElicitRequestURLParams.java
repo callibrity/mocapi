@@ -16,13 +16,12 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * Parameters of a URL-mode elicitation, embedded in an {@link ElicitRequest}. The required {@code
+ * mode: "url"} discriminator is contributed by {@link ElicitRequestParams}'s type info; there is no
+ * {@code _meta} — this is an embedded object, not JSON-RPC request params. URL-mode elicitation is
+ * declared not implemented by mocapi (ADR-0022).
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ElicitRequestURLParams(
-    String mode,
-    String message,
-    String elicitationId,
-    String url,
-    TaskMetadata task,
-    @JsonProperty("_meta") RequestMeta meta) {}
+public record ElicitRequestURLParams(String message, String url) implements ElicitRequestParams {}

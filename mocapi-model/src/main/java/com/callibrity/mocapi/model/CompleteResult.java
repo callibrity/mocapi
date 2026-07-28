@@ -15,4 +15,4 @@
  */
 package com.callibrity.mocapi.model;
 
-public record CompleteResult(Completion completion) {}
+public record CompleteResult(Completion completion, String resultType) {}

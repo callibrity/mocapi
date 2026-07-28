@@ -1,161 +1,62 @@
-# PRD — Mocapi
+# PRD — mocapi
 
----
+## What this is
 
-## What this project is
+mocapi is a modular Spring Boot framework for building Model Context Protocol
+(MCP) servers with a clean, annotation-driven API. You declare tools with
+`@McpTool` and prompts with `@McpPrompt` on Spring components; the framework
+handles JSON-RPC dispatch, JSON-Schema generation/validation, the Streamable
+HTTP and stdio transports, and Spring Boot auto-configuration.
 
-Mocapi is a modular Spring Boot framework for building Model Context Protocol (MCP) servers
-with a clean, annotation-driven API. Developers create MCP tools via `@ToolService`/`@Tool`
-and prompts via `@PromptService`/`@Prompt` as Spring components. The framework handles
-JSON-RPC protocol dispatch, JSON schema generation/validation, SSE streaming transport,
-and Spring Boot auto-configuration. It targets the MCP 2025-11-25 spec.
+mocapi targets the **MCP 2026-07-28** revision and is **stateless** — no
+sessions, no handshake, no server-initiated request channel.
 
-Currently runs on Java 25 and Spring Boot 4. Architecture decisions are
-captured under `docs/adr/`; living design docs are under `docs/design/`.
+## Where to look
 
----
+This PRD is the stable "what & why." Volatile detail lives in the docs that are
+kept in lockstep with the code — don't duplicate them here:
+
+- **Direction (where we're going):** [`docs/roadmap.md`](docs/roadmap.md)
+- **Architectural invariants (non-negotiable):** [`docs/constitution.md`](docs/constitution.md)
+- **Architecture & module layout:** [`docs/design/architecture-overview.md`](docs/design/architecture-overview.md)
+- **How we work (spec → plan → implement):** [`docs/superpowers/README.md`](docs/superpowers/README.md)
+- **Decisions (history):** [`docs/adr/`](docs/adr/)
+- **Contributor/agent conduct rules:** [`CLAUDE.md`](CLAUDE.md)
 
 ## Tech stack
 
-- Language: Java 25 (Liberica JDK 25.0.2)
-- Framework: Spring Boot 4.0.5 (upgrading from 3.5.3)
-- Build tool: Maven 3.9.12
-- Testing: JUnit 5 + Mockito + AssertJ (unit tests), Spring Boot Test with failsafe (integration tests)
-- Formatting: Spotless with Google Java Format
-- License: license-maven-plugin (Apache 2.0 headers)
-- Additional libraries: Jackson, Lombok, VicTools JSON Schema, Everit JSON Schema, commons-lang3, Swagger Annotations
+- Java 25 (Liberica JDK 25)
+- Spring Boot 4.0.5
+- Maven 3.9+
+- JUnit 5 + Mockito + AssertJ (unit); Spring Boot Test + Failsafe (integration)
+- Spotless (Google Java Format); Apache-2.0 headers via `license-maven-plugin`
+- Jackson, VicTools JSON Schema, Everit JSON Schema
 
----
-
-## How to run the project
+## Build, test, run
 
 ```bash
-# Build the project
-mvn clean install
-
-# Run the example app
-mvn spring-boot:run -pl mocapi-example
+mvn clean install    # build all modules
+mvn verify           # full build + all tests + Spotless/license checks
+mvn test             # unit tests only
 ```
 
----
+Example servers live under [`examples/`](examples/): `examples/http`
+(`mocapi-example-http`) and `examples/stdio` (`mocapi-example-stdio`). Run the
+HTTP example with `mvn spring-boot:run -pl examples/http`; `mcp-example-requests.http`
+drives it. `mocapi-conformance` is a runnable Spring Boot app exercised by the
+external `@modelcontextprotocol/conformance` tool.
 
-## How to run tests
+## Conventions & guardrails
 
-```bash
-# Run all tests (unit + integration) and all checks
-mvn verify
-
-# Run unit tests only
-mvn test
-
-# Run a single test class
-mvn test -pl mocapi-server -Dtest=McpServerTest
-
-# Run integration tests only
-mvn failsafe:integration-test failsafe:verify -pl mocapi-example
-```
-
-Expected output when all tests pass:
-```
-[INFO] BUILD SUCCESS
-```
-
----
-
-## How to lint / type-check
-
-```bash
-# Check formatting (Spotless) and license headers
-mvn spotless:check license:check
-
-# Auto-fix formatting
-mvn spotless:apply
-```
-
-Both `spotless:check` and `license:check` are bound to the `validate` phase, so `mvn verify`
-catches them automatically before compilation.
-
----
-
-## Coding conventions
-
-- Lombok for boilerplate reduction (`@Slf4j`, `@RequiredArgsConstructor`, `@Data`, `@Getter`)
-- Records for immutable data types (DTOs, responses, descriptors)
-- Google Java Format enforced via Spotless
-- Never use `@SuppressWarnings` — fix the underlying issue. **One
-  narrow exception**: `@SuppressWarnings("deprecation")` is allowed
-  (and required by Sonar rule S1874) when a deprecated API is being
-  used legitimately — specifically, when the MCP specification
-  itself mandates support for a deprecated type (e.g.,
-  `LegacyTitledEnumSchema` which exists for backward compatibility
-  with pre-2025-11-25 clients) or when a test deliberately exercises
-  a deprecated code path. Every such suppression must be accompanied
-  by a short comment explaining why the deprecated usage is
-  intentional.
-- Apache 2.0 license headers on all source files (managed by license-maven-plugin)
-- Test files mirror source structure: `src/test/java/...` matching `src/main/java/...`
-- Integration tests use `*IT.java` suffix (Maven failsafe convention)
-
----
-
-## Repository structure
-
-```
-mocapi-parent (pom.xml)          Multi-module Maven parent
-├── mocapi-server/               Core MCP server, JSON-RPC dispatch, protocol types
-├── mocapi-model/                MCP model types (shared DTOs and records)
-├── mocapi-tools/                MCP tools capability (@ToolService/@Tool)
-│   └── src/main/java/com/callibrity/mocapi/tools/
-│       ├── annotation/          @Tool, @ToolService, AnnotationMcpTool
-│       └── schema/              JSON schema generation (VicTools)
-├── mocapi-prompts/              MCP prompts capability (@PromptService/@Prompt)
-│   └── src/main/java/com/callibrity/mocapi/prompts/
-│       └── annotation/          @Prompt, @PromptService, AnnotationMcpPrompt
-├── mocapi-autoconfigure/        Spring Boot auto-configuration
-│   └── src/main/java/com/callibrity/mocapi/autoconfigure/
-│       ├── sse/                 McpStreamingController, McpSessionManager, McpStreamEmitter
-│       ├── tools/               MocapiToolsAutoConfiguration
-│       └── prompts/             MocapiPromptsAutoConfiguration
-├── mocapi-streamable-http-spring-boot-starter/  Convenience starter (bundles server + streamable-http transport)
-├── mocapi-stdio-spring-boot-starter/            Convenience starter (bundles server + stdio transport)
-├── mocapi-example/              Example app with HelloTool, Rot13Tool, CodeReviewPrompts
-├── mocapi-resources/            Shared resources
-└── mocapi-coverage/             JaCoCo aggregate coverage
-```
-
----
-
-## Definition of "done" for a spec
-
-A spec is done when ALL of the following are true:
-
-- [ ] The feature described in the spec is implemented
-- [ ] All existing tests pass (`mvn verify`)
-- [ ] New tests cover the new behavior (unless the spec says otherwise)
-- [ ] Spotless and license checks pass (bound to `validate`, caught by `mvn verify`)
-- [ ] No debug code left in
-- [ ] progress.txt is updated with verification results
-
----
-
-## Constraints and guardrails
-
-- Never use `@SuppressWarnings` — fix the underlying issue instead.
-  **Narrow exception**: `@SuppressWarnings("deprecation")` is
-  allowed for deprecated MCP-spec types that must be supported for
-  backward compatibility (e.g., `LegacyTitledEnumSchema`) and for
-  tests that deliberately exercise deprecated code paths. Every
-  such suppression must have a comment explaining the intent.
-- Never commit secrets or credentials
-- Never modify the public API shape of existing annotations (`@Tool`, `@ToolService`, `@Prompt`, `@PromptService`) without an explicit spec
-- Never remove or weaken input validation (JSON schema validation on tool calls)
-- License headers must be present on all source files
-- Read `CLAUDE.md` for additional project-level instructions
-
----
+Coding conventions, the "never suppress warnings" rule (and its one
+spec-mandated `@SuppressWarnings("deprecation")` exception for
+`LegacyTitledEnumSchema`), the no-star-imports rule, and the ADR + design-doc
+discipline are defined in [`CLAUDE.md`](CLAUDE.md). The load-bearing
+architectural invariants are in [`docs/constitution.md`](docs/constitution.md).
+Those are the source of truth — this file does not restate them.
 
 ## Environment
 
-- No runtime environment variables required for development or testing
-- `SONAR_TOKEN` — used in CI only (GitHub Actions) for SonarCloud analysis
-- Java 25 and Maven 3.9+ must be installed locally
+- No runtime environment variables required for development or testing.
+- `SONAR_TOKEN` — CI only (SonarCloud analysis).
+- Java 25 and Maven 3.9+ installed locally.

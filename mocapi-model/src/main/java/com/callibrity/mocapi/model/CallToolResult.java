@@ -17,8 +17,13 @@ package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
-import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
 
+/**
+ * Result of {@code tools/call}. As of MCP 2026-07-28, {@code structuredContent} may be any JSON
+ * value (SEP-2106), and the required {@code resultType} is {@code "complete"} — an {@code
+ * input_required} outcome is represented by {@link InputRequiredResult} instead.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CallToolResult(
-    List<ContentBlock> content, Boolean isError, ObjectNode structuredContent) {}
+    List<ContentBlock> content, Boolean isError, JsonNode structuredContent, String resultType) {}

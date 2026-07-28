@@ -19,55 +19,56 @@ mvn spring-boot:run -pl mocapi-conformance
 
 The server starts on port 8081 with the MCP endpoint at `/mcp`.
 
-### 2. Run the conformance suite
+### 2. Run the 2026-07-28 draft suite
+
+The 2026-07-28 scenarios live on the suite's `0.2.0-alpha.x` track and are
+tagged `DRAFT-2026-v1` — the pre-release sentinel the suite sends as the
+protocol version while the spec is a release candidate (mocapi accepts it as
+an alias of `2026-07-28` during the RC window; see
+`McpServer.DRAFT_PROTOCOL_VERSION`).
 
 ```bash
-npx @modelcontextprotocol/conformance server --url http://localhost:8081/mcp
+npx @modelcontextprotocol/conformance@0.2.0-alpha.2 server \
+  --url http://localhost:8081/mcp --suite draft \
+  --expected-failures mocapi-conformance/conformance-expected-failures.yaml
 ```
 
-## Current conformance status
+## Current conformance status (2026-07-28 draft track)
 
-Last full run (`npx @modelcontextprotocol/conformance`): **37 passed, 2 failed**.
+Last full run (`@modelcontextprotocol/conformance@0.2.0-alpha.2 --suite draft`,
+2026-06-12): **51 checks passed, 5 scenarios failed — all five explained and
+baselined** in `conformance-expected-failures.yaml`.
 
 ### Passing scenarios
 
-| Scenario | Driven by |
-|---|---|
-| `server-initialize` | — (protocol-level) |
-| `ping` | — (protocol-level) |
-| `logging-set-level` | — (protocol-level) |
-| `server-sse-multiple-streams` | — (protocol-level) |
-| `dns-rebinding-protection` | — (protocol-level) |
-| `completion-complete` | — (protocol-level) |
-| `tools-list` | — (protocol-level) |
-| `tools-call-simple-text` | `test_simple_text` |
-| `tools-call-image` | `test_image_content` |
-| `tools-call-audio` | `test_audio_content` |
-| `tools-call-embedded-resource` | `test_embedded_resource` |
-| `tools-call-mixed-content` | `test_multiple_content_types` |
-| `tools-call-error` | `test_error_handling` |
-| `tools-call-with-logging` | `test_tool_with_logging` |
-| `tools-call-with-progress` | `test_tool_with_progress` |
-| `tools-call-sampling` | `test_sampling` |
-| `tools-call-elicitation` | `test_elicitation` |
-| `elicitation-sep1034-defaults` | `test_elicitation_sep1034_defaults` |
-| `elicitation-sep1330-enums` | `test_elicitation_sep1330_enums` |
-| `resources-list` | — (protocol-level) |
-| `resources-read-text` | `Static Text Resource` |
-| `resources-read-binary` | `Static Binary Resource` |
-| `resources-templates-read` | `Template Resource` |
-| `prompts-list` | — (protocol-level) |
-| `prompts-get-simple` | `test_simple_prompt` |
-| `prompts-get-with-args` | `test_prompt_with_arguments` |
-| `prompts-get-embedded-resource` | `test_prompt_with_embedded_resource` |
-| `prompts-get-with-image` | `test_prompt_with_image` |
+| Scenario | Checks | Driven by |
+|---|---|---|
+| `server-stateless` | 17 | — (protocol-level: no sessions, discover, envelope validation) |
+| `http-header-validation` | 13 | — (protocol-level: Mcp-Method/Mcp-Name/MCP-Protocol-Version) |
+| `caching` | 7 | — (protocol-level: ttlMs/cacheScope on cacheable results) |
+| `sep-2164-resource-not-found` | 2 | — (protocol-level: -32602) |
+| `completion-complete`, `tools-list`, `resources-*`, `prompts-*`, `dns-rebinding-protection`, `json-schema-2020-12`, `server-sse-multiple-streams`, `tools-call-*` | — | carried over from the 2025-11-25 set (sampling/logging tools removed) |
+| `input-required-result-request-state` | 2 | `test_input_required_result_request_state` |
+| `input-required-result-multi-round` | 3 | `test_input_required_result_multi_round` |
+| `input-required-result-result-type` | 1 | `test_input_required_result_elicitation` |
+| `input-required-result-tampered-state` | 1 | `test_input_required_result_tampered_state` |
+| `input-required-result-unsupported-methods` | 1 | — (engine rejection matrix) |
+| `input-required-result-validate-input` | 2 | — (engine rejection matrix) |
+| `input-required-result-non-tool-request` | 2 | `test_input_required_result_prompt` (prompt-side elicitation, ADR-0024) |
 
-### Known failures
+### Baselined failures (`conformance-expected-failures.yaml`)
 
 | Scenario | Why |
 |---|---|
-| `resources-subscribe` | `resources/subscribe` is not wired — mocapi has no subscription dispatch path yet. |
-| `resources-unsubscribe` | Same as above; without subscribe the counterpart has nothing to unsubscribe from. |
+| `input-required-result-basic-sampling` | mocapi emits no sampling input requests — deprecated by SEP-2577, declined in [ADR-0022](../docs/adr/0022-2026-07-28-features-not-implemented.md). |
+| `input-required-result-basic-list-roots` | Same for roots. |
+| `input-required-result-multiple-input-requests` | Requires elicitation + sampling + roots requests in one result. |
+| `input-required-result-capability-check` | Asserts sampling-only `inputRequests` for a sampling-only client; mocapi correctly completes without input requests instead. |
+| `input-required-result-basic-elicitation` | Suite over-constraint: requires the literal `inputRequests` key `"user_name"`, but the spec says keys are server-assigned (mocapi assigns `elicit-<ordinal>`). Worth filing as suite feedback; the same tool passes `input-required-result-result-type`. |
+
+Alpha-suite caveat: with `--expected-failures`, scenarios that report
+"0 passed, 0 failed" are sometimes misreported as unexpected failures —
+re-run without the baseline to confirm the true summary.
 
 ## Adding new conformance scenarios
 

@@ -15,15 +15,17 @@ http POST /mcp                   (Spring MVC — SERVER kind)
      rpc.response.status_code=OK  (or JSON-RPC error code on failure)
      error.type=…                 (on failure)
      mcp.method.name=tools/call   (added by mocapi-o11y's McpObservationFilter)
-     mcp.session.id=…
-     mcp.protocol.version=2025-11-25
+     mcp.protocol.version=2026-07-28
+     mcp.client.name=…           (from the _meta envelope)
      └─ mcp.handler.execution      (mocapi-o11y per-handler span)
         mcp.handler.kind=tool
         gen_ai.operation.name=execute_tool
         gen_ai.tool.name=my-tool
 ```
 
-For `tools/call`, `prompts/get`, and `resources/*` the inner `mcp.handler.execution` span fires with handler-specific GenAI / resource-URI attrs. For dispatch-only methods (`tools/list`, `initialize`, notifications) only the outer `jsonrpc.server` span appears.
+For `tools/call`, `prompts/get`, and `resources/*` the inner `mcp.handler.execution` span fires with handler-specific GenAI / resource-URI attrs. For dispatch-only methods (`tools/list`, `server/discover`, notifications) only the outer `jsonrpc.server` span appears.
+
+Inbound W3C trace context joins automatically: when the request's `_meta` envelope carries `traceparent` (plus optional `tracestate`/`baggage`), the `jsonrpc.server` span is parented to the caller's trace instead of starting a new one.
 
 Metrics: two histogram meters — `jsonrpc.server.duration` (ripcurl-o11y) and `mcp.handler.execution.duration` (mocapi-o11y) — produced automatically by Micrometer's default meter observation handler whenever a `MeterRegistry` is in the context.
 

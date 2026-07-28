@@ -15,17 +15,41 @@
  */
 package com.callibrity.mocapi.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 
+/**
+ * The client's response to an embedded {@code sampling/createMessage} request ({@link
+ * InputResponse} union member). Flattened from the spec's {@code SamplingMessage + model +
+ * stopReason} shape; {@code content} accepts the single-block wire form on deserialization.
+ *
+ * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577) along with the sampling
+ *     feature; remains in the specification for at least twelve months. The spec's suggested
+ *     migration is for clients to perform sampling through their own provider APIs.
+ */
+@Deprecated(since = "2026-07-28")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CreateMessageResult(
-    Role role, ContentBlock content, String model, String stopReason) {
+    Role role,
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+        List<SamplingMessageContentBlock> content,
+    String model,
+    String stopReason)
+    implements InputResponse {
 
   /**
-   * Returns the text of the {@code content} block if it is a {@link TextContent}, or {@code null}
-   * otherwise.
+   * Returns the text of the first {@link TextContent} block in {@code content}, or {@code null} if
+   * there is none.
    */
   public String text() {
-    return content instanceof TextContent textContent ? textContent.text() : null;
+    if (content == null) {
+      return null;
+    }
+    return content.stream()
+        .filter(TextContent.class::isInstance)
+        .map(block -> ((TextContent) block).text())
+        .findFirst()
+        .orElse(null);
   }
 }

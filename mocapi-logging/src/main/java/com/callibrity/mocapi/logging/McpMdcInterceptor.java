@@ -15,15 +15,15 @@
  */
 package com.callibrity.mocapi.logging;
 
+import static com.callibrity.mocapi.logging.McpMdcKeys.CLIENT_NAME;
 import static com.callibrity.mocapi.logging.McpMdcKeys.HANDLER_CLASS;
 import static com.callibrity.mocapi.logging.McpMdcKeys.HANDLER_KIND;
 import static com.callibrity.mocapi.logging.McpMdcKeys.HANDLER_NAME;
 import static com.callibrity.mocapi.logging.McpMdcKeys.PROTOCOL_VERSION;
 import static com.callibrity.mocapi.logging.McpMdcKeys.REQUEST_ID;
-import static com.callibrity.mocapi.logging.McpMdcKeys.SESSION;
 
+import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.handler.HandlerKind;
-import com.callibrity.mocapi.server.session.McpSession;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
@@ -44,8 +44,9 @@ import org.slf4j.MDC;
  *   <li>{@link McpMdcKeys#HANDLER_KIND} — tool / prompt / resource / resource_template
  *   <li>{@link McpMdcKeys#HANDLER_NAME} — tool name, prompt name, resource URI, or URI template
  *   <li>{@link McpMdcKeys#HANDLER_CLASS} — simple name of the (unwrapped) bean class
- *   <li>{@link McpMdcKeys#SESSION} — current MCP session id (from {@link McpSession#CURRENT})
- *   <li>{@link McpMdcKeys#PROTOCOL_VERSION} — negotiated protocol version (from the session)
+ *   <li>{@link McpMdcKeys#PROTOCOL_VERSION} — protocol version from the request's {@code _meta}
+ *       envelope (via {@link McpExchange#CURRENT})
+ *   <li>{@link McpMdcKeys#CLIENT_NAME} — client name from the envelope's {@code clientInfo}
  *   <li>{@link McpMdcKeys#REQUEST_ID} — JSON-RPC request id for the current call (from {@link
  *       JsonRpcDispatcher#CURRENT_REQUEST}; absent for notifications)
  * </ul>
@@ -55,8 +56,9 @@ import org.slf4j.MDC;
  *
  * <p>Handler kind, name, and class are closed over at construction (one instance per handler, wired
  * by {@code MocapiLoggingAutoConfiguration}'s per-kind customizer beans) so the hot path does no
- * reflection. Session, protocol version, and request id are read per-call from the bound {@link
- * ScopedValue}s.
+ * reflection. Protocol version, client name, and request id are read per-call from the bound {@link
+ * ScopedValue}s — there is no session in MCP 2026-07-28 (ADR-0020); correlation context is
+ * per-request.
  */
 public final class McpMdcInterceptor implements MethodInterceptor<Object> {
 
@@ -72,12 +74,12 @@ public final class McpMdcInterceptor implements MethodInterceptor<Object> {
 
   @Override
   public Object intercept(MethodInvocation<?> invocation) {
-    String sessionId = null;
     String protocolVersion = null;
-    if (McpSession.CURRENT.isBound()) {
-      McpSession session = McpSession.CURRENT.get();
-      sessionId = session.sessionId();
-      protocolVersion = session.protocolVersion();
+    String clientName = null;
+    if (McpExchange.CURRENT.isBound()) {
+      McpExchange exchange = McpExchange.CURRENT.get();
+      protocolVersion = exchange.protocolVersion();
+      clientName = exchange.clientInfo() == null ? null : exchange.clientInfo().name();
     }
 
     String requestId = null;
@@ -92,8 +94,8 @@ public final class McpMdcInterceptor implements MethodInterceptor<Object> {
     putIfPresent(added, HANDLER_KIND, handlerKind == null ? null : handlerKind.tag());
     putIfPresent(added, HANDLER_NAME, blankToNull(handlerName));
     putIfPresent(added, HANDLER_CLASS, blankToNull(handlerClass));
-    putIfPresent(added, SESSION, sessionId);
     putIfPresent(added, PROTOCOL_VERSION, protocolVersion);
+    putIfPresent(added, CLIENT_NAME, clientName);
     putIfPresent(added, REQUEST_ID, requestId);
 
     try {

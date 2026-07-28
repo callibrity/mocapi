@@ -111,12 +111,6 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.jwcarman.odyssey</groupId>
-            <artifactId>odyssey</artifactId>
-            <version>${odyssey.version}</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
             <optional>true</optional>
@@ -143,12 +137,6 @@
             <artifactId>mocapi-server</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jwcarman.codec</groupId>
-            <artifactId>codec-jackson</artifactId>
-            <version>${codec.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

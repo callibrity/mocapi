@@ -23,7 +23,9 @@ import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolParams;
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ContentBlock;
 import com.callibrity.mocapi.model.Tool;
+import com.callibrity.mocapi.server.elicitation.McpElicitorResolver;
 import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardEvaluationInterceptor;
 import com.callibrity.mocapi.server.handler.MutableHandlerState;
@@ -37,6 +39,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.reflect.TypeUtils;
@@ -157,31 +160,24 @@ public final class CallToolHandlers {
     if (resultType.isCharSequence()) {
       return new MapperAndSchema(TextContentResultMapper.INSTANCE, null);
     }
+    if (resultType.isContentBlock()) {
+      return new MapperAndSchema(ContentBlockResultMapper.INSTANCE, null);
+    }
+    if (resultType.rawType() == Optional.class) {
+      throw rejectReturnType(
+          bean,
+          method,
+          "return type java.util.Optional has an erased element type, so no structuredContent "
+              + "schema can be derived. Return the value directly, or return CallToolResult to "
+              + "build the result manually.");
+    }
+    // MCP 2026-07-28 widened structuredContent from a JSON object to any JSON value, so any
+    // non-void/CallToolResult/CharSequence return type is structured. Advertise the derived schema
+    // when it carries a concrete type; an untyped empty schema (e.g. Object) conveys nothing, so
+    // advertise no outputSchema while still mapping the value into structuredContent.
     ObjectNode outputSchema = generator.generateSchema(resultType.rawType());
-    String schemaType =
-        outputSchema.get("type") == null ? "(none)" : outputSchema.get("type").asString();
-    if (!"object".equals(schemaType)) {
-      throw rejectReturnType(
-          bean,
-          method,
-          "return type "
-              + resultType.rawType().getName()
-              + " produces a JSON schema of type \""
-              + schemaType
-              + "\"; structuredContent must be a JSON object. Wrap the value in a record/POJO, "
-              + "or return CallToolResult to build the result manually.");
-    }
-    if (outputSchema.get("properties") == null) {
-      throw rejectReturnType(
-          bean,
-          method,
-          "return type "
-              + resultType.rawType().getName()
-              + " produces an object schema with no declared properties ("
-              + outputSchema
-              + "). Use a concrete record/class with named fields, or return CallToolResult.");
-    }
-    return new MapperAndSchema(new StructuredResultMapper(objectMapper), outputSchema);
+    ObjectNode advertised = outputSchema.get("type") == null ? null : outputSchema;
+    return new MapperAndSchema(new StructuredResultMapper(objectMapper), advertised);
   }
 
   private record MapperAndSchema(ResultMapper mapper, ObjectNode outputSchema) {}
@@ -233,6 +229,10 @@ public final class CallToolHandlers {
     boolean isCharSequence() {
       return CharSequence.class.isAssignableFrom(rawType);
     }
+
+    boolean isContentBlock() {
+      return ContentBlock.class.isAssignableFrom(rawType);
+    }
   }
 
   private static IllegalArgumentException rejectReturnType(
@@ -245,6 +245,7 @@ public final class CallToolHandlers {
       ObjectMapper objectMapper, List<ParameterResolver<? super JsonNode>> userResolvers) {
     List<ParameterResolver<? super JsonNode>> out = new ArrayList<>();
     out.add(new McpToolContextResolver());
+    out.add(new McpElicitorResolver());
     out.add(new McpToolParamsResolver(objectMapper));
     out.addAll(userResolvers);
     out.add(new Jackson3ParameterResolver(objectMapper));
@@ -325,6 +326,13 @@ public final class CallToolHandlers {
     }
   }
 
+  /**
+   * Compiles a framework-generated schema for runtime argument/output validation. Only schemas
+   * produced by {@link MethodSchemaGenerator} reach this point — they never contain external {@code
+   * $ref}s, so {@code SchemaLoader} never dereferences anything remote (SEP-2106 forbids
+   * auto-dereferencing external refs). If a future feature feeds user-supplied raw schemas into
+   * compilation, remote ref resolution must be disabled explicitly.
+   */
   private static Schema compile(ObjectNode schema) {
     return new SchemaLoader(new JsonParser(schema.toString()).parse()).load();
   }

@@ -19,7 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.api.resources.McpResource;
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.guards.GuardDecision;
@@ -58,7 +60,10 @@ class ReadResourceHandlerTest {
         mimeType = "text/plain")
     public ReadResourceResult hello() {
       return new ReadResourceResult(
-          List.of(new TextResourceContents("test://hello", "text/plain", "hi")));
+          List.of(new TextResourceContents("test://hello", "text/plain", "hi")),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -66,7 +71,10 @@ class ReadResourceHandlerTest {
     @McpResource(uri = "test://defaulted")
     public ReadResourceResult defaulted() {
       return new ReadResourceResult(
-          List.of(new TextResourceContents("test://defaulted", "text/plain", "ok")));
+          List.of(new TextResourceContents("test://defaulted", "text/plain", "ok")),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
   }
 
@@ -253,7 +261,10 @@ class ReadResourceHandlerTest {
     @McpResource(uri = "test://tenant")
     public ReadResourceResult read(@CurrentTenant String tenant) {
       return new ReadResourceResult(
-          List.of(new TextResourceContents("test://tenant", "text/plain", "tenant=" + tenant)));
+          List.of(new TextResourceContents("test://tenant", "text/plain", "tenant=" + tenant)),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
     }
   }
 

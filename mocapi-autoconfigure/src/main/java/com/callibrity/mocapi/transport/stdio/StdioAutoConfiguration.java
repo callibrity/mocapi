@@ -17,7 +17,6 @@ package com.callibrity.mocapi.transport.stdio;
 
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
-import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -28,9 +27,9 @@ import org.springframework.context.annotation.Bean;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Wires the stdio transport. Enabled by {@code mocapi.stdio.enabled=true}; clients that launch the
- * server as a subprocess (Claude Desktop and friends) should set this in {@code
- * application.properties} or as a command-line override.
+ * Wires the stateless stdio transport (MCP 2026-07-28). Enabled by {@code
+ * mocapi.stdio.enabled=true}; clients that launch the server as a subprocess (Claude Desktop and
+ * friends) should set this in {@code application.properties} or as a command-line override.
  */
 @AutoConfiguration(after = MocapiServerAutoConfiguration.class)
 @ConditionalOnClass(StdioTransport.class)
@@ -38,34 +37,18 @@ import tools.jackson.databind.ObjectMapper;
 @ConditionalOnProperty(prefix = "mocapi.stdio", name = "enabled", havingValue = "true")
 public class StdioAutoConfiguration {
 
-  /**
-   * Shared session id holder — the transport writes to it from {@link StdioTransport#emit} when it
-   * sees {@code SessionInitialized}, and the server reads from it on every dispatch. An {@link
-   * AtomicReference} avoids a circular bean dependency between the two.
-   */
   @Bean
   @ConditionalOnMissingBean
-  public AtomicReference<String> mcpStdioSessionIdHolder() {
-    return new AtomicReference<>();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public StdioTransport mcpStdioTransport(
-      ObjectMapper objectMapper, AtomicReference<String> mcpStdioSessionIdHolder) {
+  public StdioTransport mcpStdioTransport(ObjectMapper objectMapper) {
     // NOSONAR java:S106 — stdout IS the protocol output channel for this transport.
-    return new StdioTransport(objectMapper, System.out, mcpStdioSessionIdHolder::set); // NOSONAR
+    return new StdioTransport(objectMapper, System.out); // NOSONAR
   }
 
   @Bean
   @ConditionalOnMissingBean
   public StdioServer mcpStdioServer(
-      McpServer server,
-      ObjectMapper objectMapper,
-      StdioTransport mcpStdioTransport,
-      AtomicReference<String> mcpStdioSessionIdHolder) {
-    return new StdioServer(
-        server, objectMapper, mcpStdioTransport, StdioServer.stdin(), mcpStdioSessionIdHolder::get);
+      McpServer server, ObjectMapper objectMapper, StdioTransport mcpStdioTransport) {
+    return new StdioServer(server, objectMapper, mcpStdioTransport, StdioServer.stdin());
   }
 
   @Bean

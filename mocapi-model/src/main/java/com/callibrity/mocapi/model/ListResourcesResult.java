@@ -19,4 +19,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ListResourcesResult(List<Resource> resources, String nextCursor) {}
+public record ListResourcesResult(
+    List<Resource> resources,
+    String nextCursor,
+    long ttlMs,
+    CacheScope cacheScope,
+    String resultType) {}

@@ -18,26 +18,25 @@ package com.callibrity.mocapi.server.autoconfigure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.Implementation;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.DefaultMcpServer;
-import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransportResolver;
+import com.callibrity.mocapi.server.cache.CacheSettings;
+import com.callibrity.mocapi.server.discover.DiscoverHandler;
+import com.callibrity.mocapi.server.elicitation.ElicitationNotSupportedExceptionTranslator;
+import com.callibrity.mocapi.server.exchange.MetaEnvelopeParser;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
-import com.callibrity.mocapi.server.logging.McpLoggingService;
-import com.callibrity.mocapi.server.ping.McpPingService;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
+import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
-import com.callibrity.mocapi.server.session.McpSessionResolver;
-import com.callibrity.mocapi.server.session.McpSessionService;
-import com.callibrity.mocapi.server.session.McpSessionStore;
-import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.substrate.atom.AtomFactory;
-import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -60,16 +59,6 @@ class MocapiServerAutoConfigurationTest {
   static class InfrastructureConfig {
 
     @Bean
-    AtomFactory atomFactory() {
-      return SubstrateTestSupport.atomFactory();
-    }
-
-    @Bean
-    MailboxFactory mailboxFactory() {
-      return SubstrateTestSupport.mailboxFactory();
-    }
-
-    @Bean
     ObjectMapper objectMapper() {
       return new ObjectMapper();
     }
@@ -85,17 +74,17 @@ class MocapiServerAutoConfigurationTest {
     contextRunner.run(
         context -> {
           assertThat(context).hasSingleBean(Implementation.class);
-          assertThat(context).hasSingleBean(McpSessionStore.class);
-          assertThat(context).hasSingleBean(McpSessionResolver.class);
           assertThat(context).hasSingleBean(McpTransportResolver.class);
           assertThat(context).hasSingleBean(ServerCapabilities.class);
-          assertThat(context).hasSingleBean(McpSessionService.class);
-          assertThat(context).hasSingleBean(McpResponseCorrelationService.class);
+          assertThat(context).hasSingleBean(MetaEnvelopeParser.class);
+          assertThat(context).hasSingleBean(RequestStateCodec.class);
+          assertThat(context).hasSingleBean(MrtrElicitationEngine.class);
+          assertThat(context).hasSingleBean(ElicitationNotSupportedExceptionTranslator.class);
+          assertThat(context).hasSingleBean(CacheSettings.class);
+          assertThat(context).hasSingleBean(DiscoverHandler.class);
           assertThat(context).hasSingleBean(McpServer.class);
           assertThat(context).hasSingleBean(McpResourcesService.class);
-          assertThat(context).hasSingleBean(McpPingService.class);
           assertThat(context).hasSingleBean(McpLifecycleService.class);
-          assertThat(context).hasSingleBean(McpLoggingService.class);
         });
   }
 
@@ -144,10 +133,12 @@ class MocapiServerAutoConfigurationTest {
           MocapiServerProperties props = context.getBean(MocapiServerProperties.class);
           assertThat(props.serverName()).isEqualTo("mocapi");
           assertThat(props.serverTitle()).isEqualTo("Callibrity Mocapi MCP Server");
-          assertThat(props.sessionTimeout()).hasHours(1);
           assertThat(props.allowedOrigins()).containsExactly("localhost", "127.0.0.1", "[::1]");
-          assertThat(props.elicitation().timeout()).hasMinutes(5);
-          assertThat(props.sampling().timeout()).hasSeconds(30);
+          assertThat(props.mrtr().secret()).isEmpty();
+          assertThat(props.mrtr().ttl()).hasMinutes(5);
+          assertThat(props.cache().listTtl()).isZero();
+          assertThat(props.cache().readTtl()).isZero();
+          assertThat(props.cache().scope()).isEqualTo(CacheScope.PRIVATE);
           assertThat(props.pagination().pageSize()).isEqualTo(50);
         });
   }
@@ -158,21 +149,25 @@ class MocapiServerAutoConfigurationTest {
         .withPropertyValues(
             "mocapi.server-name=custom-server",
             "mocapi.server-title=Custom Title",
-            "mocapi.session-timeout=PT30M",
+            "mocapi.mrtr.ttl=PT2M",
+            "mocapi.cache.list-ttl=PT1M",
+            "mocapi.cache.scope=public",
             "mocapi.pagination.page-size=25")
         .run(
             context -> {
               MocapiServerProperties props = context.getBean(MocapiServerProperties.class);
               assertThat(props.serverName()).isEqualTo("custom-server");
               assertThat(props.serverTitle()).isEqualTo("Custom Title");
-              assertThat(props.sessionTimeout()).hasMinutes(30);
+              assertThat(props.mrtr().ttl()).hasMinutes(2);
+              assertThat(props.cache().listTtl()).hasMinutes(1);
+              assertThat(props.cache().scope()).isEqualTo(CacheScope.PUBLIC);
               assertThat(props.pagination().pageSize()).isEqualTo(25);
             });
   }
 
   @Test
   void custom_implementation_overrides_default() {
-    Implementation custom = new Implementation("custom", "Custom Server", "9.9.9");
+    Implementation custom = new Implementation("custom", "Custom Server", "9.9.9", null);
     contextRunner
         .withBean(Implementation.class, () -> custom)
         .run(
@@ -183,20 +178,9 @@ class MocapiServerAutoConfigurationTest {
   }
 
   @Test
-  void custom_session_store_overrides_default() {
-    McpSessionStore custom = SessionStoreTestSupport.create();
-    contextRunner
-        .withBean(McpSessionStore.class, () -> custom)
-        .run(
-            context -> {
-              assertThat(context).hasSingleBean(McpSessionStore.class);
-              assertThat(context.getBean(McpSessionStore.class)).isSameAs(custom);
-            });
-  }
-
-  @Test
   void custom_server_capabilities_overrides_default() {
-    ServerCapabilities custom = new ServerCapabilities(null, null, null, null, null);
+    ServerCapabilities custom =
+        new ServerCapabilities(null, null, null, null, null, null, Map.of());
     contextRunner
         .withBean(ServerCapabilities.class, () -> custom)
         .run(
@@ -207,14 +191,15 @@ class MocapiServerAutoConfigurationTest {
   }
 
   @Test
-  void custom_ping_service_overrides_default() {
-    McpPingService custom = new McpPingService();
+  void custom_request_state_codec_overrides_default() {
+    RequestStateCodec custom =
+        RequestStateCodec.withEphemeralKey(RequestStateCodec.DEFAULT_TTL, new ObjectMapper());
     contextRunner
-        .withBean(McpPingService.class, () -> custom)
+        .withBean(RequestStateCodec.class, () -> custom)
         .run(
             context -> {
-              assertThat(context).hasSingleBean(McpPingService.class);
-              assertThat(context.getBean(McpPingService.class)).isSameAs(custom);
+              assertThat(context).hasSingleBean(RequestStateCodec.class);
+              assertThat(context.getBean(RequestStateCodec.class)).isSameAs(custom);
             });
   }
 }

@@ -37,7 +37,7 @@ class RequestAndNotificationTypesSerializationTest {
 
     @Test
     void round_trip() throws Exception {
-      var params = new RequestParams(new RequestMeta(StringNode.valueOf("tok")));
+      var params = new RequestParams(new RequestMeta(StringNode.valueOf("tok"), null, null, null));
       String json = mapper.writeValueAsString(params);
       assertThat(json).contains("\"_meta\"").contains("\"progressToken\":\"tok\"");
 
@@ -59,7 +59,8 @@ class RequestAndNotificationTypesSerializationTest {
     @Test
     void round_trip() throws Exception {
       var params =
-          new PaginatedRequestParams("cursor-123", new RequestMeta(StringNode.valueOf("tok")));
+          new PaginatedRequestParams(
+              "cursor-123", new RequestMeta(StringNode.valueOf("tok"), null, null, null));
       String json = mapper.writeValueAsString(params);
       assertThat(json).contains("\"cursor\":\"cursor-123\"").contains("\"_meta\"");
 
@@ -85,41 +86,15 @@ class RequestAndNotificationTypesSerializationTest {
       String json = mapper.writeValueAsString(params);
       assertThat(json).isEqualTo("{}");
     }
-
-    @Test
-    void task_metadata_round_trip() throws Exception {
-      var task = new TaskMetadata("task-1");
-      String json = mapper.writeValueAsString(task);
-      assertThat(json).isEqualTo("{\"taskId\":\"task-1\"}");
-
-      var deserialized = mapper.readValue(json, TaskMetadata.class);
-      assertThat(deserialized.taskId()).isEqualTo("task-1");
-    }
   }
 
   @Nested
   class Request_type_round_trips {
 
     @Test
-    void initialize_request_params() throws Exception {
-      var params =
-          new InitializeRequestParams(
-              "2025-11-25",
-              new ClientCapabilities(null, null, null),
-              new Implementation("test-client", null, "1.0"),
-              null);
-      String json = mapper.writeValueAsString(params);
-      assertThat(json).contains("\"protocolVersion\":\"2025-11-25\"").contains("\"clientInfo\"");
-
-      var deserialized = mapper.readValue(json, InitializeRequestParams.class);
-      assertThat(deserialized.protocolVersion()).isEqualTo("2025-11-25");
-      assertThat(deserialized.clientInfo().name()).isEqualTo("test-client");
-    }
-
-    @Test
     void call_tool_request_params() throws Exception {
       var argsNode = mapper.readTree("{\"key\":\"value\"}");
-      var params = new CallToolRequestParams("myTool", argsNode, null, null);
+      var params = new CallToolRequestParams("myTool", argsNode, null, null, null);
       String json = mapper.writeValueAsString(params);
       assertThat(json)
           .contains("\"name\":\"myTool\"")
@@ -131,23 +106,45 @@ class RequestAndNotificationTypesSerializationTest {
     }
 
     @Test
-    void call_tool_request_params_with_task() throws Exception {
+    void call_tool_request_params_with_meta() throws Exception {
       var params =
           new CallToolRequestParams(
               "tool",
               null,
-              new TaskMetadata("t1"),
-              new RequestMeta(StringNode.valueOf("progress-tok")));
+              null,
+              null,
+              new RequestMeta(StringNode.valueOf("tok"), null, null, null));
       String json = mapper.writeValueAsString(params);
-      assertThat(json).contains("\"task\":{\"taskId\":\"t1\"}").contains("\"_meta\"");
+      assertThat(json).contains("\"_meta\"").contains("\"progressToken\":\"tok\"");
 
       var deserialized = mapper.readValue(json, CallToolRequestParams.class);
-      assertThat(deserialized.task().taskId()).isEqualTo("t1");
+      assertThat(deserialized.meta().progressToken().asString()).isEqualTo("tok");
+    }
+
+    @Test
+    void call_tool_request_params_mrtr_retry_round_trip() throws Exception {
+      var params =
+          new CallToolRequestParams(
+              "tool",
+              null,
+              Map.of("elicit-1", new ElicitResult(ElicitAction.ACCEPT, null)),
+              "opaque-state",
+              null);
+      String json = mapper.writeValueAsString(params);
+      assertThat(json)
+          .contains("\"requestState\":\"opaque-state\"")
+          .contains("\"inputResponses\":{\"elicit-1\":{\"action\":\"accept\"}}");
+
+      var deserialized = mapper.readValue(json, CallToolRequestParams.class);
+      assertThat(deserialized.requestState()).isEqualTo("opaque-state");
+      assertThat(deserialized.inputResponses().get("elicit-1"))
+          .isInstanceOf(ElicitResult.class)
+          .satisfies(r -> assertThat(((ElicitResult) r).action()).isEqualTo(ElicitAction.ACCEPT));
     }
 
     @Test
     void get_prompt_request_params() throws Exception {
-      var params = new GetPromptRequestParams("myPrompt", Map.of("arg1", "val1"), null);
+      var params = new GetPromptRequestParams("myPrompt", Map.of("arg1", "val1"), null, null, null);
       String json = mapper.writeValueAsString(params);
       assertThat(json).contains("\"name\":\"myPrompt\"").contains("\"arg1\":\"val1\"");
 
@@ -158,22 +155,12 @@ class RequestAndNotificationTypesSerializationTest {
 
     @Test
     void resource_request_params() throws Exception {
-      var params = new ResourceRequestParams("file:///test.txt", null);
+      var params = new ResourceRequestParams("file:///test.txt", null, null, null);
       String json = mapper.writeValueAsString(params);
       assertThat(json).isEqualTo("{\"uri\":\"file:///test.txt\"}");
 
       var deserialized = mapper.readValue(json, ResourceRequestParams.class);
       assertThat(deserialized.uri()).isEqualTo("file:///test.txt");
-    }
-
-    @Test
-    void set_level_request_params() throws Exception {
-      var params = new SetLevelRequestParams(LoggingLevel.WARNING, null);
-      String json = mapper.writeValueAsString(params);
-      assertThat(json).contains("\"level\":\"warning\"");
-
-      var deserialized = mapper.readValue(json, SetLevelRequestParams.class);
-      assertThat(deserialized.level()).isEqualTo(LoggingLevel.WARNING);
     }
 
     @Test
@@ -192,17 +179,18 @@ class RequestAndNotificationTypesSerializationTest {
     }
 
     @Test
+    // SEP-2577 spec contract: the sampling request/message types are deprecated but remain in the
+    // specification for the deprecation window; this round-trip exercises the retained 1:1 model.
+    @SuppressWarnings("deprecation")
     void create_message_request_params() throws Exception {
       var params =
           new CreateMessageRequestParams(
-              List.of(new SamplingMessage(Role.USER, null)),
+              List.of(new SamplingMessage(Role.USER, List.of(new TextContent("Hi", null)), null)),
               null,
               "You are helpful",
               IncludeContext.THIS_SERVER,
               0.7,
               1024,
-              null,
-              null,
               null,
               null,
               null,
@@ -273,38 +261,37 @@ class RequestAndNotificationTypesSerializationTest {
 
     @Test
     void form_params_round_trip() throws Exception {
-      var params = new ElicitRequestFormParams("form", "Please fill", null, null, null);
+      ElicitRequestParams params = new ElicitRequestFormParams("Please fill", null);
       String json = mapper.writeValueAsString(params);
       assertThat(json).contains("\"mode\":\"form\"").contains("\"message\":\"Please fill\"");
 
-      var deserialized = mapper.readValue(json, ElicitRequestFormParams.class);
-      assertThat(deserialized.mode()).isEqualTo("form");
-      assertThat(deserialized.message()).isEqualTo("Please fill");
+      var deserialized = mapper.readValue(json, ElicitRequestParams.class);
+      assertThat(deserialized).isInstanceOf(ElicitRequestFormParams.class);
+      assertThat(((ElicitRequestFormParams) deserialized).message()).isEqualTo("Please fill");
+    }
+
+    @Test
+    void form_params_without_mode_deserialize_as_form() throws Exception {
+      var deserialized =
+          mapper.readValue("{\"message\":\"Please fill\"}", ElicitRequestParams.class);
+      assertThat(deserialized).isInstanceOf(ElicitRequestFormParams.class);
+      assertThat(((ElicitRequestFormParams) deserialized).message()).isEqualTo("Please fill");
     }
 
     @Test
     void url_params_round_trip() throws Exception {
-      var params =
-          new ElicitRequestURLParams(
-              "url", "Click link", "elicit-1", "https://example.com", null, null);
+      ElicitRequestParams params = new ElicitRequestURLParams("Click link", "https://example.com");
       String json = mapper.writeValueAsString(params);
-      assertThat(json).contains("\"mode\":\"url\"").contains("\"elicitationId\":\"elicit-1\"");
+      assertThat(json).contains("\"mode\":\"url\"").contains("\"message\":\"Click link\"");
 
-      var deserialized = mapper.readValue(json, ElicitRequestURLParams.class);
-      assertThat(deserialized.mode()).isEqualTo("url");
-      assertThat(deserialized.url()).isEqualTo("https://example.com");
+      var deserialized = mapper.readValue(json, ElicitRequestParams.class);
+      assertThat(deserialized).isInstanceOf(ElicitRequestURLParams.class);
+      assertThat(((ElicitRequestURLParams) deserialized).url()).isEqualTo("https://example.com");
     }
   }
 
   @Nested
   class Notification_params {
-
-    @Test
-    void initialized_notification_omits_null_meta() throws Exception {
-      var params = new InitializedNotificationParams(null);
-      String json = mapper.writeValueAsString(params);
-      assertThat(json).isEqualTo("{}");
-    }
 
     @Test
     void cancelled_notification_round_trip() throws Exception {
@@ -348,31 +335,5 @@ class RequestAndNotificationTypesSerializationTest {
       var deserialized = mapper.readValue(json, ResourceUpdatedNotificationParams.class);
       assertThat(deserialized.uri()).isEqualTo("file:///updated.txt");
     }
-
-    @Test
-    void elicitation_complete_notification_round_trip() throws Exception {
-      var params = new ElicitationCompleteNotificationParams("elicit-42", null);
-      String json = mapper.writeValueAsString(params);
-      assertThat(json).isEqualTo("{\"elicitationId\":\"elicit-42\"}");
-
-      var deserialized = mapper.readValue(json, ElicitationCompleteNotificationParams.class);
-      assertThat(deserialized.elicitationId()).isEqualTo("elicit-42");
-    }
-  }
-
-  @Test
-  void mcp_methods_constants() {
-    assertThat(McpMethods.INITIALIZE).isEqualTo("initialize");
-    assertThat(McpMethods.TOOLS_CALL).isEqualTo("tools/call");
-    assertThat(McpMethods.PROMPTS_GET).isEqualTo("prompts/get");
-    assertThat(McpMethods.RESOURCES_READ).isEqualTo("resources/read");
-    assertThat(McpMethods.SAMPLING_CREATE_MESSAGE).isEqualTo("sampling/createMessage");
-    assertThat(McpMethods.COMPLETION_COMPLETE).isEqualTo("completion/complete");
-    assertThat(McpMethods.ELICITATION_CREATE).isEqualTo("elicitation/create");
-    assertThat(McpMethods.NOTIFICATIONS_INITIALIZED).isEqualTo("notifications/initialized");
-    assertThat(McpMethods.NOTIFICATIONS_CANCELLED).isEqualTo("notifications/cancelled");
-    assertThat(McpMethods.NOTIFICATIONS_PROGRESS).isEqualTo("notifications/progress");
-    assertThat(McpMethods.NOTIFICATIONS_ELICITATION_COMPLETE)
-        .isEqualTo("notifications/elicitation/complete");
   }
 }

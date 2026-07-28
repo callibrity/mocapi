@@ -16,9 +16,11 @@
 package com.callibrity.mocapi.server.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ImageContent;
+import com.callibrity.mocapi.model.ResourceLink;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -56,7 +58,9 @@ class ResultMappersTest {
 
     @Test
     void CallToolResult_input_is_returned_as_is() {
-      CallToolResult in = new CallToolResult(List.of(new TextContent("hello", null)), null, null);
+      CallToolResult in =
+          new CallToolResult(
+              List.of(new TextContent("hello", null)), null, null, ResultTypes.COMPLETE);
 
       CallToolResult out = PassthroughResultMapper.INSTANCE.map(in);
 
@@ -130,15 +134,54 @@ class ResultMappersTest {
     }
 
     @Test
-    void value_that_serializes_to_a_non_object_node_throws_illegal_state() {
-      // Registration-time classifier guarantees a structured handler only pairs with object-shaped
-      // schemas, so this should never happen in practice — but a custom Jackson serializer or an
-      // unexpected subclass could still produce a non-object node at runtime, in which case the
-      // mapper fails loudly rather than silently dropping structuredContent.
-      List<String> nonObjectPayload = List.of("not", "an", "object");
-      assertThatThrownBy(() -> structured.map(nonObjectPayload))
-          .isInstanceOf(IllegalStateException.class)
-          .hasMessageContaining("structuredContent must be a JSON object");
+    void array_value_is_serialized_into_array_structured_content_and_text_content() {
+      // MCP 2026-07-28: structuredContent may be any JSON value, not only an object.
+      CallToolResult out = structured.map(List.of("a", "b"));
+      assertThat(out.structuredContent()).isNotNull();
+      assertThat(out.structuredContent().isArray()).isTrue();
+      assertThat(out.structuredContent().get(0).asString()).isEqualTo("a");
+      assertThat(out.content()).hasSize(1);
+      assertThat(((TextContent) out.content().getFirst()).text()).isEqualTo("[\"a\",\"b\"]");
+    }
+
+    @Test
+    void scalar_value_is_serialized_into_scalar_structured_content_and_text_content() {
+      CallToolResult out = structured.map(42);
+      assertThat(out.structuredContent().isNumber()).isTrue();
+      assertThat(out.structuredContent().asInt()).isEqualTo(42);
+      assertThat(((TextContent) out.content().getFirst()).text()).isEqualTo("42");
+    }
+  }
+
+  @Nested
+  class ContentBlockResultMapper_tests {
+
+    @Test
+    void single_content_block_becomes_the_sole_content_item_with_no_structured_content() {
+      var image = new ImageContent("base64data", "image/png", null);
+
+      CallToolResult out = ContentBlockResultMapper.INSTANCE.map(image);
+
+      assertThat(out.isError()).isNull();
+      assertThat(out.structuredContent()).isNull();
+      assertThat(out.content()).containsExactly(image);
+    }
+
+    @Test
+    void null_input_produces_empty_content_without_structured_content() {
+      CallToolResult out = ContentBlockResultMapper.INSTANCE.map(null);
+      assertThat(out.content()).isEmpty();
+      assertThat(out.structuredContent()).isNull();
+    }
+
+    @Test
+    void wraps_a_non_image_content_block_subtype_too() {
+      var link = new ResourceLink("file:///doc", "text/plain", null);
+
+      CallToolResult out = ContentBlockResultMapper.INSTANCE.map(link);
+
+      assertThat(out.content()).containsExactly(link);
+      assertThat(out.structuredContent()).isNull();
     }
   }
 

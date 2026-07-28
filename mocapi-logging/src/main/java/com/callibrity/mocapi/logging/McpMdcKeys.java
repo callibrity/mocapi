@@ -21,11 +21,17 @@ package com.callibrity.mocapi.logging;
  */
 public final class McpMdcKeys {
 
-  /** Current MCP session id; set when a session is bound to the invocation. */
-  public static final String SESSION = "mcp.session";
-
-  /** MCP protocol version negotiated for the current session; set when a session is bound. */
+  /**
+   * MCP protocol version the client declared in the request's {@code _meta} envelope; set when an
+   * {@code McpExchange} is bound to the invocation.
+   */
   public static final String PROTOCOL_VERSION = "mcp.protocol.version";
+
+  /**
+   * Client name from the {@code io.modelcontextprotocol/clientInfo} envelope key; set when an
+   * {@code McpExchange} is bound to the invocation.
+   */
+  public static final String CLIENT_NAME = "mcp.client.name";
 
   /**
    * Handler kind — one of {@code tool} / {@code prompt} / {@code resource} / {@code

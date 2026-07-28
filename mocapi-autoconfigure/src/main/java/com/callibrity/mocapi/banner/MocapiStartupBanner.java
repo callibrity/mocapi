@@ -15,9 +15,10 @@
  */
 package com.callibrity.mocapi.banner;
 
+import com.callibrity.mocapi.server.McpServer;
+import com.callibrity.mocapi.server.discover.DiscoverHandler;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
-import com.callibrity.mocapi.server.session.McpSessionStore;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,9 +62,9 @@ public class MocapiStartupBanner {
       """;
 
   private final ObjectProvider<McpToolsService> tools;
+  private final ObjectProvider<DiscoverHandler> discover;
   private final ObjectProvider<McpPromptsService> prompts;
   private final ObjectProvider<McpResourcesService> resources;
-  private final ObjectProvider<McpSessionStore> sessionStore;
   private final Environment env;
   private final ApplicationContext ctx;
 
@@ -71,13 +72,13 @@ public class MocapiStartupBanner {
       ObjectProvider<McpToolsService> tools,
       ObjectProvider<McpPromptsService> prompts,
       ObjectProvider<McpResourcesService> resources,
-      ObjectProvider<McpSessionStore> sessionStore,
+      ObjectProvider<DiscoverHandler> discover,
       Environment env,
       ApplicationContext ctx) {
     this.tools = tools;
+    this.discover = discover;
     this.prompts = prompts;
     this.resources = resources;
-    this.sessionStore = sessionStore;
     this.env = env;
     this.ctx = ctx;
   }
@@ -101,8 +102,8 @@ public class MocapiStartupBanner {
         String.format(
             "  Tools: %d | Prompts: %d | Resources: %d",
             toolCount(), promptCount(), resourceCount()));
+    lines.add("  Protocol: " + describeProtocol());
     lines.add("  Transport: " + describeTransport());
-    lines.add("  Session store: " + describeSessionStore());
     lines.add("  OAuth2: " + describeOAuth2());
     String observability = describeObservability();
     if (!observability.isEmpty()) {
@@ -137,6 +138,19 @@ public class MocapiStartupBanner {
     return svc.allResourceHandlers().size() + svc.allResourceTemplateHandlers().size();
   }
 
+  /**
+   * The protocol versions this server accepts — sourced from the same {@link DiscoverHandler} that
+   * answers {@code server/discover}, so the banner cannot drift from the wire truth. Falls back to
+   * the compiled-in {@link McpServer#PROTOCOL_VERSION} when the handler bean is absent (e.g. a test
+   * slice excluding the server auto-configuration).
+   */
+  private String describeProtocol() {
+    var handler = discover.getIfAvailable();
+    return handler == null
+        ? McpServer.PROTOCOL_VERSION
+        : String.join(", ", handler.discover().supportedVersions());
+  }
+
   private String describeTransport() {
     boolean http = beanPresent("com.callibrity.mocapi.transport.http.StreamableHttpController");
     boolean stdio = beanPresent("com.callibrity.mocapi.transport.stdio.StdioServer");
@@ -148,11 +162,6 @@ public class MocapiStartupBanner {
       return "stdio";
     }
     return "(none detected)";
-  }
-
-  private String describeSessionStore() {
-    var store = sessionStore.getIfAvailable();
-    return store == null ? "(none)" : store.getClass().getSimpleName();
   }
 
   private String describeOAuth2() {

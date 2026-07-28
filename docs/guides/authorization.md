@@ -1,6 +1,6 @@
 # Authorization
 
-Mocapi ships an OAuth2 resource-server module for the Streamable HTTP transport. The MCP 2025-11-25 authorization specification requires servers to:
+Mocapi ships an OAuth2 resource-server module for the Streamable HTTP transport. The MCP 2026-07-28 authorization specification requires servers to:
 
 1. Validate bearer JWTs on every request (signature, expiry, audience).
 2. Respond with `401 WWW-Authenticate: Bearer ... resource_metadata="..."` when a token is missing or invalid.
@@ -50,7 +50,7 @@ spring:
             - https://mcp.example.com
 
 mocapi:
-  server-title: My MCP Server                          # already used by MCP initialize;
+  server-title: My MCP Server                          # already used by server/discover;
                                                        # reused as OAuth2 resource_name
   oauth2:
     resource: https://mcp.example.com                  # optional — defaults to audiences[0]
@@ -64,7 +64,7 @@ mocapi:
     resource-tos-uri: https://example.com/tos          # optional — terms of service
 ```
 
-The metadata's `resource_name` field is sourced from `mocapi.server-title` (falling back to `mocapi.server-name`) — the same human-readable label the MCP `initialize` response advertises. Having one property feed both avoids a configuration drift where the OAuth2 metadata names a different server than the MCP handshake.
+The metadata's `resource_name` field is sourced from `mocapi.server-title` (falling back to `mocapi.server-name`) — the same human-readable label the MCP `server/discover` response advertises. Having one property feed both avoids a configuration drift where the OAuth2 metadata names a different server than the MCP discovery surface.
 
 `spring.security.oauth2.resourceserver.jwt.issuer-uri` and `.audiences` are the standard Spring Boot properties; mocapi does not duplicate them. The `mocapi.oauth2.*` properties cover the MCP-specific metadata document.
 
@@ -327,7 +327,7 @@ SPI's AND evaluation means every attached guard must allow.
 
 Denied calls do not reach the handler: `tools/list` (and the matching
 `prompts/list`, `resources/list`, `resources/templates/list`) hides the
-handler entirely, and `tools/call` returns JSON-RPC `-32003` with
+handler entirely, and `tools/call` returns JSON-RPC `-32010` with
 `Forbidden: <reason>` where the reason comes from the first denying
 guard (`unauthenticated`, `missing scope(s): ...`, or
 `insufficient role`). Deny reasons are only returned at call time —
@@ -336,7 +336,7 @@ list time simply omits the handler so the decision doesn't leak.
 Unlike Spring Security's `@PreAuthorize`, guards gate list operations as
 well as call operations — clients doing `tools/list` never see handlers
 they aren't entitled to invoke. And guard denials surface as the
-protocol-right `-32003 Forbidden` shape instead of the generic
+protocol-right `-32010 Forbidden` shape (ADR-0023) instead of the generic
 `-32603 Internal error` an AOP-thrown `AccessDeniedException` would
 produce. See [docs/guards.md](guards.md) for the underlying Guard SPI,
 and the `mocapi-spring-security-guards` module for the annotation

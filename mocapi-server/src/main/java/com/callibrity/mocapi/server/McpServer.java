@@ -17,24 +17,46 @@ package com.callibrity.mocapi.server;
 
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
-import com.callibrity.ripcurl.core.JsonRpcResponse;
 
+/**
+ * Stateless MCP server entry point (ADR-0019, ADR-0020). Every request is self-contained: the
+ * client's protocol version, identity, and capabilities arrive in the request's {@code _meta}
+ * envelope. There is no handshake, no session, and no server-initiated request channel.
+ */
 public interface McpServer {
 
   /**
-   * The MCP protocol version this server build implements. Individual sessions may negotiate an
-   * older version at initialize time; this is what the server advertises as its native version in
-   * responses and protocol-version headers.
+   * The single MCP protocol version this server implements. There is no negotiation: a request
+   * carrying any other {@code io.modelcontextprotocol/protocolVersion} is rejected with the spec's
+   * {@code UnsupportedProtocolVersionError} (ADR-0019).
    */
-  String PROTOCOL_VERSION = "2025-11-25";
+  String PROTOCOL_VERSION = "2026-07-28";
 
-  McpContextResult createContext(String sessionId, String protocolVersion);
+  /**
+   * The pre-release sentinel the official conformance suite (and other draft-era clients) sends
+   * while 2026-07-28 is a release candidate. Accepted as an alias of {@link #PROTOCOL_VERSION}
+   * during the RC window only.
+   *
+   * <p><b>Remove at the RC→final re-verification</b> (migration plan Task 9.3) once the final spec
+   * ships and tooling switches to the dated version string.
+   */
+  String DRAFT_PROTOCOL_VERSION = "DRAFT-2026-v1";
 
-  void handleCall(McpContext context, JsonRpcCall call, McpTransport transport);
+  /**
+   * Handles a single JSON-RPC call: parses and validates the {@code _meta} envelope, dispatches the
+   * call with the resulting exchange in scope, and sends the response (or envelope error) through
+   * the transport.
+   *
+   * @param call the JSON-RPC call
+   * @param transport the transport to send responses and request-scoped notifications through
+   */
+  void handleCall(JsonRpcCall call, McpTransport transport);
 
-  void handleNotification(McpContext context, JsonRpcNotification notification);
-
-  void handleResponse(McpContext context, JsonRpcResponse response);
-
-  void terminate(McpContext context);
+  /**
+   * Handles a client notification (e.g. {@code notifications/cancelled}). Notifications do not
+   * carry the request {@code _meta} envelope and produce no response.
+   *
+   * @param notification the JSON-RPC notification
+   */
+  void handleNotification(JsonRpcNotification notification);
 }

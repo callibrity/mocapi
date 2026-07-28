@@ -20,14 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.model.CallToolResult;
-import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.model.ImageContent;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.model.Tool;
-import com.callibrity.mocapi.model.ToolsCapability;
-import com.callibrity.mocapi.server.McpResponseCorrelationService;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
+import com.callibrity.mocapi.server.tools.ContentBlockResultMapper;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.PassthroughResultMapper;
 import com.callibrity.mocapi.server.tools.ResultMapper;
@@ -78,7 +78,9 @@ class ToolsCallComplianceTest {
         makeTool(
             "direct-result",
             inputSchema,
-            args -> new CallToolResult(List.of(new TextContent("direct", null)), null, null),
+            args ->
+                new CallToolResult(
+                    List.of(new TextContent("direct", null)), null, null, ResultTypes.COMPLETE),
             PassthroughResultMapper.INSTANCE);
 
     CallToolHandler throwingJsonRpcTool =
@@ -103,6 +105,13 @@ class ToolsCallComplianceTest {
         makeTool(
             "structured", inputSchema, args -> Map.of("key", "structured-value"), structuredMapper);
 
+    CallToolHandler imageTool =
+        makeTool(
+            "image",
+            inputSchema,
+            args -> new ImageContent("base64data", "image/png", null),
+            ContentBlockResultMapper.INSTANCE);
+
     var toolsService =
         new McpToolsService(
             List.of(
@@ -111,24 +120,19 @@ class ToolsCallComplianceTest {
                 directResultTool,
                 throwingJsonRpcTool,
                 throwingOtherTool,
-                structuredTool),
+                structuredTool,
+                imageTool),
             MAPPER,
-            mock(McpResponseCorrelationService.class));
+            ComplianceTestSupport.mrtrEngine());
 
-    server =
-        buildServer(
-            inMemorySessionStore(),
-            new ServerCapabilities(new ToolsCapability(null), null, null, null, null),
-            toolsService);
+    server = buildServer(toolsService);
   }
 
   @Test
   void simple_tool_returns_content_array_with_result() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
         call("tools/call", Map.of("name", "simple", "arguments", Map.of("input", "test"))),
         transport);
 
@@ -140,11 +144,9 @@ class ToolsCallComplianceTest {
 
   @Test
   void void_tool_returns_empty_content() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
         call("tools/call", Map.of("name", "void-tool", "arguments", Map.of("input", "test"))),
         transport);
 
@@ -154,12 +156,27 @@ class ToolsCallComplianceTest {
   }
 
   @Test
-  void tool_returning_call_tool_result_directly_is_passed_through() {
-    var sessionId = initializeAndGetSessionId(server);
+  void tool_returning_a_single_content_block_yields_one_content_item_and_no_structured_content() {
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
+        call("tools/call", Map.of("name", "image", "arguments", Map.of("input", "test"))),
+        transport);
+
+    var result = captureResult(transport);
+    var content = result.result().path("content");
+    assertThat(content.isArray()).isTrue();
+    assertThat(content.size()).isEqualTo(1);
+    assertThat(content.get(0).path("type").asString()).isEqualTo("image");
+    assertThat(content.get(0).path("mimeType").asString()).isEqualTo("image/png");
+    assertThat(result.result().has("structuredContent")).isFalse();
+  }
+
+  @Test
+  void tool_returning_call_tool_result_directly_is_passed_through() {
+    var transport = mock(McpTransport.class);
+
+    server.handleCall(
         call("tools/call", Map.of("name", "direct-result", "arguments", Map.of("input", "test"))),
         transport);
 
@@ -170,11 +187,9 @@ class ToolsCallComplianceTest {
 
   @Test
   void tool_throwing_json_rpc_exception_returns_is_error_result_not_protocol_error() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
         call("tools/call", Map.of("name", "throws-jsonrpc", "arguments", Map.of("input", "test"))),
         transport);
 
@@ -186,11 +201,9 @@ class ToolsCallComplianceTest {
 
   @Test
   void tool_throwing_other_exception_returns_is_error_result() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
         call("tools/call", Map.of("name", "throws-other", "arguments", Map.of("input", "test"))),
         transport);
 
@@ -202,13 +215,10 @@ class ToolsCallComplianceTest {
 
   @Test
   void unknown_tool_name_returns_invalid_params_error() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
-        call("tools/call", Map.of("name", "nonexistent", "arguments", Map.of())),
-        transport);
+        call("tools/call", Map.of("name", "nonexistent", "arguments", Map.of())), transport);
 
     var error = captureError(transport);
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);
@@ -216,11 +226,9 @@ class ToolsCallComplianceTest {
 
   @Test
   void tool_with_structured_content_includes_it_in_result() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
         call("tools/call", Map.of("name", "structured", "arguments", Map.of("input", "test"))),
         transport);
 
@@ -232,11 +240,9 @@ class ToolsCallComplianceTest {
 
   @Test
   void tool_result_includes_both_content_and_structured_content() {
-    var sessionId = initializeAndGetSessionId(server);
     var transport = mock(McpTransport.class);
 
     server.handleCall(
-        withSession(sessionId, server),
         call("tools/call", Map.of("name", "structured", "arguments", Map.of("input", "test"))),
         transport);
 

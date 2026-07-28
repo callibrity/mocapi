@@ -17,25 +17,30 @@ package com.callibrity.mocapi.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+// SEP-2577 spec contract: CreateMessageResult is deprecated but remains in the specification for
+// the deprecation window; these tests exercise the retained 1:1 model type.
+@SuppressWarnings("deprecation")
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class CreateMessageResultTest {
 
   @Test
-  void text_returns_string_when_content_is_text_content() {
+  void text_returns_string_when_content_contains_a_text_content_block() {
     var result =
-        new CreateMessageResult(Role.ASSISTANT, new TextContent("Hello", null), "gpt", null);
+        new CreateMessageResult(
+            Role.ASSISTANT, List.of(new TextContent("Hello", null)), "gpt", null);
     assertThat(result.text()).isEqualTo("Hello");
   }
 
   @Test
-  void text_returns_null_when_content_is_image_content() {
+  void text_returns_null_when_content_has_no_text_content_block() {
     var result =
         new CreateMessageResult(
-            Role.ASSISTANT, new ImageContent("data", "image/png", null), "gpt", null);
+            Role.ASSISTANT, List.of(new ImageContent("data", "image/png", null)), "gpt", null);
     assertThat(result.text()).isNull();
   }
 

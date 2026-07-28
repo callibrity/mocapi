@@ -11,6 +11,14 @@ Three audiences, three trees:
 - **[adr/](adr/)** — you want to know *why* a thing is the way it is.
   Point-in-time architecture decisions with status.
 
+Alongside those three trees:
+
+- **[constitution.md](constitution.md)** — the non-negotiable architectural
+  invariants (each links its governing ADR).
+- **[roadmap.md](roadmap.md)** — where mocapi is going.
+- **[superpowers/](superpowers/)** — the spec-driven-development workflow, with
+  per-feature [specs](superpowers/specs/) and [plans](superpowers/plans/).
+
 Top-level project documents (README, CHANGELOG, CONTRIBUTING, PRD,
 SECURITY) live at the repo root.
 
@@ -33,7 +41,6 @@ SECURITY) live at the repo root.
 1. [`design/architecture-overview.md`](design/architecture-overview.md) — module layering, request flow, ScopedValues.
 2. [`design/transports.md`](design/transports.md) — Streamable HTTP and stdio.
 3. [`design/extension-spi.md`](design/extension-spi.md) — customizers, strata, parameter resolvers.
-4. [`design/storage-and-substrate.md`](design/storage-and-substrate.md) — the four pluggable SPIs.
 5. The [ADR index](adr/README.md) — pick decisions relevant to your area.
 
 **If you are looking for a specific decision,** the [ADR index](adr/README.md)

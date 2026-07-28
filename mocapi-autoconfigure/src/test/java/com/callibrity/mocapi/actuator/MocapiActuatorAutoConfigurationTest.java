@@ -60,7 +60,7 @@ class MocapiActuatorAutoConfigurationTest {
   static class StubBeans {
     @Bean
     Implementation serverInfo() {
-      return new Implementation("mocapi", "Mocapi", "1.0.0");
+      return new Implementation("mocapi", "Mocapi", "1.0.0", null);
     }
 
     @Bean

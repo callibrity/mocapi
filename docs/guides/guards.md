@@ -16,7 +16,7 @@ can't see it.
 The core SPI lives in `com.callibrity.mocapi.server.guards`. Mocapi does not
 own any auth model: each guard implementation reaches into its own
 framework of choice (Spring Security's `SecurityContextHolder`,
-`McpSession.CURRENT`, a servlet request, a plain `ScopedValue`, …) for the
+`McpExchange.CURRENT`, a servlet request, a plain `ScopedValue`, …) for the
 runtime state it needs.
 
 ## The SPI
@@ -74,8 +74,10 @@ single guard class.
 ## Runtime semantics
 
 **Call time.** After lookup, the service evaluates the guard list. If any
-guard denies, the call throws a `JsonRpcException` with code `-32003`
-(`JsonRpcErrorCodes.FORBIDDEN`) and message `"Forbidden: <reason>"`, where
+guard denies, the call throws a `JsonRpcException` with code `-32010`
+(`JsonRpcErrorCodes.FORBIDDEN`; a mocapi-private code in JSON-RPC's
+implementation-defined sub-range, ADR-0023 — the 2026-07-28 spec's
+`MissingRequiredClientCapabilityError` lives at `-32021`) and message `"Forbidden: <reason>"`, where
 `<reason>` comes from the first denying guard. Tools do *not* return
 `CallToolResult.isError=true` for guard denies — that would invite an LLM
 to "self-correct" on an auth failure, which is nonsense. Guard failure is
@@ -91,8 +93,9 @@ validation, user-attached logic) run *inside* the handler's invoker chain.
 Guards run in the service layer *before* the invoker chain executes. A
 denied call never reaches its interceptors at all.
 
-**Initialize.** The `initialize` protocol call doesn't pass through any
-handler, so guards don't apply to it.
+**Protocol-level methods.** Calls that don't reach a user handler
+(`server/discover`, the list methods' dispatch itself) don't pass through
+guards; guards protect tool/prompt/resource handler invocations.
 
 ## Reference implementation
 
@@ -113,7 +116,7 @@ Both guards (`ScopeGuard`, `RoleGuard`) read
 no reflection on the hot path. Deny reasons include which scope(s) are
 missing for the scope case, or `"insufficient role"` for the role case.
 Denial of either hides the handler at list time and returns JSON-RPC
-`-32003` with that reason at call time. See
+`-32010` with that reason at call time. See
 [authorization.md](authorization.md) for the enterprise deployment
 shape (`mocapi-oauth2` + `mocapi-spring-security-guards` + a transport
 starter). Other guard packages (tenant checks, rate limits, custom auth

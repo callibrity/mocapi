@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
+import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Role;
 import com.callibrity.mocapi.model.TextContent;
 import java.util.List;
@@ -39,7 +40,9 @@ class PromptTemplateFactoryTest {
           capturedDescription.set(description);
           return args ->
               new GetPromptResult(
-                  description, List.of(new PromptMessage(role, new TextContent(template, null))));
+                  description,
+                  List.of(new PromptMessage(role, new TextContent(template, null))),
+                  ResultTypes.COMPLETE);
         };
 
     PromptTemplate template = factory.create(Role.USER, "hello");
@@ -57,7 +60,9 @@ class PromptTemplateFactoryTest {
         (role, description, template) ->
             args ->
                 new GetPromptResult(
-                    description, List.of(new PromptMessage(role, new TextContent(template, null))));
+                    description,
+                    List.of(new PromptMessage(role, new TextContent(template, null))),
+                    ResultTypes.COMPLETE);
 
     PromptTemplate template = factory.create(Role.ASSISTANT, "a description", "body");
 

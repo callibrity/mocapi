@@ -25,7 +25,7 @@ import java.lang.annotation.Target;
  * scope. Evaluated by {@link ScopeGuard}: all scopes must be present on the current {@code
  * Authentication} (AND semantics), in the form of {@code SCOPE_<name>} granted authorities — the
  * canonical shape Spring Security's JWT / opaque-token converters produce. Denial hides the handler
- * from list operations and returns JSON-RPC {@code -32003} on invocation.
+ * from list operations and returns JSON-RPC {@code -32010} on invocation.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)

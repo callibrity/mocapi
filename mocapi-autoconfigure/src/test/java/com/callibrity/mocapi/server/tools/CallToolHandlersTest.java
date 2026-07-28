@@ -22,14 +22,11 @@ import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerToolsAutoConfiguration;
-import com.callibrity.mocapi.server.substrate.SubstrateTestSupport;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.substrate.atom.AtomFactory;
-import org.jwcarman.substrate.mailbox.MailboxFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -55,16 +52,6 @@ class CallToolHandlersTest {
     @Bean
     ObjectMapper objectMapper() {
       return new ObjectMapper();
-    }
-
-    @Bean
-    AtomFactory atomFactory() {
-      return SubstrateTestSupport.atomFactory();
-    }
-
-    @Bean
-    MailboxFactory mailboxFactory() {
-      return SubstrateTestSupport.mailboxFactory();
     }
 
     @Bean

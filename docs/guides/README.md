@@ -10,7 +10,7 @@ server, start here.
 - [Configuration Reference](configuration.md)
 
 ## Interactivity
-- [Interactive Tools — progress, log, elicitation, sampling](interactive-tools.md)
+- [Interactive Tools — progress, MRTR elicitation](interactive-tools.md)
 - [Externalizing Metadata](externalizing-metadata.md)
 
 ## Extending mocapi
@@ -23,7 +23,6 @@ server, start here.
 - [OAuth2 Resource Server](authorization.md)
 
 ## Operations
-- [Backend Selection](backends.md)
 - [Observability Overview](observability.md) — Logging, OTel, Audit, Actuator
 - [Logging / MDC Correlation](logging.md)
 - [OpenTelemetry](opentelemetry.md)

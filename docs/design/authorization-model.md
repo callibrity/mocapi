@@ -103,14 +103,14 @@ The same guard list is consulted in two places:
   handler was hidden.
 - **`tools/call`** (and prompt/resource equivalents). After lookup,
   guards are evaluated. A `Deny` throws `JsonRpcException` with code
-  `-32003 Forbidden` and message `"Forbidden: <reason>"` — the call never
+  `-32010 Forbidden` and message `"Forbidden: <reason>"` — the call never
   reaches the invoker chain, so interceptors after `AUTHORIZATION` (input
   validation, the reflective method call) don't run.
 
 A denial does *not* return `CallToolResult.isError=true`. That shape is
 for tool-level errors the model can reasonably recover from; auth failures
 are infrastructure-level and the protocol-correct shape is JSON-RPC
-`-32003`.
+`-32010` (ADR-0023).
 
 ### Reference implementation: `mocapi-spring-security-guards`
 
@@ -181,7 +181,7 @@ Client ──POST /mcp + Authorization: Bearer eyJ…──▶ Servlet container
                               │   ├─ ScopeGuard   reads SecurityContextHolder
                               │   └─ RoleGuard    reads SecurityContextHolder
                               │  Allow ───► continue
-                              │  Deny  ───► throw JsonRpcException(-32003, reason)
+                              │  Deny  ───► throw JsonRpcException(-32010, reason)
                               ▼
                        VALIDATION stratum (input schema, Jakarta)
                               │

@@ -15,6 +15,15 @@
  */
 package com.callibrity.mocapi.model;
 
+/**
+ * The client's sampling capability (mocapi's simplification of the spec's {@code {context?,
+ * tools?}} shape, acceptable for an unimplemented deprecated feature).
+ *
+ * @deprecated Deprecated as of protocol version 2026-07-28 (SEP-2577) along with the sampling
+ *     feature; remains in the specification for at least twelve months. The spec's suggested
+ *     migration is for clients to integrate directly with LLM provider APIs.
+ */
+@Deprecated(since = "2026-07-28")
 // Empty by design — MCP spec defines this as a marker object whose presence signals capability.
 @SuppressWarnings("java:S2094")
 public record SamplingCapability() {}

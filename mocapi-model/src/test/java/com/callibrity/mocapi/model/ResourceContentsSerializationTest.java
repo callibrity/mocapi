@@ -57,9 +57,14 @@ class ResourceContentsSerializationTest {
   void read_resource_result_round_trip() throws Exception {
     var text = new TextResourceContents("file:///a.txt", "text/plain", "hello");
     var blob = new BlobResourceContents("file:///b.bin", "application/octet-stream", "YmFz");
-    var original = new ReadResourceResult(List.of(text, blob));
+    var original =
+        new ReadResourceResult(List.of(text, blob), 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE);
     String json = mapper.writeValueAsString(original);
-    assertThat(json).contains("\"contents\":[");
+    assertThat(json)
+        .contains("\"contents\":[")
+        .contains("\"ttlMs\":0")
+        .contains("\"cacheScope\":\"private\"")
+        .contains("\"resultType\":\"complete\"");
 
     var deserialized = mapper.readValue(json, ReadResourceResult.class);
     assertThat(deserialized.contents())

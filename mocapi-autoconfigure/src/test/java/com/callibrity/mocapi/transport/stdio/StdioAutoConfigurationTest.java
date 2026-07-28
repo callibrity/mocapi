@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.server.McpServer;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -80,7 +79,6 @@ class StdioAutoConfigurationTest {
             context -> {
               assertThat(context).hasSingleBean(StdioTransport.class);
               assertThat(context).hasSingleBean(StdioServer.class);
-              assertThat(context).hasSingleBean(AtomicReference.class);
               assertThat(context).hasSingleBean(ApplicationRunner.class);
             });
   }
