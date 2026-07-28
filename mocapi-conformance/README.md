@@ -34,42 +34,21 @@ npx @modelcontextprotocol/conformance@0.2.0-alpha.10 server \
 
 ## Current conformance status (2026-07-28)
 
-> **Pending regeneration.** The numbers below are from the RC-era draft run
-> (`--suite draft`, 2026-06-12) and are stale relative to both the final-spec
-> `--spec-version 2026-07-28` invocation above and the `McpElicitor` SPI landing
-> (ADR-0024). Re-run and reconcile before the 1.0.0 release. Treat the table
-> below as indicative only.
-
-Last RC-era run (`@0.2.0-alpha.2 --suite draft`, 2026-06-12): **51 checks
-passed, 5 scenarios failed — all five explained and baselined** in
-`conformance-expected-failures.yaml`.
-
-### Passing scenarios
-
-| Scenario | Checks | Driven by |
-|---|---|---|
-| `server-stateless` | 17 | — (protocol-level: no sessions, discover, envelope validation) |
-| `http-header-validation` | 13 | — (protocol-level: Mcp-Method/Mcp-Name/MCP-Protocol-Version) |
-| `caching` | 7 | — (protocol-level: ttlMs/cacheScope on cacheable results) |
-| `sep-2164-resource-not-found` | 2 | — (protocol-level: -32602) |
-| `completion-complete`, `tools-list`, `resources-*`, `prompts-*`, `dns-rebinding-protection`, `json-schema-2020-12`, `server-sse-multiple-streams`, `tools-call-*` | — | carried over from the 2025-11-25 set (sampling/logging tools removed) |
-| `input-required-result-request-state` | 2 | `test_input_required_result_request_state` |
-| `input-required-result-multi-round` | 3 | `test_input_required_result_multi_round` |
-| `input-required-result-result-type` | 1 | `test_input_required_result_elicitation` |
-| `input-required-result-tampered-state` | 1 | `test_input_required_result_tampered_state` |
-| `input-required-result-unsupported-methods` | 1 | — (engine rejection matrix) |
-| `input-required-result-validate-input` | 2 | — (engine rejection matrix) |
-| `input-required-result-non-tool-request` | 2 | `test_input_required_result_prompt` (prompt-side elicitation, ADR-0024) |
+Last full run (`@0.2.0-alpha.10 --suite all --spec-version 2026-07-28`, 2026-07-28):
+**79 passed, 13 failed — all 13 baselined** in `conformance-expected-failures.yaml`.
+Every baselined failure is a deliberate omission or a suite defect, **not** a
+protocol-correctness gap; mocapi passes every check that tests actual protocol
+behaviour (including the full MRTR/elicitation surface).
 
 ### Baselined failures (`conformance-expected-failures.yaml`)
 
-| Scenario | Why |
-|---|---|
-| `input-required-result-basic-sampling` | mocapi emits no sampling input requests — deprecated by SEP-2577, declined in [ADR-0022](../docs/adr/0022-2026-07-28-features-not-implemented.md). |
-| `input-required-result-basic-list-roots` | Same for roots. |
-| `input-required-result-multiple-input-requests` | Requires elicitation + sampling + roots requests in one result. |
-| `input-required-result-capability-check` | Asserts sampling-only `inputRequests` for a sampling-only client; mocapi correctly completes without input requests instead. |
-| `input-required-result-basic-elicitation` | Suite over-constraint: requires the literal `inputRequests` key `"user_name"`, but the spec says keys are server-assigned (mocapi assigns `elicit-<ordinal>`). Worth filing as suite feedback; the same tool passes `input-required-result-result-type`. |
+| Scenario / check | # | Why |
+|---|---|---|
+| `server-stateless` → `sep-2575-server-rejects-undeclared-capability`, `…-missing-capability-http-400` | 2 | `test_missing_capability` requires the client to declare `sampling` and expects `-32021`. mocapi has no public API to require an arbitrary client capability, and sampling is deprecated (SEP-2577). Its `-32021` **is** implemented and passing for elicitation — only the generic sampling probe is unexpressible. |
+| `http-custom-header-server-validation` | 5 | SEP-2243 `x-mcp-header` — declined **on principle** ([ADR-0028](../docs/adr/0028-decline-sep-2243-custom-parameter-headers.md)): HTTP-only, breaks the transport-agnostic server contract. All five `NotTestable` (no `x-mcp-header` tool). |
+| `json-schema-2020-12` | 1 | Author-supplied rich 2020-12 `inputSchema`; mocapi generates tool schemas from Java types (ADR-0016), no raw-schema escape hatch. `NotTestable`, not a mangling bug. |
+| `input-required-result-basic-sampling`, `-basic-list-roots`, `-multiple-input-requests`, `-capability-check` | 4 | Sampling & roots — deprecated by SEP-2577, declined ([ADR-0022](../docs/adr/0022-2026-07-28-features-not-implemented.md)). |
+| `input-required-result-basic-elicitation` | 1 | Suite over-constraint: hard-codes the `inputRequests` key `"user_name"`, but the spec says keys are server-assigned (mocapi assigns `elicit-<ordinal>`). Spec-correct; the same tool passes `input-required-result-result-type`. Filed as suite feedback. |
 
 Alpha-suite caveat: with `--expected-failures`, scenarios that report
 "0 passed, 0 failed" are sometimes misreported as unexpected failures —

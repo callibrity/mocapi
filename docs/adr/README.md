@@ -63,3 +63,4 @@ authored at decision time and dated accordingly.
 - [ADR-0025 — Typed progress emitters and the `MrtrContext` super-interface](0025-progress-emitters-and-mrtr-context.md)
 - [ADR-0026 — Response-`_meta` injection seam; `serverInfo` SHOULD adherence](0026-response-meta-serverinfo-injection.md)
 - [ADR-0027 — Remove the `DRAFT-2026-v1` protocol alias on 2026-07-28 finalization](0027-remove-draft-2026-v1-alias.md)
+- [ADR-0028 — Decline SEP-2243 custom parameter headers (`x-mcp-header`)](0028-decline-sep-2243-custom-parameter-headers.md)

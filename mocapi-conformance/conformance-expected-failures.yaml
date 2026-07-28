@@ -14,26 +14,54 @@
 # limitations under the License.
 #
 
-# Expected-failure baseline for the official MCP conformance suite (2026-07-28 draft track),
-# run as:
-#   npx @modelcontextprotocol/conformance@0.2.0-alpha.2 server \
-#     --url http://localhost:8081/mcp --suite draft \
+# Expected-failure baseline for the official MCP conformance suite, finalized 2026-07-28.
+# Run as:
+#   npx @modelcontextprotocol/conformance@0.2.0-alpha.10 server \
+#     --url http://localhost:8081/mcp --suite all --spec-version 2026-07-28 \
 #     --expected-failures mocapi-conformance/conformance-expected-failures.yaml
 #
-# Every entry maps to a declared omission (ADR-0022) or a filed follow-up — see README.md.
+# Latest full run: 79 passed / 13 failed — every failure below is a deliberate omission or a
+# suite defect, NOT a protocol-correctness gap. Entries use "<scenario>" to waive a whole
+# scenario or "<scenario>:<check-id>" to waive a single check while the scenario's others stay
+# enforced. See mocapi-conformance/README.md for the full triage.
 server:
-  # Permanent (ADR-0022): mocapi emits no sampling/roots input requests — both features are
-  # deprecated by SEP-2577 and deliberately not implemented.
+  # --- server-stateless: only these two checks fail; the other 23 are enforced. --------------
+  # test_missing_capability requires the client to declare the *sampling* capability and, when
+  # absent, expects -32021 with error.data.requiredCapabilities = { "sampling": {} }. mocapi has
+  # no public API for a handler to require an arbitrary client capability, and sampling is
+  # deprecated (SEP-2577) and unimplemented (ADR-0022). Note: mocapi's -32021 IS implemented and
+  # passing for the capability it actually uses — elicitation (see the input-required-result-*
+  # scenarios that pass). Only the generic sampling probe is unexpressible.
+  - server-stateless:sep-2575-server-rejects-undeclared-capability
+  - server-stateless:sep-2575-missing-capability-http-400
+
+  # --- SEP-2243 custom parameter headers (x-mcp-header) — declined on principle (ADR-0028). ---
+  # The suite requires a tool that sources an argument from an HTTP header (Base64-wrapped). This
+  # is an HTTP-transport-only feature (stdio has no headers) and would leak transport concerns
+  # into the tool-parameter model, violating the transport-agnostic McpServer<->McpTransport
+  # contract (ADR-0002, the constitution). The legitimate use cases (identity, tracing, request
+  # context) are served idiomatically via OAuth2/SecurityContext, W3C trace-context on _meta, and
+  # customizers/resolvers. All five checks are NotTestable (no x-mcp-header tool exists).
+  - http-custom-header-server-validation
+
+  # --- Explicit rich JSON-Schema-2020-12 tool inputSchema (SEP-1613 / SEP-2106). --------------
+  # Verifies a server preserves an author-supplied schema using $schema/$defs/$anchor/
+  # additionalProperties/allOf/anyOf/if-then-else verbatim in tools/list. mocapi generates tool
+  # schemas from Java parameter types via victools (ADR-0016) and has no escape hatch to advertise
+  # a hand-authored raw schema, so the tool cannot be exposed. NotTestable, not a mangling bug.
+  - json-schema-2020-12
+
+  # --- Sampling & roots: deprecated by SEP-2577, deliberately not implemented (ADR-0022). -----
+  # mocapi emits no sampling/roots input requests. capability-check additionally asserts
+  # sampling-only inputRequests for a sampling-only client — mocapi correctly completes without
+  # emitting any instead.
   - input-required-result-basic-sampling
   - input-required-result-basic-list-roots
-  - input-required-result-multiple-input-requests # requires sampling + roots requests in one result
-  - input-required-result-capability-check # asserts sampling-only inputRequests for a sampling-only client
+  - input-required-result-multiple-input-requests # requires sampling + roots + elicitation in one result
+  - input-required-result-capability-check
 
-  # Temporary: prompt-side elicitation has engine support (prompts/get MRTR seam) but no
-  # user-facing API yet — needs a new SPI + ADR. Follow-up tracked in the migration plan.
-  - input-required-result-non-tool-request
-
-  # Suite over-constraint (filed as feedback): the scenario requires the literal inputRequests
-  # key "user_name", but per the spec the keys are server-assigned; mocapi assigns
-  # "elicit-<ordinal>". The same tool passes input-required-result-result-type.
+  # --- Suite over-constraint (filed as upstream feedback). -----------------------------------
+  # The scenario hard-codes the literal inputRequests key "user_name", but the spec says
+  # elicitation keys are server-assigned; mocapi assigns "elicit-<ordinal>". mocapi's elicitation
+  # is spec-correct — the same tool passes input-required-result-result-type.
   - input-required-result-basic-elicitation

@@ -138,7 +138,9 @@ its output goes nowhere.
 
 **Spec reference:** SEP-2243 ([Transports / Streamable HTTP](https://modelcontextprotocol.io/specification/draft/basic/transports/streamable-http))
 
-Mocapi designates no custom parameter headers. SEP-2243 makes
+Mocapi designates no custom parameter headers — declined on principle in
+[ADR-0028](0028-decline-sep-2243-custom-parameter-headers.md) (an HTTP-only
+feature that would breach the transport-agnostic server contract). SEP-2243 makes
 `x-mcp-header` support mandatory for clients but optional for servers —
 a server MAY designate none, and mocapi designates none. Unrecognized
 `Mcp-Param-*` headers on incoming requests are ignored, per RFC 9110's
