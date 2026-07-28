@@ -27,4 +27,4 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record SubscriptionsListenResult(
-    @JsonProperty("_meta") SubscriptionsListenResultMeta meta, String resultType) {}
+    @JsonProperty("_meta") SubscriptionsListenResultMetaObject meta, String resultType) {}

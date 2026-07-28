@@ -20,11 +20,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * The {@code _meta} envelope of a {@link SubscriptionsListenResult}: the spec's {@code
- * SubscriptionsListenResultMeta}. It carries the required {@code
+ * SubscriptionsListenResultMetaObject}. It carries the required {@code
  * io.modelcontextprotocol/subscriptionId} (a JSON-RPC {@code RequestId}, so {@code String} or
  * number — modeled as {@code Object}), identifying the subscription stream this response closes.
  * mocapi does not implement subscriptions (ADR-0022); this type exists for 1:1 model fidelity.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record SubscriptionsListenResultMeta(
+public record SubscriptionsListenResultMetaObject(
     @JsonProperty(McpMetaKeys.SUBSCRIPTION_ID) Object subscriptionId) {}

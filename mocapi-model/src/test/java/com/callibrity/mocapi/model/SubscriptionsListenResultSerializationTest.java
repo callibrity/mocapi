@@ -32,7 +32,7 @@ class SubscriptionsListenResultSerializationTest {
   void round_trip_with_result_type_and_subscription_id() throws Exception {
     var result =
         new SubscriptionsListenResult(
-            new SubscriptionsListenResultMeta("sub-1"), ResultTypes.COMPLETE);
+            new SubscriptionsListenResultMetaObject("sub-1"), ResultTypes.COMPLETE);
     String json = mapper.writeValueAsString(result);
     assertThat(json)
         .contains("\"resultType\":\"complete\"")

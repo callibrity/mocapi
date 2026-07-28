@@ -847,3 +847,43 @@ from upstream `main`, re-pinning past the prior 2026-07-15 pin.
 
 No other semantic deltas affecting mocapi's implemented surface were found
 in this re-diff.
+
+## 2026-07-28 finalization — spec RELEASED (Plan Task 9.3)
+
+The `2026-07-28` revision was **finalized** today: upstream `main` promoted it
+out of `schema/draft/` into a dedicated `schema/2026-07-28/` directory
+(landing commit "Add 2026-07-28 MCP specification", 2026-07-28 15:56 UTC,
+plus a follow-up fix at 16:42 UTC). PR #3002 is merged and folded in. The spec
+is no longer draft. This supersedes the July-20 monitor note (PR #7), which
+recorded the spec as still draft.
+
+Re-pinned `docs/plans/2026-07-28-schema.{ts,json}` from the prior draft pin
+(`71e30695`) to the **finalized** `schema/2026-07-28/` snapshot. Both files are
+now byte-identical to upstream `schema/2026-07-28/`.
+
+### Semantic deltas versus the prior pin (71e30695)
+
+1. **Doc-link retargeting.** Every `@see [.../_meta](/specification/draft/...)`
+   reference in `schema.ts` changed `draft` → `2026-07-28`. Snapshot-comment
+   only; no structural or wire impact. Absorbed by the re-pin.
+2. **`SubscriptionsListenResultMeta` renamed to
+   `SubscriptionsListenResultMetaObject`** (the `$defs` key + its `$ref`). The
+   `_meta` object's property set is unchanged — pure type-name rename. →
+   **mocapi:** renamed the mirroring model record
+   `SubscriptionsListenResultMeta` → `SubscriptionsListenResultMetaObject`
+   (record + `SubscriptionsListenResult.meta` component + serialization test),
+   preserving the "spec's `{@code …}`" javadoc alignment. The round-trip test
+   confirms byte-identical wire output
+   (`"_meta":{"io.modelcontextprotocol/subscriptionId":"sub-1"}`). Subscriptions
+   remain unimplemented (ADR-0022); this type exists only for 1:1 model fidelity.
+3. **NEW `SubscriptionsListenResultResponse`** — a JSON-RPC result-envelope
+   wrapper (`{ id, jsonrpc, result }`) around `SubscriptionsListenResult`. →
+   **mocapi:** no change. mocapi models `*Result` payloads only and has never
+   modeled per-method JSON-RPC `*Response` envelope types (none exist for any
+   method); envelopes are wrapped generically at the transport layer. Adding one
+   here would break that invariant, so it is deliberately omitted.
+
+No other deltas. No ADR required: this hits none of the ADR triggers (no
+SPI/transport/capability/not-implemented-list change, no new behavioral seam) —
+a spec-alignment rename with identical wire output, in the same class as the
+prior re-pin commits.
