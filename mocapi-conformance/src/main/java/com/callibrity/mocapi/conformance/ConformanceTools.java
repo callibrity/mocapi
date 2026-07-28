@@ -52,11 +52,13 @@ import org.springframework.stereotype.Component;
  *     Specification</a>
  */
 @Component
-// Phase 9: the 2026-07-28 conformance scenario rewrite. Removed during the clean-break compile
-// fix because their features left the protocol/API: test_tool_with_logging (MCP Logging feature
-// deprecated; ctx.logger removed), test_sampling (sampling deprecated; ctx.sample removed).
-// Elicitation scenarios must be reshaped to MRTR replay semantics when the official suite ships
-// 2026-07-28 scenarios.
+// 2026-07-28 suite (final). Logging and sampling left the protocol/API in the clean break
+// (ctx.logger / ctx.sample removed, SEP-2577), so no tool exercises them; test_logging_tool below
+// asserts the "no logs without logLevel" behaviour by construction. Two suite scenarios stay
+// baselined in conformance-expected-failures.yaml because mocapi has no public API to express them:
+// test_missing_capability (require the sampling capability -> -32021) and json_schema_2020_12_tool
+// (advertise an explicit rich 2020-12 inputSchema; mocapi generates tool schemas from Java types,
+// ADR-0016).
 public class ConformanceTools {
 
   private static final String VALUE_1 = "value1";
@@ -75,8 +77,6 @@ public class ConformanceTools {
         null,
         ResultTypes.COMPLETE);
   }
-
-  private static final String TEST_TOOL_WITH_LOGGING = "test_tool_with_logging";
 
   // 1x1 red pixel PNG
   private static final String TINY_PNG =
@@ -463,5 +463,45 @@ public class ConformanceTools {
     var params = new ElicitRequestFormParams("Enum variants test", schema);
     var result = ctx.elicit(params);
     return elicitationResult(result);
+  }
+
+  /**
+   * Conformance tool for the {@code server-stateless} suite's "no logs without logLevel" check.
+   * mocapi does not implement MCP logging (SEP-2577 deprecated; {@code ctx.logger} was removed in
+   * the clean break), so it never emits a log notification — trivially satisfying the requirement.
+   *
+   * @see <a href="https://modelcontextprotocol.io/specification/2026-07-28/server">MCP
+   *     2026-07-28</a>
+   */
+  @McpTool(
+      name = "test_logging_tool",
+      description = "Diagnostic logging validator; mocapi emits no log notifications")
+  public CallToolResult loggingTool() {
+    return new CallToolResult(
+        List.of(new TextContent("No log notifications are emitted.", null)),
+        null,
+        null,
+        ResultTypes.COMPLETE);
+  }
+
+  /**
+   * Conformance tool for the {@code server-stateless} suite's response-stream check: the stream
+   * must contain only result/notification chunks and never an independent server-initiated JSON-RPC
+   * request. mocapi is stateless and never issues server-initiated requests (ADR-0021); this tool
+   * emits a progress notification to exercise the stream, then completes.
+   *
+   * @see <a href="https://modelcontextprotocol.io/specification/2026-07-28/server">MCP
+   *     2026-07-28</a>
+   */
+  @McpTool(
+      name = "test_streaming_elicitation",
+      description = "Diagnostic response-stream validator; emits a progress notification")
+  public CallToolResult streamingElicitation(McpToolContext ctx) {
+    ctx.longProgress(100L).emit(50);
+    return new CallToolResult(
+        List.of(new TextContent("Response stream completed.", null)),
+        null,
+        null,
+        ResultTypes.COMPLETE);
   }
 }
