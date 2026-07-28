@@ -81,9 +81,11 @@ Record the **exact JDK build** (`java -version` + `IMPLEMENTOR`) and the
   (`McpHandlerObservationInterceptor`), shifting the JFR mix; on 1,608 samples a
   ~2 pp move is within noise. New top frame `methodical.jakarta.Annotations.lookup`
   is a reflective annotation lookup on the hot path — candidate micro-opt (cache it).
-- **Harness ported.** The committed `soak.sh` + `benchmarking.md` still assume the
-  old session handshake and will not drive a 2026-07-28 server as-is; this run used
-  a stateless-ported copy. Porting them in-tree is a pending follow-up.
+- **Harness ported in-tree.** `soak.sh` + `benchmarking.md` now drive the stateless
+  2026-07-28 server directly — no session handshake, no `MCP-Session-Id`; each call
+  carries the `MCP-Protocol-Version` / `Mcp-Method` / `Mcp-Name` headers plus the
+  `_meta` protocolVersion + clientCapabilities envelope. Verified against the plain
+  HTTP example (872 calls, all 200).
 
 ## 2026-04-19 — post Methodical 0.7 / ripcurl 2.8 migration
 

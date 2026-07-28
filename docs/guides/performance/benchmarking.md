@@ -85,27 +85,31 @@ any of this wired in.
 Assume the HTTP example is running on `localhost:8080` via
 whatever you use (IntelliJ, `mvn spring-boot:run`, a built jar).
 
-### 1. Initialize a session
+### 1. Verify the server responds (stateless — no session)
+
+MCP 2026-07-28 is stateless: there is **no `initialize` handshake and no
+`MCP-Session-Id`**. Every request stands alone and must carry the protocol
+version both as the `MCP-Protocol-Version` header and inside the `_meta`
+envelope, plus the `Mcp-Method` / `Mcp-Name` routing headers. Smoke-test one
+call before loading:
 
 ```bash
 curl -s -m 5 -X POST \
     -H 'Content-Type: application/json' \
     -H 'Accept: application/json,text/event-stream' \
-    -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","clientInfo":{"name":"soak","version":"1"},"capabilities":{}}}' \
-    localhost:8080/mcp \
-    -D /tmp/ih.txt > /dev/null
-SID=$(grep -i 'MCP-Session-Id:' /tmp/ih.txt | tr -d '\r\n' | awk '{print $2}')
-echo "$SID" > /tmp/sid.txt
-
-curl -s -m 3 -X POST \
-    -H 'Content-Type: application/json' \
-    -H 'Accept: application/json,text/event-stream' \
-    -H "MCP-Session-Id: $SID" \
-    -H 'MCP-Protocol-Version: 2025-11-25' \
-    -d '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
-    localhost:8080/mcp > /dev/null
-echo "session: $SID"
+    -H 'MCP-Protocol-Version: 2026-07-28' \
+    -H 'Mcp-Method: tools/call' \
+    -H 'Mcp-Name: hello' \
+    -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}},"name":"hello","arguments":{"name":"smoke"}}}' \
+    localhost:8080/mcp
+echo
 ```
+
+Expect an HTTP 200 whose `result` contains the greeting. Common failures:
+`-32020 HeaderMismatch` means a required header (`MCP-Protocol-Version`,
+`Mcp-Method`, or `Mcp-Name`) is missing; `-32602` means the `_meta` envelope is
+missing or malformed. `soak.sh` sends this exact header + envelope set on every
+call, so there is nothing to initialize — the warmup below can start immediately.
 
 ### 2. JIT warmup
 
