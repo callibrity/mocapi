@@ -138,12 +138,16 @@ Other entitlement models — tenant checks, rate limits, mTLS subject
 matching — are user or third-party concerns. Mocapi does not bake any of
 them into core; the SPI is the seam.
 
-## Initialize bypasses guards
+## `server/discover` bypasses guards
 
-The `initialize` JSON-RPC method does not flow through the per-handler
-invoker chain — it is dispatched directly by the protocol layer. Guards
-are not consulted. A client can always handshake. This is necessary for
-the metadata + capability negotiation to work even on locked-down servers.
+The `server/discover` JSON-RPC method does not flow through the
+per-handler invoker chain — it is dispatched directly by the protocol
+layer. Guards are not consulted. There is no handshake and no capability
+negotiation in MCP 2026-07-28: `server/discover` is an ordinary,
+stateless request that advertises the server's supported protocol
+versions and static capabilities and is answerable at any time. Keeping
+it guard-free lets a client probe those versions and capabilities even
+against a locked-down server.
 
 Per-handler guards take effect only on `tools/call`, `prompts/get`,
 `resources/read`, `resources/templates/read`, and the matching `*/list`

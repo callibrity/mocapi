@@ -15,24 +15,13 @@
  */
 package com.callibrity.mocapi.conformance;
 
-import java.security.SecureRandom;
-import java.util.Base64;
-import java.util.Map;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class ConformanceApplication {
 
-  private static final SecureRandom RANDOM = new SecureRandom();
-
   public static void main(String[] args) {
-    byte[] key = new byte[32];
-    RANDOM.nextBytes(key);
-    String encoded = Base64.getEncoder().encodeToString(key);
-
-    SpringApplication app = new SpringApplication(ConformanceApplication.class);
-    app.setDefaultProperties(Map.of("mocapi.session-encryption-master-key", encoded));
-    app.run(args);
+    SpringApplication.run(ConformanceApplication.class, args);
   }
 }

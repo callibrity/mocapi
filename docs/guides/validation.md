@@ -62,7 +62,7 @@ public class ConfigResources {
 
 ## Error shapes
 
-Violations surface differently per handler type, matching the [MCP 2025-11-25 specification](https://modelcontextprotocol.io/specification/2025-11-25):
+Violations surface differently per handler type, matching the [MCP 2026-07-28 specification](https://modelcontextprotocol.io/specification/2026-07-28):
 
 ### `tools/call` → `CallToolResult.isError = true`
 
@@ -134,5 +134,5 @@ See [`examples/http`](../../examples/http) for a runnable streamable-http app sh
 
 ## Not covered
 
-- **Mocapi's own protocol records.** Mocapi-server uses hand-rolled validation on its internal JSON-RPC request/response types (`CallToolRequestParams`, `InitializeRequest`, etc.) so mocapi's contract is always enforced, whether or not the consumer adds this starter.
+- **Mocapi's own protocol records.** Mocapi-server uses hand-rolled validation on its internal JSON-RPC request/response types (`CallToolRequestParams`, `GetPromptRequestParams`, etc.) so mocapi's contract is always enforced, whether or not the consumer adds this starter.
 - **Tools where `@NotBlank`/`@Size` apply to fields of a typed parameter record.** In that case mocapi's existing JSON-schema pipeline (via `jsonschema-module-jakarta-validation`, a compile dep of `mocapi-server`) may surface violations as `-32602` before the runtime validator runs. Behavior depends on whether your parameter is a raw primitive/String or a record field. Run the integration tests in `mocapi-jakarta-validation` for the authoritative behavior map.

@@ -42,7 +42,6 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.context.annotation.Bean;
-import org.springframework.test.context.TestPropertySource;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -56,10 +55,6 @@ import tools.jackson.databind.node.ObjectNode;
  * scope makes the same tool visible and callable.
  */
 @SpringBootTest(classes = GuardIntegrationTest.TestApp.class, webEnvironment = WebEnvironment.NONE)
-@TestPropertySource(
-    properties = {
-      "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-    })
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class GuardIntegrationTest {
 

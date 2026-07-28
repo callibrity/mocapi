@@ -6,7 +6,7 @@
   </picture>
 </p>
 
-<h3 align="center">A Spring Boot framework for building <a href="https://modelcontextprotocol.io/specification/draft">Model Context Protocol (MCP)</a> servers in Java.</h3>
+<h3 align="center">A Spring Boot framework for building <a href="https://modelcontextprotocol.io/specification/2026-07-28">Model Context Protocol (MCP)</a> servers in Java.</h3>
 
 Define tools, prompts, and resources as annotated Spring beans. Pull in optional modules for OAuth2, per-handler authorization, Jakarta Bean Validation, structured audit logs, Micrometer observations, MDC correlation, an `/actuator/mcp` inventory endpoint, and GraalVM native-image support — all wired through one customizer SPI.
 

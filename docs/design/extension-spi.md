@@ -122,7 +122,7 @@ call.
 The `config.resolver(ParameterResolver)` mutator adds a user resolver
 to the front of the resolver list for that handler. Mocapi's
 built-in resolvers (schema-driven for tools, argument-binding for
-prompts/resource templates, ScopedValue resolvers for `McpSession` /
+prompts/resource templates, ScopedValue resolvers for `McpExchange` /
 `McpTransport` / `McpToolContext`) can't be removed. Users add new
 ones (e.g., `@CurrentTenant String tenant`).
 

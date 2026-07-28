@@ -33,18 +33,19 @@ import org.springframework.core.annotation.Order;
  * <ul>
  *   <li>{@link McpObservationFilter} — registered as a Micrometer {@code ObservationFilter} bean.
  *       Fires at {@code Observation.stop()} on ripcurl's {@code jsonrpc.server} observations and
- *       enriches them with {@code mcp.method.name}, {@code mcp.session.id}, and {@code
- *       mcp.protocol.version} tags (read from the bound {@link
+ *       enriches them with {@code mcp.method.name}, {@code mcp.protocol.version}, and {@code
+ *       mcp.client.name} tags (read from the bound {@link
  *       com.callibrity.ripcurl.core.JsonRpcDispatcher#CURRENT_REQUEST} and {@link
- *       com.callibrity.mocapi.server.session.McpSession#CURRENT} scoped values). Pure enrichment —
- *       no new observation is started at this layer.
+ *       com.callibrity.mocapi.server.exchange.McpExchange#CURRENT} scoped values). MCP 2026-07-28
+ *       is sessionless, so there is no {@code mcp.session.id} tag. Pure enrichment — no new
+ *       observation is started at this layer.
  *   <li>Four per-handler {@link McpHandlerObservationInterceptor} customizer beans (tool / prompt /
  *       resource / resource-template) — attach a second, inner {@code mcp.handler.execution}
  *       observation so tool / prompt / resource execution shows up as a child span inside ripcurl's
  *       JSON-RPC span. Only fires for methods that route through a mocapi handler ({@code
  *       tools/call}, {@code prompts/get}, {@code resources/read}, {@code
  *       resources/templates/read}); dispatch-only methods like {@code tools/list}, {@code
- *       initialize}, and notifications emit only the outer JSON-RPC observation.
+ *       server/discover}, and notifications emit only the outer JSON-RPC observation.
  * </ul>
  *
  * <p>Activates only when an {@link ObservationRegistry} bean is present — Spring Boot auto-creates

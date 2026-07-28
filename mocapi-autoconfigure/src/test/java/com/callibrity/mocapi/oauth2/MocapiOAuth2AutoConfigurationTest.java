@@ -62,8 +62,7 @@ class MocapiOAuth2AutoConfigurationTest {
       properties = {
         "mocapi.oauth2.resource=https://mcp.example.com",
         "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://idp.example.com",
-        "spring.security.oauth2.resourceserver.jwt.audiences=https://mcp.example.com",
-        "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        "spring.security.oauth2.resourceserver.jwt.audiences=https://mcp.example.com"
       })
   class With_implicit_authorization_server {
 
@@ -138,8 +137,7 @@ class MocapiOAuth2AutoConfigurationTest {
         "mocapi.oauth2.resource-policy-uri=https://example.com/policy",
         "mocapi.oauth2.resource-tos-uri=https://example.com/tos",
         "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://ignored.example.com",
-        "spring.security.oauth2.resourceserver.jwt.audiences=https://mcp.example.com",
-        "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        "spring.security.oauth2.resourceserver.jwt.audiences=https://mcp.example.com"
       })
   class With_explicit_metadata_configuration {
 
@@ -204,8 +202,7 @@ class MocapiOAuth2AutoConfigurationTest {
       properties = {
         "mocapi.oauth2.resource=https://mcp.example.com",
         "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://idp.example.com",
-        "spring.security.oauth2.resourceserver.jwt.audiences=https://mcp.example.com",
-        "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        "spring.security.oauth2.resourceserver.jwt.audiences=https://mcp.example.com"
       })
   class Customizers {
 
@@ -236,8 +233,7 @@ class MocapiOAuth2AutoConfigurationTest {
         "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://idp.example.com",
         "spring.security.oauth2.resourceserver.jwt.audiences=https://mcp.example.com",
         "mocapi.server-name=fallback-named-server",
-        "mocapi.server-title=", // empty override forces resourceName fallback to server-name
-        "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        "mocapi.server-title=" // empty override forces resourceName fallback to server-name
       })
   class Resource_name_fallback {
 

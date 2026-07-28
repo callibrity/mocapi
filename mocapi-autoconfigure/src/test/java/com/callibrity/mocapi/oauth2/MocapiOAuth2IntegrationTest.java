@@ -90,7 +90,6 @@ import org.springframework.web.client.RestClient;
       "spring.security.oauth2.resourceserver.jwt.audiences=http://localhost:"
           + MocapiOAuth2IntegrationTest.TEST_PORT
           + "/mcp",
-      "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
       "mocapi.server-title=Integration Test MCP"
     })
 class MocapiOAuth2IntegrationTest {

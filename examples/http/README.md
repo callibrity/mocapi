@@ -66,9 +66,4 @@ Prompts:
 
 ## Notes
 
-This example generates an **ephemeral** session-encryption master key on
-startup (see `EphemeralMasterKeyEnvironmentPostProcessor`). It is for local
-demos only. Set `MOCAPI_SESSION_ENCRYPTION_MASTER_KEY` to a secure 32+ byte
-value in any non-demo deployment.
-
 **Not for production use.**

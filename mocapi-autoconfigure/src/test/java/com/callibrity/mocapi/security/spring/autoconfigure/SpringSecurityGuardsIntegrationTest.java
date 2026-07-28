@@ -42,7 +42,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
-import org.springframework.test.context.TestPropertySource;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -56,10 +55,6 @@ import tools.jackson.databind.node.ObjectNode;
 @SpringBootTest(
     classes = SpringSecurityGuardsIntegrationTest.TestApp.class,
     webEnvironment = WebEnvironment.NONE)
-@TestPropertySource(
-    properties = {
-      "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-    })
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class SpringSecurityGuardsIntegrationTest {
 

@@ -55,11 +55,7 @@ import tools.jackson.databind.node.ObjectNode;
  * identity, and arguments-hash behavior.
  */
 @SpringBootTest(classes = AuditIntegrationTest.TestApp.class, webEnvironment = WebEnvironment.NONE)
-@TestPropertySource(
-    properties = {
-      "mocapi.session-encryption-master-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "mocapi.audit.hash-arguments=true"
-    })
+@TestPropertySource(properties = {"mocapi.audit.hash-arguments=true"})
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class AuditIntegrationTest {
 
