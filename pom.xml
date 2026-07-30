@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2025 Callibrity, Inc. (contactus@callibrity.com)
+    Copyright © 2025-2026 Callibrity, Inc. (contactus@callibrity.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -373,6 +373,7 @@
                         <properties>
                             <owner>${license.owner}</owner>
                             <email>${license.email}</email>
+                            <year>2025-2026</year>
                         </properties>
                         <licenseSets>
                             <licenseSet>
