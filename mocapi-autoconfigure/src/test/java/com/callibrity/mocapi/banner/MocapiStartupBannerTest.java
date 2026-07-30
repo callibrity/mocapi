@@ -159,7 +159,7 @@ class MocapiStartupBannerTest {
           banner()
               .withBeanOfType("com.callibrity.mocapi.audit.AuditLoggingInterceptor")
               .withBeanOfType("com.callibrity.mocapi.logging.McpMdcInterceptor")
-              .withBeanOfType("com.callibrity.mocapi.o11y.McpObservationFilter")
+              .withBeanOfType("com.callibrity.mocapi.o11y.McpServerOperationCustomizer")
               .build()
               .render();
       assertThat(banner).contains("Observability: audit, mdc, o11y");

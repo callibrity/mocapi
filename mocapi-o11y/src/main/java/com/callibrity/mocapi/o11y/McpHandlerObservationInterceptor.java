@@ -15,51 +15,35 @@
  */
 package com.callibrity.mocapi.o11y;
 
-import com.callibrity.mocapi.server.exchange.McpExchange;
-import com.callibrity.mocapi.server.exchange.TraceContext;
 import com.callibrity.mocapi.server.handler.HandlerKind;
-import com.callibrity.ripcurl.o11y.JsonRpcObservationInterceptor;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.MethodInvocation;
 
 /**
- * Wraps an MCP handler invocation (tool / prompt / resource / resource-template) in a Micrometer
- * {@link Observation}, nesting inside the outer {@link JsonRpcObservationInterceptor} span. Attrs
- * describe the handler target itself (tool name, prompt name, resource URI) per the OpenTelemetry
- * MCP / GenAI semantic conventions; the outer span owns JSON-RPC envelope attrs.
+ * Wraps the <em>user's</em> MCP handler invocation (tool / prompt / resource / resource-template)
+ * in a Micrometer {@link Observation}, nesting inside the semconv {@link
+ * McpServerOperationInterceptor mcp.server.operation} span. This is deliberately a
+ * <strong>mocapi-specific</strong> observation, not a semantic-convention one (ADR-0030): it
+ * isolates user-handler time from the framework work around it (envelope handling, validation,
+ * guards, serialization), which the standard server-operation span cannot express. All
+ * semantic-convention attributes live on the outer span.
  *
- * <p>One instance per handler, attached via {@code CallToolHandlerCustomizer}, {@code
- * GetPromptHandlerCustomizer}, {@code ReadResourceHandlerCustomizer}, or {@code
- * ReadResourceTemplateHandlerCustomizer}. The handler kind + name are closed over at construction
- * so the hot path does no reflection.
+ * <p>One instance per handler, attached at the OBSERVATION stratum via {@code
+ * CallToolHandlerCustomizer}, {@code GetPromptHandlerCustomizer}, {@code
+ * ReadResourceHandlerCustomizer}, or {@code ReadResourceTemplateHandlerCustomizer}. The handler
+ * kind + name are closed over at construction so the hot path does no reflection.
  *
  * <p>Observation name: {@code mcp.handler.execution} — histogram metric {@code
  * mcp.handler.execution.duration}. Contextual (span) name: the target name (tool name, prompt name,
  * resource URI, or resource-template URI template). Low-cardinality {@code mcp.handler.kind} tag
- * lets users filter by kind across the shared observation name.
+ * lets users filter by kind across the shared observation name; errored calls are distinguished by
+ * Micrometer's automatic {@code error} meter tag and the exception recorded on the span.
  *
- * <p>Tag mapping by kind (per https://opentelemetry.io/docs/specs/semconv/gen-ai/mcp/):
- *
- * <ul>
- *   <li>{@code tool} — {@code gen_ai.operation.name=execute_tool}, {@code gen_ai.tool.name=<name>}
- *   <li>{@code prompt} — {@code gen_ai.prompt.name=<name>}
- *   <li>{@code resource} / {@code resource_template} — {@code mcp.resource.uri=<uri>} (high
- *       cardinality)
- * </ul>
- *
- * <p>{@code error.type} with the exception's simple class name is added on failure.
- *
- * <p><strong>Remote trace parent.</strong> When the bound {@link McpExchange} carries the
- * spec-defined W3C trace-context {@code _meta} keys ({@code traceparent} / {@code tracestate} /
- * {@code baggage}), the observation is created with a {@link McpRequestReceiverContext} so a
- * propagating tracing handler joins the handler span to the client's trace as a remote parent. That
- * client-supplied parent deliberately wins over local parentage (the enclosing {@code
- * jsonrpc.server} span): the spec moved trace context into {@code _meta} precisely because the
- * transport headers may not carry it, and the caller's trace is the one operators need to follow
- * across the client/server boundary. Without trace keys the context is a plain one and the span
- * nests locally as before.
+ * <p>The remote trace parent from {@code _meta} is honored by the outer server-operation span, not
+ * here — this observation uses a plain context and parents locally, so the waterfall reads client
+ * trace → {@code mcp.server.operation} → {@code mcp.handler.execution}.
  */
 public final class McpHandlerObservationInterceptor implements MethodInterceptor<Object> {
 
@@ -80,26 +64,14 @@ public final class McpHandlerObservationInterceptor implements MethodInterceptor
   @Override
   public Object intercept(MethodInvocation<?> invocation) {
     Observation observation =
-        Observation.createNotStarted(
-                OBSERVATION_NAME, McpHandlerObservationInterceptor::handlerContext, registry)
+        Observation.createNotStarted(OBSERVATION_NAME, registry)
             .contextualName(targetName)
             .lowCardinalityKeyValue("mcp.handler.kind", kind.tag());
-
-    switch (kind) {
-      case TOOL -> {
-        observation.lowCardinalityKeyValue("gen_ai.operation.name", "execute_tool");
-        observation.lowCardinalityKeyValue("gen_ai.tool.name", targetName);
-      }
-      case PROMPT -> observation.lowCardinalityKeyValue("gen_ai.prompt.name", targetName);
-      case RESOURCE, RESOURCE_TEMPLATE ->
-          observation.highCardinalityKeyValue("mcp.resource.uri", targetName);
-    }
 
     observation.start();
     try (var _ = observation.openScope()) {
       return invocation.proceed();
     } catch (RuntimeException e) {
-      observation.lowCardinalityKeyValue("error.type", e.getClass().getSimpleName());
       observation.error(e);
       throw e;
     } finally {
@@ -107,25 +79,11 @@ public final class McpHandlerObservationInterceptor implements MethodInterceptor
     }
   }
 
-  /**
-   * A {@link McpRequestReceiverContext} when the bound exchange carries a {@code traceparent},
-   * otherwise a plain context.
-   */
-  private static Observation.Context handlerContext() {
-    if (McpExchange.CURRENT.isBound()) {
-      TraceContext traceContext = McpExchange.CURRENT.get().traceContext();
-      if (traceContext.isPresent()) {
-        return new McpRequestReceiverContext(traceContext);
-      }
-    }
-    return new Observation.Context();
-  }
-
   @Override
   public String toString() {
     return "Records Micrometer '"
         + OBSERVATION_NAME
-        + "' observations (OpenTelemetry MCP semconv) for "
+        + "' observations (handler execution time) for "
         + kind.tag()
         + " '"
         + targetName

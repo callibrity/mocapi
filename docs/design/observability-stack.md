@@ -51,42 +51,69 @@ handoff from the request thread.
 
 ## `mocapi-o11y` — observation (Micrometer)
 
-Two interceptors compose:
+The shape follows the OpenTelemetry MCP semantic conventions
+([ADR-0030](../adr/0030-otel-mcp-semconv-alignment.md)): **one** server
+span per request carrying the MCP, GenAI, and JSON-RPC attribute
+families together, plus an optional mocapi-specific child. Three pieces
+compose:
 
-- `McpHandlerObservationInterceptor` — one `Observation` per handler
-  call (name `mcp.handler.execution`, contextual name = the target
-  name), wrapping the rest of the chain, with a low-cardinality
-  `mcp.handler.kind` tag. GenAI / MCP-resource semantic-convention
-  attributes are populated for cross-tool consistency. Whichever
+- `McpServerOperationInterceptor` — the semconv server operation,
+  attached to every `@JsonRpcMethod` handler via ripcurl's
+  `JsonRpcMethodHandlerCustomizer`, so it brackets the full method
+  dispatch (the interval `mcp.server.operation.duration` is defined to
+  measure). Observation name `mcp.server.operation`; span name
+  `{mcp.method.name} {target}` (`tools/call echo`), falling back to the
+  bare method name when no low-cardinality target exists. Attributes:
+  `mcp.method.name` (required), `mcp.protocol.version`,
+  `gen_ai.operation.name=execute_tool` + `gen_ai.tool.name` on
+  `tools/call`, `gen_ai.prompt.name` on `prompts/get`,
+  `mcp.resource.uri` (high-cardinality) on `resources/read`,
+  `network.transport` (`tcp` / `pipe`), `rpc.system.name`,
+  `jsonrpc.protocol.version`, and `jsonrpc.request.id`
+  (high-cardinality). On failure, `error.type` and
+  `rpc.response.status_code` carry the JSON-RPC error code from the same
+  translator registry the dispatcher uses; a `tools/call` returning
+  `CallToolResult.isError=true` gets `error.type=tool_error`. Whichever
   `ObservationHandler`s are on the classpath participate —
-  `MeterObservationHandler` produces `Timer`/`Counter` meters,
-  `TracingObservationHandler` produces spans. One observation, both
-  telemetry shapes; no parallel APIs.
-- `McpObservationFilter` — enriches the *outer* `jsonrpc.server`
-  observation that wraps the dispatch with MCP-specific tags
-  (`mcp.method.name`, `mcp.protocol.version`, `mcp.client.name` from
-  the per-request `_meta` envelope) so traces show the full
-  `http post /mcp` → `jsonrpc.server` → `mcp.handler.execution`
-  waterfall.
+  `MeterObservationHandler` produces the
+  `mcp.server.operation.duration` histogram, `TracingObservationHandler`
+  produces the span. One observation, both telemetry shapes.
+- `McpServerOperationCustomizer` — the bean that carries the
+  interceptor, implementing ripcurl's `JsonRpcObservationCustomizer`
+  seam (ripcurl ≥ 2.12.0). ripcurl's default `jsonrpc.server`
+  observation backs off automatically (`@ConditionalOnMissingBean`),
+  standard Spring Boot semantics — the conventions put the JSON-RPC
+  attributes *on* the MCP server span, one span owned by the most
+  specific convention, and every attribute ripcurl emitted is emitted by
+  the server operation with identical semantics. The mocapi o11y
+  autoconfiguration is ordered before ripcurl's so the back-off sees the
+  bean; a test pins the ordering.
+- `McpHandlerObservationInterceptor` — a deliberately
+  **mocapi-specific** child (name `mcp.handler.execution`, contextual
+  name = target, low-cardinality `mcp.handler.kind` tag) at the
+  per-handler OBSERVATION stratum, isolating user-handler time from the
+  framework work around it. It carries no semconv attributes — those
+  live on the server span.
 
 **Remote trace parent from `_meta`.** The spec defines unprefixed
 `traceparent` / `tracestate` / `baggage` keys in the request `_meta`
 (W3C Trace Context / Baggage). `MetaEnvelopeParser` surfaces them on
 the per-request `McpExchange`; when a request carries a `traceparent`,
-`McpHandlerObservationInterceptor` creates its observation with a
-`McpRequestReceiverContext` (a Micrometer `ReceiverContext` whose
-carrier is the trace context), so a propagating tracing handler joins
-the handler span to the *client's* trace as a remote parent. The
-client-supplied parent deliberately wins over local parentage: the
-spec moved trace context into `_meta` precisely because transport
-headers may not carry it. Without trace keys, the span nests locally
-under `jsonrpc.server` as before; metrics-only registries are
-unaffected.
+`McpServerOperationInterceptor` creates its observation with a
+`McpRequestReceiverContext` (a Micrometer `ReceiverContext`, kind
+`SERVER`, whose carrier is the trace context), so a propagating tracing
+handler joins the **server span** to the *client's* trace as a remote
+parent — the cross-boundary link sits on the span the conventions say
+should carry it. The client-supplied parent deliberately wins over local
+parentage: the spec moved trace context into `_meta` precisely because
+transport headers may not carry it. Without trace keys the span nests
+locally; metrics-only registries are unaffected. The waterfall reads
+client trace → `mcp.server.operation` → `mcp.handler.execution`.
 
 Activation requires both `mocapi-o11y` and an `ObservationRegistry` bean.
 Spring Boot Actuator auto-creates the registry; no concrete meter
-registry is needed for `/actuator/metrics/mcp.handler.execution` to return data
-(`SimpleMeterRegistry` is fine).
+registry is needed for `/actuator/metrics/mcp.server.operation` to return
+data (`SimpleMeterRegistry` is fine).
 
 ## `mocapi-otel` — sourceless dependency bundle
 
@@ -226,9 +253,10 @@ the handler virtual thread. This is what makes:
 - Spring Security's `Authentication` visible to guards running inside the
   virtual thread.
 - Tracing parent-child relationships intact (`http post /mcp` is the
-  parent of `jsonrpc.server` is the parent of `mcp.handler.execution` —
-  unless the request's `_meta` carries a `traceparent`, in which case
-  the handler span's parent is the client's remote span).
+  parent of `mcp.server.operation` is the parent of
+  `mcp.handler.execution` — unless the request's `_meta` carries a
+  `traceparent`, in which case the server-operation span's parent is the
+  client's remote span).
 - MDC keys present on log lines emitted from user handler code.
 
 Users don't configure this; it is a transitive behavior of having the

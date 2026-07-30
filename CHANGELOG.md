@@ -131,6 +131,25 @@ the handler runs to completion).
   previous behavior. No convenience overload was added deliberately: a second
   constructor on a properties-adjacent record muddies Spring Boot's constructor
   binding, and the record shape is better fixed before 1.0 freezes it.
+- **Observability reshaped to the OpenTelemetry MCP semantic conventions**
+  ([ADR-0030](docs/adr/0030-otel-mcp-semconv-alignment.md)). One semconv server
+  span per request — observation `mcp.server.operation` (metric
+  `mcp.server.operation.duration`), span name `{method} {target}` (e.g.
+  `tools/call echo`), kind `SERVER`, remote-parented from the `_meta` W3C
+  `traceparent` — carrying the MCP, GenAI, and JSON-RPC attribute families
+  together (`mcp.method.name`, `mcp.protocol.version`, `gen_ai.tool.name`,
+  `gen_ai.prompt.name`, `mcp.resource.uri`, `network.transport`,
+  `jsonrpc.request.id`, `rpc.response.status_code`). `error.type` carries the
+  JSON-RPC error code, and `tool_error` for a `CallToolResult` with
+  `isError=true`. ripcurl's generic `jsonrpc.server` observation backs off
+  automatically via its new replaceable `JsonRpcObservationCustomizer` seam
+  (ripcurl 2.12.0, now the minimum); `mcp.handler.execution` remains as a
+  slimmed, explicitly non-standard child measuring user-handler time (kind +
+  target only). Removed:
+  the `mcp.client.name` span attribute (not a convention; client identity stays
+  in MDC) and the `McpObservationFilter` class. Dashboards keyed on
+  `mcp.handler.execution.duration` or `jsonrpc.server.duration` should move to
+  `mcp.server.operation.duration`.
 - **Request `_meta.clientInfo` is now optional** (MCP 2026-07-28). A client may
   omit it, leaving `protocolVersion` and `clientCapabilities` as the only
   required envelope keys; `clientInfo` consumers across the server, audit,

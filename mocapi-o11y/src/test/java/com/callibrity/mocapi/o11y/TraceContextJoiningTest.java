@@ -17,11 +17,10 @@ package com.callibrity.mocapi.o11y;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.exchange.TraceContext;
-import com.callibrity.mocapi.server.handler.HandlerKind;
+import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
 import io.micrometer.observation.ObservationHandler;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.tracing.handler.DefaultTracingObservationHandler;
@@ -42,13 +41,16 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvocation;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 /**
- * Task 6.1 end-to-end check: a W3C {@code traceparent} carried in the request {@code _meta} (spec
- * {@code basic/index#meta}, "OpenTelemetry trace context") becomes the remote parent of the handler
- * span. Uses the real Micrometer Tracing → OpenTelemetry bridge — the same handler chain the {@code
- * mocapi-otel} bundle auto-configures — with an in-memory exporter so the assertion is on the
- * actual exported span's trace id and parent span id.
+ * End-to-end check: a W3C {@code traceparent} carried in the request {@code _meta} (spec {@code
+ * basic/index#meta}, "OpenTelemetry trace context") becomes the remote parent of the semconv {@code
+ * mcp.server.operation} span (ADR-0030 — the server span carries the cross-boundary link). Uses the
+ * real Micrometer Tracing → OpenTelemetry bridge — the same handler chain the {@code mocapi-otel}
+ * bundle auto-configures — with an in-memory exporter so the assertion is on the actual exported
+ * span's trace id and parent span id.
  */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class TraceContextJoiningTest {
@@ -87,13 +89,15 @@ class TraceContextJoiningTest {
   }
 
   @Test
-  void handler_span_joins_the_meta_traceparent_as_remote_parent() {
-    var interceptor = new McpHandlerObservationInterceptor(registry, HandlerKind.TOOL, "my-tool");
+  void server_operation_span_joins_the_meta_traceparent_as_remote_parent() {
+    var interceptor = serverOperationInterceptor();
     var exchange =
         new McpExchange("2026-07-28", null, null, new TraceContext(TRACEPARENT, null, null));
 
     ScopedValue.where(McpExchange.CURRENT, exchange)
-        .run(() -> interceptor.intercept(successfulInvocation("ok")));
+        .run(
+            () ->
+                interceptor.intercept(successfulInvocation(JsonNodeFactory.instance.objectNode())));
 
     List<SpanData> spans = exporter.getFinishedSpanItems();
     assertThat(spans).hasSize(1);
@@ -103,12 +107,14 @@ class TraceContextJoiningTest {
   }
 
   @Test
-  void handler_span_starts_a_fresh_trace_when_no_trace_context_is_supplied() {
-    var interceptor = new McpHandlerObservationInterceptor(registry, HandlerKind.TOOL, "my-tool");
+  void server_operation_span_starts_a_fresh_trace_when_no_trace_context_is_supplied() {
+    var interceptor = serverOperationInterceptor();
     var exchange = new McpExchange("2026-07-28", null, null);
 
     ScopedValue.where(McpExchange.CURRENT, exchange)
-        .run(() -> interceptor.intercept(successfulInvocation("ok")));
+        .run(
+            () ->
+                interceptor.intercept(successfulInvocation(JsonNodeFactory.instance.objectNode())));
 
     List<SpanData> spans = exporter.getFinishedSpanItems();
     assertThat(spans).hasSize(1);
@@ -117,9 +123,12 @@ class TraceContextJoiningTest {
     assertThat(span.getParentSpanContext().isValid()).isFalse();
   }
 
-  private static MethodInvocation<?> successfulInvocation(Object result) {
-    MethodInvocation<?> invocation = mock(MethodInvocation.class);
-    when(invocation.proceed()).thenReturn(result);
-    return invocation;
+  private McpServerOperationInterceptor serverOperationInterceptor() {
+    return new McpServerOperationInterceptor(
+        registry, mock(JsonRpcExceptionTranslatorRegistry.class), "tools/call", "tcp");
+  }
+
+  private static MethodInvocation<JsonNode> successfulInvocation(JsonNode result) {
+    return MethodInvocation.of(null, null, null, new Object[0], () -> result);
   }
 }

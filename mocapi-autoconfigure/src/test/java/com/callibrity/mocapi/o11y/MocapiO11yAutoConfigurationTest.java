@@ -33,6 +33,10 @@ import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerConfig;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlerConfig;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
+import com.callibrity.ripcurl.autoconfigure.RipCurlObservationAutoConfiguration;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerConfig;
+import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
+import com.callibrity.ripcurl.o11y.JsonRpcObservationCustomizer;
 import io.micrometer.observation.ObservationRegistry;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -51,16 +55,60 @@ class MocapiO11yAutoConfigurationTest {
           .withConfiguration(AutoConfigurations.of(MocapiO11yAutoConfiguration.class));
 
   @Test
-  void registers_filter_and_four_handler_customizers_when_observation_registry_is_present() {
+  void registers_operation_customizer_and_four_handler_customizers() {
     runner
         .withUserConfiguration(ObservationRegistryConfig.class)
         .run(
             context -> {
-              assertThat(context).hasSingleBean(McpObservationFilter.class);
+              assertThat(context).hasSingleBean(McpServerOperationCustomizer.class);
               assertThat(context).hasSingleBean(CallToolHandlerCustomizer.class);
               assertThat(context).hasSingleBean(GetPromptHandlerCustomizer.class);
               assertThat(context).hasSingleBean(ReadResourceHandlerCustomizer.class);
               assertThat(context).hasSingleBean(ReadResourceTemplateHandlerCustomizer.class);
+            });
+  }
+
+  @Test
+  void server_operation_customizer_attaches_the_interceptor_with_the_handler_method_name() {
+    runner
+        .withUserConfiguration(ObservationRegistryConfig.class)
+        .run(
+            context -> {
+              McpServerOperationCustomizer customizer =
+                  context.getBean(McpServerOperationCustomizer.class);
+              JsonRpcMethodHandlerConfig config = mock(JsonRpcMethodHandlerConfig.class);
+              when(config.name()).thenReturn("tools/call");
+
+              customizer.customize(config);
+
+              verify(config).interceptor(any(McpServerOperationInterceptor.class));
+            });
+  }
+
+  @Test
+  void server_operation_customizer_backs_off_without_a_translator_registry() {
+    runner
+        .withUserConfiguration(RegistryOnlyConfig.class)
+        .run(context -> assertThat(context).doesNotHaveBean(McpServerOperationCustomizer.class));
+  }
+
+  @Test
+  void ripcurl_default_observation_customizer_backs_off_to_mocapi_s() {
+    // Pins the ordering contract (ADR-0030): MocapiO11yAutoConfiguration is declared
+    // beforeName=RipCurlObservationAutoConfiguration so ripcurl's @ConditionalOnMissingBean
+    // sees mocapi's bean. If the ordering regresses, BOTH customizers register and every
+    // request produces two observations over the same interval — silently.
+    new ApplicationContextRunner()
+        .withConfiguration(
+            AutoConfigurations.of(
+                MocapiO11yAutoConfiguration.class, RipCurlObservationAutoConfiguration.class))
+        .withUserConfiguration(ObservationRegistryConfig.class)
+        .run(
+            context -> {
+              assertThat(context).hasSingleBean(JsonRpcObservationCustomizer.class);
+              assertThat(context.getBean(JsonRpcObservationCustomizer.class))
+                  .isInstanceOf(McpServerOperationCustomizer.class);
+              assertThat(context).doesNotHaveBean("jsonRpcObservationCustomizer");
             });
   }
 
@@ -143,13 +191,26 @@ class MocapiO11yAutoConfigurationTest {
   void inactive_when_no_observation_registry_bean_present() {
     runner.run(
         context -> {
-          assertThat(context).doesNotHaveBean(McpObservationFilter.class);
+          assertThat(context).doesNotHaveBean(McpServerOperationCustomizer.class);
           assertThat(context).doesNotHaveBean(CallToolHandlerCustomizer.class);
         });
   }
 
   @Configuration
   static class ObservationRegistryConfig {
+    @Bean
+    ObservationRegistry observationRegistry() {
+      return ObservationRegistry.create();
+    }
+
+    @Bean
+    JsonRpcExceptionTranslatorRegistry translators() {
+      return mock(JsonRpcExceptionTranslatorRegistry.class);
+    }
+  }
+
+  @Configuration
+  static class RegistryOnlyConfig {
     @Bean
     ObservationRegistry observationRegistry() {
       return ObservationRegistry.create();

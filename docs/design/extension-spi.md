@@ -139,7 +139,7 @@ different units:
 
 | SPI | Where it attaches | Module |
 |---|---|---|
-| `JsonRpcMethodHandlerCustomizer` | Every `@JsonRpcMethod` on the dispatcher (ripcurl). Used by `mocapi-o11y` to enrich the outer `jsonrpc.server` observation. | `mocapi-o11y` |
+| `JsonRpcMethodHandlerCustomizer` | Every `@JsonRpcMethod` on the dispatcher (ripcurl). Used by `mocapi-o11y` to attach the semconv `mcp.server.operation` observation (ADR-0030). | `mocapi-o11y` |
 | `McpFilterChainCustomizer` | The `SecurityFilterChain` serving `/mcp/**`. | `mocapi-oauth2` |
 | `McpMetadataFilterChainCustomizer` | The `SecurityFilterChain` serving `/.well-known/oauth-protected-resource`. | `mocapi-oauth2` |
 | `McpMetadataCustomizer` | The RFC 9728 protected-resource metadata document. | `mocapi-oauth2` |

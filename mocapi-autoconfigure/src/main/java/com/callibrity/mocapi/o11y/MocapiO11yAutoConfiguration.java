@@ -20,33 +20,44 @@ import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
+import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
+import com.callibrity.ripcurl.o11y.JsonRpcObservationCustomizer;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.Order;
+import org.springframework.util.ClassUtils;
 
 /**
- * Composes the MCP-layer observability surface on top of ripcurl's JSON-RPC observations:
+ * Composes the MCP observability surface per the OpenTelemetry MCP semantic conventions (ADR-0030):
  *
  * <ul>
- *   <li>{@link McpObservationFilter} — registered as a Micrometer {@code ObservationFilter} bean.
- *       Fires at {@code Observation.stop()} on ripcurl's {@code jsonrpc.server} observations and
- *       enriches them with {@code mcp.method.name}, {@code mcp.protocol.version}, and {@code
- *       mcp.client.name} tags (read from the bound {@link
- *       com.callibrity.ripcurl.core.JsonRpcDispatcher#CURRENT_REQUEST} and {@link
- *       com.callibrity.mocapi.server.exchange.McpExchange#CURRENT} scoped values). MCP 2026-07-28
- *       is sessionless, so there is no {@code mcp.session.id} tag. Pure enrichment — no new
- *       observation is started at this layer.
+ *   <li>{@link McpServerOperationCustomizer} — implements ripcurl's {@link
+ *       JsonRpcObservationCustomizer} seam, attaching the semconv {@code mcp.server.operation}
+ *       observation (span {@code {method} {target}}, metric {@code mcp.server.operation.duration})
+ *       to every {@code @JsonRpcMethod} handler. This is the span that joins the client's trace
+ *       when the request {@code _meta} carries W3C trace context. Because the bean occupies
+ *       ripcurl's observation-owner seam, ripcurl's default {@code jsonrpc.server} observation
+ *       backs off automatically — one observation per dispatch, owned by the most specific
+ *       convention, with the JSON-RPC attributes carried on the MCP span as the conventions
+ *       prescribe. This autoconfiguration is ordered before ripcurl's so the back-off condition
+ *       sees the bean.
  *   <li>Four per-handler {@link McpHandlerObservationInterceptor} customizer beans (tool / prompt /
- *       resource / resource-template) — attach a second, inner {@code mcp.handler.execution}
- *       observation so tool / prompt / resource execution shows up as a child span inside ripcurl's
- *       JSON-RPC span. Only fires for methods that route through a mocapi handler ({@code
- *       tools/call}, {@code prompts/get}, {@code resources/read}, {@code
- *       resources/templates/read}); dispatch-only methods like {@code tools/list}, {@code
- *       server/discover}, and notifications emit only the outer JSON-RPC observation.
+ *       resource / resource-template) — the mocapi-specific inner {@code mcp.handler.execution}
+ *       observation isolating user-handler time from framework overhead. Only fires for methods
+ *       that route through a mocapi handler; dispatch-only methods ({@code tools/list}, {@code
+ *       server/discover}, notifications) emit only the server-operation observation.
  * </ul>
+ *
+ * <p>{@code network.transport} is resolved once at configuration time from the transport module on
+ * the classpath — {@code tcp} for Streamable HTTP, {@code pipe} for stdio (the semconv value for
+ * pipe-based transports). When both transports are present, HTTP wins; deployments run one
+ * transport in practice.
+ *
+ * <p>MCP 2026-07-28 is sessionless, so there is no {@code mcp.session.id} attribute and no
+ * session-duration metrics (ADR-0020, ADR-0030).
  *
  * <p>Activates only when an {@link ObservationRegistry} bean is present — Spring Boot auto-creates
  * one whenever Actuator or any Micrometer Observation autoconfiguration is on the classpath, so
@@ -56,14 +67,30 @@ import org.springframework.core.annotation.Order;
  */
 @AutoConfiguration(
     afterName =
-        "org.springframework.boot.micrometer.observation.autoconfigure.ObservationAutoConfiguration")
-@ConditionalOnClass({McpObservationFilter.class, ObservationRegistry.class})
+        "org.springframework.boot.micrometer.observation.autoconfigure.ObservationAutoConfiguration",
+    // Ordered before ripcurl's observation autoconfig so its @ConditionalOnMissingBean back-off
+    // sees the McpServerOperationCustomizer bean. Without this the default could double-register.
+    beforeName = "com.callibrity.ripcurl.autoconfigure.RipCurlObservationAutoConfiguration")
+@ConditionalOnClass({McpServerOperationInterceptor.class, ObservationRegistry.class})
 @ConditionalOnBean(ObservationRegistry.class)
 public class MocapiO11yAutoConfiguration {
 
+  private static final String HTTP_TRANSPORT_CLASS =
+      "com.callibrity.mocapi.transport.http.StreamableHttpTransport";
+  private static final String STDIO_TRANSPORT_CLASS =
+      "com.callibrity.mocapi.transport.stdio.StdioServer";
+
+  /**
+   * Attaches the semconv {@code mcp.server.operation} observation to every JSON-RPC method handler
+   * and, by occupying ripcurl's {@link JsonRpcObservationCustomizer} seam, replaces ripcurl's
+   * default {@code jsonrpc.server} observation. The translator registry is the same one the
+   * dispatcher uses, so error codes on the observation match the wire.
+   */
   @Bean
-  public McpObservationFilter mcpObservationFilter() {
-    return new McpObservationFilter();
+  @ConditionalOnBean(JsonRpcExceptionTranslatorRegistry.class)
+  public McpServerOperationCustomizer mcpServerOperationCustomizer(
+      ObservationRegistry registry, JsonRpcExceptionTranslatorRegistry translators) {
+    return new McpServerOperationCustomizer(registry, translators, networkTransport());
   }
 
   @Bean
@@ -104,5 +131,16 @@ public class MocapiO11yAutoConfiguration {
         config.observationInterceptor(
             new McpHandlerObservationInterceptor(
                 registry, HandlerKind.RESOURCE_TEMPLATE, config.descriptor().uriTemplate()));
+  }
+
+  private static String networkTransport() {
+    ClassLoader classLoader = MocapiO11yAutoConfiguration.class.getClassLoader();
+    if (ClassUtils.isPresent(HTTP_TRANSPORT_CLASS, classLoader)) {
+      return McpServerOperationInterceptor.TRANSPORT_TCP;
+    }
+    if (ClassUtils.isPresent(STDIO_TRANSPORT_CLASS, classLoader)) {
+      return McpServerOperationInterceptor.TRANSPORT_PIPE;
+    }
+    return null;
   }
 }

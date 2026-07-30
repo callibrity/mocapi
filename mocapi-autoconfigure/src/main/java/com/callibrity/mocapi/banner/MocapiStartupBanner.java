@@ -181,7 +181,7 @@ public class MocapiStartupBanner {
     if (beanPresent("com.callibrity.mocapi.logging.McpMdcInterceptor")) {
       modules.add("mdc");
     }
-    if (beanPresent("com.callibrity.mocapi.o11y.McpObservationFilter")) {
+    if (beanPresent("com.callibrity.mocapi.o11y.McpServerOperationCustomizer")) {
       modules.add("o11y");
     }
     return String.join(", ", modules);

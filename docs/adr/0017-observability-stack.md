@@ -1,6 +1,9 @@
 # ADR-0017 — Optional, independently-activatable observability stack
 
-- **Status:** Accepted
+- **Status:** Accepted — amended by [ADR-0030](0030-otel-mcp-semconv-alignment.md)
+  (2026-07-30): the observation layer was reshaped to the OpenTelemetry MCP
+  semantic conventions — `mcp.server.operation` replaces the enriched
+  `jsonrpc.server` + `mcp.handler.execution` pair as the primary signal.
 - **Date:** 2025-07-09
 
 ## Context

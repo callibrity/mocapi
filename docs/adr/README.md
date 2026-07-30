@@ -65,3 +65,4 @@ authored at decision time and dated accordingly.
 - [ADR-0027 — Remove the `DRAFT-2026-v1` protocol alias on 2026-07-28 finalization](0027-remove-draft-2026-v1-alias.md)
 - [ADR-0028 — Decline SEP-2243 custom parameter headers (`x-mcp-header`)](0028-decline-sep-2243-custom-parameter-headers.md)
 - [ADR-0029 — Authorization SHOULD-level challenges: `required-scopes` for resource-level step-up, decline per-tool](0029-authorization-should-level-challenges.md)
+- [ADR-0030 — Align observability with the OpenTelemetry MCP semantic conventions](0030-otel-mcp-semconv-alignment.md)
