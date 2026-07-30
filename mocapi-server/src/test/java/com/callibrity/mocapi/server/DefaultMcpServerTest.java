@@ -18,6 +18,7 @@ package com.callibrity.mocapi.server;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -207,6 +208,33 @@ class DefaultMcpServerTest {
       var sent = (JsonRpcResult) captureSent();
       assertThat(sent.result().path("_meta").path(McpMetaKeys.SERVER_INFO))
           .isEqualTo(MAPPER.valueToTree(SERVER_INFO));
+    }
+
+    @Test
+    void serverInfo_is_injected_intact_across_multiple_responses() {
+      // The serverInfo node is serialized once at construction and the same instance is shared
+      // into every response's _meta. Two separate responses must each carry the correct, intact
+      // serverInfo — guarding that reusing one node instance does not corrupt or omit it on any
+      // response (the safety property that makes caching-and-sharing sound).
+      var expected = MAPPER.valueToTree(SERVER_INFO);
+      JsonRpcCall call = validCall("tools/list");
+      when(dispatcher.dispatch(any(JsonRpcCall.class)))
+          .thenAnswer(_ -> call.result(JsonNodeFactory.instance.objectNode()));
+
+      server.handleCall(call, transport);
+      server.handleCall(call, transport);
+
+      var captor = ArgumentCaptor.forClass(JsonRpcMessage.class);
+      verify(transport, times(2)).send(captor.capture());
+      assertThat(captor.getAllValues())
+          .allSatisfy(
+              msg ->
+                  assertThat(
+                          ((JsonRpcResult) msg)
+                              .result()
+                              .path("_meta")
+                              .path(McpMetaKeys.SERVER_INFO))
+                      .isEqualTo(expected));
     }
 
     @Test

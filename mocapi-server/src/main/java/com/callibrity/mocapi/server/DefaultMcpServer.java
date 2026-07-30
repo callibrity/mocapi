@@ -46,7 +46,12 @@ public class DefaultMcpServer implements McpServer {
   private final JsonRpcDispatcher dispatcher;
   private final MetaEnvelopeParser envelopeParser;
   private final ObjectMapper objectMapper;
-  private final Implementation serverInfo;
+  // The server identity serialized to a JSON node once. It is injected into every successful
+  // response's _meta (ADR-0026) and is constant, so it is converted here rather than re-derived
+  // per response via objectMapper.valueToTree(serverInfo) on the hot path. The same node instance
+  // is shared into every response — safe because it is only ever serialized (read), never mutated:
+  // do not mutate this subtree, and do not expose it for mutation.
+  private final JsonNode serverInfoNode;
   private final boolean emitServerInfo;
 
   public DefaultMcpServer(
@@ -58,7 +63,7 @@ public class DefaultMcpServer implements McpServer {
     this.dispatcher = dispatcher;
     this.envelopeParser = envelopeParser;
     this.objectMapper = objectMapper;
-    this.serverInfo = serverInfo;
+    this.serverInfoNode = objectMapper.valueToTree(serverInfo);
     this.emitServerInfo = emitServerInfo;
   }
 
@@ -96,7 +101,7 @@ public class DefaultMcpServer implements McpServer {
     }
     ObjectNode meta = objectResult.withObjectProperty("_meta");
     if (!meta.has(McpMetaKeys.SERVER_INFO)) {
-      meta.set(McpMetaKeys.SERVER_INFO, objectMapper.valueToTree(serverInfo));
+      meta.set(McpMetaKeys.SERVER_INFO, serverInfoNode);
     }
     return call.result(objectResult);
   }
