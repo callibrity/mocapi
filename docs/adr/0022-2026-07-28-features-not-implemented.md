@@ -134,6 +134,25 @@ is not feasible without handler-author cooperation. The "SHOULD stop
 processing" half of the rule is best-effort: the work completes, but
 its output goes nowhere.
 
+**Ratified for 1.0.0 (2026-07-29).** Re-reviewed during the 1.0 release
+sweep against the project's "adhere to SHOULD-level requirements by
+default" posture, which this entry is a deliberate exception to. The
+MUST half is honored unconditionally; the SHOULD half stays best-effort
+for 1.0. Interrupting a handler mid-execution would mean
+`Thread.interrupt()` on the per-call virtual thread, which is only
+observable at interruptible blocking points — a handler doing CPU work,
+a non-interruptible I/O call, or a `synchronized` section would ignore
+it, while one holding a lock or mid-write to an external system could be
+torn down at an unsafe point. Correct cancellation therefore requires a
+handler-visible cancellation token that authors opt into and check;
+that is a public API addition, not a 1.0 bug fix. The cost is bounded
+and non-protocol-visible: the client already sees nothing after
+disconnect, so the only consequence is wasted server-side work.
+Revisitable post-1.0 by threading a cancellation signal through
+`MrtrContext` ([ADR-0025](0025-progress-emitters-and-mrtr-context.md)),
+which is the natural carrier now that it is the shared handler-context
+base.
+
 ### Custom Parameter Headers (`x-mcp-header`)
 
 **Spec reference:** SEP-2243 ([Transports / Streamable HTTP](https://modelcontextprotocol.io/specification/draft/basic/transports/streamable-http))

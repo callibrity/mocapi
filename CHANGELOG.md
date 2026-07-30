@@ -6,12 +6,29 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
-### Removed
+## [1.0.0] - 2026-07-29
 
-- **`DRAFT-2026-v1` protocol alias** ([ADR-0027](docs/adr/0027-remove-draft-2026-v1-alias.md)).
-  The release-candidate-window sentinel is gone now that the final 2026-07-28
-  spec has shipped; `2026-07-28` is the sole accepted and advertised protocol
-  version. Conformance now runs against `--spec-version 2026-07-28`.
+First stable release. Mocapi implements MCP protocol revision `2026-07-28`
+exclusively, and from this release forward the public API follows semantic
+versioning — breaking changes require a 2.x. Features deliberately not
+implemented for 1.0 are enumerated with rationale in
+[ADR-0022](docs/adr/0022-2026-07-28-features-not-implemented.md); notable
+declines are tasks, MCP Apps, URL-mode elicitation, SEP-2243 custom parameter
+headers ([ADR-0028](docs/adr/0028-decline-sep-2243-custom-parameter-headers.md)),
+and interrupting an in-flight handler on client disconnect (the transport-level
+MUST is honored — no further messages are sent for a cancelled request — but
+the handler runs to completion).
+
+### Added
+
+- **`io.modelcontextprotocol/serverInfo` in every successful response's `_meta`**
+  ([ADR-0026](docs/adr/0026-response-meta-serverinfo-injection.md)), adopting the
+  2026-07-28 SHOULD. `DefaultMcpServer` stamps the configured `Implementation`
+  after dispatch and before the transport send, so both Streamable HTTP and stdio
+  get it; it merges into an existing `_meta` and never clobbers a key a handler
+  already set. JSON-RPC errors and non-object results pass through untouched.
+  Default-on, opt out with `mocapi.emit-server-info=false`. This is also the
+  canonical seam for any future server-controlled `_meta` key.
 
 ### Changed
 
@@ -89,9 +106,25 @@ All notable changes to this project are documented in this file. The format is b
   default 5 minutes) bounds a handler that hangs without ever sending its final
   response — previously such a stream had no timeout and held the connection
   indefinitely.
+- **Request `_meta.clientInfo` is now optional** (MCP 2026-07-28). A client may
+  omit it, leaving `protocolVersion` and `clientCapabilities` as the only
+  required envelope keys; `clientInfo` consumers across the server, audit,
+  logging, and observability paths are null-safe accordingly.
+- **`SubscriptionsListenResultMeta` renamed to
+  `SubscriptionsListenResultMetaObject`**, tracking the `$defs` rename in the
+  finalized 2026-07-28 schema. Property set and wire output are unchanged
+  (`_meta.io.modelcontextprotocol/subscriptionId`).
 
 ### Removed
 
+- **`DRAFT-2026-v1` protocol alias** ([ADR-0027](docs/adr/0027-remove-draft-2026-v1-alias.md)).
+  The release-candidate-window sentinel is gone now that the final 2026-07-28
+  spec has shipped; `2026-07-28` is the sole accepted and advertised protocol
+  version. Conformance now runs against `--spec-version 2026-07-28`.
+- **`DiscoverResult.serverInfo`** — the spec dropped the top-level field, and
+  server identity now travels exclusively in the response `_meta` envelope on
+  every method, not just `server/discover`
+  ([ADR-0026](docs/adr/0026-response-meta-serverinfo-injection.md)).
 - `McpToolContext.sendProgress(long, long)` — superseded by the typed progress
   emitters above ([ADR-0025](docs/adr/0025-progress-emitters-and-mrtr-context.md)).
   Migrate `ctx.sendProgress(p, t)` to `ctx.longProgress(t).emit(p)`.
@@ -1390,7 +1423,8 @@ All notable changes to this project are documented in this file. The format is b
 
 Initial public release on Maven Central.
 
-[Unreleased]: https://github.com/callibrity/mocapi/compare/0.17.0...HEAD
+[Unreleased]: https://github.com/callibrity/mocapi/compare/1.0.0...HEAD
+[1.0.0]: https://github.com/callibrity/mocapi/releases/tag/1.0.0
 [0.17.0]: https://github.com/callibrity/mocapi/releases/tag/0.17.0
 [0.16.0]: https://github.com/callibrity/mocapi/releases/tag/0.16.0
 [0.15.0]: https://github.com/callibrity/mocapi/releases/tag/0.15.0
