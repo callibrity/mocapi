@@ -17,7 +17,6 @@ package com.callibrity.mocapi.server.tools;
 
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
-import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.Schema;
 import com.github.erosb.jsonsKema.ValidationFailure;
 import com.github.erosb.jsonsKema.Validator;
@@ -42,12 +41,21 @@ final class InputSchemaValidatingInterceptor implements MethodInterceptor<JsonNo
   @Override
   public Object intercept(MethodInvocation<? extends JsonNode> invocation) {
     JsonNode args = invocation.argument();
-    // json-sKema 0.29's Validator is NOT thread-safe — its internal SchemaVisitor mutates a
-    // shared ArrayList that races under concurrent invocation. A fresh Validator per call is
-    // the safe contract until json-sKema ships a thread-safe implementation. Do NOT cache
-    // Validator.forSchema(...) at construction time.
+    // json-sKema's Validator is NOT thread-safe: DefaultValidator holds a mutable `instance`
+    // field (setInstance) mutated during validate(), so a shared instance would race under
+    // concurrent invocation. Verified still true in 0.31 (the latest as of this writing) —
+    // DefaultValidator's field structure is unchanged from 0.29. A fresh Validator per call is
+    // therefore the safe contract; do NOT cache Validator.forSchema(...) at construction time
+    // until an upstream release makes it stateless. (Construction is cheap — ~0.6% of on-CPU
+    // samples under the profiling soak — so this is a small, correct cost.)
+    //
+    // The arguments are already a parsed Jackson JsonNode, so we build json-sKema's value tree
+    // directly (JacksonToSkema) rather than re-serializing to text and re-parsing through
+    // JsonParser — the round trip was a measured hot-path cost. Validation semantics are
+    // unchanged; only source line/column in a failure message are dropped (never meaningful for
+    // a re-derived tree).
     ValidationFailure failure =
-        Validator.forSchema(inputSchema).validate(new JsonParser(args.toString()).parse());
+        Validator.forSchema(inputSchema).validate(JacksonToSkema.convert(args));
     if (failure != null) {
       throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, failure.getMessage());
     }
