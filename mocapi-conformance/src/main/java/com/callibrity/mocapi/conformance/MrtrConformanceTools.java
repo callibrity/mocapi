@@ -49,6 +49,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class MrtrConformanceTools {
 
+  private static final String CONTEXT_KEY = "context";
+
   private static final BooleanSchema CONFIRM_SCHEMA = new BooleanSchema("Confirm", null, null);
 
   /** Scenarios: input-required-result-basic-elicitation, input-required-result-result-type. */
@@ -105,7 +107,7 @@ public class MrtrConformanceTools {
       ElicitResult answer = ctx.elicit(elicitName("What is your name?"));
       String name = answer.isAccepted() ? answer.getString("name") : "stranger";
       return text("Hello, " + name + "!");
-    } catch (McpElicitationNotSupportedException e) {
+    } catch (McpElicitationNotSupportedException _) {
       // Elicitation is the only input-request method mocapi emits (ADR-0022); a client that
       // did not declare it gets a complete result with no input requests.
       return text("No mutually supported input-request methods; completing without input.");
@@ -118,13 +120,13 @@ public class MrtrConformanceTools {
       description = "Prompt requiring elicitation input")
   public GetPromptResult inputRequiredPrompt(McpElicitor elicitor) {
     var properties = new LinkedHashMap<String, PrimitiveSchemaDefinition>();
-    properties.put("context", new StringSchema("Context", null, null, null, null, null));
+    properties.put(CONTEXT_KEY, new StringSchema("Context", null, null, null, null, null));
     ElicitResult answer =
         elicitor.elicit(
             new ElicitRequestFormParams(
                 "What context should the prompt use?",
-                new RequestedSchema(properties, List.of("context"), null)));
-    String context = answer.isAccepted() ? answer.getString("context") : "none";
+                new RequestedSchema(properties, List.of(CONTEXT_KEY), null)));
+    String context = answer.isAccepted() ? answer.getString(CONTEXT_KEY) : "none";
     return new GetPromptResult(
         "Prompt with elicited context",
         List.of(new PromptMessage(Role.USER, new TextContent("Use context: " + context, null))),

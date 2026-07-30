@@ -244,7 +244,8 @@ class McpResourcesServiceTest {
 
     List<ReadResourceTemplateHandler> templates = List.of(t1, t2);
     List<ReadResourceHandler> emptyHandlers = List.of();
-    assertThatThrownBy(() -> new McpResourcesService(emptyHandlers, templates, engine()))
+    var engine = engine();
+    assertThatThrownBy(() -> new McpResourcesService(emptyHandlers, templates, engine))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Duplicate URI template");
   }
@@ -255,7 +256,8 @@ class McpResourcesServiceTest {
     var a2 = handler("test://dup", "B", "second", "text/plain");
     List<ReadResourceHandler> handlers = List.of(a1, a2);
     List<ReadResourceTemplateHandler> emptyTemplates = List.of();
-    assertThatThrownBy(() -> new McpResourcesService(handlers, emptyTemplates, engine()))
+    var engine = engine();
+    assertThatThrownBy(() -> new McpResourcesService(handlers, emptyTemplates, engine))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Duplicate resource URI");
   }

@@ -136,9 +136,9 @@ public class McpResourcesService {
         visible,
         params,
         pageSize,
-        (resources, nextCursor) ->
+        (pageResources, nextCursor) ->
             new ListResourcesResult(
-                resources,
+                pageResources,
                 nextCursor,
                 cacheSettings.listTtlMs(),
                 cacheSettings.scope(),

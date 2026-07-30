@@ -138,14 +138,13 @@ class MrtrElicitationEngineTest {
 
       principal.set("bob");
       Map<String, InputResponse> answers = Map.of("elicit-1", accept("email", "user@example.com"));
+      String requestState = first.requestState();
+      var params = toolParams(answers, requestState);
+
       assertThatThrownBy(
               () ->
                   boundEngine.execute(
-                      McpMethods.TOOLS_CALL,
-                      toolParams(answers, first.requestState()),
-                      answers,
-                      first.requestState(),
-                      emailHandler))
+                      McpMethods.TOOLS_CALL, params, answers, requestState, emailHandler))
           .isInstanceOf(JsonRpcException.class)
           .hasMessageContaining("principal");
     }

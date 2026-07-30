@@ -271,9 +271,9 @@ class MrtrElicitationComplianceTest {
       JsonNode result = firstRoundTrip("broad-catcher");
 
       // Pins the hazard documented in the interactive-tools guide: the pending signal is
-      // control flow unwinding the handler's stack, so a handler-level catch (Exception)
-      // converts the elicitation into the catch block's result — the client never sees
-      // the question and no InputRequiredResult is produced.
+      // control flow unwinding the handler's stack, so a broad handler-level catch of any
+      // exception type converts the elicitation into that catch block's result — the client
+      // never sees the question, and no input-required result is produced.
       assertThat(result.path("resultType").asString()).isEqualTo(ResultTypes.COMPLETE);
       assertThat(result.has("inputRequests")).isFalse();
       assertThat(result.toString()).contains("swallowed:InputRequiredException");

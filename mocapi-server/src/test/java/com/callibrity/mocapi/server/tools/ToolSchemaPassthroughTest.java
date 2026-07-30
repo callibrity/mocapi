@@ -81,8 +81,11 @@ class ToolSchemaPassthroughTest {
 
     assertThat(listed).isEqualTo(pristineCopy);
     String serialized = mapper.writeValueAsString(listed);
-    assertThat(serialized).contains("$defs").contains("$ref").contains("oneOf");
-    assertThat(serialized).isEqualTo(mapper.writeValueAsString(pristineCopy));
+    assertThat(serialized)
+        .contains("$defs")
+        .contains("$ref")
+        .contains("oneOf")
+        .isEqualTo(mapper.writeValueAsString(pristineCopy));
   }
 
   /** Zero-arg target so the invoker builds without parameter resolvers; never invoked here. */

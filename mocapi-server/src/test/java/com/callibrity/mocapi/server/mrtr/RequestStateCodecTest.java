@@ -220,8 +220,9 @@ class RequestStateCodecTest {
 
     @Test
     void secret_that_is_not_base64_is_rejected() {
-      assertThatThrownBy(
-              () -> RequestStateCodec.withSecret("///not-base64!", Duration.ofMinutes(5), mapper))
+      Duration ttl = Duration.ofMinutes(5);
+
+      assertThatThrownBy(() -> RequestStateCodec.withSecret("///not-base64!", ttl, mapper))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("Base64");
     }
@@ -229,9 +230,9 @@ class RequestStateCodecTest {
     @Test
     void secret_of_the_wrong_length_is_rejected() {
       String shortSecret = Base64.getEncoder().encodeToString("too-short".getBytes());
+      Duration ttl = Duration.ofMinutes(5);
 
-      assertThatThrownBy(
-              () -> RequestStateCodec.withSecret(shortSecret, Duration.ofMinutes(5), mapper))
+      assertThatThrownBy(() -> RequestStateCodec.withSecret(shortSecret, ttl, mapper))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("256 bits");
     }

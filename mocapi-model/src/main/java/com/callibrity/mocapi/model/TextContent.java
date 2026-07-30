@@ -17,9 +17,13 @@ package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-// SEP-2577 spec contract: TextContent is also a member of the deprecated
-// SamplingMessageContentBlock union, which the spec retains for at least twelve months;
-// implementing it is required for 1:1 union completeness.
+/**
+ * A TextContent content block.
+ *
+ * <p>SEP-2577 spec contract: TextContent is also a member of the deprecated {@link
+ * SamplingMessageContentBlock}} union, which the spec retains for at least twelve months.
+ * Implementing it is required for 1:1 union completeness (ADR-0014).
+ */
 @SuppressWarnings("deprecation")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record TextContent(String text, Annotations annotations)

@@ -55,6 +55,8 @@ import tools.jackson.databind.JsonNode;
  */
 public class McpHeaderValidator {
 
+  private static final String MISSING_REQUIRED_HEADER = "missing required header ";
+
   /** The required protocol-version routing header. */
   public static final String MCP_PROTOCOL_VERSION_HEADER = "MCP-Protocol-Version";
 
@@ -93,7 +95,7 @@ public class McpHeaderValidator {
   public Optional<String> validate(HttpHeaders headers, JsonRpcRequest request) {
     String version = headers.getFirst(MCP_PROTOCOL_VERSION_HEADER);
     if (version == null) {
-      return failure("missing required header " + MCP_PROTOCOL_VERSION_HEADER);
+      return failure(MISSING_REQUIRED_HEADER + MCP_PROTOCOL_VERSION_HEADER);
     }
     String bodyVersion = metaProtocolVersion(request.params());
     if (bodyVersion != null && !bodyVersion.equals(version)) {
@@ -105,7 +107,7 @@ public class McpHeaderValidator {
 
     String method = headers.getFirst(MCP_METHOD_HEADER);
     if (method == null) {
-      return failure("missing required header " + MCP_METHOD_HEADER);
+      return failure(MISSING_REQUIRED_HEADER + MCP_METHOD_HEADER);
     }
     if (!request.method().equals(method)) {
       return failure(
@@ -119,7 +121,7 @@ public class McpHeaderValidator {
       String name = headers.getFirst(MCP_NAME_HEADER);
       if (name == null) {
         return failure(
-            "missing required header " + MCP_NAME_HEADER + " for method " + request.method());
+            MISSING_REQUIRED_HEADER + MCP_NAME_HEADER + " for method " + request.method());
       }
       String bodyName = stringField(request.params(), namedField);
       if (bodyName != null && !bodyName.equals(name)) {

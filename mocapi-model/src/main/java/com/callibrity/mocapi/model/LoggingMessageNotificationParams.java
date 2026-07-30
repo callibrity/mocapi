@@ -29,7 +29,11 @@ import tools.jackson.databind.node.ObjectNode;
 @Deprecated(since = "2026-07-28")
 // SEP-2577 spec contract: LoggingLevel is deprecated alongside this type; the reference is
 // required for 1:1 fidelity.
-@SuppressWarnings("deprecation")
+// java:S1133 — this deprecation is mandated by the spec, not scheduled for our removal:
+// MCP 2026-07-28 still defines the type and SEP-2577 holds it for a 12-month window, and
+// mocapi-model mirrors schema.ts 1:1 (ADR-0014). Removing it would make mocapi a less
+// faithful implementation. Revisit when the spec drops it, not before.
+@SuppressWarnings({"deprecation", "java:S1133"})
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record LoggingMessageNotificationParams(
     LoggingLevel level, String logger, Object data, @JsonProperty("_meta") ObjectNode meta) {}

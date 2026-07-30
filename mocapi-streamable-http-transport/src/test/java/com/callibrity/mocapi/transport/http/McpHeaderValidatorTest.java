@@ -270,6 +270,12 @@ class McpHeaderValidatorTest {
   }
 
   @Nested
+  // java:S3415 — not swapped. These tests pin a named constant (the actual value under test)
+  // against its literal wire code (the expected value), which is the correct AssertJ order;
+  // the rule heuristically assumes any named constant must be the expected side. The literals
+  // are the spec-defined codes and are deliberately spelled out so a change to the constant
+  // fails here rather than silently altering the wire protocol.
+  @SuppressWarnings("java:S3415")
   class Constants {
 
     @Test

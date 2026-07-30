@@ -47,6 +47,8 @@ public class MetaEnvelopeParser {
 
   private static final String META_FIELD = "_meta";
 
+  private static final String MALFORMED_META_KEY = "Malformed _meta key ";
+
   private static final List<String> SUPPORTED_VERSIONS = List.of(McpServer.PROTOCOL_VERSION);
 
   private final ObjectMapper objectMapper;
@@ -78,7 +80,7 @@ public class MetaEnvelopeParser {
     Implementation clientInfo = optionalObject(meta, McpMetaKeys.CLIENT_INFO, Implementation.class);
     if (clientInfo != null && (clientInfo.name() == null || clientInfo.version() == null)) {
       throw invalidParams(
-          "Malformed _meta key " + McpMetaKeys.CLIENT_INFO + ": name and version are required");
+          MALFORMED_META_KEY + McpMetaKeys.CLIENT_INFO + ": name and version are required");
     }
     ClientCapabilities clientCapabilities =
         requiredObject(meta, McpMetaKeys.CLIENT_CAPABILITIES, ClientCapabilities.class);
@@ -116,7 +118,7 @@ public class MetaEnvelopeParser {
       throw invalidParams("Missing required _meta key: " + key);
     }
     if (!node.isString()) {
-      throw invalidParams("Malformed _meta key " + key + ": expected a string");
+      throw invalidParams(MALFORMED_META_KEY + key + ": expected a string");
     }
     return node.asString();
   }
@@ -140,13 +142,13 @@ public class MetaEnvelopeParser {
 
   private <T> T parseObject(JsonNode node, String key, Class<T> type) {
     if (!node.isObject()) {
-      throw invalidParams("Malformed _meta key " + key + ": expected an object");
+      throw invalidParams(MALFORMED_META_KEY + key + ": expected an object");
     }
     try {
       return objectMapper.treeToValue(node, type);
     } catch (JacksonException e) {
       throw new JsonRpcException(
-          JsonRpcProtocol.INVALID_PARAMS, "Malformed _meta key " + key + ": " + e.getMessage(), e);
+          JsonRpcProtocol.INVALID_PARAMS, MALFORMED_META_KEY + key + ": " + e.getMessage(), e);
     }
   }
 

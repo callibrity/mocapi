@@ -26,11 +26,11 @@ import com.callibrity.mocapi.transport.http.sse.SseStream;
 import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcResult;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.node.JsonNodeFactory;
@@ -41,12 +41,7 @@ class SseMessageWriterTest {
 
   @Mock SseStream stream;
 
-  private SseMessageWriter writer;
-
-  @BeforeEach
-  void set_up() {
-    writer = new SseMessageWriter(stream);
-  }
+  @InjectMocks SseMessageWriter writer;
 
   @Test
   void write_result_publishes_closes_the_stream_and_transitions_to_closed() {

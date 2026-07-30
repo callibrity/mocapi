@@ -116,7 +116,9 @@ class MetaEnvelopeParserTest {
 
     @Test
     void non_object_params_is_invalid_params() {
-      assertThatThrownBy(() -> parser.parse(JsonNodeFactory.instance.stringNode("nope")))
+      var stringParams = JsonNodeFactory.instance.stringNode("nope");
+
+      assertThatThrownBy(() -> parser.parse(stringParams))
           .isInstanceOf(JsonRpcException.class)
           .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcProtocol.INVALID_PARAMS);
     }
