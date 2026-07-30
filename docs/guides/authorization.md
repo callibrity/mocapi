@@ -430,10 +430,30 @@ sources if you want to write your own Guard implementation.
 
 OAuth2 is transport-bearer-token-specific and applies only to the Streamable HTTP transport. Stdio (subprocess-launched) MCP servers authenticate the subprocess via its launch context; there are no bearer tokens to validate. `mocapi-oauth2` depends on `mocapi-streamable-http-spring-boot-starter` and is not compatible with stdio-only deployments.
 
-## What's not yet supported
+## What's not supported
 
-Covered by a future minor release:
+**Deliberately declined, with rationale** (reopen at the linked ADR if your
+threat model needs one):
 
-- **DPoP (RFC 9449) and mTLS token binding** — out of scope for 0.9.0.
-- **Signed metadata** (`application/resource-metadata+jwt`) — Spring serves JSON only.
-- **Multiple issuer-uris (federation)** — `mocapi.oauth2.authorization-servers` accepts a list and is advertised in the metadata, but Spring's auto-wired `JwtDecoder` assumes a single issuer. Federation requires a custom `JwtDecoder` bean today.
+- **DPoP (RFC 9449) and mTLS token binding** — see
+  [ADR-0022](../adr/0022-2026-07-28-features-not-implemented.md).
+- **Signed metadata** (`application/resource-metadata+jwt`) — Spring serves
+  the RFC 9728 document as JSON only. [ADR-0022](../adr/0022-2026-07-28-features-not-implemented.md).
+- **Per-tool `insufficient_scope` step-up** — declined because it conflicts
+  with mocapi's `visibility ≡ invocation` model (a scope-gated tool is hidden,
+  not challenged); [ADR-0029](../adr/0029-authorization-should-level-challenges.md).
+  Resource-level `insufficient_scope` *is* supported — see
+  [Requiring a scope](#requiring-a-scope-to-reach-the-server-resource-level)
+  above.
+
+**Current limitation, with a workaround:**
+
+- **Multiple issuer-uris (federation).** `mocapi.oauth2.authorization-servers`
+  accepts a list and advertises them all in the metadata document, but Spring
+  Boot's auto-wired `JwtDecoder` validates against a single issuer. To accept
+  tokens from more than one issuer today, register your own `JwtDecoder` bean
+  (e.g. a `JwtIssuerAuthenticationManagerResolver`-backed decoder) — mocapi
+  wires whatever `JwtDecoder` is present onto both filter chains.
+
+The forward view for these lives in the [roadmap](../roadmap.md); nothing here
+is a dated commitment.

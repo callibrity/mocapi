@@ -51,7 +51,7 @@ public AddResult add(int a, int b) {
 public record AddResult(int sum) {}
 ```
 
-Tool return types are strictly checked at registration time (since 0.15.0) — the signature determines exactly how mocapi maps the value to a `CallToolResult`, with no runtime guessing. See [Permitted Return Types](#permitted-return-types) for the full rule set. Tools whose return type doesn't match one of the permitted shapes fail to register with a clear message at startup.
+Tool return types are strictly checked at registration time — the signature determines exactly how mocapi maps the value to a `CallToolResult`, with no runtime guessing. See [Permitted Return Types](#permitted-return-types) for the full rule set. Tools whose return type doesn't match one of the permitted shapes fail to register with a clear message at startup.
 
 ### Naming
 
