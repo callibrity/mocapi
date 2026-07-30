@@ -111,12 +111,14 @@ something a user bolts on with `McpFilterChainCustomizer`:
 
 So the endpoint's authorization rule has exactly one owner
 (`McpFilterChains.authorizeMcpEndpoint`), and resource-level scopes are
-expressed through it. A related trap lives in the AND-composition:
-`AuthorizationManagers.allOf` **grants** when handed zero managers, so
-composing an empty scope list would permit everyone and bypass
-authentication entirely. The empty case is branched, not composed, and a
-test asserts an unauthenticated request still gets 401 with no required
-scopes configured.
+expressed through it. The AND is Spring's `hasAllAuthorities`, backed by
+`AllAuthoritiesAuthorizationManager`, which asserts a non-empty authority
+list — so the empty case is branched to `authenticated()` rather than
+composed. That shape was chosen over `AuthorizationManagers.allOf`, which
+**grants** when handed zero managers: composing an empty scope list there
+would have permitted everyone and bypassed authentication entirely. Tests
+pin both ends — an unauthenticated request still gets 401 with no required
+scopes configured, and `McpFilterChains` sits at 100% branch coverage.
 
 **Per-tool** scope denials deliberately do not produce a 403 step-up:
 they are Guard-layer decisions below JSON-RPC dispatch, where the filter

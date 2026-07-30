@@ -91,11 +91,17 @@ the rest explicitly.
    may be a reasonable extension point later, but it should not be
    justified by a feature that fights the guard model.
 
-Two hazards are handled explicitly rather than left to chance.
-`AuthorizationManagers.allOf` **grants** when handed zero managers, so the
-empty-list case is branched rather than composed — composing it would turn
-"no required scopes" into "permit everyone" and drop authentication
-entirely. And a scope enforced but absent from `mocapi.oauth2.scopes` is
+Two hazards are handled explicitly rather than left to chance. The AND is
+Spring's own `hasAllAuthorities`, backed by
+`AllAuthoritiesAuthorizationManager`, which asserts a non-empty authority
+list — so an empty `requiredScopes` cannot reach it, and the empty case is
+branched to `authenticated()` instead. This was deliberately chosen over
+composing `AuthorizationManagers.allOf`, which **grants** when handed zero
+managers: building the argument list dynamically there would have turned
+"no required scopes" into "permit everyone" and dropped authentication
+entirely. The safe shape is structural rather than guarded by a
+conditional we have to remember. And a scope enforced but absent from
+`mocapi.oauth2.scopes` is
 undiscoverable to clients, who would see only a 403 with no way to learn
 what to request; mocapi logs a startup warning for that rather than
 failing, since the advertised set may legitimately be supplied by a
@@ -127,12 +133,22 @@ or what `*/list` filters. It adds no challenge to any JSON-RPC-level
 error. It says nothing about stdio, which has no bearer tokens and no HTTP
 challenge to carry — `required-scopes` is inert there.
 
-**Verification.** `McpRequiredScopesTest` covers: a token with the
-required scope reaching the endpoint; a token without it getting 403; the
-challenge actually containing `error="insufficient_scope"`; AND rather
-than OR across multiple scopes; an unauthenticated request still getting
-401 rather than 403; and — for the empty-list default — an authenticated
-token passing while an unauthenticated one is still rejected. The tests
+**Verification.** Two test classes, one per side of a module boundary,
+because JaCoCo coverage does not cross modules in this build and an
+integration test written one module above the code it exercises credits
+coverage to neither. `McpFilterChainsScopeTest` (in `mocapi-oauth2`, where
+`McpFilterChains` lives) builds the chain by calling
+`createMcpFilterChain` directly and covers one required scope, AND across
+two, the empty list, and an explicit `null` list; it takes the class to
+100% line and 100% branch coverage. `McpRequiredScopesTest` (in
+`mocapi-autoconfigure`) covers the same behavior end-to-end through
+property binding, plus the startup warning for a required-but-unadvertised
+scope. Between them: a token with the required scope reaching the
+endpoint; a token without it getting 403; the challenge actually
+containing `error="insufficient_scope"`; AND rather than OR across
+multiple scopes; an unauthenticated request still getting 401 rather than
+403; and — for the empty-list default — an authenticated token passing
+while an unauthenticated one is still rejected. The tests
 drive a real `Authorization: Bearer` header rather than the `jwt()`
 post-processor, because Spring scopes `BearerTokenAccessDeniedHandler` to
 a `BearerTokenRequestMatcher`: without the header the request falls
@@ -143,8 +159,8 @@ broken implementation before being accepted.
 
 **Code anchors:**
 `mocapi-oauth2/src/main/java/com/callibrity/mocapi/oauth2/McpFilterChains.java`
-(`authorizeMcpEndpoint` / `allOfScopes` — the single owner of the endpoint
-authorization rule),
+(`authorizeMcpEndpoint` / `scopeAuthorities` — the single owner of the
+endpoint authorization rule),
 `mocapi-oauth2/src/main/java/com/callibrity/mocapi/oauth2/MocapiOAuth2Properties.java`
 (`requiredScopes`), and
 `mocapi-spring-security-guards/src/main/java/com/callibrity/mocapi/security/spring/ScopeGuard.java`

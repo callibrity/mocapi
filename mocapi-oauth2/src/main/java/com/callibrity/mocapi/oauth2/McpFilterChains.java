@@ -20,15 +20,11 @@ import com.callibrity.mocapi.oauth2.token.JwtMcpTokenStrategy;
 import com.callibrity.mocapi.oauth2.token.McpTokenStrategy;
 import com.callibrity.mocapi.oauth2.token.OpaqueTokenMcpTokenStrategy;
 import java.util.List;
-import org.springframework.security.authorization.AuthorityAuthorizationManager;
-import org.springframework.security.authorization.AuthorizationManager;
-import org.springframework.security.authorization.AuthorizationManagers;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.oauth2.server.resource.web.OAuth2ProtectedResourceMetadataFilter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
 /**
  * Static factories that assemble the two {@link SecurityFilterChain SecurityFilterChains} mocapi
@@ -124,9 +120,18 @@ public final class McpFilterChains {
    * rather than added by a customizer.
    *
    * <p>With no required scopes this is plain {@code authenticated()} — the behavior before the
-   * property existed. With required scopes, all of them must be present (AND), and Spring's {@code
+   * property existed. With required scopes, {@code hasAllAuthorities} requires every one of them
+   * (AND, matching {@code @RequiresScope} at the handler layer), and Spring's {@code
    * BearerTokenAccessDeniedHandler} turns the resulting denial into a {@code 403} bearer challenge
    * carrying {@code error="insufficient_scope"} (RFC 6750 §3.1).
+   *
+   * <p>The empty check is not redundant with the {@code else} branch. {@code hasAllAuthorities} is
+   * backed by {@code AllAuthoritiesAuthorizationManager}, which asserts a non-empty authority list
+   * and would throw on empty {@code requiredScopes}; branching keeps "no required scopes" meaning
+   * "authentication only" rather than a startup failure. It also means there is no path on which an
+   * empty list could silently permit everyone — the failure mode {@code
+   * AuthorizationManagers.allOf} would have introduced, since that method <em>grants</em> when
+   * handed zero managers.
    */
   private static void authorizeMcpEndpoint(
       AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth,
@@ -134,28 +139,12 @@ public final class McpFilterChains {
     if (requiredScopes == null || requiredScopes.isEmpty()) {
       auth.anyRequest().authenticated();
     } else {
-      auth.anyRequest().access(allOfScopes(requiredScopes));
+      auth.anyRequest().hasAllAuthorities(scopeAuthorities(requiredScopes));
     }
   }
 
-  /**
-   * AND-composes one {@code hasAuthority("SCOPE_<scope>")} manager per required scope, matching the
-   * AND semantics of {@code @RequiresScope} at the handler layer.
-   *
-   * <p>Folded pairwise rather than passed as an array on purpose: {@code
-   * AuthorizationManagers.allOf} grants access when handed <em>zero</em> managers, so building the
-   * argument list dynamically would turn an empty scope list into "permit everyone" — bypassing
-   * even authentication. The empty case is handled by the caller instead, and this method is only
-   * ever reached with at least one scope.
-   */
-  private static AuthorizationManager<RequestAuthorizationContext> allOfScopes(
-      List<String> requiredScopes) {
-    AuthorizationManager<RequestAuthorizationContext> combined = null;
-    for (String scope : requiredScopes) {
-      AuthorizationManager<RequestAuthorizationContext> next =
-          AuthorityAuthorizationManager.hasAuthority(SCOPE_AUTHORITY_PREFIX + scope);
-      combined = (combined == null) ? next : AuthorizationManagers.allOf(combined, next);
-    }
-    return combined;
+  /** Maps bare scope names to the {@code SCOPE_}-prefixed authorities Spring's converters emit. */
+  private static String[] scopeAuthorities(List<String> requiredScopes) {
+    return requiredScopes.stream().map(SCOPE_AUTHORITY_PREFIX::concat).toArray(String[]::new);
   }
 }

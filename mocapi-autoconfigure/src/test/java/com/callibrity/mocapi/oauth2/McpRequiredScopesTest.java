@@ -167,10 +167,44 @@ class McpRequiredScopesTest {
 
     @Test
     void unauthenticated_request_is_still_rejected() throws Exception {
-      // Guards the AuthorizationManagers.allOf(...) trap: allOf GRANTS when handed zero managers,
-      // so composing the (empty) scope list instead of branching would turn "no required scopes"
-      // into "permit everyone" and drop authentication entirely.
+      // An empty scope list must mean "authentication only", never "permit everyone". The AND is
+      // Spring's hasAllAuthorities, which asserts a non-empty list, so empty is branched to
+      // authenticated() — the shape deliberately avoids AuthorizationManagers.allOf, which grants
+      // when handed zero managers and would have dropped authentication for an empty list.
       mockMvc.perform(post("/mcp")).andExpect(status().isUnauthorized());
+    }
+  }
+
+  @Nested
+  @SpringBootTest(classes = McpRequiredScopesTest.TestApp.class)
+  @AutoConfigureMockMvc
+  @TestPropertySource(
+      properties = {
+        RESOURCE_PROPS_RESOURCE,
+        RESOURCE_PROPS_ISSUER,
+        RESOURCE_PROPS_AUDIENCE,
+        // Deliberately NOT listed in mocapi.oauth2.scopes — exercises the startup warning for a
+        // scope that is enforced but undiscoverable through the RFC 9728 metadata document.
+        "mocapi.oauth2.required-scopes[0]=admin.unadvertised"
+      })
+  class With_a_required_scope_that_is_not_advertised {
+
+    @Autowired MockMvc mockMvc;
+
+    @Test
+    void context_still_starts_and_the_scope_is_enforced() throws Exception {
+      // The mismatch is a warning, not a failure: the advertised set may legitimately come from a
+      // replacement ScopesSupportedMetadataCustomizer, so mocapi can't prove it's undiscoverable.
+      mockMvc
+          .perform(post("/mcp").header(HttpHeaders.AUTHORIZATION, bearer("admin.unadvertised")))
+          .andExpect(status().isOk());
+    }
+
+    @Test
+    void token_without_the_unadvertised_scope_is_still_denied() throws Exception {
+      mockMvc
+          .perform(post("/mcp").header(HttpHeaders.AUTHORIZATION, bearer("some.other.scope")))
+          .andExpect(status().isForbidden());
     }
   }
 
