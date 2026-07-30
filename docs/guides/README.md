@@ -19,7 +19,8 @@ server, start here.
 - [Guards](guards.md)
 - [Bean Validation](validation.md)
 
-## Authorization
+## Security & Authorization
+- [**Securing your MCP server**](security.md) — start here: the pre-production hardening checklist
 - [OAuth2 Resource Server](authorization.md)
 
 ## Operations

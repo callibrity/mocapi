@@ -157,6 +157,7 @@ Docs live under [`docs/`](docs/) in three trees:
 - [Writing Prompts](docs/guides/prompts.md) -- defining prompts, argument binding, and return messages
 - [Writing Resources](docs/guides/resources.md) -- fixed resources, templated resources, and path-variable binding
 - [Externalizing Annotation Metadata](docs/guides/externalizing-metadata.md) -- `${...}` property placeholders for tool/prompt/resource descriptions, URIs, and names
+- [Securing your MCP Server](docs/guides/security.md) -- pre-production hardening checklist: authentication, MRTR secret, argument validation, per-handler authorization, TLS/CORS
 - [Authorization](docs/guides/authorization.md) -- OAuth2 resource-server setup for the Streamable HTTP transport (MCP 2026-07-28)
 - [Guards](docs/guides/guards.md) -- per-handler visibility + call-time authorization via the `Guard` SPI; `@RequiresScope` / `@RequiresRole` via `mocapi-spring-security-guards`
 - [Validation](docs/guides/validation.md) -- Jakarta Bean Validation on user `@McpTool` / `@McpPrompt` / `@McpResourceTemplate` parameters via the optional `mocapi-jakarta-validation`
