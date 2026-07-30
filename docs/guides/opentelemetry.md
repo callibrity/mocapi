@@ -129,9 +129,25 @@ If you want every log line to flow to the same OTel backend as your spans — co
 <dependency>
     <groupId>io.opentelemetry.instrumentation</groupId>
     <artifactId>opentelemetry-logback-appender-1.0</artifactId>
+    <!-- Pick the instrumentation release that matches YOUR Spring Boot's managed
+         opentelemetry version — see the version warning below. -->
     <version>2.24.0-alpha</version>
 </dependency>
 ```
+
+> **Version warning — match the appender to Boot's managed OTel, not to "latest".**
+> `mocapi-bom` manages no OpenTelemetry versions, and Spring Boot's own BOM (imported
+> first) wins dependency-management ordering over anything the instrumentation BOM
+> declares. So the appender's *code* must be compatible with the `opentelemetry-api`
+> that **Boot** pins (`opentelemetry.version` in the Boot BOM — `1.55.0` for Boot
+> 4.0.x). A newer appender compiled against a newer API can produce
+> `NoSuchMethodError` **at logging time** — e.g. `2.26.1-alpha` calls the stable
+> `LogRecordBuilder.setException(...)` unguarded, which does not exist in 1.55.0;
+> the error then fires from inside the logging subsystem itself, the worst possible
+> place (it detonates precisely while an exception is being reported). Choose the
+> instrumentation release whose transitive `opentelemetry-api` equals Boot's managed
+> version, or explicitly align `opentelemetry.version` first. `2.24.0-alpha` and
+> earlier use the guarded incubator path and degrade gracefully on 1.55.0.
 
 Then configure a `logback-spring.xml` with the `OpenTelemetryAppender` (see [OTel docs](https://opentelemetry.io/docs/zero-code/java/agent/instrumentation/logback-appender/)).
 
