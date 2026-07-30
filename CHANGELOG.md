@@ -6,7 +6,7 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-07-29
+## [1.0.0] - 2026-07-30
 
 First stable release. Mocapi implements MCP protocol revision `2026-07-28`
 exclusively, and from this release forward the public API follows semantic
