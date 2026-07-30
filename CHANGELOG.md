@@ -159,6 +159,20 @@ the handler runs to completion).
   finalized 2026-07-28 schema. Property set and wire output are unchanged
   (`_meta.io.modelcontextprotocol/subscriptionId`).
 
+### Fixed
+
+- **An `Error` thrown during Streamable HTTP dispatch no longer strands the
+  connection.** The virtual-thread dispatch body caught only `Exception`, so an
+  `Error` escaping the handler path (e.g. a `NoSuchMethodError` from classpath
+  skew) skipped `abort(...)`, left the response future forever incomplete, and
+  held the request open until the servlet async timeout returned an HTML `503`.
+  The transport now aborts promptly on `Error` too — a JSON-RPC error reply
+  before the response shape commits, closing the committed SSE stream after —
+  and then rethrows, so the `Error` stays fatal to the dispatch thread and
+  still reaches the uncaught-exception handler rather than being laundered
+  into a `-32603`. This closes the `Error`-shaped gap in the "leak-proof
+  streams" hardening above, which only covered handler *exceptions*.
+
 ### Removed
 
 - **`DRAFT-2026-v1` protocol alias** ([ADR-0027](docs/adr/0027-remove-draft-2026-v1-alias.md)).

@@ -154,10 +154,21 @@ public class StreamableHttpController {
         .start(
             snapshot.wrap(
                 () -> {
+                  // Asymmetric catches, deliberately. An Exception is the normal JSON-RPC error
+                  // path: abort() turns it into an error reply (pre-commit) or closes the
+                  // committed SSE stream (post-commit) — handled, nothing to rethrow. An Error
+                  // (NoSuchMethodError, LinkageError, StackOverflowError...) must also reach
+                  // abort() — otherwise the response future never completes and the connection
+                  // strands until the servlet async timeout — but it is NOT handled: it is
+                  // rethrown so it stays fatal to the dispatch thread and surfaces to the
+                  // uncaught-exception handler instead of being laundered into a -32603.
                   try {
                     server.handleCall(call, transport);
                   } catch (Exception e) {
                     transport.abort(e);
+                  } catch (Error e) {
+                    transport.abort(e);
+                    throw e;
                   }
                 }));
     return transport.response();

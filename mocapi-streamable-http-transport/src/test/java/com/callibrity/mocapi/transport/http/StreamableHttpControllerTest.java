@@ -441,6 +441,46 @@ class StreamableHttpControllerTest {
           .hasCauseInstanceOf(RuntimeException.class)
           .hasMessageContaining("handler blew up");
     }
+
+    @Test
+    void handler_error_completes_future_exceptionally_promptly() throws Exception {
+      // An Error (e.g. NoSuchMethodError from classpath skew) must not strand the connection
+      // until the servlet async timeout — the future must fail promptly, hence the short bound.
+      doThrow(new NoSuchMethodError("simulated linkage error"))
+          .when(server)
+          .handleCall(any(), any());
+
+      CompletableFuture<ResponseEntity<Object>> future =
+          controller.handlePost(
+              objectMapper.treeToValue(callBody("tools/list"), JsonRpcMessage.class),
+              validHeadersFor("tools/list"));
+
+      assertThatThrownBy(() -> future.get(2, TimeUnit.SECONDS))
+          .isInstanceOf(ExecutionException.class)
+          .hasCauseInstanceOf(NoSuchMethodError.class)
+          .hasMessageContaining("simulated linkage error");
+    }
+
+    @Test
+    void handler_error_still_propagates_out_of_the_dispatch_thread() throws Exception {
+      // Aborting the transport must not swallow the Error: it stays fatal to the dispatch
+      // thread and reaches the default uncaught-exception handler (virtual threads use it).
+      var error = new NoSuchMethodError("simulated linkage error");
+      doThrow(error).when(server).handleCall(any(), any());
+      CompletableFuture<Throwable> uncaught = new CompletableFuture<>();
+      Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
+      Thread.setDefaultUncaughtExceptionHandler(
+          (thread, throwable) -> uncaught.complete(throwable));
+      try {
+        controller.handlePost(
+            objectMapper.treeToValue(callBody("tools/list"), JsonRpcMessage.class),
+            validHeadersFor("tools/list"));
+
+        assertThat(uncaught.get(5, TimeUnit.SECONDS)).isSameAs(error);
+      } finally {
+        Thread.setDefaultUncaughtExceptionHandler(previous);
+      }
+    }
   }
 
   @Nested
