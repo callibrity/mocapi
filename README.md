@@ -10,7 +10,7 @@
 
 Define tools, prompts, and resources as annotated Spring beans. Pull in optional modules for OAuth2, per-handler authorization, Jakarta Bean Validation, structured audit logs, Micrometer observations, MDC correlation, an `/actuator/mcp` inventory endpoint, and GraalVM native-image support — all wired through one customizer SPI.
 
-> **Status:** pre-1.0, actively developed. APIs may still change between 0.x minors. We'd love early feedback and real-world usage reports.
+> **Status:** stable. 1.0.0 implements MCP `2026-07-28` exclusively and follows [semantic versioning](https://semver.org) — breaking changes only in a new major. Features deliberately not implemented are enumerated, with rationale, in [ADR-0022](docs/adr/0022-2026-07-28-features-not-implemented.md). We'd love feedback and real-world usage reports.
 
 ## What's in the box
 
