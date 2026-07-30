@@ -140,6 +140,14 @@ public class StreamableHttpController {
         null);
   }
 
+  // java:S1181 — catching Error here is deliberate, not defensive overreach. An Error escaping
+  // dispatch on the raw virtual thread would otherwise strand the response future until the
+  // servlet async timeout (~30s of held connection, then an HTML 503 instead of JSON-RPC). The
+  // catch aborts the transport to release the connection and RETHROWS, so the Error stays fatal
+  // and is never converted into a handled JSON-RPC error. Pinned by the two regression tests in
+  // StreamableHttpControllerTest.Handler_failures; see the fix(transport) commit for the field
+  // incident (NoSuchMethodError from classpath skew) that motivated it.
+  @SuppressWarnings("java:S1181")
   private CompletableFuture<ResponseEntity<Object>> handleCall(
       HttpHeaders headers, JsonRpcCall call) {
     Optional<String> headerFailure = headerValidator.validate(headers, call);

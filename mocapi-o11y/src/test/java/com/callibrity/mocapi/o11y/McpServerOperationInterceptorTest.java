@@ -191,8 +191,9 @@ class McpServerOperationInterceptorTest {
       var boom = new IllegalStateException("boom");
       when(translators.translate(boom)).thenReturn(new JsonRpcErrorDetail(-32603, "boom"));
       var interceptor = interceptor("tools/call", "tcp");
+      var invocation = invocationThrowing(boom);
 
-      assertThatThrownBy(() -> interceptor.intercept(invocationThrowing(boom)))
+      assertThatThrownBy(() -> interceptor.intercept(invocation))
           .isInstanceOf(IllegalStateException.class);
 
       assertThat(registry)

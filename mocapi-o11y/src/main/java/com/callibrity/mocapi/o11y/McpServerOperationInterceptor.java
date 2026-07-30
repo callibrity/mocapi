@@ -44,14 +44,15 @@ import tools.jackson.databind.JsonNode;
  * low-cardinality target exists. Per the conventions, {@code mcp.resource.uri} is deliberately
  * <em>not</em> used as a span-name target — it would produce high-cardinality span names.
  *
- * <p>This observation supersedes ripcurl's generic {@code jsonrpc.server} observation, which the
- * autoconfiguration suppresses via an {@code ObservationPredicate}: the MCP conventions describe
- * <em>one</em> server span carrying the JSON-RPC attributes ({@code jsonrpc.request.id}, {@code
- * rpc.response.status_code}, …) alongside the MCP and GenAI ones — not two nested spans over the
- * same interval. The JSON-RPC attributes ripcurl emitted are therefore emitted here instead, with
- * identical semantics ({@code error.type} and {@code rpc.response.status_code} carry the JSON-RPC
- * error code obtained through the same {@link JsonRpcExceptionTranslatorRegistry} the dispatcher
- * uses, so the code on the span always matches the code on the wire).
+ * <p>This observation supersedes ripcurl's generic {@code jsonrpc.server} observation: {@link
+ * McpServerOperationCustomizer} occupies ripcurl's {@code JsonRpcObservationCustomizer} seam, so
+ * ripcurl's default backs off (ADR-0030). The MCP conventions describe <em>one</em> server span
+ * carrying the JSON-RPC attributes ({@code jsonrpc.request.id}, {@code rpc.response.status_code},
+ * …) alongside the MCP and GenAI ones — not two nested spans over the same interval. The JSON-RPC
+ * attributes ripcurl emitted are therefore emitted here instead, with identical semantics ({@code
+ * error.type} and {@code rpc.response.status_code} carry the JSON-RPC error code obtained through
+ * the same {@link JsonRpcExceptionTranslatorRegistry} the dispatcher uses, so the code on the span
+ * always matches the code on the wire).
  *
  * <p>Tool-level failure: a {@code tools/call} that completes normally but returns {@code
  * CallToolResult.isError=true} gets {@code error.type=tool_error}, as the conventions specifically
@@ -107,55 +108,7 @@ public final class McpServerOperationInterceptor implements MethodInterceptor<Js
 
   @Override
   public Object intercept(MethodInvocation<? extends JsonNode> invocation) {
-    JsonNode params = currentParams();
-    String target = targetOf(params);
-
-    Observation observation =
-        Observation.createNotStarted(
-                OBSERVATION_NAME, McpServerOperationInterceptor::serverContext, registry)
-            .contextualName(target != null ? method + " " + target : method)
-            .lowCardinalityKeyValue("mcp.method.name", method)
-            .lowCardinalityKeyValue("rpc.system.name", "jsonrpc")
-            .lowCardinalityKeyValue("jsonrpc.protocol.version", JsonRpcProtocol.VERSION);
-
-    if (networkTransport != null) {
-      observation.lowCardinalityKeyValue("network.transport", networkTransport);
-      if (TRANSPORT_TCP.equals(networkTransport)) {
-        observation.lowCardinalityKeyValue("network.protocol.name", "http");
-      }
-    }
-    if (McpExchange.CURRENT.isBound() && McpExchange.CURRENT.get().protocolVersion() != null) {
-      observation.lowCardinalityKeyValue(
-          "mcp.protocol.version", McpExchange.CURRENT.get().protocolVersion());
-    }
-
-    switch (method) {
-      case McpMethods.TOOLS_CALL -> {
-        observation.lowCardinalityKeyValue("gen_ai.operation.name", "execute_tool");
-        if (target != null) {
-          observation.lowCardinalityKeyValue("gen_ai.tool.name", target);
-        }
-      }
-      case McpMethods.PROMPTS_GET -> {
-        if (target != null) {
-          observation.lowCardinalityKeyValue("gen_ai.prompt.name", target);
-        }
-      }
-      case McpMethods.RESOURCES_READ -> {
-        String uri = stringField(params, "uri");
-        if (uri != null) {
-          observation.highCardinalityKeyValue("mcp.resource.uri", uri);
-        }
-      }
-      default -> {
-        // No target-bearing attributes for list/discover/notification methods.
-      }
-    }
-
-    if (JsonRpcDispatcher.CURRENT_REQUEST.isBound()
-        && JsonRpcDispatcher.CURRENT_REQUEST.get() instanceof JsonRpcCall call) {
-      observation.highCardinalityKeyValue("jsonrpc.request.id", call.id().asString());
-    }
+    Observation observation = buildObservation(currentParams());
 
     observation.start();
     JsonNode result = null;
@@ -176,6 +129,77 @@ public final class McpServerOperationInterceptor implements MethodInterceptor<Js
         observation.lowCardinalityKeyValue("error.type", "tool_error");
       }
       observation.stop();
+    }
+  }
+
+  /** Builds the not-yet-started observation with the full semconv attribute set. */
+  private Observation buildObservation(JsonNode params) {
+    String target = targetOf(params);
+    Observation observation =
+        Observation.createNotStarted(
+                OBSERVATION_NAME, McpServerOperationInterceptor::serverContext, registry)
+            .contextualName(target != null ? method + " " + target : method)
+            .lowCardinalityKeyValue("mcp.method.name", method)
+            .lowCardinalityKeyValue("rpc.system.name", "jsonrpc")
+            .lowCardinalityKeyValue("jsonrpc.protocol.version", JsonRpcProtocol.VERSION);
+    addNetworkAttributes(observation);
+    addProtocolVersion(observation);
+    addTargetAttributes(observation, target, params);
+    addRequestId(observation);
+    return observation;
+  }
+
+  private void addNetworkAttributes(Observation observation) {
+    if (networkTransport != null) {
+      observation.lowCardinalityKeyValue("network.transport", networkTransport);
+      if (TRANSPORT_TCP.equals(networkTransport)) {
+        observation.lowCardinalityKeyValue("network.protocol.name", "http");
+      }
+    }
+  }
+
+  private static void addProtocolVersion(Observation observation) {
+    if (McpExchange.CURRENT.isBound() && McpExchange.CURRENT.get().protocolVersion() != null) {
+      observation.lowCardinalityKeyValue(
+          "mcp.protocol.version", McpExchange.CURRENT.get().protocolVersion());
+    }
+  }
+
+  private void addTargetAttributes(Observation observation, String target, JsonNode params) {
+    switch (method) {
+      case McpMethods.TOOLS_CALL -> addToolAttributes(observation, target);
+      case McpMethods.PROMPTS_GET -> addPromptName(observation, target);
+      case McpMethods.RESOURCES_READ -> addResourceUri(observation, params);
+      default -> {
+        // No target-bearing attributes for list/discover/notification methods.
+      }
+    }
+  }
+
+  private static void addToolAttributes(Observation observation, String target) {
+    observation.lowCardinalityKeyValue("gen_ai.operation.name", "execute_tool");
+    if (target != null) {
+      observation.lowCardinalityKeyValue("gen_ai.tool.name", target);
+    }
+  }
+
+  private static void addPromptName(Observation observation, String target) {
+    if (target != null) {
+      observation.lowCardinalityKeyValue("gen_ai.prompt.name", target);
+    }
+  }
+
+  private static void addResourceUri(Observation observation, JsonNode params) {
+    String uri = stringField(params, "uri");
+    if (uri != null) {
+      observation.highCardinalityKeyValue("mcp.resource.uri", uri);
+    }
+  }
+
+  private static void addRequestId(Observation observation) {
+    if (JsonRpcDispatcher.CURRENT_REQUEST.isBound()
+        && JsonRpcDispatcher.CURRENT_REQUEST.get() instanceof JsonRpcCall call) {
+      observation.highCardinalityKeyValue("jsonrpc.request.id", call.id().asString());
     }
   }
 
