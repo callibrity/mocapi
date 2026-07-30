@@ -23,12 +23,16 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Pins mocapi's JSON-RPC error codes to their literal wire values.
+ *
+ * <p>java:S3415 is suppressed because the assertions are not swapped. The named constant is the
+ * actual value under test and the literal is the expected wire code, which is the correct AssertJ
+ * order. The rule heuristically treats any named constant as the expected side. Literals are
+ * deliberately spelled out so that changing a constant fails this test rather than silently
+ * altering the wire protocol.
+ */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-// java:S3415 — not swapped. These tests pin a named constant (the actual value under test)
-// against its literal wire code (the expected value), which is the correct AssertJ order;
-// the rule heuristically assumes any named constant must be the expected side. The literals
-// are the spec-defined codes and are deliberately spelled out so a change to the constant
-// fails here rather than silently altering the wire protocol.
 @SuppressWarnings("java:S3415")
 class JsonRpcErrorCodesTest {
 
