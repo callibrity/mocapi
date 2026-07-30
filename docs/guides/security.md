@@ -22,6 +22,7 @@ This guide draws that line explicitly.
 |---|---|---|
 | `requestState` token crypto (AES-256-GCM, principal-bound, TTL) | **mocapi** | Secure; you only supply the key |
 | Bearer-token validation, audience enforcement, RFC 9728 discovery | **mocapi** (`mocapi-oauth2`) | Correct *once the module is present* |
+| DNS-rebinding `Origin` allowlist (Streamable HTTP) | **mocapi** | On — localhost family; widen for real browser origins |
 | Whether the endpoint requires authentication at all | **you** | **Open** until you add `mocapi-oauth2` |
 | Which scopes/roles gate which handlers | **you** | None until you configure them |
 | Validating tool *arguments* against your contract | **you** (`mocapi-jakarta-validation`) | Not validated unless you opt in |
@@ -175,7 +176,10 @@ cannot make network decisions for you. They are still your responsibility:
 - **CORS.** If browser-based MCP clients call your endpoint, configure CORS
   deliberately via an `McpFilterChainCustomizer` (see
   [Authorization §Customizing the MCP chain](authorization.md#customizing-the-mcp-chain)) —
-  do not reflexively allow all origins.
+  do not reflexively allow all origins. CORS is separate from the built-in
+  `Origin` allowlist ([above](#dns-rebinding-protection--what-it-is-and-isnt));
+  browser clients from a non-default origin need *both* that origin in
+  `mocapi.allowed-origins` and a matching CORS rule.
 - **Network exposure & rate limiting.** Put the endpoint only where it needs
   to be reachable, and apply rate limiting at your gateway/proxy. mocapi runs
   each call on a virtual thread with no built-in per-caller quota.
@@ -202,6 +206,38 @@ these:
   ([ADR-0030](../adr/0030-otel-mcp-semconv-alignment.md)).
 - **Errors don't leak internals** — failures surface as JSON-RPC error codes,
   not stack traces.
+- **DNS-rebinding protection, on by default.** The Streamable HTTP transport
+  validates the `Origin` header against `mocapi.allowed-origins` (default
+  `localhost,127.0.0.1,[::1]`) and rejects a mismatch with `403 Forbidden:
+  Invalid Origin`. This defends the common local-MCP-server case, where a
+  malicious web page in the user's browser tries to reach a server bound to
+  `localhost` — see below for the important scope of this control.
+
+### DNS-rebinding protection — what it is and isn't
+
+The `Origin` check ([`mocapi.allowed-origins`](configuration.md)) exists for
+one specific threat: a browser, tricked by a malicious page, making requests to
+an MCP server the *victim* can reach (typically `localhost`). Browsers attach
+an `Origin` header they cannot forge across sites, so allowlisting origins
+blocks that vector.
+
+Two properties follow, and both matter:
+
+- **A request with no `Origin` header is accepted.** This is deliberate —
+  non-browser clients (curl, CLI tools, server-to-server) don't send `Origin`,
+  and they aren't the rebinding threat. It also means the `Origin` check is
+  **not an access-control mechanism**: anyone who can omit the header passes
+  it. Authentication is [§1](#1-authentication-is-opt-in--this-is-the-big-one)'s
+  job, not this one.
+- **If browser clients call your server from a real origin**, add that origin's
+  host to `mocapi.allowed-origins` — otherwise legitimate browser traffic gets
+  a 403. Conversely, do **not** widen it to `*` or to hosts you don't control,
+  or you reopen the rebinding vector.
+
+This is distinct from **CORS** ([§5](#5-deployment-layer-controls-mocapi-does-not-provide)):
+the `Origin` allowlist decides whether the *server processes* a cross-origin
+request at all; CORS decides whether a *browser lets its own script read the
+response*. You may need both.
 
 ## Pre-production checklist
 
@@ -217,7 +253,9 @@ these:
       constraints) or validated by hand in the handler.
 - [ ] TLS terminates in front of the endpoint; bearer tokens never traverse
       plaintext.
-- [ ] CORS is configured deliberately if browser clients are in scope.
+- [ ] CORS is configured deliberately if browser clients are in scope, and any
+      non-default browser origin is added to `mocapi.allowed-origins` (which
+      defaults to the localhost family for DNS-rebinding protection).
 - [ ] The endpoint is exposed only on the networks that need it, with rate
       limiting at the gateway.
 
