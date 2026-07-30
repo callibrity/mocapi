@@ -11,6 +11,22 @@ observation stack and stated that GenAI / MCP attributes are populated
 conventions found that claim overstated, and found the conventions had
 moved.
 
+**The conventions say "instead of", explicitly.** The MCP semconv
+document ([`docs/gen-ai/mcp.md`](https://opentelemetry.io/docs/specs/semconv/gen-ai/mcp/))
+resolves the layering question in prose: "When instrumenting MCP calls,
+it's RECOMMENDED to follow MCP conventions *instead of* RPC semantic
+conventions since MCP spans and metrics provide domain-specific context
+and record details that are not covered by the RPC conventions." The
+JSON-RPC semconv does define client/server spans (as specializations of
+the generic RPC span types in `model/rpc/spans.yaml` — an earlier draft
+of this ADR wrongly said no JSON-RPC span exists); those conventions
+govern plain JSON-RPC calls, which is exactly what ripcurl's default
+still emits for non-MCP services. For MCP calls, the MCP span *is* the
+one span representing the RPC — it carries `jsonrpc.request.id`,
+`jsonrpc.protocol.version`, and `rpc.response.status_code` in its own
+attribute list. Same relationship as gRPC's conventions to the generic
+RPC ones: the most specific convention owns the span.
+
 **The conventions relocated.** `mcp.method.name`, `mcp.protocol.version`,
 `mcp.resource.uri`, and `mcp.session.id` are now marked *Deprecated* in
 `open-telemetry/semantic-conventions` and live in
