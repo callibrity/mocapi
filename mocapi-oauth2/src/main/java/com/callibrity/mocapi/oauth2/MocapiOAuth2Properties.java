@@ -45,8 +45,10 @@ import org.springframework.validation.annotation.Validated;
  *     resource. When empty (the default), the module falls back to the issuer configured via {@code
  *     spring.security.oauth2.resourceserver.jwt.issuer-uri} so single-IdP setups don't have to
  *     restate the value. Set explicitly to federate across multiple authorization servers.
- * @param scopes scopes the resource server advertises as supported. Informational; enforcement is
- *     the caller's responsibility via {@link McpFilterChainCustomizer}.
+ * @param scopes scopes the resource server advertises as supported. Informational only — this
+ *     populates {@code scopes_supported} in the RFC 9728 metadata document and enforces nothing.
+ *     For enforcement see {@code requiredScopes} (resource-level) or {@code @RequiresScope}
+ *     (per-handler).
  * @param resourceDocumentation URL of human-readable developer documentation for the resource (RFC
  *     9728 §2 {@code resource_documentation}). Optional.
  * @param resourcePolicyUri URL of a policy document describing how access tokens and data are
@@ -54,6 +56,20 @@ import org.springframework.validation.annotation.Validated;
  *     resource_policy_uri}). Optional.
  * @param resourceTosUri URL of the terms-of-service document clients must accept to use this
  *     resource (RFC 9728 {@code resource_tos_uri}). Optional.
+ * @param requiredScopes OAuth2 scopes a token must carry to reach the MCP endpoint <em>at all</em>
+ *     — resource-level (coarse) authorization, applied on the MCP filter chain in front of JSON-RPC
+ *     dispatch. <strong>Optional and empty by default: when empty, no scope enforcement is added
+ *     and the endpoint requires only an authenticated token</strong> (the behavior before this
+ *     property existed). When non-empty, <em>all</em> listed scopes are required — AND semantics,
+ *     matching {@code @RequiresScope} at the handler layer — and a valid token missing any of them
+ *     gets Spring Security's {@code 403 insufficient_scope} challenge (RFC 6750 §3.1), which is the
+ *     step-up breadcrumb the MCP authorization spec expects. Values are bare scope names; the
+ *     {@code SCOPE_} authority prefix Spring's JWT and opaque-token converters emit is applied for
+ *     you. This is deliberately coarse: it cannot express per-tool rules, because the filter chain
+ *     cannot see which tool a {@code tools/call} targets. Use {@code @RequiresScope} for
+ *     per-handler scopes, which hide the handler rather than challenging the caller (ADR-0012,
+ *     ADR-0029). Every required scope should also appear in {@code scopes} so clients can discover
+ *     it through the metadata document; mocapi logs a warning at startup if one does not.
  *     <p>The metadata document's {@code resource_name} field is automatically populated from the
  *     MCP {@link com.callibrity.mocapi.model.Implementation Implementation} server-info bean
  *     ({@code mocapi.server-title}, falling back to {@code mocapi.server-name}), so there is no
@@ -68,4 +84,5 @@ public record MocapiOAuth2Properties(
     @DefaultValue List<String> scopes,
     String resourceDocumentation,
     String resourcePolicyUri,
-    String resourceTosUri) {}
+    String resourceTosUri,
+    @DefaultValue List<String> requiredScopes) {}

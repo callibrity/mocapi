@@ -34,7 +34,7 @@ class ResourceMetadataCustomizerTest {
   void uses_explicit_resource_when_contained_in_audiences() {
     MocapiOAuth2Properties props =
         new MocapiOAuth2Properties(
-            "https://api.example.com", List.of(), List.of(), null, null, null);
+            "https://api.example.com", List.of(), List.of(), null, null, null, List.of());
     OAuth2ResourceServerProperties rsProps =
         rsPropsWithAudiences("https://api.example.com", "other");
 
@@ -49,7 +49,7 @@ class ResourceMetadataCustomizerTest {
   void throws_when_explicit_resource_not_in_audiences() {
     MocapiOAuth2Properties props =
         new MocapiOAuth2Properties(
-            "https://api.example.com", List.of(), List.of(), null, null, null);
+            "https://api.example.com", List.of(), List.of(), null, null, null, List.of());
     OAuth2ResourceServerProperties rsProps = rsPropsWithAudiences("https://other.example.com");
 
     assertThatThrownBy(() -> new ResourceMetadataCustomizer(props, rsProps))
@@ -60,7 +60,7 @@ class ResourceMetadataCustomizerTest {
   @Test
   void defaults_to_sole_audience_when_resource_blank() {
     MocapiOAuth2Properties props =
-        new MocapiOAuth2Properties("", List.of(), List.of(), null, null, null);
+        new MocapiOAuth2Properties("", List.of(), List.of(), null, null, null, List.of());
     OAuth2ResourceServerProperties rsProps = rsPropsWithAudiences("https://api.example.com");
 
     OAuth2ProtectedResourceMetadata.Builder builder =
@@ -73,7 +73,7 @@ class ResourceMetadataCustomizerTest {
   @Test
   void throws_when_resource_blank_and_no_audiences() {
     MocapiOAuth2Properties props =
-        new MocapiOAuth2Properties(null, List.of(), List.of(), null, null, null);
+        new MocapiOAuth2Properties(null, List.of(), List.of(), null, null, null, List.of());
     OAuth2ResourceServerProperties rsProps = new OAuth2ResourceServerProperties();
 
     assertThatThrownBy(() -> new ResourceMetadataCustomizer(props, rsProps))
@@ -84,7 +84,7 @@ class ResourceMetadataCustomizerTest {
   @Test
   void throws_when_resource_blank_and_multiple_audiences() {
     MocapiOAuth2Properties props =
-        new MocapiOAuth2Properties(null, List.of(), List.of(), null, null, null);
+        new MocapiOAuth2Properties(null, List.of(), List.of(), null, null, null, List.of());
     OAuth2ResourceServerProperties rsProps =
         rsPropsWithAudiences("https://a.example.com", "https://b.example.com");
 

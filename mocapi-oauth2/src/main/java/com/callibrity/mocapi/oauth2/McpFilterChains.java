@@ -19,10 +19,16 @@ import com.callibrity.mocapi.oauth2.metadata.McpMetadataCustomizer;
 import com.callibrity.mocapi.oauth2.token.JwtMcpTokenStrategy;
 import com.callibrity.mocapi.oauth2.token.McpTokenStrategy;
 import com.callibrity.mocapi.oauth2.token.OpaqueTokenMcpTokenStrategy;
+import java.util.List;
+import org.springframework.security.authorization.AuthorityAuthorizationManager;
+import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.authorization.AuthorizationManagers;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.oauth2.server.resource.web.OAuth2ProtectedResourceMetadataFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
 /**
  * Static factories that assemble the two {@link SecurityFilterChain SecurityFilterChains} mocapi
@@ -51,6 +57,9 @@ public final class McpFilterChains {
 
   /** RFC 9728 §3 well-known path; Spring Security's metadata filter hardcodes the same. */
   public static final String METADATA_PATH = "/.well-known/oauth-protected-resource";
+
+  /** Authority prefix Spring Security's JWT and opaque-token scope converters emit. */
+  private static final String SCOPE_AUTHORITY_PREFIX = "SCOPE_";
 
   private McpFilterChains() {}
 
@@ -93,7 +102,7 @@ public final class McpFilterChains {
   public static SecurityFilterChain createMcpFilterChain(
       HttpSecurity http, McpFilterChainConfig config) throws Exception {
     http.securityMatcher(config.mcpEndpoint(), config.mcpEndpoint() + "/**")
-        .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+        .authorizeHttpRequests(auth -> authorizeMcpEndpoint(auth, config.requiredScopes()))
         .csrf(AbstractHttpConfigurer::disable)
         .oauth2ResourceServer(rs -> config.tokenStrategy().apply(rs));
 
@@ -101,5 +110,52 @@ public final class McpFilterChains {
       customizer.customize(http);
     }
     return http.build();
+  }
+
+  /**
+   * Applies the endpoint's authorization rule. This is the <em>only</em> {@code anyRequest()} call
+   * mocapi makes on this chain, and that is load-bearing: {@code
+   * HttpSecurity.authorizeHttpRequests} reuses one registry across calls, and {@code anyRequest()}
+   * asserts it has not already been configured — so a second call (from here or from an {@link
+   * McpFilterChainCustomizer}) fails the context at startup with "Can't configure anyRequest after
+   * itself". Rules are also evaluated in registration order with first-match-wins, so a
+   * customizer's later {@code requestMatchers(...)} rule would never be reached behind this one.
+   * Resource-level scopes therefore have to be expressed here, through {@code requiredScopes},
+   * rather than added by a customizer.
+   *
+   * <p>With no required scopes this is plain {@code authenticated()} — the behavior before the
+   * property existed. With required scopes, all of them must be present (AND), and Spring's {@code
+   * BearerTokenAccessDeniedHandler} turns the resulting denial into a {@code 403} bearer challenge
+   * carrying {@code error="insufficient_scope"} (RFC 6750 §3.1).
+   */
+  private static void authorizeMcpEndpoint(
+      AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth,
+      List<String> requiredScopes) {
+    if (requiredScopes == null || requiredScopes.isEmpty()) {
+      auth.anyRequest().authenticated();
+    } else {
+      auth.anyRequest().access(allOfScopes(requiredScopes));
+    }
+  }
+
+  /**
+   * AND-composes one {@code hasAuthority("SCOPE_<scope>")} manager per required scope, matching the
+   * AND semantics of {@code @RequiresScope} at the handler layer.
+   *
+   * <p>Folded pairwise rather than passed as an array on purpose: {@code
+   * AuthorizationManagers.allOf} grants access when handed <em>zero</em> managers, so building the
+   * argument list dynamically would turn an empty scope list into "permit everyone" — bypassing
+   * even authentication. The empty case is handled by the caller instead, and this method is only
+   * ever reached with at least one scope.
+   */
+  private static AuthorizationManager<RequestAuthorizationContext> allOfScopes(
+      List<String> requiredScopes) {
+    AuthorizationManager<RequestAuthorizationContext> combined = null;
+    for (String scope : requiredScopes) {
+      AuthorizationManager<RequestAuthorizationContext> next =
+          AuthorityAuthorizationManager.hasAuthority(SCOPE_AUTHORITY_PREFIX + scope);
+      combined = (combined == null) ? next : AuthorizationManagers.allOf(combined, next);
+    }
+    return combined;
   }
 }

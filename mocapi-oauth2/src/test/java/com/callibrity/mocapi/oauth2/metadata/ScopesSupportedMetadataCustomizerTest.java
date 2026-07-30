@@ -34,7 +34,7 @@ class ScopesSupportedMetadataCustomizerTest {
   void adds_each_configured_scope_to_builder() {
     MocapiOAuth2Properties props =
         new MocapiOAuth2Properties(
-            null, List.of(), List.of("mcp.read", "mcp.write"), null, null, null);
+            null, List.of(), List.of("mcp.read", "mcp.write"), null, null, null, List.of());
     OAuth2ProtectedResourceMetadata.Builder builder =
         mock(OAuth2ProtectedResourceMetadata.Builder.class);
 
@@ -47,7 +47,7 @@ class ScopesSupportedMetadataCustomizerTest {
   @Test
   void contributes_nothing_when_scopes_empty() {
     MocapiOAuth2Properties props =
-        new MocapiOAuth2Properties(null, List.of(), List.of(), null, null, null);
+        new MocapiOAuth2Properties(null, List.of(), List.of(), null, null, null, List.of());
     OAuth2ProtectedResourceMetadata.Builder builder =
         mock(OAuth2ProtectedResourceMetadata.Builder.class);
 

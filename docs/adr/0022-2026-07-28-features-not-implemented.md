@@ -195,9 +195,19 @@ modes; RFC 9728 Protected Resource Metadata at
 (shape unchanged in the draft); 401 on missing/invalid tokens; no
 `offline_access` in `scopes_supported`.
 
-**Deferred SHOULD-level enhancements** (no protocol impact): the
+**SHOULD-level challenge enhancements** (no protocol impact): the
 `scope` parameter on 401 `WWW-Authenticate` challenges, and 403
-`insufficient_scope` challenges for step-up authorization flows.
+`insufficient_scope` challenges for step-up authorization flows. Recorded
+as deferred at the time of this review; **decided for 1.0 in
+[ADR-0029](0029-authorization-should-level-challenges.md)**, which
+supersedes this paragraph. In short: RFC 9728 `resource_metadata` on the
+401 is emitted (inherited from Spring Security 7's default entry point);
+the `scope` parameter on a bare 401 is declined as duplicate of the
+metadata document's `scopes_supported`; resource-level `403
+insufficient_scope` is adopted through the new
+`mocapi.oauth2.required-scopes` property; and per-tool step-up is declined
+because it conflicts with `visibility ≡ invocation`
+([ADR-0012](0012-guard-spi.md)) and would leak hidden handlers.
 
 ## Consequences
 

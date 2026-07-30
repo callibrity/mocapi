@@ -118,7 +118,7 @@ and exposes its own customizer SPI.
 | Bean name | `@Order` | Matches | Policy | Customizer SPI |
 |---|---|---|---|---|
 | `mcpMetadataFilterChain` | `HIGHEST_PRECEDENCE` | `/.well-known/oauth-protected-resource` | `permitAll` (RFC 9728 §3) | `McpMetadataFilterChainCustomizer` |
-| `mcpFilterChain` | `HIGHEST_PRECEDENCE + 10` | `${mocapi.endpoint:/mcp}` and `${mocapi.endpoint:/mcp}/**` | `authenticated` | `McpFilterChainCustomizer` |
+| `mcpFilterChain` | `HIGHEST_PRECEDENCE + 10` | `${mocapi.endpoint:/mcp}` and `${mocapi.endpoint:/mcp}/**` | `authenticated`, or all of `mocapi.oauth2.required-scopes` when set | `McpFilterChainCustomizer` |
 
 CSRF is disabled on both (MCP is stateless bearer-token, not cookie auth).
 Both chains wire the same `McpTokenStrategy` into Spring's
@@ -134,25 +134,87 @@ and-egg violation of RFC 9728. Keeping it on its own chain with its own
 customizer surface means tweaks to the MCP auth policy (like "require
 scope `mcp.write`") can't accidentally lock the metadata document.
 
+## Requiring a scope to reach the server (resource-level)
+
+To require that every caller present a given scope just to talk to the MCP
+endpoint, set `mocapi.oauth2.required-scopes`:
+
+```yaml
+mocapi:
+  oauth2:
+    scopes: [mcp.read, mcp.write]          # advertised in the metadata document
+    required-scopes: [mcp.read]            # enforced on every /mcp request
+```
+
+The property is **optional**. Leave it unset and the endpoint requires only
+an authenticated token — the default. Set it and *all* listed scopes must be
+present (AND semantics, matching `@RequiresScope`). Values are bare scope
+names; the `SCOPE_` authority prefix is applied for you.
+
+A valid token missing a required scope gets:
+
+```
+HTTP/1.1 403 Forbidden
+WWW-Authenticate: Bearer error="insufficient_scope",
+                  error_description="...", scope="mcp.read",
+                  resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource"
+```
+
+That challenge is defined by
+[RFC 6750 §3.1](https://www.rfc-editor.org/rfc/rfc6750#section-3.1) and is the
+step-up breadcrumb the
+[MCP authorization spec](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization)
+expects: it tells the client *which* scope to go ask the authorization server
+for, and the `resource_metadata` parameter
+([RFC 9728](https://www.rfc-editor.org/rfc/rfc9728)) points at the document
+listing what this server supports. Spring Security's
+`BearerTokenAccessDeniedHandler` produces it; mocapi only supplies the rule.
+A request with **no** token still gets `401`, not `403` — missing credentials
+is an authentication failure, not a scope problem.
+
+List every required scope in `mocapi.oauth2.scopes` too. That property is
+what populates `scopes_supported` in the metadata document, so a scope you
+enforce but don't advertise leaves clients no way to discover what to request
+— they just see a 403. Mocapi logs a warning at startup if it spots one.
+
+### Why this is a property and not a customizer
+
+Earlier versions of this guide suggested doing it in an
+`McpFilterChainCustomizer` with `auth.anyRequest().hasAuthority(...)`.
+**That does not work**, in two different ways, so don't reach for it:
+
+- `HttpSecurity.authorizeHttpRequests` reuses a single rule registry across
+  calls, and `anyRequest()` refuses to be configured twice — mocapi already
+  called it, so a second call fails the context at startup with
+  `Can't configure anyRequest after itself`.
+- Switching to `requestMatchers(...)` to dodge that is worse: rules are
+  matched in registration order, first match wins, and mocapi's
+  `anyRequest()` rule is registered first, so a later rule is never
+  consulted. You get **no enforcement and no error** — the dangerous
+  outcome.
+
+Resource-level scopes therefore have to be expressed where mocapi builds
+that single rule, which is what `required-scopes` does.
+
 ## Customizing the MCP chain
 
 `McpFilterChainCustomizer` mutates the `HttpSecurity` for `mcpFilterChain`
-after mocapi has applied its defaults (securityMatcher, authenticated,
-CSRF disabled, `oauth2ResourceServer`). Use it to require specific scopes
-on top of authentication, add CORS to the MCP endpoint, install a
-rate-limit filter, etc.
+after mocapi has applied its defaults (securityMatcher, authorization rule,
+CSRF disabled, `oauth2ResourceServer`). Use it for concerns that sit
+alongside the authorization rule rather than replacing it — CORS on the MCP
+endpoint, an extra servlet filter, a rate limiter:
 
 ```java
 @Bean
-McpFilterChainCustomizer requireScope() {
-    return http -> http.authorizeHttpRequests(auth ->
-        auth.anyRequest().hasAuthority("SCOPE_mcp.read"));
+McpFilterChainCustomizer corsForMcp() {
+    return http -> http.cors(Customizer.withDefaults());
 }
 ```
 
 Multiple `McpFilterChainCustomizer` beans compose in Spring's natural
-order. They run **after** mocapi's defaults, so user rules layer on top
-of (and can override) the built-ins.
+order. They run **after** mocapi's defaults, so user configuration layers on
+top of the built-ins. The one thing to avoid is `authorizeHttpRequests` — see
+the section above for why, and use `required-scopes` instead.
 
 ## Customizing the metadata chain
 
@@ -299,7 +361,29 @@ JWT and opaque modes are mutually exclusive; configure one or the other. If both
 
 `mocapi-oauth2` validates tokens on the way in. Gating individual handlers
 on the resulting `Authentication` is a second concern, covered by the
-`mocapi-spring-security-guards` module. Add it alongside `mocapi-oauth2`:
+`mocapi-spring-security-guards` module.
+
+**Which layer do I want?** The two are complementary, and they behave
+differently on denial:
+
+| | `mocapi.oauth2.required-scopes` | `@RequiresScope` on a handler |
+|---|---|---|
+| Granularity | The whole MCP endpoint | One tool / prompt / resource |
+| Enforced by | Spring Security filter chain, before dispatch | Guard SPI, inside dispatch |
+| Denial shape | `403` + `insufficient_scope` challenge | Handler hidden from `*/list`; `-32010 Forbidden` on call |
+| Tells the client what to ask for | Yes — that's the point | No, deliberately |
+| Works on stdio | No (HTTP-only) | Yes |
+
+Use `required-scopes` for "you need scope X to use this server at all," where
+naming the missing scope is helpful and safe. Use `@RequiresScope` for
+per-tool rules, where mocapi's `visibility ≡ invocation` model means an
+unentitled caller never sees the tool — so there's nothing to step up *to*,
+and naming the scope would leak the existence of a hidden handler. The filter
+chain also physically cannot do per-tool rules: every tool arrives at the same
+`/mcp` URL, and the filter runs before mocapi knows which one is being called.
+See [ADR-0029](../adr/0029-authorization-should-level-challenges.md).
+
+Add the guards module alongside `mocapi-oauth2`:
 
 ```xml
 <dependency>

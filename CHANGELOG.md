@@ -21,6 +21,24 @@ the handler runs to completion).
 
 ### Added
 
+- **`mocapi.oauth2.required-scopes` — resource-level scope enforcement**
+  ([ADR-0029](docs/adr/0029-authorization-should-level-challenges.md)). An optional
+  list of OAuth2 scopes a token must carry to reach the MCP endpoint at all. Empty
+  by default, in which case the endpoint's rule stays `authenticated()` exactly as
+  before. When set, all listed scopes are required (AND, matching `@RequiresScope`),
+  and Spring Security emits the spec-shaped `403 insufficient_scope` bearer
+  challenge (RFC 6750 §3.1) — the step-up breadcrumb the MCP authorization spec
+  expects. Mocapi warns at startup if a required scope isn't also advertised in
+  `mocapi.oauth2.scopes`, since clients discover scopes through the RFC 9728
+  metadata document. **This replaces a recipe the authorization guide previously
+  recommended but which could not work:** adding the rule from an
+  `McpFilterChainCustomizer` either fails the context at startup (`anyRequest()`
+  cannot be configured twice on the shared registry) or is silently never evaluated
+  (first-match-wins ordering puts mocapi's rule first). `McpFilterChainCustomizer`
+  is no longer the place for authorization rules; the endpoint's rule now has a
+  single owner. Per-tool step-up remains deliberately declined — scope-gated
+  handlers stay hidden and return `-32010` rather than naming the missing scope
+  (ADR-0012).
 - **`io.modelcontextprotocol/serverInfo` in every successful response's `_meta`**
   ([ADR-0026](docs/adr/0026-response-meta-serverinfo-injection.md)), adopting the
   2026-07-28 SHOULD. `DefaultMcpServer` stamps the configured `Implementation`
@@ -106,6 +124,13 @@ the handler runs to completion).
   default 5 minutes) bounds a handler that hangs without ever sending its final
   response — previously such a stream had no timeout and held the connection
   indefinitely.
+- **`McpFilterChainConfig` gained a fourth component**, `List<String> requiredScopes`,
+  to carry the property above. Source-breaking only if you construct the record
+  directly — which you would if you replaced the `mcpFilterChain` bean (it's
+  `@ConditionalOnMissingBean(name = "mcpFilterChain")`). Pass `List.of()` for the
+  previous behavior. No convenience overload was added deliberately: a second
+  constructor on a properties-adjacent record muddies Spring Boot's constructor
+  binding, and the record shape is better fixed before 1.0 freezes it.
 - **Request `_meta.clientInfo` is now optional** (MCP 2026-07-28). A client may
   omit it, leaving `protocolVersion` and `clientCapabilities` as the only
   required envelope keys; `clientInfo` consumers across the server, audit,

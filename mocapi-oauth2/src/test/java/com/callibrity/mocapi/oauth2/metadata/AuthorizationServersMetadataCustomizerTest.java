@@ -40,7 +40,8 @@ class AuthorizationServersMetadataCustomizerTest {
             List.of(),
             null,
             null,
-            null);
+            null,
+            List.of());
     OAuth2ResourceServerProperties rsProps = new OAuth2ResourceServerProperties();
     rsProps.getJwt().setIssuerUri("https://ignored.example.com");
 
@@ -55,7 +56,7 @@ class AuthorizationServersMetadataCustomizerTest {
   @Test
   void falls_back_to_jwt_issuer_uri_when_explicit_list_is_empty() {
     MocapiOAuth2Properties props =
-        new MocapiOAuth2Properties(null, List.of(), List.of(), null, null, null);
+        new MocapiOAuth2Properties(null, List.of(), List.of(), null, null, null, List.of());
     OAuth2ResourceServerProperties rsProps = new OAuth2ResourceServerProperties();
     rsProps.getJwt().setIssuerUri("https://issuer.example.com");
 
@@ -69,7 +70,7 @@ class AuthorizationServersMetadataCustomizerTest {
   @Test
   void contributes_nothing_when_explicit_list_empty_and_issuer_uri_blank() {
     MocapiOAuth2Properties props =
-        new MocapiOAuth2Properties(null, List.of(), List.of(), null, null, null);
+        new MocapiOAuth2Properties(null, List.of(), List.of(), null, null, null, List.of());
     OAuth2ResourceServerProperties rsProps = new OAuth2ResourceServerProperties();
 
     OAuth2ProtectedResourceMetadata.Builder builder =

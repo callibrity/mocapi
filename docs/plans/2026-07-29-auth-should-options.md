@@ -1,7 +1,33 @@
 # Authorization SHOULDs — two plans for review
 
-**Status:** for decision. Pick Option A or Option B; the chosen one becomes
-ADR-0029 + implementation. Written 2026-07-29.
+**Status: DECIDED (2026-07-30) — Option B, with both of its assumptions corrected.
+The decision is [ADR-0029](../adr/0029-authorization-should-level-challenges.md);
+this document is kept as the reasoning that led there.**
+
+> **Two corrections — read before using the analysis below.** Both were found by
+> checking the Spring Security 7.0.5 sources rather than reasoning from the 6.x
+> behavior this document assumed.
+>
+> 1. **`resource_metadata` on the 401 was already done.** Item (1) claimed Spring
+>    doesn't emit it, so a custom entry point was needed "either way." False on
+>    7.0.5: `BearerTokenAuthenticationEntryPoint.commence` adds it
+>    unconditionally, and `MocapiOAuth2AutoConfigurationTest` already asserted it.
+>    No work was needed; only the `scope` parameter was ever open, and it was
+>    declined as duplicate of `scopes_supported`.
+> 2. **Option B's "zero new code" coarse 403 was not reachable.** The plan assumed
+>    an `McpFilterChainCustomizer` could add `anyRequest().hasAuthority(...)`. It
+>    cannot: `authorizeHttpRequests` shares one rule registry, `anyRequest()`
+>    asserts it isn't configured twice (startup failure), and switching to
+>    `requestMatchers(...)` lands behind mocapi's already-registered `anyRequest()`
+>    rule under first-match-wins — silent non-enforcement, the dangerous outcome.
+>    `docs/guides/authorization.md` had been recommending that pattern. The fix was
+>    a small code change after all: the optional `mocapi.oauth2.required-scopes`
+>    property, with mocapi owning the endpoint's single authorization rule.
+>
+> Net effect on effort: item (1) went to zero, item (2) went from zero to about
+> half a day (property + wiring + 8 tests + docs).
+
+Written 2026-07-29.
 
 ## What we're deciding
 
@@ -17,9 +43,14 @@ ADR-0022 deferred two SHOULD-level authorization items; we're reopening them for
   filter layer, in front of JSON-RPC dispatch. stdio has no bearer tokens.
 - **Spring Security emits `403 insufficient_scope` natively** — via
   `BearerTokenAccessDeniedHandler` — but only for authorization decided at the
-  **HTTP filter chain** (per-URL, e.g. `.requestMatchers("/mcp").hasAuthority("SCOPE_x")`).
-  It does **not** emit RFC 9728 `resource_metadata` on the 401 (newer than Spring's
-  built-in), so item (1) needs a small entry-point customization either way.
+  **HTTP filter chain**. Note the handler is scoped to a `BearerTokenRequestMatcher`,
+  so it only fires for requests that actually carry a bearer token.
+- ~~It does **not** emit RFC 9728 `resource_metadata` on the 401 (newer than Spring's
+  built-in), so item (1) needs a small entry-point customization either way.~~
+  **Wrong on the 7.0.5 baseline — see correction 1 at the top.**
+- ~~Coarse scopes are reachable via `McpFilterChainCustomizer` with
+  `.hasAuthority("SCOPE_…")`.~~ **Wrong — see correction 2 at the top.** The
+  customizer route either fails at startup or is silently never evaluated.
 - **mocapi has one endpoint (`/mcp`) for every method/tool.** Per-tool scope checks
   happen in the **Guard SPI, inside JSON-RPC dispatch** — *below* Spring's filter,
   which can't see which tool is being called.
@@ -124,10 +155,13 @@ consciously decline per-tool step-up on posture grounds.
 ### Design
 1. **Item (1)** — the shared 401 enrichment above.
 2. **Coarse, resource-level scopes** ("you need `SCOPE_mcp` to use this server at
-   all") → **Spring Security's native filter-layer `403 insufficient_scope`**,
-   already reachable via the existing `McpFilterChainCustomizer`
-   (`.hasAuthority("SCOPE_…")` on `/mcp`). Zero new code; add a documented example
-   + an integration test proving the native 403 + challenge.
+   all") → **Spring Security's native filter-layer `403 insufficient_scope`**.
+   ~~Already reachable via the existing `McpFilterChainCustomizer`
+   (`.hasAuthority("SCOPE_…")` on `/mcp`). Zero new code~~ — **wrong, see
+   correction 2 at the top.** Shipped instead as the optional
+   `mocapi.oauth2.required-scopes` property, with mocapi owning the endpoint's
+   single authorization rule. The integration test proving the native 403 +
+   challenge is `McpRequiredScopesTest`.
 3. **Per-tool scopes** → keep the current **hide + `-32010`** behaviour (ADR-0012).
    Optionally harden a call to a hidden tool from `-32010` to `-32601` (reveal
    nothing) — a separate, small decision.
@@ -174,4 +208,20 @@ is a nice extension point, but it shouldn't be justified *by* a feature that fig
 the guard model — if we want it later (for some non-auth error mapping), it can land
 on its own merits.
 
-Pick one and I'll write the matching ADR-0029 + implement.
+## Outcome
+
+**Option B chosen**, with both of its factual assumptions corrected (see the top).
+Recorded as [ADR-0029](../adr/0029-authorization-should-level-challenges.md) and
+implemented:
+
+1. 401 `resource_metadata` — **adopted**, inherited from Spring Security 7; no code.
+2. `scope` on the bare 401 — **declined** (duplicate of `scopes_supported`, reachable
+   via the `resource_metadata` pointer already in the challenge).
+3. Resource-level `403 insufficient_scope` — **implemented** as the optional
+   `mocapi.oauth2.required-scopes` property (AND semantics; empty default preserves
+   `authenticated()`), not as a customizer recipe, which cannot work.
+4. Per-tool step-up — **declined** on posture grounds; no `McpErrorHandler` seam.
+
+Also fixed as a consequence: `docs/guides/authorization.md` had been recommending the
+customizer pattern that fails or silently no-ops. The comparison table's "Effort" row
+is superseded — item (1) cost nothing, item (3) cost about half a day.

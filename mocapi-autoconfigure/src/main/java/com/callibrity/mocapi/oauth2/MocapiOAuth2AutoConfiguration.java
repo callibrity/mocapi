@@ -27,6 +27,8 @@ import com.callibrity.mocapi.oauth2.token.McpTokenStrategy;
 import com.callibrity.mocapi.oauth2.token.OpaqueTokenMcpTokenStrategy;
 import java.util.List;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -75,6 +77,8 @@ import org.springframework.security.web.SecurityFilterChain;
 @PropertySource("classpath:mocapi-oauth2-defaults.properties")
 public class MocapiOAuth2AutoConfiguration {
 
+  private static final Logger log = LoggerFactory.getLogger(MocapiOAuth2AutoConfiguration.class);
+
   public MocapiOAuth2AutoConfiguration(
       MocapiOAuth2Properties properties,
       ObjectProvider<JwtDecoder> jwtDecoder,
@@ -84,6 +88,27 @@ public class MocapiOAuth2AutoConfiguration {
     var audiences = audiencesFrom(springResourceServerProperties);
     MocapiOAuth2Compliance.validate(
         jwtDecoder.getIfAvailable(), opaqueTokenIntrospector.getIfAvailable(), audiences);
+    warnOnUnadvertisedRequiredScopes(properties);
+  }
+
+  /**
+   * Warns when a scope in {@code mocapi.oauth2.required-scopes} is absent from {@code
+   * mocapi.oauth2.scopes}. Enforcing a scope that the RFC 9728 metadata document doesn't advertise
+   * leaves a client no way to discover what to ask the authorization server for — it sees only a
+   * {@code 403}. A warning rather than a hard failure: the advertised set is legitimately allowed
+   * to be curated or supplied by a replacement {@code ScopesSupportedMetadataCustomizer}, so mocapi
+   * can't prove the enforced scope is genuinely undiscoverable.
+   */
+  private static void warnOnUnadvertisedRequiredScopes(MocapiOAuth2Properties properties) {
+    var undiscoverable =
+        properties.requiredScopes().stream().filter(s -> !properties.scopes().contains(s)).toList();
+    if (!undiscoverable.isEmpty()) {
+      log.warn(
+          "mocapi.oauth2.required-scopes contains {} which mocapi.oauth2.scopes does not advertise; "
+              + "clients cannot discover these scopes from the RFC 9728 metadata document and will "
+              + "see only 403 insufficient_scope. Add them to mocapi.oauth2.scopes.",
+          undiscoverable);
+    }
   }
 
   @Bean
@@ -164,10 +189,13 @@ public class MocapiOAuth2AutoConfiguration {
       HttpSecurity http,
       McpTokenStrategy tokenStrategy,
       List<McpFilterChainCustomizer> chainCustomizers,
+      MocapiOAuth2Properties properties,
       @Value("${mocapi.endpoint:/mcp}") String mcpEndpoint)
       throws Exception {
     return McpFilterChains.createMcpFilterChain(
-        http, new McpFilterChainConfig(tokenStrategy, mcpEndpoint, chainCustomizers));
+        http,
+        new McpFilterChainConfig(
+            tokenStrategy, mcpEndpoint, chainCustomizers, properties.requiredScopes()));
   }
 
   private static List<String> audiencesFrom(ObjectProvider<OAuth2ResourceServerProperties> p) {

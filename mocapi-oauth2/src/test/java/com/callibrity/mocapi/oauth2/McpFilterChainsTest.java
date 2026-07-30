@@ -51,7 +51,7 @@ class McpFilterChainsTest {
     McpTokenStrategy tokenStrategy = mock(McpTokenStrategy.class);
     McpFilterChainCustomizer chainCustomizer = mock(McpFilterChainCustomizer.class);
     McpFilterChainConfig config =
-        new McpFilterChainConfig(tokenStrategy, "/mcp", List.of(chainCustomizer));
+        new McpFilterChainConfig(tokenStrategy, "/mcp", List.of(chainCustomizer), List.of());
 
     SecurityFilterChain result = McpFilterChains.createMcpFilterChain(http, config);
 

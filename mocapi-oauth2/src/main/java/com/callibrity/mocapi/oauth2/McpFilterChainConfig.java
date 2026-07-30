@@ -28,8 +28,12 @@ import java.util.List;
  * @param mcpEndpoint the path prefix of the MCP endpoint (default {@code /mcp}); used as the
  *     chain's {@code securityMatcher}
  * @param chainCustomizers user-supplied customizers invoked in order after mocapi's defaults
+ * @param requiredScopes resource-level OAuth2 scopes required to reach the endpoint, AND semantics;
+ *     empty (the default) means authentication only, with no scope enforcement. See {@link
+ *     MocapiOAuth2Properties#requiredScopes()}.
  */
 public record McpFilterChainConfig(
     McpTokenStrategy tokenStrategy,
     String mcpEndpoint,
-    List<McpFilterChainCustomizer> chainCustomizers) {}
+    List<McpFilterChainCustomizer> chainCustomizers,
+    List<String> requiredScopes) {}

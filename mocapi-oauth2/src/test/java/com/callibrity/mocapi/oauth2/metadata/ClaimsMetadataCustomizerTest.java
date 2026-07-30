@@ -40,7 +40,8 @@ class ClaimsMetadataCustomizerTest {
             List.of(),
             "https://docs.example.com",
             "https://policy.example.com",
-            "https://tos.example.com");
+            "https://tos.example.com",
+            List.of());
 
     OAuth2ProtectedResourceMetadata.Builder builder =
         mock(OAuth2ProtectedResourceMetadata.Builder.class);
@@ -54,7 +55,7 @@ class ClaimsMetadataCustomizerTest {
   @Test
   void adds_nothing_when_all_fields_null() {
     MocapiOAuth2Properties props =
-        new MocapiOAuth2Properties(null, List.of(), List.of(), null, null, null);
+        new MocapiOAuth2Properties(null, List.of(), List.of(), null, null, null, List.of());
 
     OAuth2ProtectedResourceMetadata.Builder builder =
         mock(OAuth2ProtectedResourceMetadata.Builder.class);
@@ -67,7 +68,7 @@ class ClaimsMetadataCustomizerTest {
   void adds_only_documentation_when_policy_and_tos_null() {
     MocapiOAuth2Properties props =
         new MocapiOAuth2Properties(
-            null, List.of(), List.of(), "https://docs.example.com", null, null);
+            null, List.of(), List.of(), "https://docs.example.com", null, null, List.of());
 
     OAuth2ProtectedResourceMetadata.Builder builder =
         mock(OAuth2ProtectedResourceMetadata.Builder.class);
@@ -83,7 +84,7 @@ class ClaimsMetadataCustomizerTest {
   void adds_only_policy_when_documentation_and_tos_null() {
     MocapiOAuth2Properties props =
         new MocapiOAuth2Properties(
-            null, List.of(), List.of(), null, "https://policy.example.com", null);
+            null, List.of(), List.of(), null, "https://policy.example.com", null, List.of());
 
     OAuth2ProtectedResourceMetadata.Builder builder =
         mock(OAuth2ProtectedResourceMetadata.Builder.class);
@@ -99,7 +100,7 @@ class ClaimsMetadataCustomizerTest {
   void adds_only_tos_when_documentation_and_policy_null() {
     MocapiOAuth2Properties props =
         new MocapiOAuth2Properties(
-            null, List.of(), List.of(), null, null, "https://tos.example.com");
+            null, List.of(), List.of(), null, null, "https://tos.example.com", List.of());
 
     OAuth2ProtectedResourceMetadata.Builder builder =
         mock(OAuth2ProtectedResourceMetadata.Builder.class);

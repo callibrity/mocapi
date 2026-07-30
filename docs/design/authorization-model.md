@@ -28,7 +28,7 @@ authenticates MCP traffic.
 | Bean | `@Order` | URL pattern | Policy | Customizer SPI |
 |---|---|---|---|---|
 | `mcpMetadataFilterChain` | `HIGHEST_PRECEDENCE` | `/.well-known/oauth-protected-resource` | `permitAll` | `McpMetadataFilterChainCustomizer` |
-| `mcpFilterChain` | `HIGHEST_PRECEDENCE + 10` | `${mocapi.endpoint:/mcp}` and below | `authenticated` | `McpFilterChainCustomizer` |
+| `mcpFilterChain` | `HIGHEST_PRECEDENCE + 10` | `${mocapi.endpoint:/mcp}` and below | `authenticated`, or all of `mocapi.oauth2.required-scopes` | `McpFilterChainCustomizer` |
 
 Both chains disable CSRF (MCP is stateless bearer-token, not cookie auth)
 and wire the same `McpTokenStrategy` into Spring's `oauth2ResourceServer`
@@ -67,6 +67,62 @@ documentation/policy/ToS URIs). Mocapi ships five baselines, each
 `@ConditionalOnMissingBean` — users can replace any of them outright with
 `@Primary`, or add a later-`@Order` customizer to mutate or extend the
 output (e.g. advertise mTLS-bound tokens).
+
+### Challenges: 401 and `insufficient_scope`
+
+A request to `/mcp` with a missing or invalid token is rejected by
+Spring's `BearerTokenAuthenticationEntryPoint` — the default on the
+chain `McpFilterChains.createMcpFilterChain` builds — with `401` and a
+`WWW-Authenticate: Bearer` challenge. As of Spring Security 7 that
+challenge always carries `resource_metadata`, the absolute
+`/.well-known/oauth-protected-resource` URL, computed from the request.
+That is the client's auto-discovery breadcrumb: challenge → metadata
+document → authorization server. Mocapi contributes no code here; it
+inherits the behavior and pins it with an autoconfiguration test.
+
+The challenge does **not** carry a `scope` parameter. Spring adds one
+only for a `BearerTokenError` that names a scope (i.e. on
+`insufficient_scope`); at 401 time no handler has been selected, so no
+required scope is known, and the only available set — the advertised
+`mocapi.oauth2.scopes` — is already published as `scopes_supported` in
+the metadata document the challenge points at. Declined as duplicate in
+[ADR-0029](../adr/0029-authorization-should-level-challenges.md).
+
+`403 insufficient_scope` is available at **resource level**, via
+`mocapi.oauth2.required-scopes`. When that list is non-empty,
+`createMcpFilterChain` requires all of its scopes on the endpoint's
+authorization rule and Spring's `BearerTokenAccessDeniedHandler` emits
+the RFC 6750 §3.1 challenge for a token that lacks one. When it is empty
+— the default — the rule is plain `authenticated()`, byte-for-byte the
+behavior before the property existed.
+
+Two implementation constraints make this a property rather than
+something a user bolts on with `McpFilterChainCustomizer`:
+
+- `HttpSecurity.authorizeHttpRequests` reuses one rule registry across
+  calls, and `AbstractRequestMatcherRegistry.anyRequest()` asserts it has
+  not already been configured. mocapi calls it once, so a customizer
+  calling it again fails the context at startup.
+- Rules are evaluated in registration order, first match wins
+  (`RequestMatcherDelegatingAuthorizationManager`). mocapi's
+  `anyRequest()` rule is registered before customizers run, so a
+  customizer's `requestMatchers(...)` rule is never reached — silent
+  non-enforcement.
+
+So the endpoint's authorization rule has exactly one owner
+(`McpFilterChains.authorizeMcpEndpoint`), and resource-level scopes are
+expressed through it. A related trap lives in the AND-composition:
+`AuthorizationManagers.allOf` **grants** when handed zero managers, so
+composing an empty scope list would permit everyone and bypass
+authentication entirely. The empty case is branched, not composed, and a
+test asserts an unauthenticated request still gets 401 with no required
+scopes configured.
+
+**Per-tool** scope denials deliberately do not produce a 403 step-up:
+they are Guard-layer decisions below JSON-RPC dispatch, where the filter
+chain cannot see which tool was called, and surfacing them would leak a
+hidden handler's existence and scope requirement — see
+"Visibility ≡ invocation" below and ADR-0029.
 
 ## Layer 2: handler-layer authorization (Guard SPI)
 
@@ -220,5 +276,8 @@ without touching the OAuth2 wiring.
   annotation usage.
 - [`docs/guards.md`](../guides/guards.md) — Guard SPI details.
 - [ADR-0012](../adr/0012-guard-spi.md) / [ADR-0013](../adr/0013-oauth2-and-reference-guards.md).
+- [ADR-0029](../adr/0029-authorization-should-level-challenges.md) — which
+  SHOULD-level challenges mocapi emits, `required-scopes`, and why per-tool
+  step-up is declined.
 - [`observability-stack.md`](observability-stack.md) — where AUTHORIZATION
   sits in the interceptor strata.
