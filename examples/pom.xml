@@ -33,6 +33,7 @@
     <modules>
         <module>http</module>
         <module>stdio</module>
+        <module>apps</module>
     </modules>
 
     <!--
