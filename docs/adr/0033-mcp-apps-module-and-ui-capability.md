@@ -97,5 +97,5 @@ to accepted-and-implemented.
 **Code anchors:**
 
 - `mocapi-apps/src/main/java/com/callibrity/mocapi/apps/UiCapabilityCustomizer.java`
-- `mocapi-apps-api/src/main/java/com/callibrity/mocapi/apps/api/McpAppResource.java`
-- `mocapi-apps-api/src/main/java/com/callibrity/mocapi/apps/api/McpUi.java`
+- `mocapi-apps/src/main/java/com/callibrity/mocapi/apps/McpAppResource.java`
+- `mocapi-apps/src/main/java/com/callibrity/mocapi/apps/McpUi.java`
