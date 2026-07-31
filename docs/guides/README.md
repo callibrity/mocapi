@@ -29,5 +29,6 @@ server, start here.
 - [OpenTelemetry](opentelemetry.md)
 - [Audit](audit.md)
 - [`/actuator/mcp` Endpoint](actuator.md)
+- [Throughput & Saturation Testing](performance/throughput-testing.md) — find the request-throughput ceiling (k6, two-box)
 - [Performance Benchmarking](performance/benchmarking.md)
 - [Performance History](performance/history.md)
