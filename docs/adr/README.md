@@ -68,3 +68,5 @@ authored at decision time and dated accordingly.
 - [ADR-0030 — Align observability with the OpenTelemetry MCP semantic conventions](0030-otel-mcp-semconv-alignment.md)
 - [ADR-0031 — Contribute declared capabilities via `ServerCapabilitiesCustomizer`](0031-server-capabilities-customizer.md)
 - [ADR-0032 — Handler discovery recognizes meta-annotations](0032-meta-annotation-aware-handler-discovery.md)
+- [ADR-0033 — MCP Apps module and the `io.modelcontextprotocol/ui` capability](0033-mcp-apps-module-and-ui-capability.md)
+- [ADR-0034 — Descriptor `_meta` and descriptor-customizer seams](0034-descriptor-meta-and-customizer-seams.md)

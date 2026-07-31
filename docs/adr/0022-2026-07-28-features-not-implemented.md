@@ -86,13 +86,17 @@ it can be adopted later without a protocol bump.
 
 **Spec reference:** SEP-1865 ([2026-07-28 release candidate announcement](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/))
 
-Not implemented.
-
-**Rationale:** MCP Apps lets servers ship server-rendered HTML UIs
-displayed in sandboxed iframes — a presentation-layer concern far
-outside mocapi's tool/prompt/resource handler model, and an optional
-extension besides. Nothing in the core protocol requires it, and no
-mocapi use case has asked for it.
+**Accepted — implemented in [ADR-0033](0033-mcp-apps-module-and-ui-capability.md)
+(`mocapi-apps`); the postMessage/JS-bridge layer remains out of
+scope.** Originally declined here on the grounds that Apps was a
+presentation-layer concern outside mocapi's handler model; revisiting
+the spec showed the extension splits into a server surface (`ui://`
+resource serving, `_meta.ui` linkage, capability declaration — a
+shallow, additive fit for the existing annotation-driven model) and a
+host/in-iframe JavaScript surface (the `postMessage` bridge,
+`ui/initialize`, display-mode negotiation, app-registered tools).
+mocapi implements the former and does not implement the latter — see
+ADR-0033 for the full scope boundary.
 
 ### URL-Mode Elicitation
 
@@ -172,9 +176,12 @@ a tool parameter as header-supplied. Not currently planned.
 
 **Spec reference:** [draft changelog](https://modelcontextprotocol.io/specification/draft/changelog)
 
-The `extensions` capability map is advertised empty. No extensions are
-implemented (see the Tasks and MCP Apps entries above for the two
-official ones explicitly declined).
+The `extensions` capability map is advertised empty by core (see the
+Tasks entry above for the one official extension still declined).
+`io.modelcontextprotocol/ui` is populated when the optional
+`mocapi-apps` module is present, contributed via
+`ServerCapabilitiesCustomizer` ([ADR-0033](0033-mcp-apps-module-and-ui-capability.md));
+core itself still enumerates none.
 
 ### 2026-07-28 authorization review (record of verification)
 

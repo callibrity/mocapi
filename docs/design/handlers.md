@@ -100,6 +100,22 @@ meta-annotated `@McpResource` with the `ui://` MIME type defaulted and
 bespoke registration SPI. Directly-annotated handlers are unaffected
 (merged detection is a strict superset of raw detection).
 
+## Descriptor customizers (ADR-0034)
+
+Each handler's generated `Tool`/`Resource` descriptor is passed through
+a post-processing pass after it is otherwise built: `CallToolHandlers.build`
+applies every registered `List<ToolDescriptorCustomizer>` to the `Tool`,
+and `ReadResourceHandlers.build` applies every registered
+`List<ResourceDescriptorCustomizer>` to the `Resource`. Each customizer
+receives the handler's source `Method` alongside the descriptor, so it
+can read annotations off it to decide what to write. This lets an
+optional module enrich a descriptor's `_meta` — e.g. `mocapi-apps`
+reads `@McpUi`/`@McpAppResource` and writes `_meta.ui` — without core
+knowing what the enrichment means; core only offers "run every
+registered customizer over this descriptor before it's published."
+Descriptors with no customizers registered are unaffected (`_meta` stays
+absent, `NON_NULL`), so the change is wire-additive.
+
 ## Handler context injection
 
 Tool, prompt, and resource handler methods may declare a context parameter
