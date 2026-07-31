@@ -54,7 +54,7 @@ class AsyncToolHandlerTest {
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
     return CallToolHandlers.build(
-        bean, method, generator, mapper, List.of(), s -> s, validateOutput);
+        bean, method, generator, mapper, List.of(), List.of(), s -> s, validateOutput);
   }
 
   @Nested

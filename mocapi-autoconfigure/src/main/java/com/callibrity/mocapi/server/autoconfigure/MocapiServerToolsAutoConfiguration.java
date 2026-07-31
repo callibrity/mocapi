@@ -22,6 +22,7 @@ import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlers;
 import com.callibrity.mocapi.server.tools.McpToolsService;
+import com.callibrity.mocapi.server.tools.ToolDescriptorCustomizer;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import java.util.List;
@@ -56,9 +57,12 @@ public class MocapiServerToolsAutoConfiguration {
       MrtrElicitationEngine elicitationEngine,
       CacheSettings cacheSettings,
       @Autowired(required = false) List<CallToolHandlerCustomizer> toolCustomizers,
+      @Autowired(required = false) List<ToolDescriptorCustomizer> toolDescriptorCustomizers,
       StringValueResolver mcpAnnotationValueResolver) {
     List<CallToolHandlerCustomizer> customizers =
         toolCustomizers == null ? List.of() : toolCustomizers;
+    List<ToolDescriptorCustomizer> descriptorCustomizers =
+        toolDescriptorCustomizers == null ? List.of() : toolDescriptorCustomizers;
     List<CallToolHandler> handlers =
         cache.forAnnotation(McpTool.class).stream()
             .map(
@@ -70,6 +74,7 @@ public class MocapiServerToolsAutoConfiguration {
                           generator,
                           objectMapper,
                           customizers,
+                          descriptorCustomizers,
                           mcpAnnotationValueResolver::resolveStringValue,
                           props.isValidateOutput());
                   log.info(

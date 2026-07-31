@@ -56,7 +56,10 @@ class McpToolExceptionHandlingTest {
     var methods = MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class);
     var handlers =
         methods.stream()
-            .map(m -> CallToolHandlers.build(bean, m, generator, mapper, List.of(), s -> s, false))
+            .map(
+                m ->
+                    CallToolHandlers.build(
+                        bean, m, generator, mapper, List.of(), List.of(), s -> s, false))
             .toList();
     return new McpToolsService(
         handlers,

@@ -76,7 +76,10 @@ class McpToolsServiceTest {
 
   private List<CallToolHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpTool.class).stream()
-        .map(m -> CallToolHandlers.build(target, m, generator, mapper, List.of(), s -> s, false))
+        .map(
+            m ->
+                CallToolHandlers.build(
+                    target, m, generator, mapper, List.of(), List.of(), s -> s, false))
         .toList();
   }
 
@@ -303,6 +306,7 @@ class McpToolsServiceTest {
                     generator,
                     mapper,
                     List.of(config -> java.util.Arrays.stream(guards).forEach(config::guard)),
+                    List.of(),
                     s -> s,
                     false))
         .toList();

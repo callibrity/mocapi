@@ -118,6 +118,22 @@ class CallToolHandlersTest {
   }
 
   @Test
+  void applies_tool_descriptor_customizers() {
+    ToolDescriptorCustomizer stamp =
+        (method, descriptor) ->
+            descriptor.withMeta(new ObjectMapper().createObjectNode().put("k", "v"));
+    contextRunner
+        .withBean(SampleToolService.class, SampleToolService::new)
+        .withBean(ToolDescriptorCustomizer.class, () -> stamp)
+        .run(
+            context -> {
+              McpToolsService service = context.getBean(McpToolsService.class);
+              Tool tool = service.allToolDescriptors().getFirst();
+              assertThat(tool.meta().path("k").asString()).isEqualTo("v");
+            });
+  }
+
+  @Test
   void fails_fast_when_placeholder_is_missing() {
     contextRunner
         .withBean(PlaceholderToolService.class, PlaceholderToolService::new)

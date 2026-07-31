@@ -62,7 +62,10 @@ class CallToolHandlerTest {
 
   private List<CallToolHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpTool.class).stream()
-        .map(m -> CallToolHandlers.build(target, m, generator, mapper, List.of(), s -> s, false))
+        .map(
+            m ->
+                CallToolHandlers.build(
+                    target, m, generator, mapper, List.of(), List.of(), s -> s, false))
         .toList();
   }
 
@@ -160,7 +163,8 @@ class CallToolHandlerTest {
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
 
     var handler =
-        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s, false);
+        CallToolHandlers.build(
+            bean, method, generator, mapper, List.of(customizer), List.of(), s -> s, false);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();
@@ -213,7 +217,8 @@ class CallToolHandlerTest {
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
 
     var handler =
-        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s, false);
+        CallToolHandlers.build(
+            bean, method, generator, mapper, List.of(customizer), List.of(), s -> s, false);
     handler.call(mapper.createObjectNode().put("name", "World"));
 
     assertThat(order)
@@ -228,7 +233,8 @@ class CallToolHandlerTest {
     CallToolHandlerCustomizer customizer = config -> config.resolver(new CurrentTenantResolver());
 
     var handler =
-        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s, false);
+        CallToolHandlers.build(
+            bean, method, generator, mapper, List.of(customizer), List.of(), s -> s, false);
     var result = handler.call(mapper.createObjectNode());
 
     assertThat(mapper.valueToTree(result).get("tenant").stringValue()).isEqualTo("acme");
@@ -250,7 +256,8 @@ class CallToolHandlerTest {
                         : Optional.empty());
 
     var handler =
-        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s, false);
+        CallToolHandlers.build(
+            bean, method, generator, mapper, List.of(customizer), List.of(), s -> s, false);
     var result = handler.call(mapper.createObjectNode().put("input", "from-json"));
 
     assertThat(mapper.valueToTree(result).get("value").stringValue()).isEqualTo("from-resolver");
@@ -278,7 +285,8 @@ class CallToolHandlerTest {
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
     var handler =
-        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s, false);
+        CallToolHandlers.build(
+            bean, method, generator, mapper, List.of(customizer), List.of(), s -> s, false);
 
     // Invalid args (missing required "name") would trip schema validation — but guards evaluate
     // first, so we get FORBIDDEN rather than a schema error.
@@ -304,7 +312,8 @@ class CallToolHandlerTest {
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
     var handler =
-        CallToolHandlers.build(bean, method, generator, mapper, List.of(customizer), s -> s, false);
+        CallToolHandlers.build(
+            bean, method, generator, mapper, List.of(customizer), List.of(), s -> s, false);
 
     var result = handler.call(mapper.createObjectNode().put("name", "World"));
     assertThat(result).isNotNull();
@@ -382,7 +391,7 @@ class CallToolHandlerTest {
       var method =
           MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
       return CallToolHandlers.build(
-          bean, method, generator, mapper, List.of(), s -> s, validateOutput);
+          bean, method, generator, mapper, List.of(), List.of(), s -> s, validateOutput);
     }
 
     @Test

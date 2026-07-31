@@ -88,6 +88,7 @@ public final class CallToolHandlers {
       MethodSchemaGenerator generator,
       ObjectMapper objectMapper,
       List<CallToolHandlerCustomizer> customizers,
+      List<ToolDescriptorCustomizer> descriptorCustomizers,
       UnaryOperator<String> valueResolver,
       boolean validateOutput) {
     validateMcpToolParams(bean, method);
@@ -108,6 +109,9 @@ public final class CallToolHandlers {
     ObjectNode outputSchema = mapperAndSchema.outputSchema();
 
     Tool descriptor = new Tool(name, title, description, inputSchema, outputSchema);
+    for (ToolDescriptorCustomizer descriptorCustomizer : descriptorCustomizers) {
+      descriptor = descriptorCustomizer.customize(method, descriptor);
+    }
     Schema compiledInputSchema = compile(inputSchema);
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
