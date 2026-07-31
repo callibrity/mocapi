@@ -60,6 +60,30 @@ fetches `ui://get-time/mcp-app.html` and renders it; the app's **Get Server Time
 `get-time` and shows the ISO timestamp. A non-Apps host simply shows the tool's text result — the
 `_meta.ui` is ignored (graceful fallback).
 
+## Render it locally with the ext-apps `basic-host`
+
+The most reliable way to *see it render* is the official
+[`basic-host`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-host)
+reference host (a browser app) — independent of any production client:
+
+```bash
+# Terminal 1 — run this server on 3001 (basic-host uses 8080/8081 itself)
+java -jar examples/apps/target/mocapi-example-apps-*.jar --server.port=3001
+
+# Terminal 2 — the reference host (defaults to http://localhost:3001/mcp)
+git clone https://github.com/modelcontextprotocol/ext-apps.git
+cd ext-apps && npm install && cd examples/basic-host && npm start
+# open http://localhost:8080 → select the server → select "get-time" → Call Tool
+```
+
+Because `basic-host` is a **browser** app on `http://localhost:8080`, this server enables CORS for
+that origin (see [`CorsConfig.java`](src/main/java/com/callibrity/mocapi/examples/apps/CorsConfig.java)).
+Point a different browser host at it with `--mocapi.example.cors-origins=http://host:port`. (This is
+a dev convenience; it's separate from — and doesn't weaken — mocapi's Origin allowlist.)
+
+> A `GET /mcp` returning `405 Method Not Allowed` in the network log is expected and harmless: mocapi
+> is stateless (ADR-0020) and offers no standalone server-push SSE stream, so clients use POST only.
+
 ## See the server side on the wire
 
 No Apps host needed to inspect mocapi's half — use [`mcp-example-requests.http`](mcp-example-requests.http)
