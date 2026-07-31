@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -39,4 +40,79 @@ public record ServerCapabilities(
     CompletionsCapability completions,
     ResourcesCapability resources,
     PromptsCapability prompts,
-    Map<String, ObjectNode> extensions) {}
+    Map<String, ObjectNode> extensions) {
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  /**
+   * Mutable builder for {@link ServerCapabilities}, seeded with mocapi's defaults. Extension
+   * modules contribute at startup via {@code ServerCapabilitiesCustomizer} — most commonly by
+   * declaring their capability through {@link #extension(String, ObjectNode)} — before the {@code
+   * server/discover} response is assembled (ADR-0031). Building with no customizations reproduces
+   * the historical hardcoded defaults exactly.
+   */
+  public static final class Builder {
+    private Map<String, ObjectNode> experimental;
+    private ToolsCapability tools = new ToolsCapability(false);
+    private LoggingCapability logging;
+    private CompletionsCapability completions = new CompletionsCapability();
+    private ResourcesCapability resources = new ResourcesCapability(false, false);
+    private PromptsCapability prompts = new PromptsCapability(false);
+    private final Map<String, ObjectNode> extensions = new LinkedHashMap<>();
+
+    private Builder() {}
+
+    public Builder experimental(Map<String, ObjectNode> experimental) {
+      this.experimental = experimental;
+      return this;
+    }
+
+    public Builder tools(ToolsCapability tools) {
+      this.tools = tools;
+      return this;
+    }
+
+    public Builder logging(LoggingCapability logging) {
+      this.logging = logging;
+      return this;
+    }
+
+    public Builder completions(CompletionsCapability completions) {
+      this.completions = completions;
+      return this;
+    }
+
+    public Builder resources(ResourcesCapability resources) {
+      this.resources = resources;
+      return this;
+    }
+
+    public Builder prompts(PromptsCapability prompts) {
+      this.prompts = prompts;
+      return this;
+    }
+
+    /**
+     * Declares support for an MCP extension keyed by its reverse-DNS identifier (SEP-2133), e.g.
+     * {@code "io.modelcontextprotocol/tasks"}. {@code config} is the extension's capability object,
+     * often an empty object. A later call with the same id replaces the earlier value.
+     */
+    public Builder extension(String id, ObjectNode config) {
+      extensions.put(id, config);
+      return this;
+    }
+
+    public ServerCapabilities build() {
+      return new ServerCapabilities(
+          experimental,
+          tools,
+          logging,
+          completions,
+          resources,
+          prompts,
+          extensions.isEmpty() ? Map.of() : Map.copyOf(extensions));
+    }
+  }
+}

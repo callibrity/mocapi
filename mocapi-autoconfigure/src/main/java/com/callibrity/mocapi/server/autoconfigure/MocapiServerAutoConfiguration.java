@@ -19,18 +19,15 @@ import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.api.resources.McpResource;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.tools.McpTool;
-import com.callibrity.mocapi.model.CompletionsCapability;
 import com.callibrity.mocapi.model.Implementation;
-import com.callibrity.mocapi.model.PromptsCapability;
-import com.callibrity.mocapi.model.ResourcesCapability;
 import com.callibrity.mocapi.model.ServerCapabilities;
-import com.callibrity.mocapi.model.ToolsCapability;
 import com.callibrity.mocapi.server.DefaultMcpServer;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransportResolver;
 import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.discover.DiscoverHandler;
+import com.callibrity.mocapi.server.discover.ServerCapabilitiesCustomizer;
 import com.callibrity.mocapi.server.elicitation.ElicitationNotSupportedExceptionTranslator;
 import com.callibrity.mocapi.server.exchange.MetaEnvelopeParser;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
@@ -39,9 +36,9 @@ import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -117,15 +114,13 @@ public class MocapiServerAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(ServerCapabilities.class)
-  public ServerCapabilities mcpServerCapabilities() {
-    return new ServerCapabilities(
-        null,
-        new ToolsCapability(false),
-        null,
-        new CompletionsCapability(),
-        new ResourcesCapability(false, false),
-        new PromptsCapability(false),
-        Map.of());
+  public ServerCapabilities mcpServerCapabilities(
+      @Autowired(required = false) List<ServerCapabilitiesCustomizer> customizers) {
+    ServerCapabilities.Builder builder = ServerCapabilities.builder();
+    if (customizers != null) {
+      customizers.forEach(customizer -> customizer.customize(builder));
+    }
+    return builder.build();
   }
 
   @Bean

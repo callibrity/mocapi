@@ -19,13 +19,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.model.CacheScope;
+import com.callibrity.mocapi.model.CompletionsCapability;
 import com.callibrity.mocapi.model.Implementation;
+import com.callibrity.mocapi.model.PromptsCapability;
+import com.callibrity.mocapi.model.ResourcesCapability;
 import com.callibrity.mocapi.model.ServerCapabilities;
+import com.callibrity.mocapi.model.ToolsCapability;
 import com.callibrity.mocapi.server.DefaultMcpServer;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransportResolver;
 import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.discover.DiscoverHandler;
+import com.callibrity.mocapi.server.discover.ServerCapabilitiesCustomizer;
 import com.callibrity.mocapi.server.elicitation.ElicitationNotSupportedExceptionTranslator;
 import com.callibrity.mocapi.server.exchange.MetaEnvelopeParser;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
@@ -43,6 +48,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MocapiServerAutoConfigurationTest {
@@ -187,6 +193,36 @@ class MocapiServerAutoConfigurationTest {
             context -> {
               assertThat(context).hasSingleBean(ServerCapabilities.class);
               assertThat(context.getBean(ServerCapabilities.class)).isSameAs(custom);
+            });
+  }
+
+  @Test
+  void default_server_capabilities_preserve_historical_defaults() {
+    contextRunner.run(
+        context -> {
+          ServerCapabilities caps = context.getBean(ServerCapabilities.class);
+          assertThat(caps.experimental()).isNull();
+          assertThat(caps.logging()).isNull();
+          assertThat(caps.tools()).isEqualTo(new ToolsCapability(false));
+          assertThat(caps.completions()).isEqualTo(new CompletionsCapability());
+          assertThat(caps.resources()).isEqualTo(new ResourcesCapability(false, false));
+          assertThat(caps.prompts()).isEqualTo(new PromptsCapability(false));
+          assertThat(caps.extensions()).isEmpty();
+        });
+  }
+
+  @Test
+  void server_capabilities_customizers_contribute_extensions() {
+    ServerCapabilitiesCustomizer tasks =
+        caps ->
+            caps.extension("io.modelcontextprotocol/tasks", JsonNodeFactory.instance.objectNode());
+    contextRunner
+        .withBean("tasksCapability", ServerCapabilitiesCustomizer.class, () -> tasks)
+        .run(
+            context -> {
+              ServerCapabilities caps = context.getBean(ServerCapabilities.class);
+              assertThat(caps.extensions()).containsKey("io.modelcontextprotocol/tasks");
+              assertThat(caps.tools()).isEqualTo(new ToolsCapability(false));
             });
   }
 
