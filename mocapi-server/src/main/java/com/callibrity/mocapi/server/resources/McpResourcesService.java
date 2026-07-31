@@ -41,6 +41,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -233,6 +234,14 @@ public class McpResourcesService {
 
   public boolean isEmpty() {
     return resources.isEmpty() && templates.isEmpty();
+  }
+
+  /**
+   * The URIs of every registered fixed resource, for cross-referencing declared resources (e.g. an
+   * MCP Apps tool's {@code _meta.ui.resourceUri}). Templated resources are not included.
+   */
+  public Set<String> resourceUris() {
+    return Set.copyOf(resources.keySet());
   }
 
   /** Returns every registered resource handler in sorted URI order. Unfiltered. */

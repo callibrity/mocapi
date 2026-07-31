@@ -15,6 +15,9 @@
  */
 package com.callibrity.mocapi.apps;
 
+import com.callibrity.mocapi.server.resources.McpResourcesService;
+import com.callibrity.mocapi.server.tools.McpToolsService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -46,5 +49,13 @@ public class MocapiAppsAutoConfiguration {
   @ConditionalOnMissingBean
   public UiCapabilityCustomizer uiCapabilityCustomizer(ObjectMapper objectMapper) {
     return new UiCapabilityCustomizer(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public McpUiReferenceValidator mcpUiReferenceValidator(
+      ObjectProvider<McpToolsService> toolsService,
+      ObjectProvider<McpResourcesService> resourcesService) {
+    return new McpUiReferenceValidator(toolsService, resourcesService);
   }
 }
