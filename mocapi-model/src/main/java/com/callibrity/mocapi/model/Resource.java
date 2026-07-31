@@ -16,6 +16,22 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import tools.jackson.databind.node.ObjectNode;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record Resource(String uri, String name, String description, String mimeType) {}
+public record Resource(
+    String uri,
+    String name,
+    String description,
+    String mimeType,
+    @JsonProperty("_meta") ObjectNode meta) {
+
+  public Resource(String uri, String name, String description, String mimeType) {
+    this(uri, name, description, mimeType, null);
+  }
+
+  public Resource withMeta(ObjectNode meta) {
+    return new Resource(uri, name, description, mimeType, meta);
+  }
+}
