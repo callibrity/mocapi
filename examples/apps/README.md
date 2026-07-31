@@ -23,14 +23,21 @@ that JavaScript; this example vendors it (see Provenance).
 ## Run it
 
 ```bash
-# from the repo root
-mvn -pl examples/apps -am spring-boot:run
-# or build a jar:
+# from the repo root — build the runnable jar (and its mocapi dependencies)
 mvn -pl examples/apps -am package -DskipTests
+
+# run it (default port 8080; pass --server.port to move it)
 java -jar examples/apps/target/mocapi-example-apps-*.jar
 ```
 
-The server listens on `http://localhost:8080/mcp` (Streamable HTTP).
+The server listens on `http://localhost:8080/mcp` (Streamable HTTP). To move it to
+another port (e.g. so the ext-apps `basic-host` can keep 8080), pass
+`--server.port=3001`.
+
+> `spring-boot:run` works too, but only from *inside* the module — the plugin prefix
+> doesn't resolve through the aggregator pom. After `mvn -pl examples/apps -am install
+> -DskipTests`, run `cd examples/apps && mvn spring-boot:run`. The `java -jar` route
+> above avoids that.
 
 ## Try it in an MCP Apps host
 
