@@ -83,6 +83,23 @@ are all annotation-driven; each internal representation is a single
 concrete class built once at startup. There is no SPI users
 implement — only annotations.
 
+## Meta-annotation composition (ADR-0032)
+
+Discovery is meta-annotation aware. `HandlerMethodsCache` detects
+handler methods with `MergedAnnotations`, and every attribute read
+(`HandlerKind`, the `*Handlers.build` factories) uses
+`AnnotatedElementUtils.findMergedAnnotation`, so a **composed**
+annotation that is itself meta-annotated with `@McpTool` / `@McpPrompt`
+/ `@McpResource` / `@McpResourceTemplate` is discovered under its
+meta-annotation, with `@AliasFor` attribute overrides resolved. The four
+handler annotations carry `@Target({METHOD, ANNOTATION_TYPE})` so they
+may be used as meta-annotations. This lets optional modules ship an
+ergonomic single annotation — e.g. `@McpAppResource` (mocapi-apps),
+meta-annotated `@McpResource` with the `ui://` MIME type defaulted and
+`uri` aliased through — that registers through the existing scan with no
+bespoke registration SPI. Directly-annotated handlers are unaffected
+(merged detection is a strict superset of raw detection).
+
 ## Handler context injection
 
 Tool, prompt, and resource handler methods may declare a context parameter

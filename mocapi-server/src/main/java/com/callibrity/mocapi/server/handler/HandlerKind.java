@@ -21,6 +21,8 @@ import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.api.tools.McpTool;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.core.annotation.MergedAnnotations;
 
 /**
  * Classifies an MCP handler method. Used by cross-cutting modules (audit, logging, observability)
@@ -55,8 +57,9 @@ public enum HandlerKind {
    * carries, or {@code null} if the method is not annotated with any of them.
    */
   public static HandlerKind of(Method method) {
+    MergedAnnotations merged = MergedAnnotations.from(method);
     for (HandlerKind kind : values()) {
-      if (method.isAnnotationPresent(kind.annotation)) {
+      if (merged.isPresent(kind.annotation)) {
         return kind;
       }
     }
@@ -71,10 +74,12 @@ public enum HandlerKind {
    */
   public String nameOf(Method method) {
     return switch (this) {
-      case TOOL -> method.getAnnotation(McpTool.class).name();
-      case PROMPT -> method.getAnnotation(McpPrompt.class).name();
-      case RESOURCE -> method.getAnnotation(McpResource.class).uri();
-      case RESOURCE_TEMPLATE -> method.getAnnotation(McpResourceTemplate.class).uriTemplate();
+      case TOOL -> AnnotatedElementUtils.findMergedAnnotation(method, McpTool.class).name();
+      case PROMPT -> AnnotatedElementUtils.findMergedAnnotation(method, McpPrompt.class).name();
+      case RESOURCE -> AnnotatedElementUtils.findMergedAnnotation(method, McpResource.class).uri();
+      case RESOURCE_TEMPLATE ->
+          AnnotatedElementUtils.findMergedAnnotation(method, McpResourceTemplate.class)
+              .uriTemplate();
     };
   }
 }

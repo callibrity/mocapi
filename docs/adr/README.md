@@ -66,3 +66,5 @@ authored at decision time and dated accordingly.
 - [ADR-0028 — Decline SEP-2243 custom parameter headers (`x-mcp-header`)](0028-decline-sep-2243-custom-parameter-headers.md)
 - [ADR-0029 — Authorization SHOULD-level challenges: `required-scopes` for resource-level step-up, decline per-tool](0029-authorization-should-level-challenges.md)
 - [ADR-0030 — Align observability with the OpenTelemetry MCP semantic conventions](0030-otel-mcp-semconv-alignment.md)
+- [ADR-0031 — Contribute declared capabilities via `ServerCapabilitiesCustomizer`](0031-server-capabilities-customizer.md)
+- [ADR-0032 — Handler discovery recognizes meta-annotations](0032-meta-annotation-aware-handler-discovery.md)

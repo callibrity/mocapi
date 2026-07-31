@@ -32,6 +32,10 @@ import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -41,6 +45,7 @@ import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoCon
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.AliasFor;
 import tools.jackson.databind.ObjectMapper;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -135,6 +140,55 @@ class ResourceServiceAutoConfigurationTest {
           CacheScope.PRIVATE,
           ResultTypes.COMPLETE);
     }
+  }
+
+  /**
+   * A composed, meta-annotated resource annotation in the spirit of the planned
+   * {@code @McpAppResource} (mocapi-apps): meta-annotated with {@link McpResource} (mimeType
+   * defaulted to the MCP Apps type), with {@code uri}/{@code name} aliased through via {@link
+   * AliasFor}. Exercises meta-annotation-aware discovery (ADR-0032) end to end, including
+   * {@code @AliasFor} on {@code uri}.
+   */
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.METHOD)
+  @McpResource(uri = "", mimeType = "text/html;profile=mcp-app")
+  @interface UiResourceFixture {
+
+    @AliasFor(annotation = McpResource.class, attribute = "uri")
+    String uri();
+
+    @AliasFor(annotation = McpResource.class, attribute = "name")
+    String name() default "";
+  }
+
+  static class MetaAnnotatedResourceService {
+
+    @UiResourceFixture(uri = "ui://dashboard", name = "Dashboard")
+    public ReadResourceResult dashboard() {
+      return new ReadResourceResult(
+          List.of(
+              new TextResourceContents(
+                  "ui://dashboard", "text/html;profile=mcp-app", "<html></html>")),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
+    }
+  }
+
+  @Test
+  void discovers_meta_annotated_resource_and_merges_meta_annotation_attributes() {
+    contextRunner
+        .withBean(MetaAnnotatedResourceService.class, MetaAnnotatedResourceService::new)
+        .run(
+            context -> {
+              var service = context.getBean(McpResourcesService.class);
+              var resources = service.listResources(null).resources();
+              assertThat(resources).hasSize(1);
+              var resource = resources.getFirst();
+              assertThat(resource.uri()).isEqualTo("ui://dashboard");
+              assertThat(resource.name()).isEqualTo("Dashboard");
+              assertThat(resource.mimeType()).isEqualTo("text/html;profile=mcp-app");
+            });
   }
 
   @Test

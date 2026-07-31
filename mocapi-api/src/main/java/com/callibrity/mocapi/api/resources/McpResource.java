@@ -23,7 +23,7 @@ import java.lang.annotation.Target;
 
 /** Marks a method as a fixed-URI MCP resource. Method must return a {@code ReadResourceResult}. */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 @Documented
 public @interface McpResource {
 

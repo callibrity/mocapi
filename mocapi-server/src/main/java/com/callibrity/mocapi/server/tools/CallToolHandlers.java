@@ -47,6 +47,7 @@ import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.ParameterResolver;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -90,7 +91,7 @@ public final class CallToolHandlers {
       UnaryOperator<String> valueResolver,
       boolean validateOutput) {
     validateMcpToolParams(bean, method);
-    McpTool annotation = method.getAnnotation(McpTool.class);
+    McpTool annotation = AnnotatedElementUtils.findMergedAnnotation(method, McpTool.class);
     String name =
         resolveOrDefault(valueResolver, annotation.name(), () -> identifier(bean, method));
     String title =

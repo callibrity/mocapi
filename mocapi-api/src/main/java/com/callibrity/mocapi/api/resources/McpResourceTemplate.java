@@ -28,7 +28,7 @@ import java.lang.annotation.Target;
  * map. Method must return a {@code ReadResourceResult}.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 @Documented
 public @interface McpResourceTemplate {
 

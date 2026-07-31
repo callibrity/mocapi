@@ -43,6 +43,7 @@ import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.convert.ConversionService;
 
 /**
@@ -68,7 +69,7 @@ public final class GetPromptHandlers {
       List<GetPromptHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
     validateReturnType(bean, method);
-    McpPrompt annotation = method.getAnnotation(McpPrompt.class);
+    McpPrompt annotation = AnnotatedElementUtils.findMergedAnnotation(method, McpPrompt.class);
     String name =
         resolveOrDefault(valueResolver, annotation.name(), () -> identifier(bean, method));
     String title =

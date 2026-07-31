@@ -41,6 +41,7 @@ import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.convert.ConversionService;
 
 /**
@@ -66,7 +67,8 @@ public final class ReadResourceTemplateHandlers {
       List<ReadResourceTemplateHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
     validateReturnType(bean, method);
-    McpResourceTemplate annotation = method.getAnnotation(McpResourceTemplate.class);
+    McpResourceTemplate annotation =
+        AnnotatedElementUtils.findMergedAnnotation(method, McpResourceTemplate.class);
     String uriTemplate = valueResolver.apply(annotation.uriTemplate());
     String name =
         resolveOrDefault(valueResolver, annotation.name(), () -> humanReadableName(bean, method));

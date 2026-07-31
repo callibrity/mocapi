@@ -22,15 +22,20 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.lang3.reflect.MethodUtils;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.util.ClassUtils;
 
 /**
  * Single-pass scan result: every bean in the context that has one or more {@code @McpTool} /
  * {@code @McpPrompt} / {@code @McpResource} / {@code @McpResourceTemplate} methods, grouped by
  * annotation. Each kind's handler autoconfig consumes its slice via {@link #forAnnotation(Class)}.
+ *
+ * <p>Annotation detection is <em>merged</em> (meta-annotation aware, ADR-0032): a method annotated
+ * with a composed annotation that is itself meta-annotated with one of the handler annotations —
+ * e.g. {@code @McpAppResource} meta-annotated {@code @McpResource} — is discovered under the
+ * meta-annotation. Direct annotations are still found (merged detection is a superset).
  */
 public record HandlerMethodsCache(
     Map<Class<? extends Annotation>, List<BeanMethod>> methodsByAnnotation) {
@@ -83,19 +88,25 @@ public record HandlerMethodsCache(
       Map<Class<? extends Annotation>, List<BeanMethod>> map) {
     Object bean = beanFactory.getBean(beanName);
     Class<?> targetClass = AopUtils.getTargetClass(bean);
-    for (Class<? extends Annotation> annotationType : annotationTypes) {
-      for (Method method : MethodUtils.getMethodsListWithAnnotation(targetClass, annotationType)) {
-        map.computeIfAbsent(annotationType, k -> new ArrayList<>())
-            .add(new BeanMethod(beanName, bean, method));
+    for (Method method : targetClass.getMethods()) {
+      MergedAnnotations merged = MergedAnnotations.from(method);
+      for (Class<? extends Annotation> annotationType : annotationTypes) {
+        if (merged.isPresent(annotationType)) {
+          map.computeIfAbsent(annotationType, k -> new ArrayList<>())
+              .add(new BeanMethod(beanName, bean, method));
+        }
       }
     }
   }
 
   private static boolean hostsAnyAnnotation(
       Class<?> type, List<Class<? extends Annotation>> annotationTypes) {
-    for (Class<? extends Annotation> annotationType : annotationTypes) {
-      if (!MethodUtils.getMethodsListWithAnnotation(type, annotationType).isEmpty()) {
-        return true;
+    for (Method method : type.getMethods()) {
+      MergedAnnotations merged = MergedAnnotations.from(method);
+      for (Class<? extends Annotation> annotationType : annotationTypes) {
+        if (merged.isPresent(annotationType)) {
+          return true;
+        }
       }
     }
     return false;

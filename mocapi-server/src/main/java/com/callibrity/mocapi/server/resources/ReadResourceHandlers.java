@@ -32,6 +32,7 @@ import java.util.function.UnaryOperator;
 import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.ParameterResolver;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 
 /**
  * Pure-Java factory that builds a single {@link ReadResourceHandler} from a {@code
@@ -53,7 +54,7 @@ public final class ReadResourceHandlers {
       List<ReadResourceHandlerCustomizer> customizers,
       UnaryOperator<String> valueResolver) {
     validateReturnType(bean, method);
-    McpResource annotation = method.getAnnotation(McpResource.class);
+    McpResource annotation = AnnotatedElementUtils.findMergedAnnotation(method, McpResource.class);
     String uri = valueResolver.apply(annotation.uri());
     String name =
         resolveOrDefault(valueResolver, annotation.name(), () -> humanReadableName(bean, method));
