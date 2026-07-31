@@ -27,6 +27,7 @@ import com.callibrity.mocapi.server.resources.ReadResourceHandlers;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlers;
+import com.callibrity.mocapi.server.resources.ResourceDescriptorCustomizer;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -60,13 +61,17 @@ public class MocapiServerResourcesAutoConfiguration {
       CacheSettings cacheSettings,
       @Autowired(required = false) List<ReadResourceHandlerCustomizer> resourceCustomizers,
       @Autowired(required = false)
-          List<ReadResourceTemplateHandlerCustomizer> resourceTemplateCustomizers) {
+          List<ReadResourceTemplateHandlerCustomizer> resourceTemplateCustomizers,
+      @Autowired(required = false)
+          List<ResourceDescriptorCustomizer> resourceDescriptorCustomizers) {
     ConversionService cs =
         conversionService.getIfAvailable(DefaultConversionService::getSharedInstance);
     List<ReadResourceHandlerCustomizer> resourceCustoms =
         resourceCustomizers == null ? List.of() : resourceCustomizers;
     List<ReadResourceTemplateHandlerCustomizer> templateCustoms =
         resourceTemplateCustomizers == null ? List.of() : resourceTemplateCustomizers;
+    List<ResourceDescriptorCustomizer> descriptorCustoms =
+        resourceDescriptorCustomizers == null ? List.of() : resourceDescriptorCustomizers;
     List<ReadResourceHandler> handlers =
         cache.forAnnotation(McpResource.class).stream()
             .map(
@@ -76,6 +81,7 @@ public class MocapiServerResourcesAutoConfiguration {
                           bm.bean(),
                           bm.method(),
                           resourceCustoms,
+                          descriptorCustoms,
                           mcpAnnotationValueResolver::resolveStringValue);
                   log.info(
                       "Registered MCP resource: \"{}\" (bean \"{}\")",

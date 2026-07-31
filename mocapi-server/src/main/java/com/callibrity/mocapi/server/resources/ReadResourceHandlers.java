@@ -52,6 +52,7 @@ public final class ReadResourceHandlers {
       Object bean,
       Method method,
       List<ReadResourceHandlerCustomizer> customizers,
+      List<ResourceDescriptorCustomizer> descriptorCustomizers,
       UnaryOperator<String> valueResolver) {
     validateReturnType(bean, method);
     McpResource annotation = AnnotatedElementUtils.findMergedAnnotation(method, McpResource.class);
@@ -61,6 +62,9 @@ public final class ReadResourceHandlers {
     String description = resolveOrDefault(valueResolver, annotation.description(), () -> name);
     String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
     Resource descriptor = new Resource(uri, name, description, mimeType);
+    for (ResourceDescriptorCustomizer descriptorCustomizer : descriptorCustomizers) {
+      descriptor = descriptorCustomizer.customize(method, descriptor);
+    }
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
     MutableHandlerState<Object> state = config.state;

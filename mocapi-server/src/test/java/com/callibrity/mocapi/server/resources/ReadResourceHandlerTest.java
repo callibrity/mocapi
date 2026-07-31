@@ -48,7 +48,7 @@ class ReadResourceHandlerTest {
 
   private List<ReadResourceHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpResource.class).stream()
-        .map(m -> ReadResourceHandlers.build(target, m, List.of(), s -> s))
+        .map(m -> ReadResourceHandlers.build(target, m, List.of(), List.of(), s -> s))
         .toList();
   }
 
@@ -144,7 +144,7 @@ class ReadResourceHandlerTest {
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResource.class).getFirst();
 
-    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), s -> s);
+    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), List.of(), s -> s);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();
@@ -196,7 +196,7 @@ class ReadResourceHandlerTest {
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResource.class).getFirst();
 
-    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), s -> s);
+    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), List.of(), s -> s);
     handler.read();
 
     assertThat(order)
@@ -211,7 +211,7 @@ class ReadResourceHandlerTest {
     ReadResourceHandlerCustomizer customizer =
         config -> config.resolver(new CurrentTenantResolver());
 
-    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), s -> s);
+    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), List.of(), s -> s);
     var result = handler.read();
 
     var content = (TextResourceContents) result.contents().getFirst();
@@ -233,7 +233,7 @@ class ReadResourceHandlerTest {
         };
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResource.class).getFirst();
-    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), s -> s);
+    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), List.of(), s -> s);
 
     assertThatThrownBy(handler::read)
         .isInstanceOf(JsonRpcException.class)
