@@ -82,6 +82,12 @@
         </dependency>
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-apps</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.callibrity.mocapi</groupId>
             <artifactId>mocapi-actuator</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
