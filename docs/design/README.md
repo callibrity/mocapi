@@ -12,6 +12,7 @@ is wrong — fix it.
 - [Extension SPI](extension-spi.md) — customizer SPI, the six interceptor strata, parameter resolver model
 - [Handlers](handlers.md) — internal handler classes and how they are built at startup
 - [Elicitation — MRTR Replay](elicitation-mrtr.md) — requestState codec, response ledger, replay engine, idempotency contract
+- [MCP Apps](apps.md) — the `mocapi-apps` module, `_meta.ui` shapes, descriptor customizers, `@McpAppResource`/`@McpUi`
 - [Authorization Model](authorization-model.md) — how OAuth2 + Guard SPI compose at runtime
 - [Observability Stack](observability-stack.md) — design of the four-module observability story
 - [Native Image](native-image.md) — what mocapi contributes to GraalVM native-image

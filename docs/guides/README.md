@@ -12,6 +12,7 @@ server, start here.
 ## Interactivity
 - [Interactive Tools — progress, MRTR elicitation](interactive-tools.md)
 - [Externalizing Metadata](externalizing-metadata.md)
+- [MCP Apps](apps.md) — declare a `ui://` resource, link it to a tool, and hand off to the official in-iframe JS SDK
 
 ## Extending mocapi
 - [Customizers](customizers.md)

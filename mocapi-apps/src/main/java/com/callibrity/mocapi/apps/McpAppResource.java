@@ -26,8 +26,8 @@ import org.springframework.core.annotation.AliasFor;
  * Declares a {@code ui://} MCP Apps UI resource. Composes {@link McpResource} (MIME defaulted to
  * {@code text/html;profile=mcp-app}) via meta-annotation, so the method registers as a resource
  * through the standard scan (ADR-0032); {@code csp}/{@code sandbox} drive the resource's {@code
- * _meta.ui}. The annotated method returns the HTML (a {@code String} or a {@code
- * ReadResourceResult}).
+ * _meta.ui}. Like every {@code @McpResource} method, the annotated method must return a {@code
+ * ReadResourceResult}.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)

@@ -1,0 +1,261 @@
+# MCP Apps
+
+How mocapi implements the MCP Apps extension (`io.modelcontextprotocol/ui`,
+SEP-1865, `modelcontextprotocol/ext-apps`) — the `mocapi-apps` module, the
+`_meta.ui` shapes it writes, and the explicit boundary where mocapi stops.
+
+For decisions, see:
+
+- [ADR-0033](../adr/0033-mcp-apps-module-and-ui-capability.md) — the
+  `mocapi-apps` module and the `io.modelcontextprotocol/ui` capability
+- [ADR-0034](../adr/0034-descriptor-meta-and-customizer-seams.md) —
+  `_meta` on `Tool`/`Resource` and the descriptor-customizer seams Apps
+  is built on
+- [ADR-0032](../adr/0032-meta-annotation-aware-handler-discovery.md) —
+  meta-annotation-aware handler discovery, which lets `@McpAppResource`
+  register as a resource with no bespoke SPI
+- [ADR-0031](../adr/0031-server-capabilities-customizer.md) —
+  `ServerCapabilitiesCustomizer`, which `UiCapabilityCustomizer` uses to
+  declare the `ui` extension capability
+
+Design history: the original design spec is
+[`docs/superpowers/specs/2026-07-31-mcp-apps-extension-design.md`](../superpowers/specs/2026-07-31-mcp-apps-extension-design.md).
+That spec proposed splitting the module into `mocapi-apps-api` +
+`mocapi-apps`; the implementation collapsed that into a single
+`mocapi-apps` module (annotations, `_meta.ui` records, customizers, and
+`MocapiAppsAutoConfiguration` all together) — this doc describes what
+shipped, not the original proposal.
+
+## Scope boundary
+
+MCP Apps splits into two halves. mocapi implements only the first:
+
+- **Server surface (in scope):** declare `ui://` HTML resources, stamp
+  `_meta.ui` on tool and resource descriptors to link them, declare the
+  `io.modelcontextprotocol/ui` capability. All of this is static,
+  descriptor-time metadata — no new JSON-RPC methods, no runtime state.
+- **Host / in-iframe JS surface (out of scope):** the sandbox handshake
+  (`ui/initialize`), the `postMessage` JSON-RPC bridge,
+  `ui/notifications/sandbox-proxy-ready` / `sandbox-resource-ready`,
+  display-mode negotiation, app-registered tools, and
+  `sampling/createMessage` over `postMessage`. mocapi serves the
+  author's HTML bytes content-agnostically; when the in-iframe app calls
+  a server tool, it arrives at mocapi as an ordinary `tools/call` — no
+  Apps-specific server code is involved. **mocapi ships no `postMessage`
+  / iframe / JS-bridge code of any kind, and never will under this
+  design** — see ADR-0033's non-goals.
+
+This mirrors the split in `docs/adr/0022-2026-07-28-features-not-implemented.md`:
+ADR-0033 flips that entry from declined to accepted-and-implemented,
+specifically for the server half.
+
+## Module layout
+
+`mocapi-apps` depends on `mocapi-api` (for the `@McpResource`/`@McpTool`
+meta-annotation targets) and `mocapi-server` (for the descriptor and
+capability customizer seams):
+
+```
+mocapi-apps
+  McpAppResource     — annotation: declares a ui:// resource
+  McpUi              — annotation: links a tool to its ui:// resource
+  Csp                — annotation: CSP origins for a ui:// resource
+  UiResourceMeta      — record: resource _meta.ui shape (csp, sandbox)
+  McpUiResourceCsp    — record: connect/resource/frame/baseUri domain lists
+  McpUiToolMeta        — record: tool _meta.ui shape (resourceUri, visibility)
+  AppsResourceDescriptorCustomizer — reads @McpAppResource → writes Resource._meta.ui
+  AppsToolDescriptorCustomizer     — reads @McpUi → writes Tool._meta.ui
+  UiCapabilityCustomizer           — declares capabilities.extensions["io.modelcontextprotocol/ui"]
+```
+
+`MocapiAppsAutoConfiguration` (in `mocapi-autoconfigure`, gated
+`@ConditionalOnClass(UiCapabilityCustomizer.class)`) registers the three
+customizers as `@ConditionalOnMissingBean` beans whenever `mocapi-apps`
+is on the classpath. Omitting the module leaves the core inert: no
+descriptor gains `_meta`, and handler discovery behaves identically for
+plain `@McpResource`/`@McpTool` methods.
+
+## `_meta.ui` shapes
+
+Apps is the first consumer of the generic descriptor `_meta` seam
+(ADR-0034). `Tool` and `Resource` carry an optional `_meta`
+(`ObjectNode`, `NON_NULL` — omitted from the wire when no customizer
+touches it); Apps writes a `ui` key into it.
+
+### Resource `_meta.ui` — `UiResourceMeta`
+
+Written by `AppsResourceDescriptorCustomizer` when a `@McpResource`
+method (or, via meta-annotation, `@McpAppResource`) carries the merged
+`@McpAppResource` annotation:
+
+```json
+{ "ui": { "csp": { "connectDomains": ["https://api.weather.com"] },
+          "sandbox": ["allow-scripts"] } }
+```
+
+- `csp` (`McpUiResourceCsp`): `connectDomains`, `resourceDomains`,
+  `frameDomains`, `baseUriDomains` — the CSP origins the UI needs. The
+  server *declares* what's needed; the host enforces it on the iframe.
+  `null` (customizer omits the whole `csp` object) when every list on
+  `@Csp` is empty.
+- `sandbox`: requested iframe sandbox permissions (raw strings, no enum
+  — the spec doesn't fix a closed set). `null` when `@McpAppResource`
+  declares no `sandbox` values.
+
+v1 targets the **listing/static form only** — a per-response override
+on the `resources/read` content item exists in the draft spec but is
+explicitly deferred (§6.3 of the design spec); mocapi has no call-time
+`UiContext` to produce one.
+
+### Tool `_meta.ui` — `McpUiToolMeta`
+
+Written by `AppsToolDescriptorCustomizer` when a `@McpTool` method
+carries `@McpUi`:
+
+```json
+{ "ui": { "resourceUri": "ui://weather/dashboard",
+          "visibility": ["model", "app"] } }
+```
+
+- `resourceUri`: the linked `ui://` resource.
+- `visibility`: `["model", "app"]` by default. This is the MCP Apps UI
+  **access axis** (should the model see this tool, should the app UI
+  see it, or both) — a *different* concept from the auth-Guard
+  `visibility ≡ invocation` model in
+  [`authorization-model.md`](authorization-model.md) /
+  [ADR-0012](../adr/0012-guard-spi.md). mocapi emits it as metadata
+  only; it is not enforced server-side. A host is responsible for
+  acting on it.
+
+### Capability declaration
+
+`UiCapabilityCustomizer` implements `ServerCapabilitiesCustomizer`
+([ADR-0031](../adr/0031-server-capabilities-customizer.md)) and
+unconditionally adds:
+
+```json
+{ "capabilities": { "extensions": {
+    "io.modelcontextprotocol/ui": { "mimeTypes": ["text/html;profile=mcp-app"] } } } }
+```
+
+mocapi is stateless (`server/discover`, no `initialize` handshake), so
+there's nothing to gate registration on — the capability and `_meta.ui`
+are always emitted. A non-Apps host sees an unrecognized `extensions`
+entry and unrecognized `_meta.ui` fields and ignores both, per the
+spec's text-only fallback.
+
+## Author-facing API
+
+### `@McpAppResource` — declare a `ui://` resource
+
+`@McpAppResource` is a meta-annotation over `@McpResource`
+(`mimeType` defaulted to `text/html;profile=mcp-app`; `uri`/`name`
+aliased through via `@AliasFor`). Meta-annotation-aware discovery
+(ADR-0032) means the method registers exactly like a hand-written
+`@McpResource` — there is no separate Apps registration path:
+
+```java
+@McpAppResource(
+    uri = "ui://weather/dashboard",
+    name = "Weather",
+    csp = @Csp(connect = "https://api.weather.com"))
+public ReadResourceResult dashboard() {
+  return ReadResourceResult.ofText(
+      "ui://weather/dashboard", "text/html;profile=mcp-app", html);
+}
+```
+
+Like every `@McpResource` handler, the method **must** return
+`ReadResourceResult` — `ReadResourceHandlers.validateReturnType`
+enforces this at startup regardless of which annotation registered the
+method.
+
+`AppsResourceDescriptorCustomizer` runs after the `Resource` descriptor
+is otherwise built and reads `csp()`/`sandbox()` off the merged
+annotation (via `AnnotatedElementUtils.findMergedAnnotation`) to write
+`_meta.ui`.
+
+### `@McpUi` — link a tool to its UI resource
+
+A companion annotation on an existing `@McpTool` method — it changes no
+discovery behavior, only descriptor metadata:
+
+```java
+@McpTool(name = "get_weather", description = "Get weather")
+@McpUi("ui://weather/dashboard")
+public WeatherResult getWeather(Args a) { … }
+```
+
+`AppsToolDescriptorCustomizer` reads `@McpUi` and writes
+`_meta.ui.resourceUri` (+ `visibility`). The per-call data the UI
+renders rides the **normal** `CallToolResult` (typically
+`structuredContent`) — no special context object is involved.
+
+### What was deliberately not added
+
+No call-time `UiContext` injectable. The tool↔UI link is *static
+descriptor metadata* surfaced in `tools/list` before any invocation,
+which a call-time context structurally cannot supply. The only dynamic
+case in the spec — a per-response `_meta.ui` override on
+`resources/read` content — is draft-only and out of scope for v1; see
+ADR-0033's "Consequences" section for the forward-compatibility note.
+
+## Descriptor-customizer seam recap
+
+Apps is the first consumer of the generic seam from ADR-0034:
+
+```java
+@FunctionalInterface
+public interface ToolDescriptorCustomizer {
+  Tool customize(Method method, Tool descriptor);
+}
+
+@FunctionalInterface
+public interface ResourceDescriptorCustomizer {
+  Resource customize(Method method, Resource descriptor);
+}
+```
+
+`CallToolHandlers.build` and `ReadResourceHandlers.build` apply every
+registered customizer to the generated descriptor, passing the
+handler's source `Method` so a customizer can read annotations off it.
+Core has no knowledge of what "ui" means — it only offers "enrich this
+descriptor's `_meta` before it's published." See
+[Extension SPI](extension-spi.md) and [Handlers](handlers.md) for the
+customizer pattern in general.
+
+## Flows
+
+1. **Discovery.** Host calls `server/discover`, sees the
+   `io.modelcontextprotocol/ui` capability. `resources/list` includes
+   `ui://` resources with their `_meta.ui` (CSP/sandbox). `tools/list`
+   includes tools carrying `_meta.ui.resourceUri`.
+2. **Render.** Model calls a tool → mocapi returns a normal
+   `CallToolResult`. Because the tool descriptor carried
+   `_meta.ui.resourceUri`, the host fetches that `ui://` resource via
+   `resources/read` and renders it in a sandboxed iframe per the
+   resource's declared CSP/sandbox. Everything from here on is
+   host/iframe — mocapi's involvement ends at serving the HTML bytes.
+3. **App calls a server tool.** An action inside the rendered app
+   (e.g. "Refresh") goes *App → Host → Server*, arriving at mocapi as
+   an ordinary `tools/call`. No Apps-specific server code runs.
+
+## Testing
+
+- `AppsDescriptorCustomizerTest` — unit coverage of
+  `AppsToolDescriptorCustomizer` / `AppsResourceDescriptorCustomizer`
+  producing correct `_meta.ui`.
+- `AnnotationContractTest` — the `@AliasFor`/meta-annotation contract
+  on `@McpAppResource` (uri/mimeType merge correctly).
+- `UiMetaSerializationTest` — wire-shape serialization of
+  `UiResourceMeta` / `McpUiToolMeta` / `McpUiResourceCsp`.
+- `AppsEndToEndTest` (in `mocapi-autoconfigure`) — a real Spring context
+  wiring `MocapiServerToolsAutoConfiguration`,
+  `MocapiServerResourcesAutoConfiguration`, `MocapiServerAutoConfiguration`,
+  and `MocapiAppsAutoConfiguration`, asserting `tools/list`,
+  `resources/list`, and `server/discover` all carry the expected Apps
+  metadata.
+
+There is no Apps-specific conformance-suite coverage: the
+`ext-apps` Playwright/e2e suite tests the host/iframe handshake, which
+is out of scope for mocapi's server.
