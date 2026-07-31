@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import tools.jackson.databind.node.ObjectNode;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -24,4 +25,21 @@ public record Tool(
     String title,
     String description,
     ObjectNode inputSchema,
-    ObjectNode outputSchema) {}
+    ObjectNode outputSchema,
+    @JsonProperty("_meta") ObjectNode meta) {
+
+  /** Backward-compatible constructor for descriptors without extension metadata. */
+  public Tool(
+      String name,
+      String title,
+      String description,
+      ObjectNode inputSchema,
+      ObjectNode outputSchema) {
+    this(name, title, description, inputSchema, outputSchema, null);
+  }
+
+  /** Returns a copy of this descriptor carrying the given {@code _meta} object. */
+  public Tool withMeta(ObjectNode meta) {
+    return new Tool(name, title, description, inputSchema, outputSchema, meta);
+  }
+}
