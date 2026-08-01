@@ -89,12 +89,20 @@ readers, the `ResourceContributor` SPI, and the return-type conversion;
 contributes from its own layer, reusing the existing scan to find its
 declarations. No Apps/UI concept crosses the core line.
 
-**Interceptor/guard integration.** Method-backed readers keep the
-baked-in `MethodInvoker` strata (correlation/observation/audit + guard
-enforcement). Contributed non-method readers get guard-filtered
-`listResources` and service-enforced guards, but a lighter interceptor
-pipeline. Full strata-parity for every reader kind is a deferred option,
-not required now.
+**Guards and o11y stay with the method form.** `guards` remains a plain
+field on the handler, general to all readers, and the service keeps
+filtering `listResources` by it (empty guards → visible). But
+enforcement and o11y are *not* generalized: method-backed readers keep
+their baked-in `MethodInvoker` strata (correlation / observation / audit
++ guard enforcement); contributed readers carry an empty `guards` list
+(public) and a bare reader with no interceptors. Nothing is lifted into
+the service, and no `AnnotatedElement` guard-source abstraction is
+introduced — both would solve problems we do not have (guarded/observed
+*non-method* resources). The escape hatch is deliberate and already
+exists: a resource that needs guards, o11y, or logic is declared as a
+**method** (`@McpResource` / `@McpAppResource`) and reached by reference,
+which routes it through the full chain. Serve-mode contributed resources
+are the lightweight, public path by design.
 
 ## Consequences
 
