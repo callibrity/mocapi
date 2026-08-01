@@ -22,12 +22,14 @@ import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import java.util.List;
+import org.springframework.stereotype.Component;
 
 /**
  * Example resource bean covering both fixed and templated resources. The templated variant uses an
  * enum for the {@code stage} path variable so MCP clients asking {@code completion/complete} for
  * the variable get {@code [DEV, STAGE, PROD]}, prefix-filtered.
  */
+@Component
 public class DocsResources {
 
   public enum Stage {

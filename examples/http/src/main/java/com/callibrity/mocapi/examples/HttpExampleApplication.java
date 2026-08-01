@@ -13,11 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.examples.app;
+package com.callibrity.mocapi.examples;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+/**
+ * Runnable mocapi example over Streamable HTTP. Lives in the root example package so
+ * {@code @SpringBootApplication}'s component scan reaches the {@code tools}, {@code validation},
+ * {@code prompts}, and {@code resources} sub-packages — the handler beans are plain
+ * {@code @Component}s, so no example-specific auto-configuration is needed.
+ */
 @SpringBootApplication
 public class HttpExampleApplication {
 

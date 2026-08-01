@@ -21,6 +21,7 @@ import com.callibrity.mocapi.api.prompts.template.PromptTemplateFactory;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.Role;
 import java.util.Map;
+import org.springframework.stereotype.Component;
 
 /**
  * Example prompt that exercises two features at once:
@@ -34,6 +35,7 @@ import java.util.Map;
  *       concatenation.
  * </ul>
  */
+@Component
 public class SummarizePrompt {
 
   public enum Detail {
