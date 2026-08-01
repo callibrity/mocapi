@@ -18,20 +18,24 @@ package com.callibrity.mocapi.examples.apps;
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.apps.McpUi;
 import java.time.Instant;
+import org.springframework.stereotype.Component;
 
 /**
  * The server half of an MCP App, in the leanest form: a single {@code get-time} tool that both does
  * the work and declares its UI. {@code @McpUi(resource=…)} serves the app's self-contained HTML/JS
  * bundle at {@link #RESOURCE_URI} straight from the classpath (ADR-0036) — no resource method to
- * write — and links the tool to it via the tool descriptor's {@code _meta.ui.resourceUri}.
+ * write — and links the tool to it via the tool descriptor's {@code _meta.ui.resourceUri}. As a
+ * plain {@code @Component} it is component-scanned and discovered by mocapi's handler scan; no
+ * example-specific auto-configuration is needed.
  *
  * <p>mocapi is only the server: it serves the HTML and the metadata. The interactive layer (the
  * {@code postMessage} / {@code ui-initialize} handshake, the "Get Server Time" button calling back
- * to this tool) lives entirely in the in-iframe JavaScript, which the host runs. The bundle here is
- * the official ext-apps vanilla-JS "Get Time" app, vendored verbatim (see the module README for
- * provenance); the tool name ({@code get-time}) and the {@code {time}} structured result match what
- * that bundle calls and renders.
+ * to this tool) lives entirely in the in-iframe JavaScript, which the host runs. The UI is the
+ * small React app under {@code src/main/frontend} built into the served bundle (see the module
+ * README for provenance); the tool name ({@code get-time}) and the {@code {time}} structured result
+ * match what that app calls and renders.
  */
+@Component
 public class GetTimeApp {
 
   static final String RESOURCE_URI = "ui://get-time/mcp-app.html";
