@@ -69,6 +69,24 @@ public class McpResourcesService {
     this(handlers, templateHandlers, engine, DEFAULT_PAGE_SIZE, CacheSettings.defaults());
   }
 
+  /**
+   * Construction-time merge of every {@link ResourceContributor} (ADR-0035): the service is built
+   * once from the flattened union of the contributors' resources and templates. There is no runtime
+   * registration; the maps stay immutable.
+   */
+  public McpResourcesService(
+      List<ResourceContributor> contributors,
+      MrtrElicitationEngine engine,
+      int pageSize,
+      CacheSettings cacheSettings) {
+    this(
+        contributors.stream().flatMap(c -> c.resources().stream()).toList(),
+        contributors.stream().flatMap(c -> c.resourceTemplates().stream()).toList(),
+        engine,
+        pageSize,
+        cacheSettings);
+  }
+
   public McpResourcesService(
       List<ReadResourceHandler> handlers,
       List<ReadResourceTemplateHandler> templateHandlers,

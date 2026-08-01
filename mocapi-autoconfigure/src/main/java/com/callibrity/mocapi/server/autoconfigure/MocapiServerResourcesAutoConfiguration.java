@@ -15,18 +15,13 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
-import com.callibrity.mocapi.api.resources.McpResource;
-import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
-import com.callibrity.mocapi.server.resources.ReadResourceHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
-import com.callibrity.mocapi.server.resources.ReadResourceHandlers;
-import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
-import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlers;
+import com.callibrity.mocapi.server.resources.ResourceContributor;
 import com.callibrity.mocapi.server.resources.ResourceDescriptorCustomizer;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -50,15 +45,16 @@ public class MocapiServerResourcesAutoConfiguration {
   private final Logger log = LoggerFactory.getLogger(MocapiServerResourcesAutoConfiguration.class);
   private final MocapiServerProperties props;
 
+  /**
+   * The built-in, primary {@link ResourceContributor} — the {@code @McpResource} /
+   * {@code @McpResourceTemplate} annotation scan (ADR-0035). Extensions add further contributor
+   * beans; all are merged at service construction.
+   */
   @Bean
-  @ConditionalOnMissingBean(McpResourcesService.class)
-  public McpResourcesService mcpProtocolResourcesService(
+  public ResourceContributor annotationScanResourceContributor(
       HandlerMethodsCache cache,
       ObjectProvider<ConversionService> conversionService,
       StringValueResolver mcpAnnotationValueResolver,
-      McpCompletionsService completions,
-      MrtrElicitationEngine elicitationEngine,
-      CacheSettings cacheSettings,
       @Autowired(required = false) List<ReadResourceHandlerCustomizer> resourceCustomizers,
       @Autowired(required = false)
           List<ReadResourceTemplateHandlerCustomizer> resourceTemplateCustomizers,
@@ -66,65 +62,37 @@ public class MocapiServerResourcesAutoConfiguration {
           List<ResourceDescriptorCustomizer> resourceDescriptorCustomizers) {
     ConversionService cs =
         conversionService.getIfAvailable(DefaultConversionService::getSharedInstance);
-    List<ReadResourceHandlerCustomizer> resourceCustoms =
-        resourceCustomizers == null ? List.of() : resourceCustomizers;
-    List<ReadResourceTemplateHandlerCustomizer> templateCustoms =
-        resourceTemplateCustomizers == null ? List.of() : resourceTemplateCustomizers;
-    List<ResourceDescriptorCustomizer> descriptorCustoms =
-        resourceDescriptorCustomizers == null ? List.of() : resourceDescriptorCustomizers;
-    List<ReadResourceHandler> handlers =
-        cache.forAnnotation(McpResource.class).stream()
-            .map(
-                bm -> {
-                  ReadResourceHandler handler =
-                      ReadResourceHandlers.build(
-                          bm.bean(),
-                          bm.method(),
-                          resourceCustoms,
-                          descriptorCustoms,
-                          mcpAnnotationValueResolver::resolveStringValue);
-                  log.info(
-                      "Registered MCP resource: \"{}\" (bean \"{}\")",
-                      handler.descriptor().uri(),
-                      bm.beanName());
-                  return handler;
-                })
-            .toList();
-    List<ReadResourceTemplateHandler> templateHandlers =
-        cache.forAnnotation(McpResourceTemplate.class).stream()
-            .map(
-                bm -> {
-                  ReadResourceTemplateHandler handler =
-                      ReadResourceTemplateHandlers.build(
-                          bm.bean(),
-                          bm.method(),
-                          cs,
-                          templateCustoms,
-                          mcpAnnotationValueResolver::resolveStringValue);
-                  log.info(
-                      "Registered MCP resource template: \"{}\" (bean \"{}\")",
-                      handler.descriptor().uriTemplate(),
-                      bm.beanName());
-                  return handler;
-                })
-            .toList();
-    templateHandlers.forEach(
-        h ->
-            h.completionCandidates()
-                .forEach(
-                    c -> {
-                      completions.registerResourceTemplateVariable(
-                          h.descriptor().uriTemplate(), c.argumentName(), c.values());
-                      log.info(
-                          "\tRegistered completions for variable \"{}\": {}",
-                          c.argumentName(),
-                          c.values());
-                    }));
+    return new AnnotationScanResourceContributor(
+        cache,
+        cs,
+        mcpAnnotationValueResolver,
+        resourceCustomizers == null ? List.of() : resourceCustomizers,
+        resourceTemplateCustomizers == null ? List.of() : resourceTemplateCustomizers,
+        resourceDescriptorCustomizers == null ? List.of() : resourceDescriptorCustomizers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(McpResourcesService.class)
+  public McpResourcesService mcpProtocolResourcesService(
+      List<ResourceContributor> contributors,
+      McpCompletionsService completions,
+      MrtrElicitationEngine elicitationEngine,
+      CacheSettings cacheSettings) {
+    contributors.stream()
+        .flatMap(c -> c.resourceTemplates().stream())
+        .forEach(
+            h ->
+                h.completionCandidates()
+                    .forEach(
+                        c -> {
+                          completions.registerResourceTemplateVariable(
+                              h.uriTemplate(), c.argumentName(), c.values());
+                          log.info(
+                              "\tRegistered completions for variable \"{}\": {}",
+                              c.argumentName(),
+                              c.values());
+                        }));
     return new McpResourcesService(
-        handlers,
-        templateHandlers,
-        elicitationEngine,
-        props.pagination().pageSize(),
-        cacheSettings);
+        contributors, elicitationEngine, props.pagination().pageSize(), cacheSettings);
   }
 }

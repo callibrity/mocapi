@@ -59,6 +59,26 @@ public final class ReadResourceTemplateHandler {
         variables -> (ReadResourceResult) invoker.invoke(variables == null ? Map.of() : variables);
   }
 
+  /**
+   * Reader-only handler for a contributed resource template (ADR-0035): no reflective method, so no
+   * {@code MethodInvoker} strata and no baked-in guard enforcement. The {@code guards} list
+   * defaults empty (public) but is honored for {@code listResourceTemplates} filtering like any
+   * other handler.
+   */
+  public ReadResourceTemplateHandler(
+      ResourceTemplate descriptor,
+      List<CompletionCandidate> completionCandidates,
+      List<Guard> guards,
+      ResourceTemplateReader reader) {
+    this.descriptor = descriptor;
+    this.method = null;
+    this.bean = null;
+    this.invoker = null;
+    this.completionCandidates = List.copyOf(completionCandidates);
+    this.guards = List.copyOf(guards);
+    this.reader = reader;
+  }
+
   public List<Guard> guards() {
     return guards;
   }
@@ -93,6 +113,9 @@ public final class ReadResourceTemplateHandler {
   }
 
   public HandlerDescriptor describe() {
+    if (invoker == null) {
+      return new HandlerDescriptor(HandlerKind.RESOURCE_TEMPLATE, null, null, List.of());
+    }
     MethodInvoker.Descriptor d = invoker.describe();
     return new HandlerDescriptor(
         HandlerKind.RESOURCE_TEMPLATE, d.declaringClassName(), d.methodName(), d.interceptors());

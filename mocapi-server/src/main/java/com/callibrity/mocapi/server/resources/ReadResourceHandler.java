@@ -66,6 +66,20 @@ public final class ReadResourceHandler {
                 invoker.invoke(null), descriptor.uri(), descriptor.mimeType(), content);
   }
 
+  /**
+   * Reader-only handler for a contributed resource (ADR-0035): no reflective method, so no {@code
+   * MethodInvoker} strata and no baked-in guard enforcement. The {@code guards} list defaults empty
+   * (public) but is honored for {@code listResources} filtering like any other handler.
+   */
+  public ReadResourceHandler(Resource descriptor, List<Guard> guards, ResourceReader reader) {
+    this.descriptor = descriptor;
+    this.method = null;
+    this.bean = null;
+    this.invoker = null;
+    this.guards = List.copyOf(guards);
+    this.reader = reader;
+  }
+
   public List<Guard> guards() {
     return guards;
   }
@@ -92,6 +106,9 @@ public final class ReadResourceHandler {
   }
 
   public HandlerDescriptor describe() {
+    if (invoker == null) {
+      return new HandlerDescriptor(HandlerKind.RESOURCE, null, null, List.of());
+    }
     MethodInvoker.Descriptor d = invoker.describe();
     return new HandlerDescriptor(
         HandlerKind.RESOURCE, d.declaringClassName(), d.methodName(), d.interceptors());
