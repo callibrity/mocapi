@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildHeaders, buildMeta, PROTOCOL_VERSION } from "./envelope";
-import { DevHostMcpClient, McpError } from "./transport";
+import { DevHostMcpClient } from "./transport";
 
 describe("envelope", () => {
   it("sets the 2026-07-28 routing headers, with Mcp-Name only when given", () => {
@@ -106,7 +106,7 @@ describe("DevHostMcpClient", () => {
     vi.stubGlobal("fetch", fetchMock);
     const result = await new DevHostMcpClient("http://x/mcp").readResource("ui://x/app.html");
     expect(result.contents).toEqual([{ uri: "ui://x/app.html", text: "<html>" }]);
-    const [url, init] = fetchMock.mock.calls[0];
+    const [, init] = fetchMock.mock.calls[0];
     expect((init.headers as Record<string, string>)["Mcp-Name"]).toBe("ui://x/app.html");
     vi.unstubAllGlobals();
   });
