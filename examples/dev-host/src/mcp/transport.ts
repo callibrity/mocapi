@@ -48,9 +48,17 @@ async function rpc<T>(
     params: { ...params, _meta: buildMeta() },
   };
   const base = { id, method, mcpName, request, at };
-  onExchange?.({ ...base, status: "pending" });
+  // The inspector is telemetry: a listener error must never mask a protocol result.
+  const emit = (ex: Exchange) => {
+    try {
+      onExchange?.(ex);
+    } catch {
+      /* swallow — a failing inspector must not change what the caller sees */
+    }
+  };
+  emit({ ...base, status: "pending" });
   const done = (patch: Partial<Exchange>) =>
-    onExchange?.({ ...base, ms: Math.round(performance.now() - started), status: "ok", ...patch });
+    emit({ ...base, ms: Math.round(performance.now() - started), status: "ok", ...patch });
 
   let res: Response;
   try {
