@@ -6,9 +6,11 @@
   </picture>
 </p>
 
-<h3 align="center">A Spring Boot framework for building <a href="https://modelcontextprotocol.io/specification/2026-07-28">Model Context Protocol (MCP)</a> servers in Java.</h3>
+<h3 align="center">The Spring Boot framework for when <a href="https://modelcontextprotocol.io/specification/2026-07-28">Model Context Protocol (MCP)</a> is a real surface of your product — not a prototype.</h3>
 
 Define tools, prompts, and resources as annotated Spring beans. Pull in optional modules for OAuth2, per-handler authorization, Jakarta Bean Validation, structured audit logs, Micrometer observations, MDC correlation, an `/actuator/mcp` inventory endpoint, and GraalVM native-image support — all wired through one customizer SPI.
+
+**Requirements:** Java 25+ (current LTS) · Spring Boot 4 · Maven 3.9+.
 
 > **Status:** stable. 1.0.0 implements MCP `2026-07-28` exclusively and follows [semantic versioning](https://semver.org) — breaking changes only in a new major. Features deliberately not implemented are enumerated, with rationale, in [ADR-0022](docs/adr/0022-2026-07-28-features-not-implemented.md). We'd love feedback and real-world usage reports.
 
@@ -25,10 +27,10 @@ Building an MCP server from scratch means solving the same problems every team s
 - **Virtual-thread-friendly.** Context propagates across the per-call virtual-thread spawn so tracing spans parent correctly and `SecurityContextHolder` works on the handler thread. A standing soak test sustained ~565 req/s with full observability on a laptop (see [Performance Benchmarking](docs/guides/performance/benchmarking.md)).
 - **GraalVM native-image hints included.**
 
-Mocapi's goal is to be the framework you reach for when MCP is a real surface of your product rather than a prototype.
-
 [![Maven Central](https://img.shields.io/maven-central/v/com.callibrity.mocapi/mocapi-server)](https://central.sonatype.com/artifact/com.callibrity.mocapi/mocapi-server)
 ![GitHub License](https://img.shields.io/github/license/callibrity/mocapi)
+![Java](https://img.shields.io/badge/Java-25%2B-orange)
+[![MCP Conformance](https://img.shields.io/badge/MCP%202026--07--28%20conformance-79%20passed%20%C2%B7%2013%20baselined-brightgreen)](mocapi-conformance/README.md)
 
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=callibrity_mocapi&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=callibrity_mocapi)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=callibrity_mocapi&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=callibrity_mocapi)
@@ -263,7 +265,7 @@ See [`examples/stdio/README.md`](examples/stdio/README.md) for Claude Desktop co
 
 ## MCP Conformance
 
-Mocapi targets the [MCP 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28) specification. Conformance is validated against the official suite via `--spec-version 2026-07-28` — see [mocapi-conformance/README.md](mocapi-conformance/README.md) for current results and the expected-failures baseline:
+Mocapi targets the [MCP 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28) specification and is validated against the official conformance suite: **79 checks pass, 13 are baselined** — every baselined failure is a deliberate omission (see [ADR-0022](docs/adr/0022-2026-07-28-features-not-implemented.md)) or a documented suite defect, not a protocol-correctness gap. Mocapi passes every check that tests actual protocol behavior. The [expected-failures baseline](mocapi-conformance/conformance-expected-failures.yaml) records each exception with its reason; see [mocapi-conformance/README.md](mocapi-conformance/README.md) to reproduce:
 
 ```bash
 # Start the conformance server
