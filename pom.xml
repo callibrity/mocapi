@@ -384,6 +384,7 @@
                                     <exclude>src/test/resources/**</exclude>
                                     <exclude>src/main/resources/**</exclude>
                                     <exclude>src/main/frontend/**</exclude>
+                                    <exclude>**/dev-host/**</exclude>
                                     <exclude>.claude/**</exclude>
                                     <exclude>**/*.txt</exclude>
                                     <exclude>**/*.sh</exclude>
