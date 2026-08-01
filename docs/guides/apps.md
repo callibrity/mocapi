@@ -14,6 +14,13 @@ For the architecture behind this guide, see the
 [ADR-0034](../adr/0034-descriptor-meta-and-customizer-seams.md) for the
 decisions.
 
+A mocapi App, rendered end-to-end — a `ui://` resource in a sandboxed iframe,
+linked to the tool that populates it. This is the [`get-time` example](../../examples/apps)
+shown in the [dev host](../../examples/dev-host), whose Wire panel (right) shows the
+underlying `2026-07-28` traffic:
+
+![The get-time MCP App rendered in a sandboxed iframe, with the dev host's Wire inspector showing the server/discover, tools/list, tools/call, and resources/read exchanges](../assets/mcp-apps-dev-host.png)
+
 ## Two halves, one boundary
 
 MCP Apps splits into a server surface and a host/in-iframe JS surface:

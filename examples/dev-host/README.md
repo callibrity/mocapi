@@ -12,6 +12,8 @@ sandboxed iframe and round-trip a tool call.
 > **This is a dev/demo host, not a production MCP host.** It implements just enough
 > of the host surface to render and exercise a mocapi App locally.
 
+![The dev host rendering the Get Time app in a sandboxed iframe, with the Wire inspector showing the live MCP 2026-07-28 traffic](../../docs/assets/mcp-apps-dev-host.png)
+
 ## What it does
 
 1. You enter a mocapi server URL and **Connect**. The host runs `server/discover`
@@ -27,6 +29,8 @@ The **Wire** panel shows every MCP exchange as it happens — `server/discover`,
 `tools/list`, `tools/call`, `resources/read`, and the app's proxied
 `callServerTool` — with the routing headers and the request/response JSON
 (large values like the `ui://` bundle are truncated).
+
+![The Wire inspector with a tools/call exchange expanded, showing the routing-header chips and the request and response JSON](../../docs/assets/mcp-apps-wire.png)
 
 ## Architecture
 
