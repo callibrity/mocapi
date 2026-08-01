@@ -5,15 +5,17 @@ It serves an interactive `ui://` HTML app linked to a `get-time` tool: in an App
 app renders in a sandboxed iframe with a **Get Server Time** button that calls the tool and displays
 the result.
 
-It demonstrates the [`mocapi-apps`](../../mocapi-apps) module — `@McpAppResource`, `@McpUi`, and the
-`io.modelcontextprotocol/ui` capability. See the [Apps guide](../../docs/guides/apps.md) and
+It demonstrates the [`mocapi-apps`](../../mocapi-apps) module — `@McpUi(resource=…)` serve-mode
+(the bundle is served straight from the classpath, no resource method) and the
+`io.modelcontextprotocol/ui` capability. The whole server surface is a single `@McpTool` +
+`@McpUi` method. See the [Apps guide](../../docs/guides/apps.md) and
 [design doc](../../docs/design/apps.md).
 
 ## Two halves, one boundary
 
 | Half | Who | In this example |
 |------|-----|-----------------|
-| Serve the `ui://` HTML + `_meta.ui` + capability | **mocapi (server)** | [`GetTimeApp.java`](src/main/java/com/callibrity/mocapi/examples/apps/GetTimeApp.java) — ~30 lines |
+| Serve the `ui://` HTML + `_meta.ui` + capability | **mocapi (server)** | [`GetTimeApp.java`](src/main/java/com/callibrity/mocapi/examples/apps/GetTimeApp.java) — one tool method |
 | Render the iframe, run the `postMessage` / `ui-initialize` bridge | **host + in-iframe JS** | the vendored app bundle (below) |
 
 mocapi is only the server. The interactive layer — the handshake, the button wiring, calling back to

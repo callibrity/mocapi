@@ -54,7 +54,7 @@ Each registered resource, resource template, and enum-typed URI-variable's compl
 
 ## Fixed Resources (`@McpResource`)
 
-A fixed resource has a concrete URI and no arguments. The method takes no parameters and returns a `ReadResourceResult`:
+A fixed resource has a concrete URI and no arguments. The method takes no parameters and returns its content — a `ReadResourceResult` or one of the convenience return types (see [Return Values](#return-values)):
 
 ```java
 @McpResource(
@@ -159,7 +159,7 @@ An MCP client asking for completions on the `{stage}` variable gets `["DEV", "ST
 
 ## Return Values
 
-Both kinds of resource methods must return `ReadResourceResult`:
+The full-control return type for either kind of resource is `ReadResourceResult`:
 
 ```java
 public record ReadResourceResult(List<ResourceContents> contents) { }
@@ -170,11 +170,63 @@ public record ReadResourceResult(List<ResourceContents> contents) { }
 - `TextResourceContents(String uri, String mimeType, String text)` -- for text content
 - `BlobResourceContents(String uri, String mimeType, String blob)` -- for binary content (base64-encoded)
 
-A single resource can return multiple `ResourceContents` entries (for example, a markdown page plus its embedded images).
+A single resource can return multiple `ResourceContents` entries (for example, a markdown page plus its embedded images) — that's the reason to reach for `ReadResourceResult` directly.
 
-### Convenience factories
+### Convenience return types (`@McpResource`)
 
-For the common single-entry case, `ReadResourceResult` provides static factory methods that collapse the wrapping boilerplate:
+A **fixed-URI `@McpResource`** method can skip the `ReadResourceResult` wrapping entirely and just return the payload — mocapi wraps it against the resource's own `uri` and `mimeType`:
+
+| Return type | Becomes | Notes |
+|-------------|---------|-------|
+| `String` / `CharSequence` | text content | |
+| `byte[]` / `ByteBuffer` | blob content | auto-base64; `ByteBuffer` is read non-destructively |
+| `org.springframework.core.io.Resource` | text or blob | Spring resource (classpath/file/URL); text vs. blob per `content` (below) |
+| `ReadResourceResult` | itself | full control — the escape hatch for multi-entry, custom cache directives, etc. |
+
+So the typical text resource is a one-liner with no factory call:
+
+```java
+@McpResource(uri = "docs://readme", mimeType = "text/markdown")
+public String readme() {
+    return loadReadme();
+}
+```
+
+Binary resources return raw bytes — no manual `Base64`:
+
+```java
+@McpResource(uri = "report://latest", mimeType = "application/pdf")
+public byte[] latestReport() {
+    return reportService.generate();
+}
+```
+
+And a file on the classpath is just a `Resource`:
+
+```java
+@McpResource(uri = "docs://logo", mimeType = "image/png")
+public org.springframework.core.io.Resource logo() {
+    return new ClassPathResource("static/logo.png");
+}
+```
+
+#### `content` — text vs. blob for a `Resource` return
+
+A returned Spring `Resource` is opaque bytes, so `@McpResource(content = ...)` decides how to represent it:
+
+- `AUTO` (default) — infer from the declared `mimeType`: a `text/*` base type, or a `json` / `xml` / `javascript` / `ecmascript` subtype (including `+json` / `+xml` structured suffixes), is text; anything else — including a blank/unknown/malformed mime — is blob. Text is decoded UTF-8, honoring a `charset` mime parameter if present.
+- `TEXT` / `BLOB` — force it, ignoring the mime type.
+
+```java
+@McpResource(uri = "ui://widget", mimeType = "text/html", content = ResourceContent.TEXT)
+public org.springframework.core.io.Resource widget() {
+    return new ClassPathResource("ui/widget.html");
+}
+```
+
+### `ReadResourceResult` factories
+
+When you do build a `ReadResourceResult` — multi-entry results, or a `@McpResourceTemplate` (templates always return `ReadResourceResult`, since they resolve their own concrete URI) — the static factories collapse the single-entry boilerplate:
 
 ```java
 ReadResourceResult.ofText(uri, mimeType, text);
@@ -182,26 +234,7 @@ ReadResourceResult.ofBlob(uri, mimeType, byte[] bytes);   // auto-base64
 ReadResourceResult.ofBlob(uri, mimeType, String base64);  // if already encoded
 ```
 
-So the typical text resource becomes a one-liner:
-
-```java
-@McpResource(uri = "docs://readme", mimeType = "text/markdown")
-public ReadResourceResult readme() {
-    return ReadResourceResult.ofText("docs://readme", "text/markdown", loadReadme());
-}
-```
-
-And binary resources no longer need manual `Base64` encoding:
-
-```java
-@McpResource(uri = "report://latest", mimeType = "application/pdf")
-public ReadResourceResult latestReport() {
-    return ReadResourceResult.ofBlob(
-        "report://latest", "application/pdf", reportService.generate());
-}
-```
-
-For multi-entry results (e.g., a markdown page plus its embedded images), use the plain record constructor and assemble the list yourself.
+A template already has the request URI via its `McpResourceContext`, so `ofText(...)` stays a one-liner there. For multi-entry results, use the plain record constructor and assemble the list yourself.
 
 ## URI Template Matching
 

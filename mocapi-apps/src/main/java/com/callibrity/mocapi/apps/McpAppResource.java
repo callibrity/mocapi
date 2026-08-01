@@ -26,8 +26,11 @@ import org.springframework.core.annotation.AliasFor;
  * Declares a {@code ui://} MCP Apps UI resource. Composes {@link McpResource} (MIME defaulted to
  * {@code text/html;profile=mcp-app}) via meta-annotation, so the method registers as a resource
  * through the standard scan (ADR-0032); {@code csp}/{@code sandbox} drive the resource's {@code
- * _meta.ui}. Like every {@code @McpResource} method, the annotated method must return a {@code
- * ReadResourceResult}.
+ * _meta.ui}. Like every {@code @McpResource} method, the annotated method may return a {@code
+ * ReadResourceResult} or a convenience payload mocapi wraps for you — a {@code String}/{@code
+ * CharSequence}, {@code byte[]}/{@code ByteBuffer}, or Spring {@code Resource} (ADR-0035). For a UI
+ * bundle served from a fixed classpath location with no resource method at all, prefer {@link
+ * McpUi#resource()} (ADR-0036).
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)

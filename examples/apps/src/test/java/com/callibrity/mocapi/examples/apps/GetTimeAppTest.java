@@ -18,10 +18,9 @@ package com.callibrity.mocapi.examples.apps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
-import com.callibrity.mocapi.apps.McpAppResource;
 import com.callibrity.mocapi.apps.McpUi;
-import com.callibrity.mocapi.model.ReadResourceResult;
-import com.callibrity.mocapi.model.TextResourceContents;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -40,19 +39,18 @@ class GetTimeAppTest {
   }
 
   @Test
-  void mcp_app_serves_the_ui_bundle_with_the_apps_mime_type() {
-    ReadResourceResult result = app.mcpApp();
-    var contents = (TextResourceContents) result.contents().getFirst();
-    assertThat(contents.uri()).isEqualTo("ui://get-time/mcp-app.html");
-    assertThat(contents.mimeType()).isEqualTo("text/html;profile=mcp-app");
-    assertThat(contents.text()).contains("<title>Get Time App</title>");
+  void mcpui_links_the_tool_to_a_serve_mode_bundle() throws Exception {
+    McpUi ui = GetTimeApp.class.getMethod("getTime").getAnnotation(McpUi.class);
+    assertThat(ui.value()).isEqualTo("ui://get-time/mcp-app.html");
+    assertThat(ui.resource()).isEqualTo("classpath:/ui/get-time/mcp-app.html");
   }
 
   @Test
-  void tool_ui_link_matches_the_served_resource_uri() throws Exception {
-    String linkedUri = GetTimeApp.class.getMethod("getTime").getAnnotation(McpUi.class).value();
-    String resourceUri =
-        GetTimeApp.class.getMethod("mcpApp").getAnnotation(McpAppResource.class).uri();
-    assertThat(linkedUri).isEqualTo(resourceUri).isEqualTo("ui://get-time/mcp-app.html");
+  void the_served_bundle_is_on_the_classpath_with_the_app_content() throws Exception {
+    try (InputStream in = GetTimeApp.class.getResourceAsStream("/ui/get-time/mcp-app.html")) {
+      assertThat(in).as("vendored UI bundle on the classpath").isNotNull();
+      String html = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+      assertThat(html).contains("<title>Get Time App</title>");
+    }
   }
 }

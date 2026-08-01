@@ -17,6 +17,12 @@ For decisions, see:
 - [ADR-0031](../adr/0031-server-capabilities-customizer.md) —
   `ServerCapabilitiesCustomizer`, which `UiCapabilityCustomizer` uses to
   declare the `ui` extension capability
+- [ADR-0035](../adr/0035-resource-readers-and-contributor-seam.md) —
+  function-backed resource readers and the `ResourceContributor` seam
+  that serve-mode plugs into
+- [ADR-0036](../adr/0036-mcpui-serve-mode.md) — `@McpUi(resource=…)`
+  serve-mode: serving a `ui://` bundle from a fixed location with no
+  resource method
 
 Design history: the original design spec is
 [`docs/superpowers/specs/2026-07-31-mcp-apps-extension-design.md`](../superpowers/specs/2026-07-31-mcp-apps-extension-design.md).
@@ -71,9 +77,11 @@ mocapi-apps
 `MocapiAppsAutoConfiguration` (in `mocapi-autoconfigure`, gated
 `@ConditionalOnClass(UiCapabilityCustomizer.class)`) registers the three
 customizers as `@ConditionalOnMissingBean` beans whenever `mocapi-apps`
-is on the classpath. Omitting the module leaves the core inert: no
-descriptor gains `_meta`, and handler discovery behaves identically for
-plain `@McpResource`/`@McpTool` methods.
+is on the classpath, plus the serve-mode `AppUiResourceContributor` (also
+in `mocapi-autoconfigure` — it needs `HandlerMethodsCache` and
+`ResourceLoader`, both Spring-side). Omitting the module leaves the core
+inert: no descriptor gains `_meta`, and handler discovery behaves
+identically for plain `@McpResource`/`@McpTool` methods.
 
 ## `_meta.ui` shapes
 
@@ -165,10 +173,11 @@ public ReadResourceResult dashboard() {
 }
 ```
 
-Like every `@McpResource` handler, the method **must** return
-`ReadResourceResult` — `ReadResourceHandlers.validateReturnType`
-enforces this at startup regardless of which annotation registered the
-method.
+Like every `@McpResource` handler, the method returns a
+`ReadResourceResult` or one of the convenience return types
+(`String`/`CharSequence`, `byte[]`/`ByteBuffer`, Spring `Resource`;
+ADR-0035) — `ReadResourceHandlers.validateReturnType` accepts any of
+these at startup regardless of which annotation registered the method.
 
 `AppsResourceDescriptorCustomizer` runs after the `Resource` descriptor
 is otherwise built and reads `csp()`/`sandbox()` off the merged
@@ -190,6 +199,39 @@ public WeatherResult getWeather(Args a) { … }
 `_meta.ui.resourceUri` (+ `visibility`). The per-call data the UI
 renders rides the **normal** `CallToolResult` (typically
 `structuredContent`) — no special context object is involved.
+
+By default the linked `value()` URI must be declared elsewhere on the
+server; `McpUiReferenceValidator` (a `SmartInitializingSingleton`) fails
+the boot if a `@McpUi` points at a URI no handler declares — turning a
+fat-fingered link into a clear startup error instead of a blank iframe.
+
+### `@McpUi(resource=…)` — serve-mode (ADR-0036)
+
+Setting `@McpUi.resource` to a fixed location makes the resource method
+optional: `AppUiResourceContributor` scans every `@McpUi(resource=…)`
+tool and contributes, through the generic ADR-0035 `ResourceContributor`
+seam, a **public, reader-only** `text/html;profile=mcp-app` resource at
+`value()` serving the bundle resolved once at startup via Spring
+`ResourceLoader`:
+
+```java
+@McpTool(name = "get_weather", description = "Get weather")
+@McpUi(value = "ui://weather/dashboard",
+       resource = "classpath:/ui/weather-dashboard.html")
+public WeatherResult getWeather(Args a) { … }
+```
+
+The URI is logical and author-controlled; the served bytes come only
+from the literal `resource` string — never request input, so there is no
+path-traversal / LFI surface (a `ui://{path}` catch-all was rejected for
+exactly this reason). Several tools may reuse one `value()`; the
+contributor registers one resource per URI, and the same `value()` with
+two different locations — or a missing bundle — fails the boot. Serve-mode
+resources carry no guards, no observability, and a default `_meta.ui`
+(default CSP, no extra sandbox); anything needing policy, custom
+`@Csp`/sandbox, or generated content uses an `@McpAppResource` method and
+leaves `resource` blank. Because the contributed URI is now declared,
+`McpUiReferenceValidator` is satisfied without a hand-written resource.
 
 ### What was deliberately not added
 
@@ -255,6 +297,10 @@ customizer pattern in general.
   and `MocapiAppsAutoConfiguration`, asserting `tools/list`,
   `resources/list`, and `server/discover` all carry the expected Apps
   metadata.
+- `AppUiServeModeTest` (in `mocapi-autoconfigure`) — serve-mode: a
+  `@McpUi(resource=classpath:…)` tool boots with the `ui://` resource
+  contributed and served from the classpath, and the same URI from two
+  locations fails the boot.
 
 There is no Apps-specific conformance-suite coverage: the
 `ext-apps` Playwright/e2e suite tests the host/iframe handshake, which

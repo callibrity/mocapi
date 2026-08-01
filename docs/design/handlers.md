@@ -45,14 +45,25 @@ prompt arguments.
 Every `@McpResource`-annotated method on a Spring bean
 produces one `ReadResourceHandler`. The handler bundles the generated
 `Resource` descriptor (URI, name, description, MIME type) with a
-`MethodInvoker<Object>` that produces the `ReadResourceResult` returned
-by `resources/read`. `McpResourcesService` holds a `Map<String,
-ReadResourceHandler>` keyed by URI and looks up the handler on every
-fixed-URI `resources/read` call before dispatching.
+`ResourceReader` (a `Supplier<ReadResourceResult>`) that produces the
+result returned by `resources/read` (ADR-0035). For an annotation-scanned
+method the reader wraps the method's `MethodInvoker<Object>` and adapts
+its return value: a `ReadResourceResult` passes through, while a `String`/
+`CharSequence`, `byte[]`/`ByteBuffer`, or Spring `Resource` is wrapped
+against the descriptor's URI and MIME type by `ResourceResults` (the
+`@McpResource(content=…)` enum disambiguates a `Resource` as text or
+blob). `McpResourcesService` holds a `Map<String, ReadResourceHandler>`
+keyed by URI and looks up the handler on every fixed-URI `resources/read`
+call before dispatching.
+
+The reader indirection means a handler need not be method-backed at all:
+a reader-only constructor takes `(descriptor, guards, reader)` with no
+`Method`/`MethodInvoker`, which is how contributed (non-scanned) resources
+are served — see *Resource contributors* below.
 
 Handlers are built by mapping each `(bean, method)` pair from the
 central `HandlerMethodsCache` through `ReadResourceHandlers.build(...)`
-in `MocapiServerResourcesAutoConfiguration`.
+in the `AnnotationScanResourceContributor`.
 
 ## ReadResourceTemplateHandler — `resources/read` (templated URIs)
 
@@ -69,11 +80,43 @@ URI against the templates after the fixed-URI map lookup misses.
 
 Handlers are built by mapping each `(bean, method)` pair from the
 central `HandlerMethodsCache` through
-`ReadResourceTemplateHandlers.build(...)` in
-`MocapiServerResourcesAutoConfiguration`. The same bean method walks
-every handler's `completionCandidates()` and registers them with
-`McpCompletionsService`, so `completion/complete` keeps working for
-resource-template variables.
+`ReadResourceTemplateHandlers.build(...)` in the
+`AnnotationScanResourceContributor`. Template methods keep returning
+`ReadResourceResult` (they resolve their own concrete URI, so the
+convenience return types are a fixed-URI `@McpResource` feature). The
+resources autoconfiguration walks every registered template handler's
+`completionCandidates()` and registers them with `McpCompletionsService`,
+so `completion/complete` keeps working for resource-template variables.
+
+## Resource contributors — merging registrations (ADR-0035)
+
+`McpResourcesService` is built once, at construction, by merging the
+handlers from every `ResourceContributor` bean:
+
+```java
+public interface ResourceContributor {
+  default List<ReadResourceHandler> resources()                { return List.of(); }
+  default List<ReadResourceTemplateHandler> resourceTemplates() { return List.of(); }
+}
+```
+
+The `@McpResource`/`@McpResourceTemplate` annotation scan is itself the
+primary, built-in contributor (`AnnotationScanResourceContributor`) — not
+a privileged path, just one contributor among peers. An extension supplies
+another: MCP Apps' serve-mode (`AppUiResourceContributor`, ADR-0036)
+contributes reader-only handlers that serve `ui://` bundles from a fixed
+location. The service stays immutable; registration is construction-time
+only, with no runtime mutation. Duplicate URIs across contributors fail
+fast at construction.
+
+Guards and observability are *not* generalized onto contributed readers.
+A method-backed reader keeps its baked-in `MethodInvoker` strata
+(correlation/observation/audit + guard enforcement); a contributed
+reader-only handler carries an empty `guards` list (so it is public and
+visible in `listResources`) and a bare reader with no interceptors. A
+resource that needs guards, observability, or logic is declared as a
+`@McpResource`/`@McpAppResource` **method** and reached by reference — the
+deliberate escape hatch.
 
 ## No public handler SPI
 

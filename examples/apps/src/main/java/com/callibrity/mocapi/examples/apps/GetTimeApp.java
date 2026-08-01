@@ -16,24 +16,14 @@
 package com.callibrity.mocapi.examples.apps;
 
 import com.callibrity.mocapi.api.tools.McpTool;
-import com.callibrity.mocapi.apps.McpAppResource;
 import com.callibrity.mocapi.apps.McpUi;
-import com.callibrity.mocapi.model.ReadResourceResult;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
 /**
- * The server half of an MCP App. It exposes two linked handlers:
- *
- * <ul>
- *   <li>{@link #mcpApp()} — a {@code ui://} resource that returns the app's self-contained HTML/JS
- *       bundle ({@code text/html;profile=mcp-app}).
- *   <li>{@link #getTime()} — a {@code get-time} tool whose result the app renders; {@code @McpUi}
- *       links it to the resource above via the tool descriptor's {@code _meta.ui.resourceUri}.
- * </ul>
+ * The server half of an MCP App, in the leanest form: a single {@code get-time} tool that both does
+ * the work and declares its UI. {@code @McpUi(resource=…)} serves the app's self-contained HTML/JS
+ * bundle at {@link #RESOURCE_URI} straight from the classpath (ADR-0036) — no resource method to
+ * write — and links the tool to it via the tool descriptor's {@code _meta.ui.resourceUri}.
  *
  * <p>mocapi is only the server: it serves the HTML and the metadata. The interactive layer (the
  * {@code postMessage} / {@code ui-initialize} handshake, the "Get Server Time" button calling back
@@ -45,41 +35,19 @@ import java.time.Instant;
 public class GetTimeApp {
 
   static final String RESOURCE_URI = "ui://get-time/mcp-app.html";
-  private static final String UI_MIME_TYPE = "text/html;profile=mcp-app";
-  private static final String BUNDLE_PATH = "/ui/get-time/mcp-app.html";
 
-  private final String html;
-
-  public GetTimeApp() {
-    this.html = loadBundle();
-  }
-
-  /** Serves the interactive Get Time app UI as a {@code ui://} MCP Apps resource. */
-  @McpAppResource(uri = RESOURCE_URI, name = "Get Time App")
-  public ReadResourceResult mcpApp() {
-    return ReadResourceResult.ofText(RESOURCE_URI, UI_MIME_TYPE, html);
-  }
-
-  /** The tool the app calls; its {@code {time}} result is rendered inside the linked UI. */
+  /**
+   * The tool the app calls; its {@code {time}} result is rendered inside the linked UI, whose
+   * bundle mocapi serves from the classpath.
+   */
   @McpTool(
       name = "get-time",
       description = "Returns the current server time as an ISO 8601 string.")
-  @McpUi(RESOURCE_URI)
+  @McpUi(value = RESOURCE_URI, resource = "classpath:/ui/get-time/mcp-app.html")
   public TimeResult getTime() {
     return new TimeResult(Instant.now().toString());
   }
 
   /** Structured tool result; serializes to {@code {"time": "..."}}, which the app reads. */
   public record TimeResult(String time) {}
-
-  private static String loadBundle() {
-    try (InputStream in = GetTimeApp.class.getResourceAsStream(BUNDLE_PATH)) {
-      if (in == null) {
-        throw new IllegalStateException("Missing UI bundle on classpath: " + BUNDLE_PATH);
-      }
-      return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-    } catch (IOException e) {
-      throw new UncheckedIOException("Failed to read UI bundle " + BUNDLE_PATH, e);
-    }
-  }
 }

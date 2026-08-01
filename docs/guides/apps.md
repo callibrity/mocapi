@@ -86,13 +86,14 @@ public class WeatherApp {
 }
 ```
 
-Like every `@McpResource` method, this **must return
-`ReadResourceResult`** — that's what makes it servable through
-`resources/read`. There is no `String`-returning shortcut; a bare
-`return "<html>...</html>";` does not compile as a resource handler.
-`ReadResourceResult.ofText(uri, mimeType, text)` is the one-line
-factory for the common single-content-item case (see the
-[resources guide](resources.md#convenience-factories)).
+Like every `@McpResource` method, this can return a full
+`ReadResourceResult` or one of the convenience return types — a
+`String`/`CharSequence`, `byte[]`/`ByteBuffer`, or a Spring `Resource`
+(see the [resources guide](resources.md#convenience-return-types-mcpresource)).
+So the body above can also be a bare `return """<!doctype html>…""";`.
+If the bundle is a static file, you usually don't need a resource method
+at all — see [Serve a bundle from a file](#serve-a-bundle-from-a-file-mcpuiresource)
+below.
 
 The `<script>` in your HTML is where the official ext-apps JS SDK goes
 — that script establishes the `postMessage` handshake with the host.
@@ -159,6 +160,47 @@ mocapi's authorization-Guard `visibility`
 ([guards guide](guards.md)) — the two are unrelated concepts that
 happen to share a name. mocapi emits Apps `visibility` as metadata
 only; it does not enforce it.
+
+## Serve a bundle from a file (`@McpUi(resource=…)`)
+
+When your UI is a static bundle on the classpath, you don't need a
+resource method at all. Point `@McpUi.resource` at the bundle and mocapi
+contributes the `ui://` resource for you
+([ADR-0036](../adr/0036-mcpui-serve-mode.md)):
+
+```java
+@McpTool(name = "get_weather", description = "Get the current weather")
+@McpUi(value    = "ui://weather/dashboard",
+       resource = "classpath:/ui/weather-dashboard.html")
+public WeatherResult getWeather(WeatherArgs args) {
+    return weatherService.current(args.location());
+}
+```
+
+That single tool is the whole server surface — no `@McpAppResource`
+method. mocapi serves the file's bytes at `ui://weather/dashboard` as
+`text/html;profile=mcp-app`, resolved **once at startup** via Spring's
+`ResourceLoader` (so `classpath:/…`, `file:/…`, and any other
+`ResourceLoader` location work). A missing file fails the boot with a
+clear error, not a blank iframe at render time.
+
+- **The URI is logical, the location is fixed.** `value()` is the wire
+  identity; the bytes come only from the literal `resource` string.
+  Neither is ever built from request input — there is no way for a client
+  to make the server read an arbitrary file.
+- **Reuse is fine.** Several tools may link the same `value()`; mocapi
+  registers one resource. Two tools naming the same `value()` with
+  *different* `resource` locations fails the boot.
+- **Serve-mode is the thin, public path.** These resources carry no
+  guards, no observability, and a default `_meta.ui` (default CSP, no
+  extra sandbox). When you need guards, custom `@Csp`/sandbox,
+  observability, or generated content, declare an `@McpAppResource`
+  method (with any [return type](resources.md#return-values)) and leave
+  `resource` blank — `McpUiReferenceValidator` still checks the URIs
+  line up at boot.
+
+Choose per app: `@McpUi(resource=…)` for a static bundle you just want
+served; `@McpAppResource` when the resource needs logic or policy.
 
 ## What the host does with it
 

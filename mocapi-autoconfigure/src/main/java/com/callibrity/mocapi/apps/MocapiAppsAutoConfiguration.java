@@ -15,13 +15,16 @@
  */
 package com.callibrity.mocapi.apps;
 
+import com.callibrity.mocapi.server.autoconfigure.HandlerMethodsCache;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
+import com.callibrity.mocapi.server.resources.ResourceContributor;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.ResourceLoader;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -49,6 +52,20 @@ public class MocapiAppsAutoConfiguration {
   @ConditionalOnMissingBean
   public UiCapabilityCustomizer uiCapabilityCustomizer(ObjectMapper objectMapper) {
     return new UiCapabilityCustomizer(objectMapper);
+  }
+
+  /**
+   * Serve-mode contributor (ADR-0036): contributes a {@code ui://} resource for every
+   * {@code @McpUi(resource=…)} tool. Collected as a {@link ResourceContributor} into the one
+   * resources service alongside the annotation scan.
+   */
+  @Bean
+  public ResourceContributor appUiResourceContributor(
+      ObjectProvider<HandlerMethodsCache> handlerMethodsCache,
+      ResourceLoader resourceLoader,
+      ObjectMapper objectMapper) {
+    return new AppUiResourceContributor(
+        handlerMethodsCache.getIfAvailable(), resourceLoader, objectMapper);
   }
 
   @Bean

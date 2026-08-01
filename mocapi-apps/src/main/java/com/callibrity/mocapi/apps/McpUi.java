@@ -23,12 +23,28 @@ import java.lang.annotation.Target;
 /**
  * Links a tool's results to a {@code ui://} UI resource (MCP Apps) via the tool descriptor's {@code
  * _meta.ui}.
+ *
+ * <p>By default the {@link #value()} URI must be declared elsewhere on the server (an
+ * {@code @McpAppResource} / {@code @McpResource} method with the same URI), and startup fails fast
+ * if it is not. Set {@link #resource()} to serve the bundle directly from a fixed
+ * classpath/filesystem location — mocapi contributes the {@code ui://} resource for you (ADR-0036),
+ * no resource method required.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface McpUi {
   /** The linked UI resource URI (must start with {@code ui://}). */
   String value();
+
+  /**
+   * Optional fixed location of the UI bundle to serve at {@link #value()} — any Spring {@code
+   * ResourceLoader} location ({@code classpath:/…}, {@code file:/…}). When set, mocapi contributes
+   * a public {@code text/html;profile=mcp-app} resource at {@code value()} serving these bytes,
+   * resolved once at startup; a missing location fails the boot. The location is fixed and
+   * author-controlled — never derived from client input. Leave blank to declare the resource
+   * yourself (the path for guards, observability, custom CSP/sandbox, or generated content).
+   */
+  String resource() default "";
 
   /** UI access axis: {@code "model"} and/or {@code "app"}. Default: both. */
   String[] visibility() default {"model", "app"};
