@@ -21,9 +21,19 @@ async function rpc<T>(endpoint: string, method: string, params: Record<string, u
     headers: buildHeaders(method, mcpName),
     body: JSON.stringify({ jsonrpc: "2.0", id: nextId++, method, params: { ...params, _meta: buildMeta() } }),
   });
-  if (!res.ok && res.status !== 200) throw new McpError(res.status, `HTTP ${res.status} from ${endpoint}`);
-  const json = (await res.json()) as { result?: T; error?: { code: number; message: string } };
+
+  let json: any;
+  try {
+    json = await res.json();
+  } catch {
+    // Non-JSON response on error
+    if (!res.ok) throw new McpError(res.status, `HTTP ${res.status} from ${endpoint}`);
+    throw new McpError(res.status, `Invalid JSON response from ${endpoint}`);
+  }
+
+  // JSON-RPC error takes precedence over HTTP status
   if (json.error) throw new McpError(json.error.code, json.error.message);
+
   return json.result as T;
 }
 

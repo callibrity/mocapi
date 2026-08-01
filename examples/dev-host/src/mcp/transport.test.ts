@@ -38,11 +38,13 @@ describe("DevHostMcpClient", () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("http://x/mcp");
     expect((init.headers as Record<string, string>)["Mcp-Method"]).toBe("tools/list");
-    expect(JSON.parse(init.body).method).toBe("tools/list");
+    const body = JSON.parse(init.body);
+    expect(body.method).toBe("tools/list");
+    expect(body.params._meta["io.modelcontextprotocol/protocolVersion"]).toBe(PROTOCOL_VERSION);
     vi.unstubAllGlobals();
   });
 
-  it("throws McpError on a JSON-RPC error response", async () => {
+  it("throws McpError on a JSON-RPC error response with HTTP 200", async () => {
     vi.stubGlobal("fetch", mockFetch({ jsonrpc: "2.0", id: 1, error: { code: -32602, message: "Missing required _meta key" } }));
     await expect(new DevHostMcpClient("http://x/mcp").listTools()).rejects.toMatchObject({
       code: -32602,
@@ -50,7 +52,52 @@ describe("DevHostMcpClient", () => {
     vi.unstubAllGlobals();
   });
 
-  it("callTool/readResource pass Mcp-Name", async () => {
+  it("throws McpError with JSON-RPC code on HTTP 400 with JSON-RPC error body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, error: { code: -32602, message: "Missing required _meta key" } }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(new DevHostMcpClient("http://x/mcp").listTools()).rejects.toMatchObject({
+      code: -32602,
+      message: "Missing required _meta key",
+    });
+    vi.unstubAllGlobals();
+  });
+
+  it("discover() sends server/discover with no Mcp-Name", async () => {
+    const fetchMock = mockFetch({
+      jsonrpc: "2.0",
+      id: 1,
+      result: { supportedVersions: ["2026-07-28"], capabilities: { extensions: {} } },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await new DevHostMcpClient("http://x/mcp").discover();
+    expect(result.supportedVersions).toEqual(["2026-07-28"]);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("http://x/mcp");
+    expect((init.headers as Record<string, string>)["Mcp-Method"]).toBe("server/discover");
+    expect((init.headers as Record<string, string>)["Mcp-Name"]).toBeUndefined();
+    vi.unstubAllGlobals();
+  });
+
+  it("readResource() sends resources/read with Mcp-Name as URI", async () => {
+    const fetchMock = mockFetch({
+      jsonrpc: "2.0",
+      id: 1,
+      result: { contents: [{ uri: "ui://x/app.html", text: "<html>" }] },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await new DevHostMcpClient("http://x/mcp").readResource("ui://x/app.html");
+    expect(result.contents).toEqual([{ uri: "ui://x/app.html", text: "<html>" }]);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect((init.headers as Record<string, string>)["Mcp-Name"]).toBe("ui://x/app.html");
+    vi.unstubAllGlobals();
+  });
+
+  it("callTool passes Mcp-Name as tool name", async () => {
     const fetchMock = mockFetch({ jsonrpc: "2.0", id: 1, result: { content: [] } });
     vi.stubGlobal("fetch", fetchMock);
     await new DevHostMcpClient("http://x/mcp").callTool("get-time", {});
