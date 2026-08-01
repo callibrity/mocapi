@@ -31,12 +31,45 @@ class AppsDescriptorCustomizerTest {
     @McpUi(
         value = "ui://dash",
         visibility = {"app"})
-    public void tool() {}
+    public void tool() {
+      // Reflection fixture: only the annotations are read; the body is intentionally empty.
+    }
 
     @McpAppResource(uri = "ui://dash", csp = @Csp(connect = "https://api.example.com"))
-    public void ui() {}
+    public void ui() {
+      // Reflection fixture: only the annotations are read; the body is intentionally empty.
+    }
 
-    public void plain() {}
+    @McpAppResource(uri = "ui://plain")
+    public void resNoCsp() {
+      // Reflection fixture: only the annotations are read; the body is intentionally empty.
+    }
+
+    @McpAppResource(uri = "ui://res", csp = @Csp(resource = "https://cdn.example.com"))
+    public void resResourceCsp() {
+      // Reflection fixture: only the annotations are read; the body is intentionally empty.
+    }
+
+    @McpAppResource(uri = "ui://res", csp = @Csp(frame = "https://frame.example.com"))
+    public void resFrameCsp() {
+      // Reflection fixture: only the annotations are read; the body is intentionally empty.
+    }
+
+    @McpAppResource(uri = "ui://res", csp = @Csp(baseUri = "https://base.example.com"))
+    public void resBaseUriCsp() {
+      // Reflection fixture: only the annotations are read; the body is intentionally empty.
+    }
+
+    @McpAppResource(
+        uri = "ui://res",
+        sandbox = {"allow-scripts", "allow-forms"})
+    public void resSandbox() {
+      // Reflection fixture: only the annotations are read; the body is intentionally empty.
+    }
+
+    public void plain() {
+      // Reflection fixture: an un-annotated method to exercise the no-op path.
+    }
   }
 
   private Method method(String name) throws Exception {
@@ -75,5 +108,63 @@ class AppsDescriptorCustomizerTest {
     var customizer = new AppsResourceDescriptorCustomizer(mapper);
     Resource in = new Resource("res://x", "X", "d", "text/plain");
     assertThat(customizer.customize(method("plain"), in)).isSameAs(in);
+  }
+
+  @Test
+  void resource_customizer_omits_csp_when_no_domains_are_declared() throws Exception {
+    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    Resource out =
+        customizer.customize(
+            method("resNoCsp"), new Resource("ui://plain", "Plain", "d", "text/html"));
+    assertThat(out.meta().path("ui").isObject()).isTrue();
+    assertThat(out.meta().path("ui").path("csp").isMissingNode()).isTrue();
+  }
+
+  @Test
+  void resource_customizer_stamps_resource_domains() throws Exception {
+    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    Resource out =
+        customizer.customize(method("resResourceCsp"), new Resource("ui://res", "R", "d", "t"));
+    assertThat(out.meta().path("ui").path("csp").path("resourceDomains").get(0).asString())
+        .isEqualTo("https://cdn.example.com");
+  }
+
+  @Test
+  void resource_customizer_stamps_frame_domains() throws Exception {
+    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    Resource out =
+        customizer.customize(method("resFrameCsp"), new Resource("ui://res", "R", "d", "t"));
+    assertThat(out.meta().path("ui").path("csp").path("frameDomains").get(0).asString())
+        .isEqualTo("https://frame.example.com");
+  }
+
+  @Test
+  void resource_customizer_stamps_base_uri_domains() throws Exception {
+    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    Resource out =
+        customizer.customize(method("resBaseUriCsp"), new Resource("ui://res", "R", "d", "t"));
+    assertThat(out.meta().path("ui").path("csp").path("baseUriDomains").get(0).asString())
+        .isEqualTo("https://base.example.com");
+  }
+
+  @Test
+  void resource_customizer_stamps_sandbox_tokens() throws Exception {
+    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    Resource out =
+        customizer.customize(method("resSandbox"), new Resource("ui://res", "R", "d", "t"));
+    assertThat(out.meta().path("ui").path("sandbox").get(0).asString()).isEqualTo("allow-scripts");
+    assertThat(out.meta().path("ui").path("sandbox").get(1).asString()).isEqualTo("allow-forms");
+  }
+
+  @Test
+  void resource_customizer_preserves_existing_meta() throws Exception {
+    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    Resource withMeta =
+        new Resource("ui://dash", "Dash", "d", "text/html")
+            .withMeta(mapper.createObjectNode().put("existing", "kept"));
+    Resource out = customizer.customize(method("ui"), withMeta);
+    assertThat(out.meta().path("existing").asString()).isEqualTo("kept");
+    assertThat(out.meta().path("ui").path("csp").path("connectDomains").get(0).asString())
+        .isEqualTo("https://api.example.com");
   }
 }

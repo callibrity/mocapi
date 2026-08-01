@@ -135,7 +135,7 @@ public final class ResourceResults {
     }
     try {
       return MimeTypeUtils.parseMimeType(mimeType);
-    } catch (RuntimeException e) {
+    } catch (RuntimeException _) {
       return null;
     }
   }

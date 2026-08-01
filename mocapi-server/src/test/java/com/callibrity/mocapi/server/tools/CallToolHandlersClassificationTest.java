@@ -61,7 +61,9 @@ class CallToolHandlersClassificationTest {
     Object bean = instantiate(beanClass);
     Method method = methodOf(beanClass);
     return CallToolHandlers.build(
-        bean, method, generator, mapper, List.of(), List.of(), s -> s, false);
+        bean,
+        method,
+        new CallToolHandlers.BuildParams(generator, mapper, List.of(), List.of(), s -> s, false));
   }
 
   private boolean hasAwaitInterceptor(CallToolHandler handler) {

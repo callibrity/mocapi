@@ -92,7 +92,8 @@ class MocapiJakartaValidationAttachmentLogTest {
 
   private static Validator newValidator() {
     Validator v = mock(Validator.class);
-    when(v.forExecutables()).thenReturn(mock(ExecutableValidator.class));
+    ExecutableValidator executableValidator = mock(ExecutableValidator.class);
+    when(v.forExecutables()).thenReturn(executableValidator);
     return v;
   }
 }

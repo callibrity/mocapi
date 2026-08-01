@@ -62,6 +62,30 @@ public final class CallToolHandlers {
   private CallToolHandlers() {}
 
   /**
+   * The invariant wiring shared by every {@link CallToolHandler} on a server: the schema generator,
+   * object mapper, the handler- and descriptor-customizer chains, the annotation value resolver,
+   * and whether output-schema validation is enforced. Bundled so {@link #build(Object, Method,
+   * BuildParams)} takes a single settings argument that a caller constructs once and reuses across
+   * every {@code (bean, method)} pair.
+   *
+   * @param generator generates input and output schemas from method signatures
+   * @param objectMapper the Jackson mapper used for schema mapping and the catch-all resolver
+   * @param customizers the {@link CallToolHandlerCustomizer} chain applied to each handler
+   * @param descriptorCustomizers the {@link ToolDescriptorCustomizer} chain applied to each tool
+   *     descriptor
+   * @param valueResolver resolves placeholder values in {@code @McpTool} annotation attributes
+   * @param validateOutput when {@code true}, installs an output-schema validator for tools that
+   *     declare one
+   */
+  public record BuildParams(
+      MethodSchemaGenerator generator,
+      ObjectMapper objectMapper,
+      List<CallToolHandlerCustomizer> customizers,
+      List<ToolDescriptorCustomizer> descriptorCustomizers,
+      UnaryOperator<String> valueResolver,
+      boolean validateOutput) {}
+
+  /**
    * Builds one {@link CallToolHandler} for the given {@code (bean, method)} pair. The handler's
    * invoker is wired with the structural parameter resolvers ({@link McpToolContextResolver},
    * {@link McpToolParamsResolver}, and a catch-all {@link Jackson3ParameterResolver}) plus any
@@ -82,15 +106,13 @@ public final class CallToolHandlers {
    * CompletionStageAwaitingInterceptor} is installed as the innermost interceptor so every other
    * stratum — including output-schema validation — sees the unwrapped value rather than a stage.
    */
-  public static CallToolHandler build(
-      Object bean,
-      Method method,
-      MethodSchemaGenerator generator,
-      ObjectMapper objectMapper,
-      List<CallToolHandlerCustomizer> customizers,
-      List<ToolDescriptorCustomizer> descriptorCustomizers,
-      UnaryOperator<String> valueResolver,
-      boolean validateOutput) {
+  public static CallToolHandler build(Object bean, Method method, BuildParams params) {
+    MethodSchemaGenerator generator = params.generator();
+    ObjectMapper objectMapper = params.objectMapper();
+    List<CallToolHandlerCustomizer> customizers = params.customizers();
+    List<ToolDescriptorCustomizer> descriptorCustomizers = params.descriptorCustomizers();
+    UnaryOperator<String> valueResolver = params.valueResolver();
+    boolean validateOutput = params.validateOutput();
     validateMcpToolParams(bean, method);
     McpTool annotation = AnnotatedElementUtils.findMergedAnnotation(method, McpTool.class);
     String name =

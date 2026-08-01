@@ -29,12 +29,16 @@ class AnnotationContractTest {
         uri = "ui://dash",
         name = "Dash",
         csp = @Csp(connect = "https://api.example.com"))
-    public void ui() {}
+    public void ui() {
+      // Reflection fixture: only the annotations are read; the body is intentionally empty.
+    }
 
     @McpUi(
         value = "ui://dash",
         visibility = {"app"})
-    public void tool() {}
+    public void tool() {
+      // Reflection fixture: only the annotations are read; the body is intentionally empty.
+    }
   }
 
   @Test

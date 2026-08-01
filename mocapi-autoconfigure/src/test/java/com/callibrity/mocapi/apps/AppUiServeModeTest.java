@@ -32,6 +32,7 @@ import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoCon
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.DefaultResourceLoader;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -121,6 +122,29 @@ class AppUiServeModeTest {
     assertThat(AppUiResourceContributor.friendlyName("ui://weather/dashboard"))
         .isEqualTo("Dashboard");
     assertThat(AppUiResourceContributor.friendlyName("ui://foo_bar")).isEqualTo("Foo Bar");
+  }
+
+  @Test
+  void friendly_name_keeps_a_dotted_leaf_when_it_is_the_only_segment() {
+    // leaf == 0, so the trailing-filename trim does not apply even though the segment has a dot.
+    assertThat(AppUiResourceContributor.friendlyName("ui://app.html")).isEqualTo("App.html");
+  }
+
+  @Test
+  void friendly_name_skips_empty_words_from_leading_separators() {
+    assertThat(AppUiResourceContributor.friendlyName("ui://-foo")).isEqualTo("Foo");
+  }
+
+  @Test
+  void friendly_name_falls_back_to_the_uri_when_nothing_usable_remains() {
+    assertThat(AppUiResourceContributor.friendlyName("ui://")).isEqualTo("ui://");
+  }
+
+  @Test
+  void a_null_handler_cache_contributes_no_resources() {
+    var contributor =
+        new AppUiResourceContributor(null, new DefaultResourceLoader(), new ObjectMapper());
+    assertThat(contributor.resources()).isEmpty();
   }
 
   @Test

@@ -59,7 +59,10 @@ class McpToolExceptionHandlingTest {
             .map(
                 m ->
                     CallToolHandlers.build(
-                        bean, m, generator, mapper, List.of(), List.of(), s -> s, false))
+                        bean,
+                        m,
+                        new CallToolHandlers.BuildParams(
+                            generator, mapper, List.of(), List.of(), s -> s, false)))
             .toList();
     return new McpToolsService(
         handlers,

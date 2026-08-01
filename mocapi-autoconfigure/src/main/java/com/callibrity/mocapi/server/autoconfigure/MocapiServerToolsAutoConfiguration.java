@@ -63,20 +63,20 @@ public class MocapiServerToolsAutoConfiguration {
         toolCustomizers == null ? List.of() : toolCustomizers;
     List<ToolDescriptorCustomizer> descriptorCustomizers =
         toolDescriptorCustomizers == null ? List.of() : toolDescriptorCustomizers;
+    CallToolHandlers.BuildParams buildParams =
+        new CallToolHandlers.BuildParams(
+            generator,
+            objectMapper,
+            customizers,
+            descriptorCustomizers,
+            mcpAnnotationValueResolver::resolveStringValue,
+            props.isValidateOutput());
     List<CallToolHandler> handlers =
         cache.forAnnotation(McpTool.class).stream()
             .map(
                 bm -> {
                   CallToolHandler handler =
-                      CallToolHandlers.build(
-                          bm.bean(),
-                          bm.method(),
-                          generator,
-                          objectMapper,
-                          customizers,
-                          descriptorCustomizers,
-                          mcpAnnotationValueResolver::resolveStringValue,
-                          props.isValidateOutput());
+                      CallToolHandlers.build(bm.bean(), bm.method(), buildParams);
                   log.info(
                       "Registered MCP tool: \"{}\" (bean \"{}\")",
                       handler.descriptor().name(),
