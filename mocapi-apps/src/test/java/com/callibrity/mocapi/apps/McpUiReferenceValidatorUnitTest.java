@@ -91,15 +91,15 @@ class McpUiReferenceValidatorUnitTest {
     @Test
     void does_nothing_when_no_tools_service() {
       var resources = mock(McpResourcesService.class);
-      assertThatCode(() -> validator(null, resources).afterSingletonsInstantiated())
-          .doesNotThrowAnyException();
+      var subject = validator(null, resources);
+      assertThatCode(subject::afterSingletonsInstantiated).doesNotThrowAnyException();
     }
 
     @Test
     void does_nothing_when_no_resources_service() {
       var tools = mock(McpToolsService.class);
-      assertThatCode(() -> validator(tools, null).afterSingletonsInstantiated())
-          .doesNotThrowAnyException();
+      var subject = validator(tools, null);
+      assertThatCode(subject::afterSingletonsInstantiated).doesNotThrowAnyException();
     }
   }
 
@@ -114,8 +114,8 @@ class McpUiReferenceValidatorUnitTest {
       var resources = mock(McpResourcesService.class);
       when(resources.resourceUris()).thenReturn(Set.of("ui://a"));
 
-      assertThatCode(() -> validator(tools, resources).afterSingletonsInstantiated())
-          .doesNotThrowAnyException();
+      var subject = validator(tools, resources);
+      assertThatCode(subject::afterSingletonsInstantiated).doesNotThrowAnyException();
     }
   }
 
@@ -129,8 +129,8 @@ class McpUiReferenceValidatorUnitTest {
       var resources = mock(McpResourcesService.class);
       when(resources.resourceUris()).thenReturn(Set.of());
 
-      assertThatCode(() -> validator(tools, resources).afterSingletonsInstantiated())
-          .doesNotThrowAnyException();
+      var subject = validator(tools, resources);
+      assertThatCode(subject::afterSingletonsInstantiated).doesNotThrowAnyException();
     }
 
     @Test
@@ -142,8 +142,8 @@ class McpUiReferenceValidatorUnitTest {
       var resources = mock(McpResourcesService.class);
       when(resources.resourceUris()).thenReturn(Set.of());
 
-      assertThatCode(() -> validator(tools, resources).afterSingletonsInstantiated())
-          .doesNotThrowAnyException();
+      var subject = validator(tools, resources);
+      assertThatCode(subject::afterSingletonsInstantiated).doesNotThrowAnyException();
     }
 
     @Test
@@ -155,8 +155,8 @@ class McpUiReferenceValidatorUnitTest {
       var resources = mock(McpResourcesService.class);
       when(resources.resourceUris()).thenReturn(Set.of());
 
-      assertThatCode(() -> validator(tools, resources).afterSingletonsInstantiated())
-          .doesNotThrowAnyException();
+      var subject = validator(tools, resources);
+      assertThatCode(subject::afterSingletonsInstantiated).doesNotThrowAnyException();
     }
 
     @Test
@@ -166,8 +166,8 @@ class McpUiReferenceValidatorUnitTest {
       var resources = mock(McpResourcesService.class);
       when(resources.resourceUris()).thenReturn(Set.of());
 
-      assertThatCode(() -> validator(tools, resources).afterSingletonsInstantiated())
-          .doesNotThrowAnyException();
+      var subject = validator(tools, resources);
+      assertThatCode(subject::afterSingletonsInstantiated).doesNotThrowAnyException();
     }
   }
 
@@ -182,7 +182,8 @@ class McpUiReferenceValidatorUnitTest {
       var resources = mock(McpResourcesService.class);
       when(resources.resourceUris()).thenReturn(Set.of("ui://declared"));
 
-      assertThatThrownBy(() -> validator(tools, resources).afterSingletonsInstantiated())
+      var subject = validator(tools, resources);
+      assertThatThrownBy(subject::afterSingletonsInstantiated)
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("bad")
           .hasMessageContaining("ui://nope")
