@@ -34,6 +34,11 @@ async function rpc<T>(endpoint: string, method: string, params: Record<string, u
   // JSON-RPC error takes precedence over HTTP status
   if (json.error) throw new McpError(json.error.code, json.error.message);
 
+  // If no result and HTTP error, throw HTTP error
+  if (!("result" in json) && !res.ok) {
+    throw new McpError(res.status, `HTTP ${res.status} from ${endpoint}`);
+  }
+
   return json.result as T;
 }
 

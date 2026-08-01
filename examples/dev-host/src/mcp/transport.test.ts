@@ -67,6 +67,20 @@ describe("DevHostMcpClient", () => {
     vi.unstubAllGlobals();
   });
 
+  it("throws McpError on HTTP error with valid JSON but no result/error", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({}), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(new DevHostMcpClient("http://x/mcp").listTools()).rejects.toMatchObject({
+      code: 500,
+    });
+    vi.unstubAllGlobals();
+  });
+
   it("discover() sends server/discover with no Mcp-Name", async () => {
     const fetchMock = mockFetch({
       jsonrpc: "2.0",
