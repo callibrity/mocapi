@@ -81,6 +81,17 @@ method may return `ReadResourceResult` / `String` / `CharSequence` /
   malformed mime degrades to blob rather than failing the read.
 - `ReadResourceResult` remains the full-control escape hatch.
 
+**Update (1.1.0): templates are symmetric.** A `@McpResourceTemplate`
+method may return the same convenience types (and gains the same `content`
+attribute), not just `ReadResourceResult`. The wrapper needs the resource's
+concrete URI to stamp into the contents; for a template that is the
+**matched request URI**, so `ResourceTemplateReader` takes it —
+`read(String uri, Map<String,String> vars)` — and `McpResourcesService`
+threads the request URI in when it dispatches a matched template read. (The
+original decision scoped convenience returns to fixed `@McpResource` to
+avoid this URI threading; the asymmetry was surprising, and the threading
+is clean, so it was lifted before 1.1.0 shipped.)
+
 **Layering — core is extension-blind.** `mocapi-server` defines the
 readers, the `ResourceContributor` SPI, and the return-type conversion;
 `MocapiServerResourcesAutoConfiguration` collects

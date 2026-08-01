@@ -20,12 +20,14 @@ import java.util.Map;
 
 /**
  * Produces the {@link ReadResourceResult} for a templated resource on {@code resources/read}, given
- * the path variables matched from the request URI (ADR-0035). Templated analogue of {@link
- * ResourceReader}; the reflective, annotation-scanned form wraps the method's {@code
- * MethodInvoker}.
+ * the concrete matched request {@code uri} and the path variables extracted from it (ADR-0035).
+ * Templated analogue of {@link ResourceReader}; the reflective, annotation-scanned form wraps the
+ * method's {@code MethodInvoker}. The {@code uri} is what a convenience return value (a bare {@code
+ * String}, {@code byte[]}, {@code Resource}, …) is wrapped against, since a template has no fixed
+ * URI of its own.
  */
 @FunctionalInterface
 public interface ResourceTemplateReader {
 
-  ReadResourceResult read(Map<String, String> variables);
+  ReadResourceResult read(String uri, Map<String, String> variables);
 }

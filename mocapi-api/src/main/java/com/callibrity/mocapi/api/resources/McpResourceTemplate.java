@@ -25,7 +25,10 @@ import java.lang.annotation.Target;
  * Marks a method as a templated MCP resource. Method parameters named to match placeholders in the
  * {@link #uriTemplate()} receive the extracted values (converted via a Spring {@code
  * ConversionService}). A {@code Map<String, String>} parameter receives the entire path-variable
- * map. Method must return a {@code ReadResourceResult}.
+ * map. The method may return a {@code ReadResourceResult} (full control) or a convenience payload
+ * mocapi wraps against the matched request URI: a {@code String}/{@code CharSequence} (text), a
+ * {@code byte[]}/{@code ByteBuffer} (blob), or a {@code org.springframework.core.io.Resource} (text
+ * or blob per {@link #content()}).
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
@@ -43,4 +46,11 @@ public @interface McpResourceTemplate {
 
   /** The MIME type of the resource content. Optional. */
   String mimeType() default "";
+
+  /**
+   * For a {@code org.springframework.core.io.Resource} return, whether its bytes are text or blob.
+   * Ignored for the other return types, which decide for themselves. Defaults to {@link
+   * ResourceContent#AUTO}, which infers from {@link #mimeType()}.
+   */
+  ResourceContent content() default ResourceContent.AUTO;
 }

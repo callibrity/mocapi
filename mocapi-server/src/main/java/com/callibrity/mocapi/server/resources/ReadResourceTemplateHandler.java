@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.server.resources;
 
+import com.callibrity.mocapi.api.resources.ResourceContent;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.server.completions.CompletionCandidate;
@@ -49,6 +50,17 @@ public final class ReadResourceTemplateHandler {
       MethodInvoker<Map<String, String>> invoker,
       List<CompletionCandidate> completionCandidates,
       List<Guard> guards) {
+    this(descriptor, method, bean, invoker, completionCandidates, guards, ResourceContent.AUTO);
+  }
+
+  public ReadResourceTemplateHandler(
+      ResourceTemplate descriptor,
+      Method method,
+      Object bean,
+      MethodInvoker<Map<String, String>> invoker,
+      List<CompletionCandidate> completionCandidates,
+      List<Guard> guards,
+      ResourceContent content) {
     this.descriptor = descriptor;
     this.method = method;
     this.bean = bean;
@@ -56,7 +68,12 @@ public final class ReadResourceTemplateHandler {
     this.completionCandidates = List.copyOf(completionCandidates);
     this.guards = List.copyOf(guards);
     this.reader =
-        variables -> (ReadResourceResult) invoker.invoke(variables == null ? Map.of() : variables);
+        (uri, variables) ->
+            ResourceResults.toResult(
+                invoker.invoke(variables == null ? Map.of() : variables),
+                uri,
+                descriptor.mimeType(),
+                content);
   }
 
   /**
@@ -107,9 +124,9 @@ public final class ReadResourceTemplateHandler {
     return completionCandidates;
   }
 
-  /** Dispatches the {@code resources/read} call for the given path-variable bindings. */
-  public ReadResourceResult read(Map<String, String> pathVariables) {
-    return reader.read(pathVariables);
+  /** Dispatches the {@code resources/read} call for the matched URI and path-variable bindings. */
+  public ReadResourceResult read(String uri, Map<String, String> pathVariables) {
+    return reader.read(uri, pathVariables);
   }
 
   public HandlerDescriptor describe() {

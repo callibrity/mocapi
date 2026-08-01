@@ -20,6 +20,7 @@ import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefau
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrNull;
 
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
+import com.callibrity.mocapi.api.resources.ResourceContent;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.server.completions.CompletionCandidate;
@@ -92,8 +93,15 @@ public final class ReadResourceTemplateHandlers {
     state.validation.forEach(builder::interceptor);
     state.invocation.forEach(builder::interceptor);
     MethodInvoker<Map<String, String>> invoker = builder.build();
+    ResourceContent content = annotation.content();
     return new ReadResourceTemplateHandler(
-        descriptor, method, bean, invoker, candidatesOf(method), List.copyOf(state.guards));
+        descriptor,
+        method,
+        bean,
+        invoker,
+        candidatesOf(method),
+        List.copyOf(state.guards),
+        content);
   }
 
   private static List<ParameterResolver<? super Map<String, String>>> buildResolvers(
@@ -199,11 +207,18 @@ public final class ReadResourceTemplateHandlers {
   }
 
   private static void validateReturnType(Object bean, Method method) {
-    if (!ReadResourceResult.class.isAssignableFrom(method.getReturnType())) {
-      throw new IllegalArgumentException(
-          String.format(
-              "@McpResourceTemplate %s.%s must return %s",
-              bean.getClass().getName(), method.getName(), ReadResourceResult.class.getName()));
+    Class<?> returnType = method.getReturnType();
+    if (ReadResourceResult.class.isAssignableFrom(returnType)
+        || CharSequence.class.isAssignableFrom(returnType)
+        || byte[].class.isAssignableFrom(returnType)
+        || java.nio.ByteBuffer.class.isAssignableFrom(returnType)
+        || org.springframework.core.io.Resource.class.isAssignableFrom(returnType)) {
+      return;
     }
+    throw new IllegalArgumentException(
+        String.format(
+            "@McpResourceTemplate %s.%s must return one of: %s, String/CharSequence, byte[],"
+                + " ByteBuffer, or org.springframework.core.io.Resource",
+            bean.getClass().getName(), method.getName(), ReadResourceResult.class.getName()));
   }
 }

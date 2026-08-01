@@ -227,7 +227,7 @@ public class McpResourcesService {
     for (var entry : templates.entrySet()) {
       if (entry.getKey().matches(uri)) {
         ReadResourceTemplateHandler handler = entry.getValue();
-        return withConfiguredCacheDefaults(handler.read(entry.getKey().match(uri)));
+        return withConfiguredCacheDefaults(handler.read(uri, entry.getKey().match(uri)));
       }
     }
 

@@ -172,9 +172,9 @@ public record ReadResourceResult(List<ResourceContents> contents) { }
 
 A single resource can return multiple `ResourceContents` entries (for example, a markdown page plus its embedded images) — that's the reason to reach for `ReadResourceResult` directly.
 
-### Convenience return types (`@McpResource`)
+### Convenience return types
 
-A **fixed-URI `@McpResource`** method can skip the `ReadResourceResult` wrapping entirely and just return the payload — mocapi wraps it against the resource's own `uri` and `mimeType`:
+Both a fixed-URI `@McpResource` and a `@McpResourceTemplate` method can skip the `ReadResourceResult` wrapping entirely and just return the payload — mocapi wraps it against the resource's `mimeType` and its URI (the annotation's `uri` for a fixed resource, or the **matched request URI** for a template):
 
 | Return type | Becomes | Notes |
 |-------------|---------|-------|
@@ -210,6 +210,16 @@ public org.springframework.core.io.Resource logo() {
 }
 ```
 
+Templated resources work the same — the return is wrapped against the **matched
+request URI**, so `docs://pages/intro` is stamped into the contents automatically:
+
+```java
+@McpResourceTemplate(uriTemplate = "docs://pages/{slug}", mimeType = "text/markdown")
+public String page(String slug) {
+    return loadPage(slug);
+}
+```
+
 #### `content` — text vs. blob for a `Resource` return
 
 A returned Spring `Resource` is opaque bytes, so `@McpResource(content = ...)` decides how to represent it:
@@ -226,7 +236,7 @@ public org.springframework.core.io.Resource widget() {
 
 ### `ReadResourceResult` factories
 
-When you do build a `ReadResourceResult` — multi-entry results, or a `@McpResourceTemplate` (templates always return `ReadResourceResult`, since they resolve their own concrete URI) — the static factories collapse the single-entry boilerplate:
+When you do build a `ReadResourceResult` by hand — multi-entry results, or custom cache directives — the static factories collapse the single-entry boilerplate:
 
 ```java
 ReadResourceResult.ofText(uri, mimeType, text);
@@ -234,7 +244,7 @@ ReadResourceResult.ofBlob(uri, mimeType, byte[] bytes);   // auto-base64
 ReadResourceResult.ofBlob(uri, mimeType, String base64);  // if already encoded
 ```
 
-A template already has the request URI via its `McpResourceContext`, so `ofText(...)` stays a one-liner there. For multi-entry results, use the plain record constructor and assemble the list yourself.
+Inside a template that returns `ReadResourceResult` directly, the request URI is available via `McpResourceContext`, so `ofText(ctx.uri(), …)` stays a one-liner. For multi-entry results, use the plain record constructor and assemble the list yourself.
 
 ## URI Template Matching
 
@@ -262,3 +272,56 @@ public ReadResourceResult latestReport(McpResourceContext ctx) {
 
 See the [interactive tools guide](interactive-tools.md) for the full
 progress and elicitation API and the replay/idempotency contract.
+
+## Contributing resources programmatically (`ResourceContributor`)
+
+Not every resource comes from an annotated method. Any Spring bean that
+implements **`ResourceContributor`** can supply resources directly, and mocapi
+merges them with the annotation-scanned ones when it builds the resource service
+at startup (ADR-0035). The `@McpResource` / `@McpResourceTemplate` scan is itself
+just the built-in, primary contributor — yours is a peer.
+
+Reach for it to register resources you can't (or don't want to) write out as
+methods — generated content, a list pulled from config or an external source, or
+a whole family of URIs assembled at startup:
+
+```java
+import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.Resource;
+import com.callibrity.mocapi.server.resources.ReadResourceHandler;
+import com.callibrity.mocapi.server.resources.ResourceContributor;
+import java.util.List;
+import org.springframework.stereotype.Component;
+
+@Component
+public class StatusResources implements ResourceContributor {
+
+    @Override
+    public List<ReadResourceHandler> resources() {
+        return List.of(
+            new ReadResourceHandler(
+                new Resource("status://live", "Live status", "Current service status", "application/json"),
+                List.of(), // guards — empty means public
+                () -> ReadResourceResult.ofText("status://live", "application/json", currentStatusJson())));
+    }
+}
+```
+
+Each handler pairs a descriptor (`Resource` for a fixed URI, `ResourceTemplate`
+for a template) with a **reader**: a `Supplier<ReadResourceResult>`
+(`ResourceReader`) for a fixed URI, or a `Function<Map<String,String>,
+ReadResourceResult>` (`ResourceTemplateReader`) for a template. The reader runs
+per `resources/read`, so per-request/dynamic content is inherent.
+
+Two things to know:
+
+- **Construction-time only.** Contributors are collected once at startup — there
+  is no runtime registration (and no concurrency to reason about).
+- **Contributed resources are public and un-observed.** A reader-only handler
+  carries an empty `guards` list and no interceptor chain. If a resource needs
+  per-handler authorization, observability, or validation, declare it as a
+  `@McpResource` **method** instead and reach your logic by reference — that
+  routes it through the full handler chain.
+
+This is the same seam MCP Apps' serve-mode uses to contribute `ui://` bundles
+without a resource method ([MCP Apps guide](apps.md)).

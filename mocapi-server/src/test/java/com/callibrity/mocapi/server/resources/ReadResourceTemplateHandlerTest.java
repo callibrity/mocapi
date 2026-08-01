@@ -106,8 +106,15 @@ class ReadResourceTemplateHandlerTest {
 
   public static class BadTemplate {
     @McpResourceTemplate(uriTemplate = "test://bad/{x}")
-    public String oops(String x) {
-      return x;
+    public int oops(String x) {
+      return x.length();
+    }
+  }
+
+  public static class StringTemplateFixture {
+    @McpResourceTemplate(uriTemplate = "test://pages/{slug}", mimeType = "text/markdown")
+    public String page(String slug) {
+      return "# " + slug;
     }
   }
 
@@ -136,7 +143,7 @@ class ReadResourceTemplateHandlerTest {
   void read_invokes_underlying_method_with_converted_path_variables() {
     var handler = createHandlers(new Fixture()).getFirst();
 
-    var result = handler.read(Map.of("id", "42"));
+    var result = handler.read("test://items/42", Map.of("id", "42"));
 
     var content = (TextResourceContents) result.contents().getFirst();
     assertThat(content.text()).isEqualTo("item 42");
@@ -147,7 +154,7 @@ class ReadResourceTemplateHandlerTest {
   void read_with_null_path_variables_invokes_with_empty_map() {
     var handler = createHandlers(new StringPathFixture()).getFirst();
 
-    var result = handler.read(null);
+    var result = handler.read("test://greet/null", null);
 
     var content = (TextResourceContents) result.contents().getFirst();
     assertThat(content.text()).isEqualTo("hi null");
@@ -157,7 +164,7 @@ class ReadResourceTemplateHandlerTest {
   void whole_vars_map_parameter_receives_all_path_variables_and_registers_no_completions() {
     var handler = createHandlers(new WholeVarsMapFixture()).getFirst();
 
-    var result = handler.read(Map.of("a", "1", "b", "2"));
+    var result = handler.read("test://raw/1/2", Map.of("a", "1", "b", "2"));
 
     var content = (TextResourceContents) result.contents().getFirst();
     assertThat(content.text()).contains("a=1").contains("b=2");
@@ -201,16 +208,29 @@ class ReadResourceTemplateHandlerTest {
     assertThat(config.method()).isEqualTo(method);
     assertThat(config.bean()).isSameAs(bean);
 
-    handler.read(Map.of("id", "1"));
+    handler.read("test://items/1", Map.of("id", "1"));
     assertThat(hits).hasValue(1);
   }
 
   @Test
-  void resource_template_method_with_non_result_return_type_is_rejected() {
+  void resource_template_method_with_unsupported_return_type_is_rejected() {
     var target = new BadTemplate();
     assertThatThrownBy(() -> createHandlers(target))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("ReadResourceResult");
+        .hasMessageContaining("must return one of");
+  }
+
+  @Test
+  void string_return_is_wrapped_as_text_against_the_matched_uri() {
+    var handler = createHandlers(new StringTemplateFixture()).getFirst();
+
+    var content =
+        (TextResourceContents)
+            handler.read("test://pages/intro", Map.of("slug", "intro")).contents().getFirst();
+
+    assertThat(content.uri()).isEqualTo("test://pages/intro");
+    assertThat(content.mimeType()).isEqualTo("text/markdown");
+    assertThat(content.text()).isEqualTo("# intro");
   }
 
   @Test
@@ -257,7 +277,7 @@ class ReadResourceTemplateHandlerTest {
     var handler =
         ReadResourceTemplateHandlers.build(
             bean, method, conversionService, List.of(customizer), s -> s);
-    handler.read(Map.of("id", "42"));
+    handler.read("test://items/42", Map.of("id", "42"));
 
     assertThat(order)
         .containsExactly("correlation", "observation", "audit", "validation", "invocation");
@@ -275,7 +295,7 @@ class ReadResourceTemplateHandlerTest {
     var handler =
         ReadResourceTemplateHandlers.build(
             bean, method, conversionService, List.of(customizer), s -> s);
-    var result = handler.read(Map.of("id", "7"));
+    var result = handler.read("test://tenants/7", Map.of("id", "7"));
 
     var content = (TextResourceContents) result.contents().getFirst();
     assertThat(content.text()).isEqualTo("tenant=acme id=7");
@@ -298,7 +318,7 @@ class ReadResourceTemplateHandlerTest {
     var handler =
         ReadResourceTemplateHandlers.build(
             bean, method, conversionService, List.of(customizer), s -> s);
-    var result = handler.read(Map.of("value", "from-vars"));
+    var result = handler.read("test://echo/from-vars", Map.of("value", "from-vars"));
 
     var content = (TextResourceContents) result.contents().getFirst();
     assertThat(content.text()).isEqualTo("from-resolver");
@@ -364,7 +384,7 @@ class ReadResourceTemplateHandlerTest {
             bean, method, conversionService, List.of(customizer), s -> s);
 
     var args = Map.of("name", "World");
-    assertThatThrownBy(() -> handler.read(args))
+    assertThatThrownBy(() -> handler.read("test://greet/World", args))
         .isInstanceOf(JsonRpcException.class)
         .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
         .hasMessageContaining("no-access");
