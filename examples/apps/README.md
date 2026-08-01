@@ -16,11 +16,11 @@ It demonstrates the [`mocapi-apps`](../../mocapi-apps) module — `@McpUi(resour
 | Half | Who | In this example |
 |------|-----|-----------------|
 | Serve the `ui://` HTML + `_meta.ui` + capability | **mocapi (server)** | [`GetTimeApp.java`](src/main/java/com/callibrity/mocapi/examples/apps/GetTimeApp.java) — one tool method |
-| Render the iframe, run the `postMessage` / `ui-initialize` bridge | **host + in-iframe JS** | the vendored app bundle (below) |
+| Render the iframe, run the `postMessage` / `ui-initialize` bridge | **host + in-iframe JS** | the React app in [`src/main/frontend`](src/main/frontend) (below) |
 
 mocapi is only the server. The interactive layer — the handshake, the button wiring, calling back to
 the `get-time` tool — lives in the in-iframe JavaScript, which the **host** runs. mocapi does not ship
-that JavaScript; this example vendors it (see Provenance).
+that JavaScript; this example builds it from a small React app (see [The UI bundle](#the-ui-bundle--react--vite-built-by-maven)).
 
 ## Run it
 
@@ -108,21 +108,32 @@ curl -s http://localhost:8080/mcp \
 `server/discover` advertises `capabilities.extensions."io.modelcontextprotocol/ui"` whenever
 `mocapi-apps` is on the classpath.
 
-## Provenance of the UI bundle
+## The UI bundle — React + Vite, built by Maven
 
-`src/main/resources/ui/get-time/mcp-app.html` is the **official** MCP Apps
-["Get Time" vanilla-JS example](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-vanillajs),
-vendored verbatim as a self-contained single-file bundle (HTML + inlined JS/CSS, no external network
-loads). It is licensed **MIT** by the Model Context Protocol authors — see the ext-apps repository for
-the full license.
+The UI is a small **React** app in [`src/main/frontend/`](src/main/frontend) that uses the official
+[`@modelcontextprotocol/ext-apps`](https://www.npmjs.com/package/@modelcontextprotocol/ext-apps) SDK
+(`useApp` + `app.callServerTool`) for the host `postMessage` bridge. `src/main/frontend/src/mcp-app.tsx`
+is adapted (trimmed to the single **Get Server Time** action) from the official
+[ext-apps React example](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-react),
+**MIT** © the Model Context Protocol authors.
 
-It was extracted from the published npm package (which ships the prebuilt bundle):
+Vite (`@vitejs/plugin-react` + `vite-plugin-singlefile`) bundles it into one self-contained
+`mcp-app.html` — HTML with inlined JS/CSS and **no external network loads**, the form an Apps `ui://`
+bundle must take. Because it makes no external requests, no CSP (`@Csp`) origins are declared.
+
+### The build generates the bundle
+
+`frontend-maven-plugin` runs on **every build** (bound to `generate-resources`): it installs a local
+Node, runs `npm install`, and Vite emits the single-file bundle to
+`target/classes/ui/get-time/mcp-app.html` — a build product on the classpath mocapi serves. The bundle
+is **not committed**; only the React source under `src/main/frontend/` is. A clean build downloads Node
+and the npm dependencies, so it needs network access.
+
+Edit the React source and rebuild — nothing else to do:
 
 ```bash
-npm pack @modelcontextprotocol/server-basic-vanillajs
-# then copy package/dist/mcp-app.html into src/main/resources/ui/get-time/
+mvn -pl examples/apps package        # regenerates the bundle from src/main/frontend
 ```
 
-To adopt a different or updated app, rebuild/repack from ext-apps and replace that one file; the Java
-side is unchanged as long as the app calls a tool named `get-time` that returns `{ "time": "..." }`.
-Because the bundle makes no external requests, no CSP (`@Csp`) origins are declared on the resource.
+The Java side is unchanged as long as the app calls a tool named `get-time` that returns
+`{ "time": "..." }`.
