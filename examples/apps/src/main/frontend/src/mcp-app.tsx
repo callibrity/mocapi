@@ -28,6 +28,13 @@ function extractTime(result: CallToolResult): string {
   return text?.text ?? "[no time in result]";
 }
 
+/** Split an ISO-8601 instant into a big HH:MM:SS clock and a date, both UTC. */
+function splitInstant(iso: string): { clock: string; date: string; iso: string | null } {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})/.exec(iso);
+  if (!m) return { clock: iso, date: "", iso: null };
+  return { clock: m[2], date: m[1], iso };
+}
+
 function GetTimeApp() {
   const [toolResult, setToolResult] = useState<CallToolResult | null>(null);
 
@@ -75,15 +82,19 @@ function GetTimeInner({ app, initialResult }: { app: App; initialResult: CallToo
     }
   }, [app]);
 
+  const { clock, date, iso } = splitInstant(serverTime);
   return (
     <main className={styles.main}>
-      <p className={styles.notice}>Served by mocapi · built with React + Vite</p>
-      <p>
-        <strong>Server time:</strong> <code className={styles.time}>{serverTime}</code>
-      </p>
-      <button className={styles.button} onClick={handleGetTime}>
-        Get Server Time
-      </button>
+      <div className={styles.card}>
+        <p className={styles.eyebrow}>◷ Server time · UTC</p>
+        <p className={styles.clock}>{clock}</p>
+        {date && <p className={styles.date}>{date}</p>}
+        {iso && <p className={styles.iso}>{iso}</p>}
+        <button className={styles.button} onClick={handleGetTime}>
+          Get Server Time
+        </button>
+        <p className={styles.footer}>Served by mocapi · React + Vite</p>
+      </div>
     </main>
   );
 }
