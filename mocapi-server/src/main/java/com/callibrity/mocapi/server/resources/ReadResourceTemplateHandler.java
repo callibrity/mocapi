@@ -40,6 +40,7 @@ public final class ReadResourceTemplateHandler {
   private final MethodInvoker<Map<String, String>> invoker;
   private final List<CompletionCandidate> completionCandidates;
   private final List<Guard> guards;
+  private final ResourceTemplateReader reader;
 
   public ReadResourceTemplateHandler(
       ResourceTemplate descriptor,
@@ -54,6 +55,8 @@ public final class ReadResourceTemplateHandler {
     this.invoker = invoker;
     this.completionCandidates = List.copyOf(completionCandidates);
     this.guards = List.copyOf(guards);
+    this.reader =
+        variables -> (ReadResourceResult) invoker.invoke(variables == null ? Map.of() : variables);
   }
 
   public List<Guard> guards() {
@@ -86,7 +89,7 @@ public final class ReadResourceTemplateHandler {
 
   /** Dispatches the {@code resources/read} call for the given path-variable bindings. */
   public ReadResourceResult read(Map<String, String> pathVariables) {
-    return (ReadResourceResult) invoker.invoke(pathVariables == null ? Map.of() : pathVariables);
+    return reader.read(pathVariables);
   }
 
   public HandlerDescriptor describe() {

@@ -36,6 +36,7 @@ public final class ReadResourceHandler {
   private final Object bean;
   private final MethodInvoker<Object> invoker;
   private final List<Guard> guards;
+  private final ResourceReader reader;
 
   public ReadResourceHandler(
       Resource descriptor,
@@ -48,6 +49,7 @@ public final class ReadResourceHandler {
     this.bean = bean;
     this.invoker = invoker;
     this.guards = List.copyOf(guards);
+    this.reader = () -> (ReadResourceResult) invoker.invoke(null);
   }
 
   public List<Guard> guards() {
@@ -72,7 +74,7 @@ public final class ReadResourceHandler {
 
   /** Dispatches the {@code resources/read} call. */
   public ReadResourceResult read() {
-    return (ReadResourceResult) invoker.invoke(null);
+    return reader.read();
   }
 
   public HandlerDescriptor describe() {
