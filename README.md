@@ -18,13 +18,14 @@ Define tools, prompts, and resources as annotated Spring beans. Pull in optional
 
 Building an MCP server from scratch means solving the same problems every team solves: JSON-RPC dispatch, the `_meta` envelope and routing-header validation, SSE response streaming, multi-round-trip elicitation, schema generation, OAuth2, tracing, metrics, audit. Mocapi ships those pieces as Spring Boot autoconfiguration you wire by adding a transport starter, and extend through a single customizer SPI.
 
-- **MCP 2026-07-28 surface.** Tools, prompts, resources, resource templates, completions, `server/discover`, multi-round-trip (MRTR) elicitation, progress notifications, cacheable results, and the OAuth2 authorization flow — fully stateless, as the revision requires. Exercised by the official conformance suite. Deliberate omissions (deprecated Roots/Sampling/Logging, `subscriptions/listen`, the Tasks and MCP Apps extensions) are recorded with rationale in [ADR-0022](docs/adr/0022-2026-07-28-features-not-implemented.md).
+- **MCP 2026-07-28 surface.** Tools, prompts, resources, resource templates, completions, `server/discover`, multi-round-trip (MRTR) elicitation, progress notifications, cacheable results, and the OAuth2 authorization flow — fully stateless, as the revision requires. Exercised by the official conformance suite. Deliberate omissions (deprecated Roots/Sampling/Logging, `subscriptions/listen`, the Tasks extension) are recorded with rationale in [ADR-0022](docs/adr/0022-2026-07-28-features-not-implemented.md).
 - **Transport-agnostic handler code.** Write a `@McpTool` once; run it over Streamable HTTP (for web clients) or stdio (for Claude Desktop / Cursor / IDE integrations) with no code change.
 - **Observability modules.** Metrics and tracing via Micrometer Observation, SLF4J MDC correlation, structured audit logs — each activates by dropping in a module.
 - **Authorization.** OAuth2 resource server (MCP 2026-07-28 spec), per-handler `Guard` SPI, and `@RequiresScope` / `@RequiresRole` annotations backed by Spring Security. New to securing an MCP server? Start with the **[security guide](docs/guides/security.md)** — the endpoint is unauthenticated until you add `mocapi-oauth2`.
 - **Stateless by design.** No sessions, no sticky routing, no shared store: any node serves any request, and elicitation round trips travel as self-contained AES-GCM-encrypted `requestState` tokens. Scale-to-zero and serverless deployments are the natural shape.
 - **Typed extension SPI.** One customizer interface per handler kind. Attach interceptors, guards, or parameter resolvers with full access to the handler's descriptor, method, and bean — no blind bean-list autowiring.
 - **Virtual-thread-friendly.** Context propagates across the per-call virtual-thread spawn so tracing spans parent correctly and `SecurityContextHolder` works on the handler thread. A standing soak test sustained ~565 req/s with full observability on a laptop (see [Performance Benchmarking](docs/guides/performance/benchmarking.md)).
+- **MCP Apps (the server half).** Serve interactive `ui://` HTML resources and link them to tools — declare them with `@McpAppResource`, or serve a bundle straight from the classpath with `@McpUi(resource=…)`; mocapi emits the `io.modelcontextprotocol/ui` capability, `_meta.ui` (CSP/sandbox), and fails fast on dangling links. Add `mocapi-apps`. See [MCP Apps](docs/guides/apps.md).
 - **GraalVM native-image hints included.**
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.callibrity.mocapi/mocapi-server)](https://central.sonatype.com/artifact/com.callibrity.mocapi/mocapi-server)
@@ -164,6 +165,7 @@ Docs live under [`docs/`](docs/) in three trees:
 - [Guards](docs/guides/guards.md) -- per-handler visibility + call-time authorization via the `Guard` SPI; `@RequiresScope` / `@RequiresRole` via `mocapi-spring-security-guards`
 - [Validation](docs/guides/validation.md) -- Jakarta Bean Validation on user `@McpTool` / `@McpPrompt` / `@McpResourceTemplate` parameters via the optional `mocapi-jakarta-validation`
 - [Interactive Tools](docs/guides/interactive-tools.md) -- progress notifications and multi-round-trip elicitation
+- [MCP Apps](docs/guides/apps.md) -- serve `ui://` HTML resources and link them to tools via `mocapi-apps` (`@McpAppResource` / `@McpUi`), including classpath serve-mode
 - [Observability](docs/guides/observability.md) -- metrics + tracing (Micrometer Observation), MDC correlation, and structured audit logging
 - [OpenTelemetry](docs/guides/opentelemetry.md) -- drop-in OTel tracing via `mocapi-otel`: bundles `mocapi-o11y` + Spring Boot 4's OTel SDK + tracing bridge; emits a two-layer `jsonrpc.server` / `mcp.handler.execution` trace with OTel MCP / JSON-RPC / GenAI semconv attrs
 - [Logging](docs/guides/logging.md) -- MDC correlation keys via `mocapi-logging`
@@ -182,6 +184,7 @@ Docs live under [`docs/`](docs/) in three trees:
 - [Authorization Model](docs/design/authorization-model.md) -- how OAuth2 + Guard SPI compose
 - [Observability Stack](docs/design/observability-stack.md) -- design of the four-module observability story
 - [Elicitation — MRTR Replay](docs/design/elicitation-mrtr.md) -- requestState tokens, the replay ledger, schema constraints
+- [MCP Apps](docs/design/apps.md) -- the `mocapi-apps` module, `_meta.ui` shapes, descriptor customizers, serve-mode, and the scope boundary
 
 See [`docs/adr/`](docs/adr/) for the full list of architecture
 decision records.
@@ -218,6 +221,7 @@ Each module is plain Java + an optional Spring Boot autoconfig (hosted in `mocap
 - **`mocapi-otel`** — drop-in OpenTelemetry tracing. Source-less dependency bundle that pulls `mocapi-o11y` plus `spring-boot-starter-opentelemetry` (OTel SDK + Micrometer Observation → OTel tracing bridge + autoconfig). Add this module plus the exporter for your backend — OTLP for Jaeger/Tempo, Azure Monitor starter for App Insights, Datadog, etc. — and `jsonrpc.server` / `mcp.handler.execution` spans flow end-to-end. See [OTel guide](docs/guides/opentelemetry.md).
 - **`mocapi-audit`** — structured audit logging for every MCP handler invocation. Emits one INFO event on the `mocapi.audit` SLF4J logger per call with caller identity, protocol version, client name, handler kind/name, outcome (`success`/`forbidden`/`invalid_params`/`error`), duration, and (opt-in) a SHA-256 hash of the arguments — everything compliance / SIEM queries need, nothing PII-shaped. See [Audit](docs/guides/audit.md).
 - **`mocapi-actuator`** — Spring Boot Actuator endpoint (`/actuator/mcp`) exposing a read-only inventory of the tools, prompts, resources, and resource templates registered on this node. Publishes handler names + schema digests. See [Actuator Endpoint](docs/guides/actuator.md).
+- **`mocapi-apps`** — the [MCP Apps](https://github.com/modelcontextprotocol/ext-apps) server surface (`io.modelcontextprotocol/ui`). Declare `ui://` HTML resources with `@McpAppResource` (or serve a classpath bundle via `@McpUi(resource=…)`) and link them to tools with `@McpUi`; contributes the `ui` capability plus `_meta.ui` (CSP/sandbox) on descriptors, and fails startup fast on a `@McpUi` pointing at an undeclared resource. mocapi is the server half only — the in-iframe JS is the host's and the official ext-apps SDK's. See [MCP Apps](docs/guides/apps.md).
 - **`mocapi-autoconfigure`** — one module hosting every mocapi autoconfig (pulled in by either transport starter; you normally don't depend on it directly).
 
 ### Prompt templating (optional)
@@ -237,6 +241,7 @@ Working examples are in the [`examples/`](examples/) directory:
 |---------|-----------|-------------|
 | [HTTP](examples/http) | Streamable HTTP | Comprehensive app: tools, resources, prompts, elicitation, and Jakarta Bean Validation |
 | [Stdio](examples/stdio) | stdio | Minimal echo server launchable by Claude Desktop or MCP Inspector over stdio |
+| [Apps](examples/apps) | Streamable HTTP | MCP Apps: a `get-time` tool linked to a `ui://` React UI served via `@McpUi(resource=…)`, built by Vite into a single self-contained bundle |
 
 To run the HTTP example:
 

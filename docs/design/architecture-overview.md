@@ -94,12 +94,15 @@ The server's static capabilities are advertised via `server/discover`:
 - **prompts** — prompt listing and retrieval
 - **resources** — resource listing, reading, and template expansion
 - **completions** — argument completion
-- **extensions** — advertised as an empty map (no extensions implemented)
+- **extensions** — `io.modelcontextprotocol/ui` (MCP Apps) when `mocapi-apps` is on the classpath; otherwise an empty map
 
 Capabilities are built as a `ServerCapabilities` bean in
-auto-configuration and served by `DiscoverHandler`. They describe what
-the framework supports, not what is currently registered. A server with
-no tools still declares `tools` capability. The deprecated `logging`
+auto-configuration and served by `DiscoverHandler`; feature modules add
+to them through the `ServerCapabilitiesCustomizer` SPI
+([ADR-0031](../adr/0031-server-capabilities-customizer.md)) — e.g.
+`mocapi-apps` contributes the `ui` extension. They describe what the
+framework supports, not what is currently registered. A server with no
+tools still declares `tools` capability. The deprecated `logging`
 capability is not advertised ([ADR-0022](../adr/0022-2026-07-28-features-not-implemented.md)).
 
 The capability bits for list-change notifications are advertised as
@@ -169,10 +172,12 @@ userland pattern — mocapi ships no framework machinery for it
 ## What mocapi does not implement
 
 The MCP specification defines several features mocapi deliberately does
-not implement: `subscriptions/listen`, the Tasks and MCP Apps
-extensions, URL-mode elicitation, JSON-RPC batching, full cancellation
-processing, `x-mcp-header` parameter mirroring, and the deprecated
+not implement: `subscriptions/listen`, the Tasks extension, URL-mode
+elicitation, JSON-RPC batching, full cancellation processing,
+`x-mcp-header` parameter mirroring, and the deprecated
 Roots/Sampling/Logging features. Each omission has a stated rationale.
+(The MCP Apps extension _is_ implemented — the server half — in
+`mocapi-apps`; see [MCP Apps](apps.md).)
 
 See [ADR-0022](../adr/0022-2026-07-28-features-not-implemented.md) for
 the full list and reasoning.

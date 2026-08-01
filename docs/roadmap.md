@@ -71,8 +71,9 @@ Not defects — hardening depth beyond what code review establishes. See the
 ## Candidate (unresolved calls — maintainer to decide)
 
 - Additional transports.
-- Extension-track stance (Tasks / MCP Apps) revisits — declined for 1.0
-  (ADR-0022); reopen if demand or the spec's extension model firms up.
+- Tasks extension (`io.modelcontextprotocol/tasks`) — declined for 1.0
+  (ADR-0022); reopen if demand or the spec's extension model firms up. (The
+  MCP Apps extension has since been implemented — [ADR-0033](adr/0033-mcp-apps-module-and-ui-capability.md).)
 - Promotion of `HeaderMismatch` into `mocapi-model` — architecturally
   significant, needs its own ADR before any code.
 
