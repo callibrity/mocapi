@@ -28,7 +28,7 @@ const SANDBOX_PORT = parseInt(process.env.SANDBOX_PORT || "5174", 10);
 const DIRECTORY = join(__dirname, "dist");
 const SERVERS: string[] = process.env.SERVERS
   ? JSON.parse(process.env.SERVERS)
-  : ["http://localhost:8888/mcp"];
+  : ["http://localhost:8080/mcp"];
 
 // ============ Host Server (port 5173) ============
 const hostApp = express();

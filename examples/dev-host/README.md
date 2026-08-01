@@ -23,6 +23,11 @@ sandboxed iframe and round-trip a tool call.
    delivers the tool result and proxies the app's `callServerTool` back to the
    server.
 
+The **Wire** panel shows every MCP exchange as it happens — `server/discover`,
+`tools/list`, `tools/call`, `resources/read`, and the app's proxied
+`callServerTool` — with the routing headers and the request/response JSON
+(large values like the `ui://` bundle are truncated).
+
 ## Architecture
 
 Two halves (see [`docs/superpowers/specs/2026-08-01-mcp-apps-dev-host-design.md`](../../docs/superpowers/specs/2026-08-01-mcp-apps-dev-host-design.md)):
@@ -47,8 +52,8 @@ The dev host runs on `http://localhost:5173`, so allow that origin via CORS:
 ```bash
 # from the repo root
 mvn -pl examples/apps -am package -DskipTests
+# examples/apps defaults to :8080 (application.properties); just allow the host origin
 java -jar examples/apps/target/mocapi-example-apps-*.jar \
-    --server.port=8888 \
     --mocapi.example.cors-origins=http://localhost:5173
 ```
 
@@ -61,7 +66,7 @@ npm run build   # builds the host page + the sandbox page (two Vite entries)
 npm run serve   # host on :5173, sandbox on :5174
 ```
 
-Open **http://localhost:5173**, leave the URL as `http://localhost:8888/mcp`, click
+Open **http://localhost:5173**, leave the URL as `http://localhost:8080/mcp`, click
 **Connect** → a **Get Time** card appears → click it. The app renders the server
 time, and the **Get Server Time** button round-trips through the host to the
 `get-time` tool.
@@ -75,7 +80,7 @@ changes) alongside the server.
 |------|------|
 | `5173` | host page (origin A) |
 | `5174` | sandbox proxy (origin B — MUST differ from the host) |
-| `8888` | the mocapi server (any mocapi `2026-07-28` server; must allow the host origin via CORS) |
+| `8080` | the mocapi server (any mocapi `2026-07-28` server; must allow the host origin via CORS) |
 
 ## Scope (v1)
 
