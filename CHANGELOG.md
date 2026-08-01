@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-01
+
 ### Added
 
 - **MCP Apps — server surface** (`mocapi-apps`). Implements the `io.modelcontextprotocol/ui` extension: `@McpAppResource` declares a `ui://` HTML resource (`text/html;profile=mcp-app`) and `@McpUi` links a tool to it, stamping `_meta.ui.resourceUri` + `visibility`. The `ui` capability and resource `_meta.ui` (CSP/sandbox) are emitted automatically, and `McpUiReferenceValidator` fails startup fast when a `@McpUi` points at an undeclared resource. mocapi implements the server half only — the in-iframe JS belongs to the host and the official ext-apps SDK ([ADR-0033](docs/adr/0033-mcp-apps-module-and-ui-capability.md), [ADR-0034](docs/adr/0034-descriptor-meta-and-customizer-seams.md)). Apps was declined for 1.0.0 (see [ADR-0022](docs/adr/0022-2026-07-28-features-not-implemented.md)) and is now accepted-and-implemented.
@@ -13,6 +15,7 @@ All notable changes to this project are documented in this file. The format is b
 - **Function-backed resource readers and a `ResourceContributor` SPI.** Resource handlers are built around a reader function, and `McpResourcesService` merges every `ResourceContributor` bean at construction (the `@McpResource` annotation scan is the primary contributor). A `@McpResource` **or `@McpResourceTemplate`** method may now return `String`/`CharSequence`, `byte[]`/`ByteBuffer`, or a Spring `Resource` (text vs. blob via a new `content` attribute), in addition to `ReadResourceResult` — a template's return is wrapped against the matched request URI ([ADR-0035](docs/adr/0035-resource-readers-and-contributor-seam.md)).
 - **Shared extension seams.** A `ServerCapabilitiesCustomizer` SPI for contributing `server/discover` capabilities ([ADR-0031](docs/adr/0031-server-capabilities-customizer.md)), and meta-annotation-aware handler discovery so a composed annotation such as `@McpAppResource` registers through the standard scan ([ADR-0032](docs/adr/0032-meta-annotation-aware-handler-discovery.md)).
 - **MCP Apps example** (`examples/apps`): a `get-time` tool linked to a React `ui://` UI, built by `frontend-maven-plugin` + Vite into a single self-contained bundle.
+- **MCP Apps dev host** (`examples/dev-host`): a Vite/React/TypeScript host that speaks MCP `2026-07-28` (`server/discover` + the `_meta` envelope) and runs the ext-apps iframe/postMessage bridge with a two-origin sandbox, so a `ui://` bundle renders and calls back into server tools — no shipping host speaks `2026-07-28` yet. Includes a live request/response wire inspector.
 
 ## [1.0.0] - 2026-07-30
 
@@ -1490,6 +1493,7 @@ the handler runs to completion).
 Initial public release on Maven Central.
 
 [Unreleased]: https://github.com/callibrity/mocapi/compare/1.0.0...HEAD
+[1.1.0]: https://github.com/callibrity/mocapi/releases/tag/1.1.0
 [1.0.0]: https://github.com/callibrity/mocapi/releases/tag/1.0.0
 [0.17.0]: https://github.com/callibrity/mocapi/releases/tag/0.17.0
 [0.16.0]: https://github.com/callibrity/mocapi/releases/tag/0.16.0
