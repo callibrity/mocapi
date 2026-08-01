@@ -386,6 +386,7 @@
                                     <exclude>src/main/frontend/**</exclude>
                                     <exclude>**/dev-host/**</exclude>
                                     <exclude>.claude/**</exclude>
+                                    <exclude>.playwright-mcp/**</exclude>
                                     <exclude>**/*.txt</exclude>
                                     <exclude>**/*.sh</exclude>
                                     <exclude>**/*.js</exclude>

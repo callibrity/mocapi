@@ -41,3 +41,7 @@ logs/
 
 ### Git worktrees ###
 .worktrees/
+
+# Playwright dev-time artifacts
+.playwright-mcp/
+/devhost-*.png
