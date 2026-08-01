@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.server.resources;
 
+import com.callibrity.mocapi.api.resources.ResourceContent;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.server.guards.Guard;
@@ -44,12 +45,25 @@ public final class ReadResourceHandler {
       Object bean,
       MethodInvoker<Object> invoker,
       List<Guard> guards) {
+    this(descriptor, method, bean, invoker, guards, ResourceContent.AUTO);
+  }
+
+  public ReadResourceHandler(
+      Resource descriptor,
+      Method method,
+      Object bean,
+      MethodInvoker<Object> invoker,
+      List<Guard> guards,
+      ResourceContent content) {
     this.descriptor = descriptor;
     this.method = method;
     this.bean = bean;
     this.invoker = invoker;
     this.guards = List.copyOf(guards);
-    this.reader = () -> (ReadResourceResult) invoker.invoke(null);
+    this.reader =
+        () ->
+            ResourceResults.toResult(
+                invoker.invoke(null), descriptor.uri(), descriptor.mimeType(), content);
   }
 
   public List<Guard> guards() {

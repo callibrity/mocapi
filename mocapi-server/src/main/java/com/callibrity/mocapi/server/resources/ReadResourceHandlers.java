@@ -20,6 +20,7 @@ import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrDefau
 import static com.callibrity.mocapi.server.util.AnnotationStrings.resolveOrNull;
 
 import com.callibrity.mocapi.api.resources.McpResource;
+import com.callibrity.mocapi.api.resources.ResourceContent;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.server.elicitation.McpElicitorResolver;
@@ -27,6 +28,7 @@ import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardEvaluationInterceptor;
 import com.callibrity.mocapi.server.handler.MutableHandlerState;
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.function.UnaryOperator;
 import org.jwcarman.methodical.MethodInterceptor;
@@ -81,7 +83,9 @@ public final class ReadResourceHandlers {
     state.validation.forEach(builder::interceptor);
     state.invocation.forEach(builder::interceptor);
     MethodInvoker<Object> invoker = builder.build();
-    return new ReadResourceHandler(descriptor, method, bean, invoker, List.copyOf(state.guards));
+    ResourceContent content = annotation.content();
+    return new ReadResourceHandler(
+        descriptor, method, bean, invoker, List.copyOf(state.guards), content);
   }
 
   private static final class MutableConfig implements ReadResourceHandlerConfig {
@@ -160,11 +164,18 @@ public final class ReadResourceHandlers {
   }
 
   private static void validateReturnType(Object bean, Method method) {
-    if (!ReadResourceResult.class.isAssignableFrom(method.getReturnType())) {
-      throw new IllegalArgumentException(
-          String.format(
-              "@McpResource %s.%s must return %s",
-              bean.getClass().getName(), method.getName(), ReadResourceResult.class.getName()));
+    Class<?> returnType = method.getReturnType();
+    if (ReadResourceResult.class.isAssignableFrom(returnType)
+        || CharSequence.class.isAssignableFrom(returnType)
+        || byte[].class.isAssignableFrom(returnType)
+        || ByteBuffer.class.isAssignableFrom(returnType)
+        || org.springframework.core.io.Resource.class.isAssignableFrom(returnType)) {
+      return;
     }
+    throw new IllegalArgumentException(
+        String.format(
+            "@McpResource %s.%s must return one of: %s, String/CharSequence, byte[], ByteBuffer,"
+                + " or org.springframework.core.io.Resource",
+            bean.getClass().getName(), method.getName(), ReadResourceResult.class.getName()));
   }
 }

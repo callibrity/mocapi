@@ -80,8 +80,47 @@ class ReadResourceHandlerTest {
 
   public static class BadResource {
     @McpResource(uri = "test://bad")
-    public String oops() {
-      return "nope";
+    public int oops() {
+      return 42;
+    }
+  }
+
+  public static class StringResource {
+    @McpResource(uri = "test://string", mimeType = "text/plain")
+    public String text() {
+      return "hello";
+    }
+  }
+
+  public static class BytesResource {
+    @McpResource(uri = "test://bytes", mimeType = "application/octet-stream")
+    public byte[] bytes() {
+      return new byte[] {1, 2, 3};
+    }
+  }
+
+  public static class BufferResource {
+    @McpResource(uri = "test://buffer", mimeType = "application/octet-stream")
+    public java.nio.ByteBuffer buffer() {
+      return java.nio.ByteBuffer.wrap(new byte[] {4, 5, 6});
+    }
+  }
+
+  public static class SpringTextResource {
+    @McpResource(uri = "test://spring-text", mimeType = "text/html")
+    public org.springframework.core.io.Resource html() {
+      return new org.springframework.core.io.ByteArrayResource(
+          "<h1>hi</h1>".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+  }
+
+  public static class SpringForcedBlobResource {
+    @McpResource(
+        uri = "test://spring-blob",
+        mimeType = "text/html",
+        content = com.callibrity.mocapi.api.resources.ResourceContent.BLOB)
+    public org.springframework.core.io.Resource html() {
+      return new org.springframework.core.io.ByteArrayResource("<h1>hi</h1>".getBytes());
     }
   }
 
@@ -269,10 +308,61 @@ class ReadResourceHandlerTest {
   }
 
   @Test
-  void resource_method_with_non_result_return_type_is_rejected() {
+  void resource_method_with_unsupported_return_type_is_rejected() {
     var target = new BadResource();
     assertThatThrownBy(() -> createHandlers(target))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("ReadResourceResult");
+        .hasMessageContaining("must return one of");
+  }
+
+  @Test
+  void string_return_is_wrapped_as_text() {
+    var handler = createHandlers(new StringResource()).getFirst();
+
+    var content = (TextResourceContents) handler.read().contents().getFirst();
+
+    assertThat(content.uri()).isEqualTo("test://string");
+    assertThat(content.mimeType()).isEqualTo("text/plain");
+    assertThat(content.text()).isEqualTo("hello");
+  }
+
+  @Test
+  void byte_array_return_is_wrapped_as_blob() {
+    var handler = createHandlers(new BytesResource()).getFirst();
+
+    var content =
+        (com.callibrity.mocapi.model.BlobResourceContents) handler.read().contents().getFirst();
+
+    assertThat(content.uri()).isEqualTo("test://bytes");
+    assertThat(content.blob())
+        .isEqualTo(java.util.Base64.getEncoder().encodeToString(new byte[] {1, 2, 3}));
+  }
+
+  @Test
+  void byte_buffer_return_is_wrapped_as_blob_without_consuming_it() {
+    var handler = createHandlers(new BufferResource()).getFirst();
+
+    var content =
+        (com.callibrity.mocapi.model.BlobResourceContents) handler.read().contents().getFirst();
+
+    assertThat(content.blob())
+        .isEqualTo(java.util.Base64.getEncoder().encodeToString(new byte[] {4, 5, 6}));
+  }
+
+  @Test
+  void spring_resource_with_text_mime_is_wrapped_as_text() {
+    var handler = createHandlers(new SpringTextResource()).getFirst();
+
+    var content = (TextResourceContents) handler.read().contents().getFirst();
+
+    assertThat(content.text()).isEqualTo("<h1>hi</h1>");
+  }
+
+  @Test
+  void spring_resource_with_forced_blob_content_is_wrapped_as_blob() {
+    var handler = createHandlers(new SpringForcedBlobResource()).getFirst();
+
+    assertThat(handler.read().contents().getFirst())
+        .isInstanceOf(com.callibrity.mocapi.model.BlobResourceContents.class);
   }
 }

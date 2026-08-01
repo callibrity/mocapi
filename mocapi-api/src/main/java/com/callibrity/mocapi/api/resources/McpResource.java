@@ -21,7 +21,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** Marks a method as a fixed-URI MCP resource. Method must return a {@code ReadResourceResult}. */
+/**
+ * Marks a method as a fixed-URI MCP resource. The method may return a {@code ReadResourceResult}
+ * (full control) or a convenience payload that mocapi wraps for you: a {@code String}/{@code
+ * CharSequence} (text), a {@code byte[]}/{@code ByteBuffer} (blob), or a {@code
+ * org.springframework.core.io.Resource} (text or blob per {@link #content()}).
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 @Documented
@@ -38,4 +43,11 @@ public @interface McpResource {
 
   /** The MIME type of the resource content. Optional. */
   String mimeType() default "";
+
+  /**
+   * For a {@code org.springframework.core.io.Resource} return, whether its bytes are text or blob.
+   * Ignored for the other return types, which decide for themselves. Defaults to {@link
+   * ResourceContent#AUTO}, which infers from {@link #mimeType()}.
+   */
+  ResourceContent content() default ResourceContent.AUTO;
 }
