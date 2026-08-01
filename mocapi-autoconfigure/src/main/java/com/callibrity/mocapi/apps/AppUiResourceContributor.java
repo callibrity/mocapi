@@ -89,9 +89,36 @@ public final class AppUiResourceContributor implements ResourceContributor {
             resourceLoader.getResource(location), uri, UI_MIME_TYPE, ResourceContent.TEXT);
     ObjectNode meta = mapper.createObjectNode();
     meta.set("ui", mapper.createObjectNode());
-    Resource descriptor = new Resource(uri, uri, uri, UI_MIME_TYPE).withMeta(meta);
+    String name = friendlyName(uri);
+    Resource descriptor = new Resource(uri, name, name, UI_MIME_TYPE).withMeta(meta);
     log.info("Registered MCP Apps UI resource: \"{}\" (serving \"{}\")", uri, location);
     return new ReadResourceHandler(descriptor, List.of(), () -> bundle);
+  }
+
+  /**
+   * A human-readable name derived from the {@code ui://} URI, so serve-mode resources don't list
+   * under their raw URI. Strips the scheme, drops a trailing filename segment (one with a dot), and
+   * title-cases the remaining leaf on {@code -}/{@code _} — e.g. {@code ui://get-time/mcp-app.html}
+   * → {@code "Get Time"}. Falls back to the URI if nothing usable remains.
+   */
+  static String friendlyName(String uri) {
+    String path = uri.replaceFirst("^[^:]+://", "");
+    String[] segments = path.split("/");
+    int leaf = segments.length - 1;
+    if (leaf > 0 && segments[leaf].contains(".")) {
+      leaf--;
+    }
+    StringBuilder name = new StringBuilder();
+    for (String word : segments[leaf].split("[-_]+")) {
+      if (word.isEmpty()) {
+        continue;
+      }
+      if (!name.isEmpty()) {
+        name.append(' ');
+      }
+      name.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+    }
+    return name.isEmpty() ? uri : name.toString();
   }
 
   @Override

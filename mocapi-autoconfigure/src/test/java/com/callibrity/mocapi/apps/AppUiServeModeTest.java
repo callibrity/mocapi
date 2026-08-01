@@ -101,6 +101,8 @@ class AppUiServeModeTest {
               assertThat(descriptor.uri()).isEqualTo("ui://demo/app.html");
               assertThat(descriptor.mimeType()).isEqualTo("text/html;profile=mcp-app");
               assertThat(descriptor.meta().path("ui").isObject()).isTrue();
+              // Friendly name derived from the URI, not the raw URI (ui://demo/app.html -> "Demo").
+              assertThat(descriptor.name()).isEqualTo("Demo");
 
               var read =
                   (ReadResourceResult)
@@ -110,6 +112,15 @@ class AppUiServeModeTest {
               assertThat(content.text()).contains("served from the classpath");
               assertThat(content.mimeType()).isEqualTo("text/html;profile=mcp-app");
             });
+  }
+
+  @Test
+  void friendly_name_humanizes_the_uri_leaf() {
+    assertThat(AppUiResourceContributor.friendlyName("ui://get-time/mcp-app.html"))
+        .isEqualTo("Get Time");
+    assertThat(AppUiResourceContributor.friendlyName("ui://weather/dashboard"))
+        .isEqualTo("Dashboard");
+    assertThat(AppUiResourceContributor.friendlyName("ui://foo_bar")).isEqualTo("Foo Bar");
   }
 
   @Test

@@ -18,6 +18,12 @@ import { createRoot } from "react-dom/client";
 import styles from "./mcp-app.module.css";
 
 function extractTime(result: CallToolResult): string {
+  // Prefer the structured field (the tool declares an outputSchema of { time }).
+  const structured = result.structuredContent as { time?: string } | undefined;
+  if (typeof structured?.time === "string") {
+    return structured.time;
+  }
+  // Fall back to the text block for tools that only return unstructured content.
   const text = result.content?.find((c) => c.type === "text");
   return text?.text ?? "[no time in result]";
 }
