@@ -224,7 +224,10 @@ public abstract class TaskStoreContractTest {
 
   /** A {@link Clock} whose {@link #instant()} can be advanced manually, for expiry tests. */
   protected static final class MutableClock extends Clock {
-    private Instant instant;
+    // volatile: this class ships in the public test-jar, and external TaskStore implementations
+    // may apply mutations (and therefore call instant()) on a worker thread different from the
+    // one that calls advance().
+    private volatile Instant instant;
     private final ZoneId zone;
 
     private MutableClock(Instant instant, ZoneId zone) {

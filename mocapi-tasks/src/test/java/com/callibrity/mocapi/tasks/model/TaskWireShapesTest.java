@@ -88,7 +88,7 @@ class TaskWireShapesTest {
               null,
               null,
               null,
-              TasksExtension.RESULT_TYPE_TASK);
+              ResultTypes.COMPLETE);
 
       String json = mapper.writeValueAsString(result);
 
@@ -97,7 +97,7 @@ class TaskWireShapesTest {
               tree(
                   "{\"taskId\":\"t1\",\"status\":\"working\",\"createdAt\":\"2026-08-02T14:00:00Z\","
                       + "\"lastUpdatedAt\":\"2026-08-02T14:00:05Z\",\"ttlMs\":3600000,"
-                      + "\"pollIntervalMs\":2000,\"resultType\":\"task\"}"));
+                      + "\"pollIntervalMs\":2000,\"resultType\":\"complete\"}"));
     }
 
     @Test
@@ -115,7 +115,7 @@ class TaskWireShapesTest {
               inputRequests,
               null,
               null,
-              TasksExtension.RESULT_TYPE_TASK);
+              ResultTypes.COMPLETE);
 
       String json = mapper.writeValueAsString(result);
 
@@ -126,7 +126,7 @@ class TaskWireShapesTest {
                       + "\"statusMessage\":\"waiting on user\","
                       + "\"createdAt\":\"2026-08-02T14:00:00Z\","
                       + "\"lastUpdatedAt\":\"2026-08-02T14:00:05Z\",\"ttlMs\":3600000,"
-                      + "\"pollIntervalMs\":2000,\"inputRequests\":{},\"resultType\":\"task\"}"));
+                      + "\"pollIntervalMs\":2000,\"inputRequests\":{},\"resultType\":\"complete\"}"));
     }
 
     @Test
@@ -144,7 +144,7 @@ class TaskWireShapesTest {
               null,
               toolResult,
               null,
-              TasksExtension.RESULT_TYPE_TASK);
+              ResultTypes.COMPLETE);
 
       String json = mapper.writeValueAsString(result);
 
@@ -155,7 +155,7 @@ class TaskWireShapesTest {
                       + "\"createdAt\":\"2026-08-02T14:00:00Z\","
                       + "\"lastUpdatedAt\":\"2026-08-02T14:00:10Z\",\"ttlMs\":3600000,"
                       + "\"pollIntervalMs\":2000,\"result\":{\"content\":[],\"resultType\":\"complete\"},"
-                      + "\"resultType\":\"task\"}"));
+                      + "\"resultType\":\"complete\"}"));
     }
 
     @Test
@@ -173,7 +173,7 @@ class TaskWireShapesTest {
               null,
               null,
               error,
-              TasksExtension.RESULT_TYPE_TASK);
+              ResultTypes.COMPLETE);
 
       String json = mapper.writeValueAsString(result);
 
@@ -184,7 +184,7 @@ class TaskWireShapesTest {
                       + "\"createdAt\":\"2026-08-02T14:00:00Z\","
                       + "\"lastUpdatedAt\":\"2026-08-02T14:00:10Z\",\"ttlMs\":3600000,"
                       + "\"pollIntervalMs\":2000,\"error\":{\"code\":-32000,\"message\":\"boom\"},"
-                      + "\"resultType\":\"task\"}"));
+                      + "\"resultType\":\"complete\"}"));
     }
 
     @Test
@@ -201,7 +201,7 @@ class TaskWireShapesTest {
               null,
               null,
               null,
-              TasksExtension.RESULT_TYPE_TASK);
+              ResultTypes.COMPLETE);
 
       String json = mapper.writeValueAsString(result);
 
@@ -211,7 +211,7 @@ class TaskWireShapesTest {
                   "{\"taskId\":\"t1\",\"status\":\"cancelled\","
                       + "\"createdAt\":\"2026-08-02T14:00:00Z\","
                       + "\"lastUpdatedAt\":\"2026-08-02T14:00:10Z\",\"ttlMs\":3600000,"
-                      + "\"pollIntervalMs\":2000,\"resultType\":\"task\"}"));
+                      + "\"pollIntervalMs\":2000,\"resultType\":\"complete\"}"));
     }
   }
 

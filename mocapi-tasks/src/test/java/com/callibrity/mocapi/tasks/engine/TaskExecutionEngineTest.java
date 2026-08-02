@@ -27,6 +27,7 @@ import com.callibrity.mocapi.tasks.model.CreateTaskResult;
 import com.callibrity.mocapi.tasks.model.TaskStatus;
 import com.callibrity.mocapi.tasks.store.InMemoryTaskStore;
 import com.callibrity.mocapi.tasks.store.TaskRecord;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import io.micrometer.context.ContextSnapshotFactory;
 import java.lang.reflect.Constructor;
 import java.time.Clock;
@@ -146,6 +147,26 @@ class TaskExecutionEngineTest {
       TaskRecord finalRecord = await(store, "t-failed", TaskStatus.FAILED);
       assertThat(finalRecord.status()).isEqualTo(TaskStatus.FAILED);
       assertThat(finalRecord.error().code()).isEqualTo(-32603);
+    }
+  }
+
+  @Test
+  void json_rpc_exception_fails_task_preserving_its_own_error_code() {
+    try (InMemoryTaskStore store = new InMemoryTaskStore(CLOCK, Duration.ofHours(1))) {
+      ToolCallReplayInvoker invoker =
+          (toolName, arguments, ledger, progress, exchange) -> {
+            throw new JsonRpcException(-32010, "Forbidden: nope");
+          };
+      TaskExecutionEngine engine =
+          new TaskExecutionEngine(store, invoker, ContextSnapshotFactory.builder().build(), CLOCK);
+
+      store.create(newRecord("t-json-rpc-failed"));
+      engine.resume("t-json-rpc-failed");
+
+      TaskRecord finalRecord = await(store, "t-json-rpc-failed", TaskStatus.FAILED);
+      assertThat(finalRecord.status()).isEqualTo(TaskStatus.FAILED);
+      assertThat(finalRecord.error().code()).isEqualTo(-32010);
+      assertThat(finalRecord.error().message()).isEqualTo("Forbidden: nope");
     }
   }
 

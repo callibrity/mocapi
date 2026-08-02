@@ -23,9 +23,12 @@ import java.lang.annotation.Target;
 
 /**
  * Marks a tool-handler method as eligible for task-augmented invocation under the {@code
- * io.modelcontextprotocol/tasks} extension: a client may set {@code task.enabled=true} on the
- * {@code tools/call} request to receive a {@code CreateTaskResult} immediately and poll for
- * completion via {@code tasks/get}, instead of waiting synchronously for the handler to return.
+ * io.modelcontextprotocol/tasks} extension: when the client declares the {@code
+ * io.modelcontextprotocol/tasks} extension in the per-request {@code _meta} client capabilities,
+ * the server returns a {@code CreateTaskResult} immediately and the client polls for completion via
+ * {@code tasks/get}, instead of waiting synchronously for the handler to return. A client that does
+ * not declare the extension gets ordinary synchronous execution, unless {@link #required()} is set,
+ * in which case the call is rejected with JSON-RPC {@code -32021}.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})

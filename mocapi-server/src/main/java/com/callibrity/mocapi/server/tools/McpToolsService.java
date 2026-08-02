@@ -193,6 +193,11 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool>
    * owns the ledger's identity and lifecycle; {@link ElicitationLedgerMismatchException} propagates
    * to the caller rather than being translated to a JSON-RPC error here, since there is no JSON-RPC
    * response to shape.
+   *
+   * <p>{@link McpExchange#CURRENT} is bound to the supplied {@code exchange} around the whole
+   * replay so the handler chain sees the same exchange it would on the wire path; {@link
+   * McpTransport#CURRENT} is deliberately left unbound here, since a detached invocation has no
+   * transport to bind.
    */
   @Override
   public Outcome invoke(
@@ -205,9 +210,17 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool>
     DefaultMcpToolContext ctx =
         new DefaultMcpToolContext(progressOverride, elicitationEngine, exchange, toolName);
     ReplayOutcome outcome =
-        elicitationEngine
-            .replayExecutor()
-            .execute(ledger, () -> invokeWithContext(toolName, handler, arguments, ctx));
+        exchange != null
+            ? ScopedValue.where(McpExchange.CURRENT, exchange)
+                .call(
+                    () ->
+                        elicitationEngine
+                            .replayExecutor()
+                            .execute(
+                                ledger, () -> invokeWithContext(toolName, handler, arguments, ctx)))
+            : elicitationEngine
+                .replayExecutor()
+                .execute(ledger, () -> invokeWithContext(toolName, handler, arguments, ctx));
     if (outcome instanceof ReplayOutcome.InputRequired ir) {
       return new Outcome.InputRequired(ir.key(), new ElicitRequest(ir.params()), ir.entries());
     }

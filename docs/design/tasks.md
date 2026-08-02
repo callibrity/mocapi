@@ -311,14 +311,26 @@ byte-for-byte the stateless server, all four seams unused.
 
 ## Testing
 
-- `TaskStoreContractTest` (test-jar) — the `TaskStore` atomicity/TTL/
-  terminal-finality TCK, run against `InMemoryTaskStore`.
+- `TaskStoreContractTest` (test-jar) — the `TaskStore` atomicity/
+  terminal-finality TCK, run against `InMemoryTaskStore`; TTL expiry is
+  covered here (`expired_record_is_purged_on_get`/`…_on_update`), not at
+  the integration level.
 - Engine unit tests — the outcome/mutation matrix (single-resume under
   duplicate updates, cancel-vs-complete discard, progress-after-cancel
-  no-op, ledger fingerprint mismatch → `failed`).
+  no-op, ledger fingerprint mismatch → `failed`, `JsonRpcException` →
+  `failed` with its own error code preserved). Cancel mid-`working` is
+  covered here too, via a latch race
+  (`cancel_wins_race_discards_completed_output`): the invoker blocks on a
+  `CountDownLatch` until the test cancels the record, proving the
+  terminal write is discarded rather than by driving an actual
+  concurrent HTTP request.
 - Decision-rule and `-32021` translation unit tests.
-- Full-Spring-context integration tests (Streamable HTTP): create → poll
-  → complete; the `input_required` round trip via `tasks/update`;
-  cancel mid-`working` and mid-`input_required`; synchronous degrade for
-  non-capable clients; `required = true` → `-32021`; cross-principal
-  `tasks/get` → `-32602`; TTL expiry.
+- End-to-end tests run at the `JsonRpcDispatcher` level
+  (`WebEnvironment.NONE`, no servlet container): create → poll →
+  complete; the `input_required` round trip via `tasks/update`;
+  synchronous degrade for non-capable clients; `required = true` →
+  `-32021`; cross-principal `tasks/get` → `-32602`. These do not exercise
+  Streamable HTTP itself — the transport surface (headers, SSE framing)
+  is exercised externally by the `@modelcontextprotocol/conformance`
+  suite's tasks scenarios (`mocapi-conformance`), not by an in-repo
+  integration test.

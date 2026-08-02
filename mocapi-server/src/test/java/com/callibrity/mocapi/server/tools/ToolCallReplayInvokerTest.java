@@ -72,6 +72,7 @@ class ToolCallReplayInvokerTest {
     var handlers = new ArrayList<CallToolHandler>();
     handlers.addAll(createHandlers(new EchoTool()));
     handlers.addAll(createHandlers(new ThrowingTool()));
+    handlers.addAll(createHandlers(new ExchangeReadingTool()));
     service = new McpToolsService(List.copyOf(handlers), mapper, elicitationEngine);
   }
 
@@ -134,6 +135,23 @@ class ToolCallReplayInvokerTest {
   }
 
   @Test
+  void detached_invoke_binds_the_supplied_exchange_for_the_handler_chain() {
+    McpExchange exchange = formCapableExchange();
+
+    var outcome =
+        service.invoke(
+            "exchange-reading-tool.read-protocol-version",
+            JsonNodeFactory.instance.objectNode(),
+            List.of(),
+            new DefaultMcpProgressSource((p, t, m) -> {}),
+            exchange);
+
+    var completed = (ToolCallReplayInvoker.Outcome.Completed) outcome;
+    assertThat(((TextContent) completed.result().content().getFirst()).text())
+        .isEqualTo(exchange.protocolVersion());
+  }
+
+  @Test
   void tool_exception_maps_to_isError_result_not_a_throw() {
     var outcome =
         service.invoke(
@@ -154,5 +172,13 @@ class EchoTool {
   public String confirmAndEcho(McpToolContext ctx) {
     ElicitResult answer = ctx.elicit("Proceed?", schema -> schema.bool("ok", "OK?"));
     return answer.isAccepted() ? "confirmed" : "declined";
+  }
+}
+
+@Component
+class ExchangeReadingTool {
+  @McpTool(description = "reads McpExchange.CURRENT directly, the way a Guard would")
+  public String readProtocolVersion() {
+    return McpExchange.CURRENT.isBound() ? McpExchange.CURRENT.get().protocolVersion() : "unbound";
   }
 }

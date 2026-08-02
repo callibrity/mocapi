@@ -26,10 +26,13 @@ import com.callibrity.mocapi.tasks.store.TaskRecord;
 import com.callibrity.mocapi.tasks.store.TaskStore;
 import com.callibrity.ripcurl.core.JsonRpcErrorDetail;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
 import java.time.Clock;
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Runs {@code @McpTask}-annotated tool calls to completion off the {@code tools/call} dispatch
@@ -49,6 +52,7 @@ import java.time.Instant;
  */
 public class TaskExecutionEngine {
 
+  private final Logger log = LoggerFactory.getLogger(TaskExecutionEngine.class);
   private final TaskStore store;
   private final ToolCallReplayInvoker invoker;
   private final ContextSnapshotFactory snapshotFactory;
@@ -112,6 +116,7 @@ public class TaskExecutionEngine {
       }
     } catch (ElicitationLedgerMismatchException e) {
       // Handler violated the replay idempotency contract mid-task (spec §12): -32602, not -32603.
+      log.warn("Task {} failed: replay ledger mismatch", taskId, e);
       Instant now = clock.instant();
       store.update(
           taskId,
@@ -120,7 +125,22 @@ public class TaskExecutionEngine {
                   new JsonRpcErrorDetail(JsonRpcProtocol.INVALID_PARAMS, e.getMessage(), null),
                   "replay ledger mismatch",
                   now));
+    } catch (JsonRpcException e) {
+      // A JSON-RPC-shaped failure (e.g. a guard denial, -32010, ADR-0023) propagated out of the
+      // replayed handler chain. Preserve the exception's own code/message identity rather than
+      // flattening it to -32603, so a task failure carries the same error identity the wire path
+      // would have surfaced.
+      log.warn("Task {} failed: JsonRpcException", taskId, e);
+      Instant now = clock.instant();
+      store.update(
+          taskId,
+          r ->
+              r.failed(
+                  new JsonRpcErrorDetail(e.getCode(), e.getMessage(), null),
+                  "task execution failed: JsonRpcException",
+                  now));
     } catch (Exception e) {
+      log.warn("Task {} failed: unhandled exception", taskId, e);
       Instant now = clock.instant();
       store.update(
           taskId,
