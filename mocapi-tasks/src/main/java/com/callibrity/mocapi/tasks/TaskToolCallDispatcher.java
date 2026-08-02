@@ -68,6 +68,11 @@ public class TaskToolCallDispatcher implements ToolCallDispatchCustomizer {
     this.clock = clock;
   }
 
+  /** Package-visible accessor for autoconfiguration wiring tests only. */
+  Defaults defaults() {
+    return defaults;
+  }
+
   @Override
   public Optional<Object> dispatch(CallToolHandler handler, CallToolRequestParams params) {
     McpTask annotation =

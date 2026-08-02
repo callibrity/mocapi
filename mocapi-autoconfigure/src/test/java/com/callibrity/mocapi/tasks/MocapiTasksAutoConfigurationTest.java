@@ -62,9 +62,13 @@ class MocapiTasksAutoConfigurationTest {
 
   @Configuration(proxyBeanMethods = false)
   static class UserSuppliedTaskStoreConfig {
+
+    static InMemoryTaskStore instance;
+
     @Bean
     TaskStore taskStore() {
-      return new InMemoryTaskStore(Clock.systemUTC());
+      instance = new InMemoryTaskStore(Clock.systemUTC());
+      return instance;
     }
   }
 
@@ -94,9 +98,9 @@ class MocapiTasksAutoConfigurationTest {
         .run(
             context -> {
               TaskToolCallDispatcher dispatcher = context.getBean(TaskToolCallDispatcher.class);
-              assertThat(dispatcher).isNotNull();
-              MocapiTasksProperties props = context.getBean(MocapiTasksProperties.class);
-              assertThat(props.defaultTtl()).isEqualTo(java.time.Duration.ofMinutes(5));
+              assertThat(dispatcher.defaults().ttl()).isEqualTo(java.time.Duration.ofMinutes(5));
+              assertThat(dispatcher.defaults().pollInterval())
+                  .isEqualTo(java.time.Duration.ofSeconds(2));
             });
   }
 
@@ -107,7 +111,8 @@ class MocapiTasksAutoConfigurationTest {
         .run(
             context -> {
               assertThat(context).hasSingleBean(TaskStore.class);
-              assertThat(context.getBean(TaskStore.class)).isInstanceOf(InMemoryTaskStore.class);
+              assertThat(context.getBean(TaskStore.class))
+                  .isSameAs(UserSuppliedTaskStoreConfig.instance);
             });
   }
 
