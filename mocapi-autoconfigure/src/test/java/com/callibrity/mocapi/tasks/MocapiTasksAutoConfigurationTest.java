@@ -18,13 +18,21 @@ package com.callibrity.mocapi.tasks;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import com.callibrity.mocapi.api.tools.McpTool;
+import com.callibrity.mocapi.model.CallToolRequestParams;
+import com.callibrity.mocapi.model.ClientCapabilities;
+import com.callibrity.mocapi.model.RequestMeta;
 import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerToolsAutoConfiguration;
+import com.callibrity.mocapi.server.tools.McpToolsService;
+import com.callibrity.mocapi.tasks.model.CreateTaskResult;
 import com.callibrity.mocapi.tasks.store.InMemoryTaskStore;
 import com.callibrity.mocapi.tasks.store.TaskStore;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.time.Clock;
+import java.time.Duration;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -34,6 +42,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 @ExtendWith(OutputCaptureExtension.class)
 class MocapiTasksAutoConfigurationTest {
@@ -57,6 +66,23 @@ class MocapiTasksAutoConfigurationTest {
     @Bean
     JsonRpcDispatcher jsonRpcDispatcher() {
       return mock(JsonRpcDispatcher.class);
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class TaskToolFixtureConfig {
+
+    @Bean
+    TaskToolFixture taskToolFixture() {
+      return new TaskToolFixture();
+    }
+  }
+
+  static class TaskToolFixture {
+    @McpTask(ttl = "${demo.ttl}")
+    @McpTool(description = "placeholder ttl tool")
+    public String placeholderTtlTool() {
+      return "ok";
     }
   }
 
@@ -101,6 +127,44 @@ class MocapiTasksAutoConfigurationTest {
               assertThat(dispatcher.defaults().ttl()).isEqualTo(java.time.Duration.ofMinutes(5));
               assertThat(dispatcher.defaults().pollInterval())
                   .isEqualTo(java.time.Duration.ofSeconds(2));
+            });
+  }
+
+  @Test
+  void mctask_ttl_resolves_property_placeholder_end_to_end(CapturedOutput output) {
+    runner
+        .withPropertyValues("demo.ttl=PT7M")
+        .withUserConfiguration(TaskToolFixtureConfig.class)
+        .run(
+            context -> {
+              McpToolsService toolsService = context.getBean(McpToolsService.class);
+              String toolName =
+                  toolsService.allToolDescriptors().stream()
+                      .filter(tool -> "placeholder ttl tool".equals(tool.description()))
+                      .findFirst()
+                      .orElseThrow()
+                      .name();
+              RequestMeta meta =
+                  new RequestMeta(
+                      null,
+                      "2026-07-28",
+                      null,
+                      new ClientCapabilities(
+                          null,
+                          null,
+                          null,
+                          null,
+                          Map.of(
+                              TasksExtension.EXTENSION_ID, JsonNodeFactory.instance.objectNode())));
+              CallToolRequestParams params =
+                  new CallToolRequestParams(
+                      toolName, JsonNodeFactory.instance.objectNode(), null, null, meta);
+
+              Object result = toolsService.callTool(params);
+
+              assertThat(result).isInstanceOf(CreateTaskResult.class);
+              assertThat(((CreateTaskResult) result).ttlMs())
+                  .isEqualTo(Duration.ofMinutes(7).toMillis());
             });
   }
 

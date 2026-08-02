@@ -39,6 +39,11 @@ public @interface McpTask {
 }
 ```
 
+`ttl` and `pollInterval` are resolved through the same `${...}`
+property-placeholder mechanism (`mcpAnnotationValueResolver`) as
+`@McpTool`'s `name`/`title`/`description` before being parsed as ISO-8601
+durations.
+
 The tool body is written exactly as a normal tool and never knows
 whether it is running as a task: `ctx.elicit(...)`, progress emitters,
 guards, validation, parameter resolution, and `McpToolException`

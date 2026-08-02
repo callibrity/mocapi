@@ -20,6 +20,7 @@ import com.callibrity.mocapi.model.RequestMeta;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.ToolCallDispatchCustomizer;
+import com.callibrity.mocapi.server.util.AnnotationStrings;
 import com.callibrity.mocapi.tasks.engine.TaskExecutionEngine;
 import com.callibrity.mocapi.tasks.engine.TaskIds;
 import com.callibrity.mocapi.tasks.model.TaskStatus;
@@ -27,9 +28,11 @@ import com.callibrity.mocapi.tasks.store.TaskRecord;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import tools.jackson.databind.ObjectMapper;
 
@@ -54,18 +57,21 @@ public class TaskToolCallDispatcher implements ToolCallDispatchCustomizer {
   private final ObjectMapper objectMapper;
   private final Defaults defaults;
   private final Clock clock;
+  private final UnaryOperator<String> valueResolver;
 
   public TaskToolCallDispatcher(
       TaskExecutionEngine engine,
       McpPrincipalSource principalSource,
       ObjectMapper objectMapper,
       Defaults defaults,
-      Clock clock) {
+      Clock clock,
+      UnaryOperator<String> valueResolver) {
     this.engine = engine;
     this.principalSource = principalSource;
     this.objectMapper = objectMapper;
     this.defaults = defaults;
     this.clock = clock;
+    this.valueResolver = valueResolver;
   }
 
   /** Package-visible accessor for autoconfiguration wiring tests only. */
@@ -112,8 +118,9 @@ public class TaskToolCallDispatcher implements ToolCallDispatchCustomizer {
         null,
         now,
         now,
-        resolveDuration(annotation.ttl(), defaults.ttl()),
-        resolveDuration(annotation.pollInterval(), defaults.pollInterval()),
+        resolveDuration(handler, "ttl", annotation.ttl(), defaults.ttl()),
+        resolveDuration(
+            handler, "pollInterval", annotation.pollInterval(), defaults.pollInterval()),
         List.of(),
         Map.of(),
         null,
@@ -121,7 +128,24 @@ public class TaskToolCallDispatcher implements ToolCallDispatchCustomizer {
         0L);
   }
 
-  private static Duration resolveDuration(String value, Duration fallback) {
-    return value.isBlank() ? fallback : Duration.parse(value);
+  private Duration resolveDuration(
+      CallToolHandler handler, String attributeName, String rawValue, Duration fallback) {
+    String resolved = AnnotationStrings.resolveOrNull(valueResolver, rawValue);
+    if (resolved == null) {
+      return fallback;
+    }
+    try {
+      return Duration.parse(resolved);
+    } catch (DateTimeParseException e) {
+      throw new IllegalStateException(
+          "Tool \""
+              + handler.name()
+              + "\": @McpTask "
+              + attributeName
+              + " resolved to invalid ISO-8601 duration \""
+              + resolved
+              + "\"",
+          e);
+    }
   }
 }

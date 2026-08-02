@@ -43,6 +43,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -120,7 +121,12 @@ class TaskToolCallDispatcherTest {
   }
 
   private TaskToolCallDispatcher dispatcher() {
-    return new TaskToolCallDispatcher(engine(), new StubPrincipalSource(), mapper, DEFAULTS, CLOCK);
+    return dispatcher(UnaryOperator.identity());
+  }
+
+  private TaskToolCallDispatcher dispatcher(UnaryOperator<String> valueResolver) {
+    return new TaskToolCallDispatcher(
+        engine(), new StubPrincipalSource(), mapper, DEFAULTS, CLOCK, valueResolver);
   }
 
   @Test
@@ -179,6 +185,36 @@ class TaskToolCallDispatcherTest {
         .isInstanceOf(McpTaskRequiredException.class);
   }
 
+  @Test
+  void placeholder_ttl_is_resolved_before_parsing() throws Exception {
+    CallToolHandler handler = handlerFor("placeholderTtlTool");
+    CallToolRequestParams params =
+        new CallToolRequestParams(
+            handler.name(), mapper.createObjectNode(), null, null, capableMeta());
+    UnaryOperator<String> resolver = value -> "${demo.ttl}".equals(value) ? "PT7M" : value;
+
+    Optional<Object> result = dispatcher(resolver).dispatch(handler, params);
+
+    assertThat(result).isPresent();
+    var createResult = (CreateTaskResult) result.get();
+    assertThat(createResult.ttlMs()).isEqualTo(Duration.ofMinutes(7).toMillis());
+  }
+
+  @Test
+  void invalid_resolved_ttl_throws_a_diagnostic_naming_the_tool_and_value() throws Exception {
+    CallToolHandler handler = handlerFor("placeholderTtlTool");
+    CallToolRequestParams params =
+        new CallToolRequestParams(
+            handler.name(), mapper.createObjectNode(), null, null, capableMeta());
+    UnaryOperator<String> resolver =
+        value -> "${demo.ttl}".equals(value) ? "not-a-duration" : value;
+
+    assertThatThrownBy(() -> dispatcher(resolver).dispatch(handler, params))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining(handler.name())
+        .hasMessageContaining("not-a-duration");
+  }
+
   static class Fixture {
     @McpTool(description = "plain tool")
     public String plain() {
@@ -194,6 +230,12 @@ class TaskToolCallDispatcherTest {
     @McpTask(required = true)
     @McpTool(description = "required task tool")
     public String requiredTaskTool() {
+      return "ok";
+    }
+
+    @McpTask(ttl = "${demo.ttl}")
+    @McpTool(description = "placeholder ttl tool")
+    public String placeholderTtlTool() {
       return "ok";
     }
   }

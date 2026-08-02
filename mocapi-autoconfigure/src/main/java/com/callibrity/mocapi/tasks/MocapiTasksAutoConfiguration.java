@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.tasks;
 
+import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerToolsAutoConfiguration;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
 import com.callibrity.mocapi.server.tools.McpToolsService;
@@ -32,6 +33,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.util.StringValueResolver;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -110,17 +112,27 @@ public class MocapiTasksAutoConfiguration {
     return new McpTasksService(store, engine, principalSource, clock, objectMapper);
   }
 
+  /**
+   * The {@code mcpAnnotationValueResolver} bean lives in {@link MocapiServerAutoConfiguration},
+   * which some minimal test/embedding apps deliberately exclude while still pulling in mocapi-tasks
+   * via classpath auto-configuration. {@link ObjectProvider} keeps that combination working: absent
+   * the bean, {@code ${...}} placeholders in {@code @McpTask} attributes simply pass through
+   * unresolved instead of failing context startup.
+   */
   @Bean
   public TaskToolCallDispatcher mcpTaskToolCallDispatcher(
       TaskExecutionEngine engine,
       McpPrincipalSource principalSource,
       ObjectMapper objectMapper,
       MocapiTasksProperties properties,
-      Clock clock) {
+      Clock clock,
+      ObjectProvider<StringValueResolver> mcpAnnotationValueResolver) {
     var defaults =
         new TaskToolCallDispatcher.Defaults(
             properties.defaultTtl(), properties.defaultPollInterval());
-    return new TaskToolCallDispatcher(engine, principalSource, objectMapper, defaults, clock);
+    StringValueResolver resolver = mcpAnnotationValueResolver.getIfAvailable(() -> value -> value);
+    return new TaskToolCallDispatcher(
+        engine, principalSource, objectMapper, defaults, clock, resolver::resolveStringValue);
   }
 
   @Bean

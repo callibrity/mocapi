@@ -90,6 +90,10 @@ mocapi.tasks.default-ttl=PT1H
 mocapi.tasks.default-poll-interval=PT2S
 ```
 
+Like `@McpTool`'s `name`/`title`/`description`, `ttl` and `pollInterval` are
+resolved through the same `${...}` property-placeholder mechanism before
+parsing, so `@McpTask(ttl = "${my.app.encode-ttl}")` works.
+
 ## The idempotency contract (restated)
 
 Tasks resume by **re-executing your handler from the top** against a
