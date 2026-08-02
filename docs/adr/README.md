@@ -72,3 +72,5 @@ authored at decision time and dated accordingly.
 - [ADR-0034 — Descriptor `_meta` and descriptor-customizer seams](0034-descriptor-meta-and-customizer-seams.md)
 - [ADR-0035 — Function-backed resource readers and a `ResourceContributor` seam](0035-resource-readers-and-contributor-seam.md)
 - [ADR-0036 — `@McpUi(resource=…)` serve-mode for UI bundles](0036-mcpui-serve-mode.md)
+- [ADR-0037 — `mocapi-tasks`: the MCP Tasks extension and its execution model](0037-mcp-tasks-extension.md)
+- [ADR-0038 — Three generic `mocapi-server` seams for the Tasks extension](0038-server-seams-for-extensions.md)

@@ -40,6 +40,22 @@ because those are the only methods whose params extend the spec's
 `InputResponseRequestParams` and whose responses admit
 `InputRequiredResult`.
 
+## The shared replay core and its two carriers
+
+The call-ordinal cursor, per-slot fingerprints, and the conversion of an
+unanswered elicitation into an `InputRequiredResult` are extracted into a
+standalone class, `ReplayExecutor`, that `MrtrElicitationEngine` (below)
+calls into rather than implements inline. This exists because
+[MCP Tasks](tasks.md) needed the identical replay mechanics for a second
+ledger carrier — a `TaskStore` record keyed by `taskId` — without the
+wire-token machinery (`RequestStateCodec`, principal/target
+verification) that only applies to the request/retry transport. Ordinals,
+fingerprints, and error mapping exist exactly once; the wire engine and
+the tasks engine cannot drift semantically. See
+[ADR-0038](../adr/0038-server-seams-for-extensions.md) for the extraction
+and [tasks.md](tasks.md#replay-through-store-one-core-two-carriers) for
+the second carrier.
+
 ## The four moving parts
 
 All of this lives in `mocapi-server`'s
@@ -129,13 +145,15 @@ with `ElicitationLedgerMismatchException` and
 `McpElicitationNotSupportedException`) instead of converting it into an
 `isError` tool result.
 
-### 4. `MrtrElicitationEngine` — the seam
+### 4. `MrtrElicitationEngine` — the wire-token carrier over `ReplayExecutor`
 
-The engine is the production implementation of the internal
-`ElicitationDispatcher` seam that `DefaultMcpToolContext.elicit(...)`
-delegates to, and it wraps handler invocation inside the three
-`@JsonRpcMethod` service methods (`McpToolsService.callTool`,
-`McpPromptsService.getPrompt`, `McpResourcesService.readResource`):
+`ReplayExecutor` (see above) is the production implementation of the
+internal `ElicitationDispatcher` seam that `DefaultMcpToolContext.elicit(...)`
+delegates to. `MrtrElicitationEngine` wraps it with the wire carrier's
+concerns — token decode/encode, retry validation — around handler
+invocation inside the three `@JsonRpcMethod` service methods
+(`McpToolsService.callTool`, `McpPromptsService.getPrompt`,
+`McpResourcesService.readResource`):
 
 ```
 execute(method, params, inputResponses, requestState, invocation)
@@ -268,6 +286,9 @@ reachable through `McpToolContext`.
 
 ## Related
 
+- [MCP Tasks](tasks.md) — the second ledger carrier: the same replay
+  core (`ReplayExecutor`), resumed via `tasks/update` against a
+  `TaskStore` record instead of a wire retry.
 - [Interactive tools guide](../guides/interactive-tools.md) — user-facing
   documentation for `ctx.elicit(...)` and progress.
 - [ADR-0021](../adr/0021-mrtr-elicitation-replay.md) — the replay

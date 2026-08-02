@@ -21,6 +21,13 @@ central `HandlerMethodsCache` through `CallToolHandlers.build(...)` in
 interface for tool registration — the annotation scan is the only
 supported path.
 
+A companion annotation, `@McpTask` (module `mocapi-tasks`), marks a
+`@McpTool` method eligible for task-augmented invocation under the
+`io.modelcontextprotocol/tasks` extension — no separate handler kind,
+just a `ToolCallDispatchCustomizer` that reroutes matching calls before
+the default MRTR path runs. See [MCP Tasks](tasks.md) and
+[Extension SPI](extension-spi.md#tool-call-dispatch-interception).
+
 ## GetPromptHandler — `prompts/get`
 
 Every `@McpPrompt`-annotated method on a Spring bean

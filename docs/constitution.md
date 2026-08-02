@@ -17,8 +17,15 @@ change, and updating the entry here.
 Every request is self-contained: no sessions, no handshake, and no
 server-initiated request channel. Correlation state travels in the request
 envelope, not in server-held session state.
+
+**Scoped exception:** the opt-in `mocapi-tasks` module confines all task
+state (status, ledger, result) behind the `TaskStore` SPI. Core stays
+byte-for-byte stateless when the module is absent; a client's `tasks/*`
+requests still carry their own correlation (`taskId`), so no
+server-initiated channel or handshake is introduced.
 → [ADR-0019](adr/0019-clean-break-2026-07-28.md),
-[ADR-0020](adr/0020-stateless-request-model.md)
+[ADR-0020](adr/0020-stateless-request-model.md),
+[ADR-0037](adr/0037-mcp-tasks-extension.md)
 
 ### I2 — Single protocol/transport coupling
 `McpServer` ↔ `McpTransport` is the only seam between the protocol layer and

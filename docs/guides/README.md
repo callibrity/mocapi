@@ -13,6 +13,7 @@ server, start here.
 - [Interactive Tools — progress, MRTR elicitation](interactive-tools.md)
 - [Externalizing Metadata](externalizing-metadata.md)
 - [MCP Apps](apps.md) — declare a `ui://` resource, link it to a tool, and hand off to the official in-iframe JS SDK
+- [MCP Tasks](tasks.md) — poll long-running tools with `@McpTask`, plus deployment topology and custom `TaskStore` guidance
 
 ## Extending mocapi
 - [Customizers](customizers.md)

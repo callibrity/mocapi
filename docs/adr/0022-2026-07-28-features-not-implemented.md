@@ -71,16 +71,22 @@ discovery model cannot feed. If dynamic registration ever lands,
 
 **Spec reference:** SEP-2663 ([draft changelog](https://modelcontextprotocol.io/specification/draft/changelog))
 
-Not implemented. SEP-2663 moved tasks out of the core protocol into an
-official extension; mocapi implements neither the extension nor any
-task semantics.
-
-**Rationale:** extensions are opt-in by design; mocapi starts from the
-core protocol only. The task lifecycle (`tasks/get`, `tasks/update`,
-`tasks/cancel`, server-directed task creation) is a substantial state
-machine for long-running operations that mocapi's synchronous handler
-model does not need yet. The extension's independent versioning means
-it can be adopted later without a protocol bump.
+**Accepted — implemented in [ADR-0037](0037-mcp-tasks-extension.md)
+(`mocapi-tasks`); `notifications/tasks` push remains declined.**
+Originally declined here on the grounds that the task lifecycle was a
+substantial state machine mocapi's synchronous handler model didn't
+need; a 2026-08-02 redesign found that the replay pattern
+[ADR-0021](0021-mrtr-elicitation-replay.md) already built for wire
+elicitation generalizes directly to task resume — one execution core,
+two ledger carriers — so the extension fits as a shallow, opt-in module
+rather than a bespoke parked-thread state machine. `mocapi-tasks`
+implements `tasks/get`/`tasks/update`/`tasks/cancel` (polling only,
+`tools/call`-augmentation only) via a single `@McpTask` annotation on an
+otherwise-ordinary tool. `notifications/tasks` push rides the same
+`subscriptions/listen` mechanism this ADR already declines above
+(mocapi's static handler discovery model has no change-notification
+source to feed it) and stays unimplemented — see ADR-0037 for the full
+scope.
 
 ### MCP Apps extension
 
@@ -176,12 +182,14 @@ a tool parameter as header-supplied. Not currently planned.
 
 **Spec reference:** [draft changelog](https://modelcontextprotocol.io/specification/draft/changelog)
 
-The `extensions` capability map is advertised empty by core (see the
-Tasks entry above for the one official extension still declined).
-`io.modelcontextprotocol/ui` is populated when the optional
-`mocapi-apps` module is present, contributed via
-`ServerCapabilitiesCustomizer` ([ADR-0033](0033-mcp-apps-module-and-ui-capability.md));
-core itself still enumerates none.
+The `extensions` capability map is advertised empty by core. Two
+official extensions populate an entry when their optional module is
+present, both via `ServerCapabilitiesCustomizer`
+([ADR-0031](0031-server-capabilities-customizer.md)): `io.modelcontextprotocol/ui`
+from `mocapi-apps` ([ADR-0033](0033-mcp-apps-module-and-ui-capability.md))
+and `io.modelcontextprotocol/tasks` from `mocapi-tasks`
+([ADR-0037](0037-mcp-tasks-extension.md)). Core itself still enumerates
+none.
 
 ### 2026-07-28 authorization review (record of verification)
 
@@ -225,8 +233,9 @@ entries here. Users evaluating mocapi can compare needs to omissions in
 one read, and each omission has a stated reason that's reviewable when
 the constraint changes.
 
-**Costs.** Use cases needing tasks, MCP Apps, URL-mode elicitation, or
-true mid-execution cancellation require a different framework today.
+**Costs.** Use cases needing URL-mode elicitation or true
+mid-execution cancellation require a different framework today; Tasks
+and MCP Apps have since moved to Accepted (see above).
 Each omission is revisitable — the rationale is recorded so future
 revisions can reopen the decision.
 

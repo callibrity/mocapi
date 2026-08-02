@@ -132,13 +132,15 @@ resolver can override a default binding for a specific annotation.
 
 ## Customizers beyond the handler level
 
-Three customizer SPIs live at coarser layers — JSON-RPC method
-dispatch, and (in `mocapi-oauth2`) the HTTP security filter chains.
-They use the same "see-and-attach at startup" pattern but operate on
-different units:
+Several customizer SPIs live at coarser layers — `tools/call` dispatch
+interception, routing-header validation, JSON-RPC method dispatch, and
+(in `mocapi-oauth2`) the HTTP security filter chains. They use the same
+"see-and-attach at startup" pattern but operate on different units:
 
 | SPI | Where it attaches | Module |
 |---|---|---|
+| `ToolCallDispatchCustomizer` | `McpToolsService.callTool`, after handler lookup, before the default MRTR invocation path. `mocapi-tasks` uses it to reroute `@McpTask` calls (ADR-0038). | `mocapi-server` |
+| `McpRoutedParamContributor` | The Streamable HTTP transport's `Mcp-Name` routing-header validation table (`-32020 HeaderMismatch`). `mocapi-tasks` contributes `tasks/get\|update\|cancel` → `params.taskId` (ADR-0038). | `mocapi-server` |
 | `JsonRpcMethodHandlerCustomizer` | Every `@JsonRpcMethod` on the dispatcher (ripcurl). Used by `mocapi-o11y` to attach the semconv `mcp.server.operation` observation (ADR-0030). | `mocapi-o11y` |
 | `McpFilterChainCustomizer` | The `SecurityFilterChain` serving `/mcp/**`. | `mocapi-oauth2` |
 | `McpMetadataFilterChainCustomizer` | The `SecurityFilterChain` serving `/.well-known/oauth-protected-resource`. | `mocapi-oauth2` |
@@ -148,6 +150,62 @@ different units:
 These are documented in the
 [Authorization model design doc](authorization-model.md) and the
 [Authorization guide](../guides/authorization.md).
+
+### Tool-call dispatch interception
+
+```java
+@FunctionalInterface
+public interface ToolCallDispatchCustomizer {
+  Optional<Object> dispatch(CallToolHandler handler, CallToolRequestParams params);
+}
+```
+
+Registered customizers are consulted in bean order after handler lookup;
+the first to return a non-empty `Optional` short-circuits the request,
+and its value becomes the `tools/call` response as-is (the spec's
+response union — core neither inspects nor interprets the claimed
+result). An empty customizer list, or one where every customizer
+declines, falls through to the default synchronous MRTR path
+byte-for-byte. This is the seam [MCP Tasks](tasks.md) uses to turn an
+`@McpTask` call into a `CreateTaskResult` instead of running the handler
+inline.
+
+Detached (off-dispatch-thread) re-invocation of a registered tool is a
+separate, lower-level seam, `ToolCallReplayInvoker`:
+
+```java
+public interface ToolCallReplayInvoker {
+  sealed interface Outcome {
+    record Completed(CallToolResult result) implements Outcome {}
+    record InputRequired(String key, ElicitRequest request,
+                          List<ResponseLedgerEntry> ledger) implements Outcome {}
+  }
+  Outcome invoke(String toolName, JsonNode arguments, List<ResponseLedgerEntry> ledger,
+                 McpProgressSource progressOverride, McpExchange exchange);
+}
+```
+
+`McpToolsService` implements this directly, reusing the same handler
+lookup, context construction, and six-stratum chain the synchronous path
+uses — with no wire envelope (no `requestState`, no principal/target
+verification; the caller owns the ledger's identity). `mocapi-tasks`'s
+`TaskExecutionEngine` calls it to run a task's execution against a
+store-loaded ledger. See [elicitation-mrtr.md](elicitation-mrtr.md#the-shared-replay-core-and-its-two-carriers)
+and [tasks.md](tasks.md) for the full mechanics.
+
+### Routed-param contribution
+
+```java
+@FunctionalInterface
+public interface McpRoutedParamContributor {
+  Map<String, String> namedParamFields();
+}
+```
+
+Lives in `mocapi-server` (transport-agnostic) so any module can extend
+the `Mcp-Name` validation table transports enforce; transports that
+don't validate routing headers (stdio) ignore contributed instances. See
+[transports.md](transports.md#routing-header-validation--32020-headermismatch).
 
 ## Thread-safety contract
 

@@ -6,7 +6,7 @@
 - **Baseline spec:** the **Stable** snapshot `specification/2026-01-26/apps.mdx` (forward-compatible with `draft`)
 - **Supersedes stance:** the "decline apps" line item in ADR-0022 (to be flipped during implementation)
 - **Relationship to Tasks:** shares the `ServerCapabilitiesCustomizer` core seam introduced by the
-  [MCP Tasks design](2026-07-31-mcp-tasks-extension-design.md); otherwise independent.
+  [MCP Tasks design](2026-08-02-mcp-tasks-extension-design.md); otherwise independent.
 
 ## 1. Summary
 
