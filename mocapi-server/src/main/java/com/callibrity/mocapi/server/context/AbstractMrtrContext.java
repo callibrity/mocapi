@@ -55,7 +55,19 @@ public abstract class AbstractMrtrContext implements MrtrContext {
       ElicitationDispatcher elicitationDispatcher,
       McpExchange exchange,
       String handlerName) {
-    this.progress = new DefaultMcpProgressSource(transport, progressToken);
+    this(
+        new DefaultMcpProgressSource(transport, progressToken),
+        elicitationDispatcher,
+        exchange,
+        handlerName);
+  }
+
+  protected AbstractMrtrContext(
+      McpProgressSource progress,
+      ElicitationDispatcher elicitationDispatcher,
+      McpExchange exchange,
+      String handlerName) {
+    this.progress = progress;
     this.elicitationDispatcher = elicitationDispatcher;
     this.exchange = exchange;
     this.handlerName = handlerName;

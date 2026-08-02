@@ -15,6 +15,7 @@
  */
 package com.callibrity.mocapi.server.tools;
 
+import com.callibrity.mocapi.api.progress.McpProgressSource;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.context.AbstractMrtrContext;
@@ -36,5 +37,13 @@ public class DefaultMcpToolContext extends AbstractMrtrContext implements McpToo
       McpExchange exchange,
       String handlerName) {
     super(transport, progressToken, elicitationDispatcher, exchange, handlerName);
+  }
+
+  public DefaultMcpToolContext(
+      McpProgressSource progress,
+      ElicitationDispatcher elicitationDispatcher,
+      McpExchange exchange,
+      String handlerName) {
+    super(progress, elicitationDispatcher, exchange, handlerName);
   }
 }
