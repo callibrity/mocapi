@@ -22,6 +22,7 @@ import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlers;
 import com.callibrity.mocapi.server.tools.McpToolsService;
+import com.callibrity.mocapi.server.tools.ToolCallDispatchCustomizer;
 import com.callibrity.mocapi.server.tools.ToolDescriptorCustomizer;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
@@ -58,11 +59,14 @@ public class MocapiServerToolsAutoConfiguration {
       CacheSettings cacheSettings,
       @Autowired(required = false) List<CallToolHandlerCustomizer> toolCustomizers,
       @Autowired(required = false) List<ToolDescriptorCustomizer> toolDescriptorCustomizers,
+      @Autowired(required = false) List<ToolCallDispatchCustomizer> dispatchCustomizers,
       StringValueResolver mcpAnnotationValueResolver) {
     List<CallToolHandlerCustomizer> customizers =
         toolCustomizers == null ? List.of() : toolCustomizers;
     List<ToolDescriptorCustomizer> descriptorCustomizers =
         toolDescriptorCustomizers == null ? List.of() : toolDescriptorCustomizers;
+    List<ToolCallDispatchCustomizer> callDispatchCustomizers =
+        dispatchCustomizers == null ? List.of() : dispatchCustomizers;
     CallToolHandlers.BuildParams buildParams =
         new CallToolHandlers.BuildParams(
             generator,
@@ -89,7 +93,8 @@ public class MocapiServerToolsAutoConfiguration {
         objectMapper,
         elicitationEngine,
         mocapiProperties.pagination().pageSize(),
-        cacheSettings);
+        cacheSettings,
+        callDispatchCustomizers);
   }
 
   @Bean

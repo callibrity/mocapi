@@ -49,6 +49,7 @@ import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -73,6 +74,7 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool>
   private final ObjectMapper objectMapper;
   private final MrtrElicitationEngine elicitationEngine;
   private final CacheSettings cacheSettings;
+  private final List<ToolCallDispatchCustomizer> dispatchCustomizers;
 
   public McpToolsService(
       List<CallToolHandler> handlers,
@@ -95,6 +97,16 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool>
       MrtrElicitationEngine elicitationEngine,
       int pageSize,
       CacheSettings cacheSettings) {
+    this(handlers, objectMapper, elicitationEngine, pageSize, cacheSettings, List.of());
+  }
+
+  public McpToolsService(
+      List<CallToolHandler> handlers,
+      ObjectMapper objectMapper,
+      MrtrElicitationEngine elicitationEngine,
+      int pageSize,
+      CacheSettings cacheSettings,
+      List<ToolCallDispatchCustomizer> dispatchCustomizers) {
     super(
         handlers,
         CallToolHandler::name,
@@ -105,6 +117,7 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool>
     this.objectMapper = objectMapper;
     this.elicitationEngine = elicitationEngine;
     this.cacheSettings = cacheSettings;
+    this.dispatchCustomizers = List.copyOf(dispatchCustomizers);
   }
 
   /**
@@ -149,6 +162,12 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool>
     JsonNode args =
         params.arguments() != null ? params.arguments() : objectMapper.createObjectNode();
     CallToolHandler handler = lookup(name);
+    for (ToolCallDispatchCustomizer customizer : dispatchCustomizers) {
+      Optional<Object> claimed = customizer.dispatch(handler, params);
+      if (claimed.isPresent()) {
+        return claimed.get();
+      }
+    }
     return elicitationEngine.execute(
         TOOLS_CALL,
         params,
