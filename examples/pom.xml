@@ -34,6 +34,7 @@
         <module>http</module>
         <module>stdio</module>
         <module>apps</module>
+        <module>tasks</module>
     </modules>
 
     <!--
