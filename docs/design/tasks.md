@@ -97,9 +97,10 @@ extracted the replay mechanics out of `MrtrElicitationEngine` into
 `InputRequiredException` conversion), and
 [ADR-0039](../adr/0039-extension-seam-taxonomy-and-dispatch-interception.md)
 extracted the shared invocation mechanics (handler lookup, context
-construction, ScopedValue binding, the six-stratum chain,
-result/exception mapping) out of `McpToolsService` into the standalone
-`ToolInvocationCore`, which implements the public `ToolCallReplayInvoker`.
+construction, ScopedValue binding, invoking the built `CallToolHandler` —
+which itself runs the six-stratum chain — and result/exception mapping)
+out of `McpToolsService` into the standalone `ToolInvocationCore`, which
+implements the public `ToolCallReplayInvoker`.
 `McpToolsService` delegates its own synchronous path to the same core —
 the wire path and the task path both terminate in the identical
 execution core; only the ledger's carrier differs. (Before ADR-0039,

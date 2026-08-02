@@ -79,9 +79,11 @@ cached in the handler maps.
 
 Non-goal: this does not add `_meta` customization to prompts or
 resource templates — no current use case needs it there, and it can be
-added the same way later if one appears. It also does not give
-customizers access to runtime call state; they run once at descriptor-
-build time, not per-request, matching mocapi's static-discovery model
+added the same way later if one appears. (Superseded on this point by
+[ADR-0039](0039-extension-seam-taxonomy-and-dispatch-interception.md),
+which adds `_meta` to both.) It also does not give customizers access
+to runtime call state; they run once at descriptor-build time, not
+per-request, matching mocapi's static-discovery model
 ([ADR-0010](0010-annotation-driven-handler-discovery.md)).
 
 **Code anchors:**
@@ -99,4 +101,6 @@ build time, not per-request, matching mocapi's static-discovery model
 > same build-pipeline point descriptor customizers used to run. `mocapi-apps`'s
 > `AppsToolDescriptorCustomizer` / `AppsResourceDescriptorCustomizer` become
 > `AppsToolUiMetaCustomizer` / `AppsResourceUiMetaCustomizer`. The `_meta`-on-descriptors
-> decision above, and its extension to `Prompt`/`ResourceTemplate`, stand unchanged.
+> decision above stands unchanged for `Tool`/`Resource`; ADR-0039 separately extends
+> `_meta` to `Prompt`/`ResourceTemplate`, reversing this ADR's non-goal on that point
+> (see ADR-0039's own decision record for the rationale).

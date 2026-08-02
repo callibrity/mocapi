@@ -168,6 +168,25 @@ should-never-happen author error).
 published descriptor's `_meta` can't be mutated out from under it by a
 caller retaining a reference to the node they passed in.
 
+**4a. `_meta` extended to `Prompt` and `ResourceTemplate`, reversing
+ADR-0034's non-goal.** ADR-0034 declined `_meta` on prompts and resource
+templates because no use case needed it yet. That reasoning no longer
+holds against this task's I7 (1:1 schema fidelity): `docs/plans/2026-07-28-schema.ts`
+declares `_meta?: MetaObject` on both wire interfaces (`ResourceTemplate`
+at ~lines 1481/1506, `Prompt` at ~lines 1659/1670), so omitting it from
+the mocapi records was a translation gap, not a deliberate scope
+decision — the same gap ADR-0034 identified and closed for `Tool`/
+`Resource`. This ADR owns closing it for the remaining two: `Prompt` and
+`ResourceTemplate` each gain an optional `_meta` (`ObjectNode`,
+`NON_NULL`) field and a `withMeta` method with the same deep-copy
+protection as `Tool`/`Resource`. The change is purely additive — the
+5/6-arg canonical constructors are new, the pre-existing 4/5-arg
+constructors are preserved as back-compat overloads, and a descriptor
+built with no customizer touching `_meta` serializes identically to
+before. Code anchors: `mocapi-model/src/main/java/com/callibrity/mocapi/model/Prompt.java`
+and `mocapi-model/src/main/java/com/callibrity/mocapi/model/ResourceTemplate.java`
+(both `_meta`, `withMeta`); also listed in the ADR-wide anchors below.
+
 **5. Semver-scope policy.** mocapi is pre-1.0-equivalent for its
 *extension* SPI surface specifically: types introduced in 1.1.0
 (`ToolDescriptorCustomizer`, `ResourceDescriptorCustomizer`,
@@ -279,8 +298,10 @@ contribution seam (renamed here, semantics unchanged) — stand unchanged.
 descriptor-customizer seams (`ToolDescriptorCustomizer`,
 `ResourceDescriptorCustomizer`) are folded into the four handler
 customizers per decision 4 above; ADR-0034's `_meta`-on-descriptors
-decision and its extension to `Prompt`/`ResourceTemplate` stand
-unchanged.
+decision for `Tool`/`Resource` stands unchanged. ADR-0034's non-goal of
+extending `_meta` to `Prompt`/`ResourceTemplate` is reversed by decision
+4a above, which is this ADR's own addition, not a restatement of
+ADR-0034.
 
 **Code anchors:**
 
@@ -295,6 +316,8 @@ unchanged.
 - `mocapi-tasks/src/main/java/com/callibrity/mocapi/tasks/TaskToolCallDispatcher.java`
 - `mocapi-autoconfigure/src/main/java/com/callibrity/mocapi/server/autoconfigure/ServerCapabilitiesOverrideAuditor.java`
 - `mocapi-model/src/main/java/com/callibrity/mocapi/model/ClientCapabilities.java` (`hasExtension`)
+- `mocapi-model/src/main/java/com/callibrity/mocapi/model/Prompt.java` (`_meta`, `withMeta`)
+- `mocapi-model/src/main/java/com/callibrity/mocapi/model/ResourceTemplate.java` (`_meta`, `withMeta`)
 - `mocapi-server/src/main/java/com/callibrity/mocapi/server/resources/McpResourcesService.java`
 - `mocapi-apps/src/main/java/com/callibrity/mocapi/apps/AppsToolUiMetaCustomizer.java`
 - `mocapi-apps/src/main/java/com/callibrity/mocapi/apps/AppsResourceUiMetaCustomizer.java`

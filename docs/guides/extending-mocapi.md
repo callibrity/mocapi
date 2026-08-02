@@ -42,8 +42,8 @@ sibling `ResourceContributor`.
 
 ```java
 public interface ResourceContributor {
-  List<ReadResourceHandler> resources();
-  List<ReadResourceTemplateHandler> resourceTemplates();
+  default List<ReadResourceHandler> resources() { return List.of(); }
+  default List<ReadResourceTemplateHandler> resourceTemplates() { return List.of(); }
 
   static ResourceContributor of(
       List<ReadResourceHandler> resources, List<ReadResourceTemplateHandler> resourceTemplates) { … }
@@ -107,10 +107,14 @@ over the descriptor snapshotted at build time, and replacing identity or
 schemas here desynchronizes what's advertised from what's enforced. Use
 `descriptor(T)` to add or change `title`/`description`/`_meta` only.
 
-The same `*HandlerConfig` also exposes one interceptor mutator per
-stratum (`correlationInterceptor`, `observationInterceptor`,
-`auditInterceptor`, `validationInterceptor`, `invocationInterceptor`),
-`guard(Guard)`, and `resolver(ParameterResolver)` — see the
+The same `*HandlerConfig` also exposes one interceptor mutator for each
+non-authorization stratum (`correlationInterceptor`,
+`observationInterceptor`, `auditInterceptor`, `validationInterceptor`,
+`invocationInterceptor`) plus `resolver(ParameterResolver)`. The sixth
+stratum, AUTHORIZATION, has no interceptor mutator of its own — it's
+configured via `guard(Guard)` instead, since guard evaluation is a
+distinct concern (allow/deny before invocation) from the interceptor
+chain's proceed/replace/throw contract. See the
 [Customizers guide](customizers.md) for the full six-stratum picture.
 
 ### 4. `ServerCapabilitiesCustomizer` — declare an extension capability

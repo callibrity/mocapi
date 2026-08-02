@@ -6,6 +6,22 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- **`_meta` on `Prompt` and `ResourceTemplate`.** Both 1.0.0-vintage
+  `mocapi-model` records gain an optional `_meta` field and a `withMeta`
+  convenience method, matching the shape already carried by `Tool` and
+  `Resource` ([ADR-0034](docs/adr/0034-descriptor-meta-and-customizer-seams.md),
+  extended by [ADR-0039](docs/adr/0039-extension-seam-taxonomy-and-dispatch-interception.md)).
+  This closes a base-protocol fidelity gap — the 2026-07-28 schema
+  declares `_meta` on both interfaces — and is purely additive: the field
+  is `NON_NULL`-included, so it is absent from the wire unless a
+  customizer sets it, and the pre-existing 4/5-arg canonical constructors
+  are preserved as back-compat overloads alongside the new 5/6-arg
+  canonical constructors.
+- **`ClientCapabilities.hasExtension(String)`** — a convenience predicate
+  for checking whether a client declared a given extension capability id.
+
 ### Changed
 
 - **Internal extension SPIs reshaped** — a taxonomy pass over every mocapi
@@ -15,8 +31,11 @@ All notable changes to this project are documented in this file. The format is b
   seam is now named for one of five contracts (`*Contributor`,
   `*Customizer`, `*Interceptor`, `*Store`/`*Source`/`*Strategy`, `*Sink`)
   documented in the new [Extending mocapi guide](docs/guides/extending-mocapi.md).
-  This is unreleased/1.1.0-vintage-type churn only — no 1.0.0 public API
-  moved.
+  This is mostly unreleased/1.1.0-vintage-type churn — no 1.0.0 public API
+  was renamed or removed — but two 1.0.0-vintage `mocapi-model` records
+  did gain wire-visible fields as part of the pass: see the `_meta` entry
+  above for `Prompt`/`ResourceTemplate`, and the `withMeta` entry below
+  for `Tool`/`Resource`.
 
   | Old name | New name / replacement |
   |---|---|
@@ -47,6 +66,15 @@ All notable changes to this project are documented in this file. The format is b
   guards before minting a task record, so a denied capable client gets
   the same immediate `-32010 Forbidden` a synchronous call would, instead
   of a `taskId` whose task later fails asynchronously.
+
+### Fixed
+
+- **`withMeta` on `Tool` and `Resource` now deep-copies its input.**
+  Both released-1.1.0 methods take a defensive `deepCopy()` of the
+  `ObjectNode` passed in, so a caller mutating the node after calling
+  `withMeta` can no longer reach back into the published descriptor.
+  `Prompt.withMeta`/`ResourceTemplate.withMeta` (new this release, see
+  Added above) ship with the same protection from the start.
 
 ## [1.1.0] - 2026-08-01
 

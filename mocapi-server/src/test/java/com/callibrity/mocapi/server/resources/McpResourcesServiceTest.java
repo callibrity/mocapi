@@ -280,8 +280,9 @@ class McpResourcesServiceTest {
     List<ReadResourceHandler> emptyHandlers = List.of();
     var engine = engine();
     assertThatThrownBy(() -> service(emptyHandlers, templates, engine))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Duplicate URI template");
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("both contribute URI template")
+        .hasMessageContaining("test://items/{id}");
   }
 
   @Test
@@ -292,8 +293,31 @@ class McpResourcesServiceTest {
     List<ReadResourceTemplateHandler> emptyTemplates = List.of();
     var engine = engine();
     assertThatThrownBy(() -> service(handlers, emptyTemplates, engine))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Duplicate resource URI");
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("both contribute resource URI")
+        .hasMessageContaining("test://dup");
+  }
+
+  @Test
+  void duplicate_resource_uri_from_two_contributors_names_both() {
+    var a = handler("test://dup", "A", "first", "text/plain");
+    var b = handler("test://dup", "B", "second", "text/plain");
+
+    ResourceContributor first = ResourceContributor.of(List.of(a), List.of());
+
+    class SecondContributor implements ResourceContributor {
+      @Override
+      public List<ReadResourceHandler> resources() {
+        return List.of(b);
+      }
+    }
+    ResourceContributor second = new SecondContributor();
+
+    assertThatThrownBy(() -> new McpResourcesService(List.of(first, second), engine()))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("test://dup")
+        .hasMessageContaining(first.getClass().getName())
+        .hasMessageContaining("SecondContributor");
   }
 
   @Test

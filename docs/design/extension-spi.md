@@ -55,7 +55,13 @@ All four customizers are `@FunctionalInterface`s with a single
 method `void customize(<XxxHandlerConfig> config)`. Each
 `*HandlerConfig` exposes:
 
-- read-only accessors: `descriptor()`, `method()`, `bean()`
+- `descriptor()` / `descriptor(T)` — read the generated descriptor or
+  replace it, subject to the identity contract (ADR-0039): a
+  replacement must preserve the original's identity field (`name()`/
+  `uri()`/`uriTemplate()`) and, for tools, both compiled schemas —
+  the mutator is for metadata (`title`, `description`, `_meta`), not
+  for re-keying or re-typing the handler
+- read-only accessors: `method()`, `bean()`
 - one interceptor mutator **per stratum**
 - `guard(Guard)` for authorization
 - `resolver(ParameterResolver)` for parameter resolution
@@ -220,7 +226,8 @@ public interface ToolCallReplayInvoker {
 ```
 
 `ToolInvocationCore` implements this directly (ADR-0039), reusing the
-same handler lookup, context construction, and six-stratum chain the
+same handler lookup, context construction, and built `CallToolHandler`
+invocation (which runs the six-stratum chain internally) the
 synchronous path uses — with no wire envelope (no `requestState`, no
 principal/target verification; the caller owns the ledger's identity).
 `mocapi-tasks`'s `TaskExecutionEngine` calls it to run a task's

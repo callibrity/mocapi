@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriTemplate;
@@ -89,51 +88,101 @@ public class McpResourcesService {
       List<McpDispatchInterceptor<ReadResourceHandler, ResourceRequestParams>>
           dispatchInterceptors) {
     this(
-        contributors.stream().flatMap(c -> c.resources().stream()).toList(),
-        contributors.stream().flatMap(c -> c.resourceTemplates().stream()).toList(),
+        mergeResources(contributors),
+        mergeTemplates(contributors),
         engine,
         pageSize,
         cacheSettings,
         dispatchInterceptors);
   }
 
+  /**
+   * Merges every contributor's {@link ResourceContributor#resources()} into one URI-keyed map,
+   * failing fast with an {@link IllegalStateException} naming both contributors (mirrors {@code
+   * StreamableHttpAutoConfiguration}'s {@code RoutedParamContributor} merge) when two contributors
+   * — or one contributor twice — claim the same URI. Contributors are walked one at a time (rather
+   * than flattened via a single stream) specifically so the offending contributor's identity is
+   * still in hand at the point a collision is detected.
+   */
+  private static Map<String, ReadResourceHandler> mergeResources(
+      List<ResourceContributor> contributors) {
+    Map<String, ReadResourceHandler> merged = new LinkedHashMap<>();
+    Map<String, String> contributedBy = new LinkedHashMap<>();
+    for (ResourceContributor contributor : contributors) {
+      String contributorName = identify(contributor);
+      for (ReadResourceHandler handler : contributor.resources()) {
+        String uri = handler.uri();
+        String existing = contributedBy.putIfAbsent(uri, contributorName);
+        if (existing != null) {
+          throw new IllegalStateException(
+              "ResourceContributor \""
+                  + existing
+                  + "\" and \""
+                  + contributorName
+                  + "\" both contribute resource URI \""
+                  + uri
+                  + "\"");
+        }
+        merged.put(uri, handler);
+      }
+    }
+    return merged;
+  }
+
+  /** Template counterpart of {@link #mergeResources(List)}; see that method for the rationale. */
+  private static Map<String, ReadResourceTemplateHandler> mergeTemplates(
+      List<ResourceContributor> contributors) {
+    Map<String, ReadResourceTemplateHandler> merged = new LinkedHashMap<>();
+    Map<String, String> contributedBy = new LinkedHashMap<>();
+    for (ResourceContributor contributor : contributors) {
+      String contributorName = identify(contributor);
+      for (ReadResourceTemplateHandler handler : contributor.resourceTemplates()) {
+        String uriTemplate = handler.uriTemplate();
+        String existing = contributedBy.putIfAbsent(uriTemplate, contributorName);
+        if (existing != null) {
+          throw new IllegalStateException(
+              "ResourceContributor \""
+                  + existing
+                  + "\" and \""
+                  + contributorName
+                  + "\" both contribute URI template \""
+                  + uriTemplate
+                  + "\"");
+        }
+        merged.put(uriTemplate, handler);
+      }
+    }
+    return merged;
+  }
+
+  /**
+   * Names a contributor for a collision message. Falls back to the fully qualified name for
+   * anonymous contributors (e.g. {@link ResourceContributor#of}'s adapter), whose simple name is
+   * blank.
+   */
+  private static String identify(ResourceContributor contributor) {
+    Class<?> type = contributor.getClass();
+    String simpleName = type.getSimpleName();
+    return simpleName.isEmpty() ? type.getName() : simpleName;
+  }
+
   private McpResourcesService(
-      List<ReadResourceHandler> handlers,
-      List<ReadResourceTemplateHandler> templateHandlers,
+      Map<String, ReadResourceHandler> resources,
+      Map<String, ReadResourceTemplateHandler> templatesByString,
       MrtrElicitationEngine engine,
       int pageSize,
       CacheSettings cacheSettings,
       List<McpDispatchInterceptor<ReadResourceHandler, ResourceRequestParams>>
           dispatchInterceptors) {
-    this.resources =
-        handlers.stream()
-            .collect(
-                Collectors.toMap(
-                    ReadResourceHandler::uri,
-                    h -> h,
-                    (a, b) -> {
-                      throw new IllegalArgumentException("Duplicate resource URI: " + a.uri());
-                    },
-                    LinkedHashMap::new));
+    this.resources = resources;
     this.sortedResources =
-        handlers.stream().sorted(Comparator.comparing(ReadResourceHandler::uri)).toList();
+        resources.values().stream().sorted(Comparator.comparing(ReadResourceHandler::uri)).toList();
 
-    var templatesByString =
-        templateHandlers.stream()
-            .collect(
-                Collectors.toMap(
-                    ReadResourceTemplateHandler::uriTemplate,
-                    h -> h,
-                    (a, b) -> {
-                      throw new IllegalArgumentException(
-                          "Duplicate URI template: " + a.uriTemplate());
-                    },
-                    LinkedHashMap::new));
     this.templates = new LinkedHashMap<>();
     templatesByString.forEach(
         (uriTemplate, handler) -> this.templates.put(new UriTemplate(uriTemplate), handler));
     this.sortedTemplates =
-        templateHandlers.stream()
+        templatesByString.values().stream()
             .sorted(Comparator.comparing(ReadResourceTemplateHandler::uriTemplate))
             .toList();
     this.pageSize = pageSize;
