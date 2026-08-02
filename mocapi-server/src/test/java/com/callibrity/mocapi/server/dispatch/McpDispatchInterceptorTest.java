@@ -47,6 +47,7 @@ import com.callibrity.mocapi.server.tools.util.HelloTool;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -188,10 +189,8 @@ class McpDispatchInterceptorTest {
         descriptor,
         null,
         null,
-        args -> {
-          @SuppressWarnings("unchecked")
-          var typed = (java.util.Map<String, String>) args;
-          String arg1 = typed.getOrDefault("arg1", "default");
+        (Map<String, String> args) -> {
+          String arg1 = args.getOrDefault("arg1", "default");
           return new GetPromptResult(
               "Alpha desc",
               List.of(new PromptMessage(Role.USER, new TextContent(arg1, null))),
