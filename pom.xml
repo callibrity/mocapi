@@ -73,6 +73,7 @@
         <module>mocapi-otel</module>
         <module>mocapi-audit</module>
         <module>mocapi-apps</module>
+        <module>mocapi-tasks</module>
         <module>mocapi-actuator</module>
         <module>mocapi-spring-security-guards</module>
         <module>mocapi-prompts-mustache</module>
