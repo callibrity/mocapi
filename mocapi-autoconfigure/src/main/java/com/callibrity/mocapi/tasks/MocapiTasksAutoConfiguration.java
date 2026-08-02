@@ -105,8 +105,9 @@ public class MocapiTasksAutoConfiguration {
       TaskStore store,
       TaskExecutionEngine engine,
       McpPrincipalSource principalSource,
-      Clock clock) {
-    return new McpTasksService(store, engine, principalSource, clock);
+      Clock clock,
+      ObjectMapper objectMapper) {
+    return new McpTasksService(store, engine, principalSource, clock, objectMapper);
   }
 
   @Bean

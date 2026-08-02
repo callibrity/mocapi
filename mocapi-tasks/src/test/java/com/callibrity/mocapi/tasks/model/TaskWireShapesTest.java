@@ -21,7 +21,6 @@ import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ElicitAction;
 import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.InputRequest;
-import com.callibrity.mocapi.model.InputResponse;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.tasks.TasksExtension;
 import com.callibrity.ripcurl.core.JsonRpcErrorDetail;
@@ -221,17 +220,17 @@ class TaskWireShapesTest {
 
     @Test
     void round_trips_an_elicit_result_input_response() throws Exception {
-      Map<String, InputResponse> inputResponses =
-          Map.of("elicit-1", new ElicitResult(ElicitAction.ACCEPT, null));
+      Map<String, JsonNode> inputResponses =
+          Map.of("elicit-1", mapper.valueToTree(new ElicitResult(ElicitAction.ACCEPT, null)));
       var original = new UpdateTaskParams("t1", inputResponses, null);
 
       String json = mapper.writeValueAsString(original);
       var deserialized = mapper.readValue(json, UpdateTaskParams.class);
 
       assertThat(deserialized.taskId()).isEqualTo("t1");
-      assertThat(deserialized.inputResponses().get("elicit-1"))
-          .isInstanceOfSatisfying(
-              ElicitResult.class, r -> assertThat(r.action()).isEqualTo(ElicitAction.ACCEPT));
+      ElicitResult response =
+          mapper.treeToValue(deserialized.inputResponses().get("elicit-1"), ElicitResult.class);
+      assertThat(response.action()).isEqualTo(ElicitAction.ACCEPT);
     }
   }
 

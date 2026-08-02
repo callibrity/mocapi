@@ -25,7 +25,6 @@ import com.callibrity.mocapi.model.ElicitRequest;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.InputRequest;
-import com.callibrity.mocapi.model.InputResponse;
 import com.callibrity.mocapi.model.RequestMeta;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
@@ -54,6 +53,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 /**
@@ -66,6 +67,7 @@ class McpTasksServiceTest {
   private static final Instant BASE_TIME = Instant.parse("2026-08-02T00:00:00Z");
   private static final Clock CLOCK = Clock.fixed(BASE_TIME, ZoneOffset.UTC);
   private static final Duration AWAIT_TIMEOUT = Duration.ofSeconds(2);
+  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   /** {@code _meta} declaring the {@code io.modelcontextprotocol/tasks} capability. */
   private static final RequestMeta CAPABLE_META =
@@ -162,7 +164,7 @@ class McpTasksServiceTest {
   }
 
   private McpTasksService service(McpPrincipalSource principalSource, TaskExecutionEngine engine) {
-    return new McpTasksService(store, engine, principalSource, CLOCK);
+    return new McpTasksService(store, engine, principalSource, CLOCK, MAPPER);
   }
 
   private TaskExecutionEngine engine(ToolCallReplayInvoker invoker) {
@@ -349,6 +351,10 @@ class McpTasksServiceTest {
         base.version());
   }
 
+  private static JsonNode acceptNode() {
+    return MAPPER.valueToTree(new ElicitResult(ElicitAction.ACCEPT, null));
+  }
+
   @Test
   void update_answering_the_outstanding_key_flips_to_working_and_resumes_exactly_once() {
     store.create(inputRequiredRecord("t-update"));
@@ -358,8 +364,7 @@ class McpTasksServiceTest {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine(invoker));
 
-    Map<String, InputResponse> responses =
-        Map.of("elicit-1", new ElicitResult(ElicitAction.ACCEPT, null));
+    Map<String, JsonNode> responses = Map.of("elicit-1", acceptNode());
     var result = service.updateTask(new UpdateTaskParams("t-update", responses, CAPABLE_META));
 
     assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
@@ -377,8 +382,7 @@ class McpTasksServiceTest {
         new CountingInvoker(new ToolCallReplayInvoker.Outcome.Completed(toolResult));
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine(invoker));
-    Map<String, InputResponse> responses =
-        Map.of("elicit-1", new ElicitResult(ElicitAction.ACCEPT, null));
+    Map<String, JsonNode> responses = Map.of("elicit-1", acceptNode());
 
     service.updateTask(new UpdateTaskParams("t-dup", responses, CAPABLE_META));
     await("t-dup", TaskStatus.COMPLETED);
@@ -400,8 +404,7 @@ class McpTasksServiceTest {
                 new CallToolResult(List.of(), false, null, "complete")));
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine(invoker));
-    Map<String, InputResponse> responses =
-        Map.of("elicit-not-outstanding", new ElicitResult(ElicitAction.ACCEPT, null));
+    Map<String, JsonNode> responses = Map.of("elicit-not-outstanding", acceptNode());
 
     var result = service.updateTask(new UpdateTaskParams("t-unknown-key", responses, CAPABLE_META));
 
@@ -409,6 +412,64 @@ class McpTasksServiceTest {
     assertThat(store.get("t-unknown-key").orElseThrow().status())
         .isEqualTo(TaskStatus.INPUT_REQUIRED);
     assertThat(invoker.invocationCount()).isEqualTo(0);
+  }
+
+  @Test
+  void update_ignores_a_malformed_entry_but_still_merges_a_valid_one_in_the_same_call() {
+    // Two outstanding keys on one record: real production tasks only ever have one (ADR-0021's
+    // single-pending-request-per-round replay model), but the store's shape doesn't forbid it, and
+    // this directly exercises mergeResponses' per-entry tolerance (SEP-2322 "SHOULD ignore
+    // information it does not recognize") independent of how the ledger was populated.
+    ElicitRequest request = new ElicitRequest(new ElicitRequestFormParams("please answer", null));
+    TaskRecord base = inputRequiredRecord("t-mixed-update");
+    TaskRecord twoOutstanding =
+        new TaskRecord(
+            base.taskId(),
+            base.toolName(),
+            base.arguments(),
+            base.principal(),
+            base.protocolVersion(),
+            base.clientCapabilities(),
+            base.status(),
+            base.statusMessage(),
+            base.createdAt(),
+            base.lastUpdatedAt(),
+            base.ttl(),
+            base.pollInterval(),
+            List.of(
+                new ResponseLedgerEntry("elicit-1", "fp-1", null),
+                new ResponseLedgerEntry("elicit-2", "fp-2", null)),
+            Map.of("elicit-1", request, "elicit-2", request),
+            null,
+            null,
+            base.version());
+    store.create(twoOutstanding);
+    CountingInvoker invoker =
+        new CountingInvoker(
+            new ToolCallReplayInvoker.Outcome.Completed(
+                new CallToolResult(List.of(), false, null, "complete")));
+    StubPrincipalSource principals = new StubPrincipalSource();
+    McpTasksService service = service(principals, engine(invoker));
+    // "ignored" has no recognizable ElicitResult/CreateMessageResult/ListRootsResult fingerprint —
+    // exactly the {"ignored":true} shape the conformance suite's
+    // tasks-result-type-complete-on-non-task-responses check sends.
+    Map<String, JsonNode> responses =
+        Map.of(
+            "elicit-1", acceptNode(), "elicit-2", MAPPER.createObjectNode().put("ignored", true));
+
+    var result =
+        service.updateTask(new UpdateTaskParams("t-mixed-update", responses, CAPABLE_META));
+
+    assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
+    TaskRecord updated = store.get("t-mixed-update").orElseThrow();
+    assertThat(updated.ledger())
+        .filteredOn(e -> e.key().equals("elicit-1"))
+        .singleElement()
+        .satisfies(e -> assertThat(e.isAnswered()).isTrue());
+    assertThat(updated.ledger())
+        .filteredOn(e -> e.key().equals("elicit-2"))
+        .singleElement()
+        .satisfies(e -> assertThat(e.isAnswered()).isFalse());
   }
 
   @Test

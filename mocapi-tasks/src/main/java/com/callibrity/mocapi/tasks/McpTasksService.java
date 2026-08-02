@@ -16,7 +16,6 @@
 package com.callibrity.mocapi.tasks;
 
 import com.callibrity.mocapi.model.ElicitResult;
-import com.callibrity.mocapi.model.InputResponse;
 import com.callibrity.mocapi.model.RequestMeta;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
@@ -42,6 +41,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * The {@code io.modelcontextprotocol/tasks} extension's three JSON-RPC methods: {@code tasks/get},
@@ -60,16 +62,19 @@ public class McpTasksService {
   private final TaskExecutionEngine engine;
   private final McpPrincipalSource principalSource;
   private final Clock clock;
+  private final ObjectMapper objectMapper;
 
   public McpTasksService(
       TaskStore store,
       TaskExecutionEngine engine,
       McpPrincipalSource principalSource,
-      Clock clock) {
+      Clock clock,
+      ObjectMapper objectMapper) {
     this.store = store;
     this.engine = engine;
     this.principalSource = principalSource;
     this.clock = clock;
+    this.objectMapper = objectMapper;
   }
 
   @JsonRpcMethod(TasksExtension.TASKS_GET)
@@ -94,7 +99,7 @@ public class McpTasksService {
   public UpdateTaskResult updateTask(@JsonRpcParams UpdateTaskParams params) {
     requireTaskCapable(params.meta(), TasksExtension.TASKS_UPDATE);
     requireOwned(params.taskId());
-    Map<String, InputResponse> responses =
+    Map<String, JsonNode> responses =
         params.inputResponses() != null ? params.inputResponses() : Map.of();
     // Reset every mutation invocation: TaskStore.update may re-invoke the mutation function
     // (optimistic retry), and only the final invocation's result is stored — flipped must reflect
@@ -154,26 +159,47 @@ public class McpTasksService {
 
   /**
    * Answers each outstanding ledger entry whose key is present in {@code responses} with an {@link
-   * ElicitResult}, ignoring unknown keys and non-{@code ElicitResult} responses (spec SHOULD).
-   * Returns {@code null} if nothing outstanding was answered.
+   * ElicitResult}, ignoring unknown keys and entries that don't convert to one (spec SHOULD:
+   * "servers SHOULD ignore information they do not recognize" — SEP-2322). {@code responses} values
+   * are raw {@link JsonNode}s precisely so a malformed or unrecognized-shape entry for one key can
+   * be skipped without failing the whole {@code tasks/update} request; only entries that are both
+   * outstanding AND convert cleanly are applied. Returns {@code null} if nothing outstanding was
+   * answered.
    */
-  private static List<ResponseLedgerEntry> mergeResponses(
+  private List<ResponseLedgerEntry> mergeResponses(
       List<ResponseLedgerEntry> ledger,
       Map<String, ?> outstanding,
-      Map<String, InputResponse> responses) {
+      Map<String, JsonNode> responses) {
     boolean answeredAny = false;
     List<ResponseLedgerEntry> merged = new ArrayList<>(ledger.size());
     for (ResponseLedgerEntry entry : ledger) {
-      InputResponse response = responses.get(entry.key());
-      if (!entry.isAnswered()
-          && outstanding.containsKey(entry.key())
-          && response instanceof ElicitResult elicitResult) {
-        merged.add(entry.answeredWith(elicitResult));
+      ElicitResult response =
+          !entry.isAnswered() && outstanding.containsKey(entry.key())
+              ? toElicitResult(responses.get(entry.key()))
+              : null;
+      if (response != null) {
+        merged.add(entry.answeredWith(response));
         answeredAny = true;
       } else {
         merged.add(entry);
       }
     }
     return answeredAny ? merged : null;
+  }
+
+  /**
+   * Converts a raw {@code inputResponses} entry to {@link ElicitResult}, returning {@code null}
+   * (rather than throwing) on a missing key or a value that doesn't match the shape — the spec
+   * SHOULD-ignore behavior this method exists to implement.
+   */
+  private ElicitResult toElicitResult(JsonNode node) {
+    if (node == null) {
+      return null;
+    }
+    try {
+      return objectMapper.treeToValue(node, ElicitResult.class);
+    } catch (JacksonException e) {
+      return null;
+    }
   }
 }

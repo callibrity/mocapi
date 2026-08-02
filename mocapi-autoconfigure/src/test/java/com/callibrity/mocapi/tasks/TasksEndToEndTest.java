@@ -218,6 +218,21 @@ class TasksEndToEndTest {
     assertThat(error.error().message()).isEqualTo("Unknown task");
   }
 
+  // ---- 8: tasks/* namespace capability gate ----
+
+  @Test
+  void tasks_get_from_a_non_capable_client_rejects_with_missing_capability_before_task_lookup() {
+    // taskId doesn't need to exist — proves the dispatcher/translator wiring gates on the
+    // capability before task lookup, mirroring McpTasksServiceTest's unit-level coverage of the
+    // same rule at the JsonRpcDispatcher seam a real transport hands requests to.
+    var response = dispatcher.dispatch(tasksGetNonCapable("does-not-exist"));
+
+    JsonRpcError error = errorOf(response);
+    assertThat(error.error().code()).isEqualTo(-32021);
+    JsonNode required = error.error().data().path("requiredCapabilities");
+    assertThat(required.path("extensions").path(TasksExtension.EXTENSION_ID).isObject()).isTrue();
+  }
+
   // ---- helpers ----
 
   private JsonNode resultOf(Object response) {
@@ -281,6 +296,13 @@ class TasksEndToEndTest {
     ObjectNode params = objectMapper.createObjectNode();
     params.put("taskId", taskId);
     params.set("_meta", meta(true, false));
+    return new JsonRpcCall(JsonRpcProtocol.VERSION, TasksExtension.TASKS_GET, params, nextId());
+  }
+
+  private JsonRpcCall tasksGetNonCapable(String taskId) {
+    ObjectNode params = objectMapper.createObjectNode();
+    params.put("taskId", taskId);
+    params.set("_meta", meta(false, false));
     return new JsonRpcCall(JsonRpcProtocol.VERSION, TasksExtension.TASKS_GET, params, nextId());
   }
 
