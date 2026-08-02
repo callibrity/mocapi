@@ -162,7 +162,7 @@ public interface TaskStore {
 `InMemoryTaskStore` is the `@ConditionalOnMissingBean` default (with a
 startup WARN about its non-durability); a production, multi-node
 deployment supplies its own bean. See the atomicity contract in
-[Tasks](tasks.md#tasktore-spi) and the `TaskStoreContractTest` TCK
+[Tasks](tasks.md#writing-a-custom-taskstore) and the `TaskStoreContractTest` TCK
 before writing one.
 
 ### 7. `ProgressSink` — a one-way delivery callback
@@ -318,7 +318,7 @@ SEP defines its own error code (the way the Tasks extension's draft
 text specifies one, even though mocapi ultimately follows the core
 registry's `MissingRequiredClientCapabilityErrorData.CODE` for that
 particular case — see
-[tasks.md](tasks.md#the-decision-rule)), use the spec-defined code
+[tasks.md](../design/tasks.md#the-decision-rule)), use the spec-defined code
 verbatim. If your extension has no SEP-defined code for a given
 failure, prefer an existing spec-generic code (`-32602 Invalid params`,
 `-32603 Internal error`) over minting a new one. This mirrors ADR-0023's
