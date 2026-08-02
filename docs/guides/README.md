@@ -16,6 +16,7 @@ server, start here.
 - [MCP Tasks](tasks.md) — poll long-running tools with `@McpTask`, plus deployment topology and custom `TaskStore` guidance
 
 ## Extending mocapi
+- [**Extending mocapi**](extending-mocapi.md) — start here: the seam taxonomy, one worked example per seam, the dispatch-interceptor contract
 - [Customizers](customizers.md)
 - [Custom Parameter Resolvers](parameter-resolvers.md)
 - [Guards](guards.md)

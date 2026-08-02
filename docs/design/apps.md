@@ -9,8 +9,11 @@ For decisions, see:
 - [ADR-0033](../adr/0033-mcp-apps-module-and-ui-capability.md) — the
   `mocapi-apps` module and the `io.modelcontextprotocol/ui` capability
 - [ADR-0034](../adr/0034-descriptor-meta-and-customizer-seams.md) —
-  `_meta` on `Tool`/`Resource` and the descriptor-customizer seams Apps
-  is built on
+  `_meta` on `Tool`/`Resource` and the original descriptor-customizer
+  seams Apps was built on *(amended by ADR-0039 — see below)*
+- [ADR-0039](../adr/0039-extension-seam-taxonomy-and-dispatch-interception.md) —
+  folds the descriptor-customizer seam into the four `*HandlerCustomizer`
+  SPIs; Apps' two customizers are renamed accordingly
 - [ADR-0032](../adr/0032-meta-annotation-aware-handler-discovery.md) —
   meta-annotation-aware handler discovery, which lets `@McpAppResource`
   register as a resource with no bespoke SPI
@@ -69,9 +72,9 @@ mocapi-apps
   UiResourceMeta      — record: resource _meta.ui shape (csp, sandbox)
   McpUiResourceCsp    — record: connect/resource/frame/baseUri domain lists
   McpUiToolMeta        — record: tool _meta.ui shape (resourceUri, visibility)
-  AppsResourceDescriptorCustomizer — reads @McpAppResource → writes Resource._meta.ui
-  AppsToolDescriptorCustomizer     — reads @McpUi → writes Tool._meta.ui
-  UiCapabilityCustomizer           — declares capabilities.extensions["io.modelcontextprotocol/ui"]
+  AppsResourceUiMetaCustomizer — reads @McpAppResource → writes Resource._meta.ui (ReadResourceHandlerCustomizer)
+  AppsToolUiMetaCustomizer     — reads @McpUi → writes Tool._meta.ui (CallToolHandlerCustomizer)
+  UiCapabilityCustomizer       — declares capabilities.extensions["io.modelcontextprotocol/ui"]
 ```
 
 `MocapiAppsAutoConfiguration` (in `mocapi-autoconfigure`, gated
@@ -92,7 +95,7 @@ touches it); Apps writes a `ui` key into it.
 
 ### Resource `_meta.ui` — `UiResourceMeta`
 
-Written by `AppsResourceDescriptorCustomizer` when a `@McpResource`
+Written by `AppsResourceUiMetaCustomizer` when a `@McpResource`
 method (or, via meta-annotation, `@McpAppResource`) carries the merged
 `@McpAppResource` annotation:
 
@@ -117,7 +120,7 @@ explicitly deferred (§6.3 of the design spec); mocapi has no call-time
 
 ### Tool `_meta.ui` — `McpUiToolMeta`
 
-Written by `AppsToolDescriptorCustomizer` when a `@McpTool` method
+Written by `AppsToolUiMetaCustomizer` when a `@McpTool` method
 carries `@McpUi`:
 
 ```json
@@ -179,7 +182,7 @@ Like every `@McpResource` handler, the method returns a
 ADR-0035) — `ReadResourceHandlers.validateReturnType` accepts any of
 these at startup regardless of which annotation registered the method.
 
-`AppsResourceDescriptorCustomizer` runs after the `Resource` descriptor
+`AppsResourceUiMetaCustomizer` runs after the `Resource` descriptor
 is otherwise built and reads `csp()`/`sandbox()` off the merged
 annotation (via `AnnotatedElementUtils.findMergedAnnotation`) to write
 `_meta.ui`.
@@ -195,7 +198,7 @@ discovery behavior, only descriptor metadata:
 public WeatherResult getWeather(Args a) { … }
 ```
 
-`AppsToolDescriptorCustomizer` reads `@McpUi` and writes
+`AppsToolUiMetaCustomizer` reads `@McpUi` and writes
 `_meta.ui.resourceUri` (+ `visibility`). The per-call data the UI
 renders rides the **normal** `CallToolResult` (typically
 `structuredContent`) — no special context object is involved.
@@ -244,27 +247,36 @@ ADR-0033's "Consequences" section for the forward-compatibility note.
 
 ## Descriptor-customizer seam recap
 
-Apps is the first consumer of the generic seam from ADR-0034:
+Apps was the first consumer of ADR-0034's generic descriptor-`_meta`
+seam. ADR-0039 folded that seam's originally-standalone descriptor
+customizer interfaces into the existing per-handler-kind customizers
+(see [ADR-0034](../adr/0034-descriptor-meta-and-customizer-seams.md)'s
+amendment note for the prior shape), so `AppsToolUiMetaCustomizer` and
+`AppsResourceUiMetaCustomizer` are ordinary `CallToolHandlerCustomizer`
+/ `ReadResourceHandlerCustomizer` beans that happen to call the
+`descriptor(T)` mutator:
 
 ```java
-@FunctionalInterface
-public interface ToolDescriptorCustomizer {
-  Tool customize(Method method, Tool descriptor);
-}
-
-@FunctionalInterface
-public interface ResourceDescriptorCustomizer {
-  Resource customize(Method method, Resource descriptor);
+public class AppsToolUiMetaCustomizer implements CallToolHandlerCustomizer {
+  @Override
+  public void customize(CallToolHandlerConfig config) {
+    // ... build McpUiToolMeta from @McpUi ...
+    Tool descriptor = config.descriptor();
+    config.descriptor(descriptor.withMeta(meta));
+  }
 }
 ```
 
-`CallToolHandlers.build` and `ReadResourceHandlers.build` apply every
-registered customizer to the generated descriptor, passing the
-handler's source `Method` so a customizer can read annotations off it.
-Core has no knowledge of what "ui" means — it only offers "enrich this
-descriptor's `_meta` before it's published." See
-[Extension SPI](extension-spi.md) and [Handlers](handlers.md) for the
-customizer pattern in general.
+`CallToolHandlers.build` and `ReadResourceHandlers.build` run every
+registered `*HandlerCustomizer` over the generated descriptor at the same
+build-pipeline point the old descriptor-only customizers ran; each
+customizer reads `config.method()` for its annotations and calls
+`config.descriptor(T)` to fold in `_meta`. Core has no knowledge of what
+"ui" means — it only offers "run every registered customizer over this
+handler before it's published." See [Extension SPI](extension-spi.md),
+[Handlers](handlers.md), and the [Extending mocapi
+guide](../guides/extending-mocapi.md#3-calltoolhandlercustomizer--3-siblings--mutate-a-handlers-descriptor-or-strata)
+for the customizer pattern in general.
 
 ## Flows
 
@@ -284,8 +296,8 @@ customizer pattern in general.
 
 ## Testing
 
-- `AppsDescriptorCustomizerTest` — unit coverage of
-  `AppsToolDescriptorCustomizer` / `AppsResourceDescriptorCustomizer`
+- `AppsUiMetaCustomizerTest` — unit coverage of
+  `AppsToolUiMetaCustomizer` / `AppsResourceUiMetaCustomizer`
   producing correct `_meta.ui`.
 - `AnnotationContractTest` — the `@AliasFor`/meta-annotation contract
   on `@McpAppResource` (uri/mimeType merge correctly).

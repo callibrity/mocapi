@@ -66,16 +66,21 @@ designates no custom parameter headers
 ([ADR-0022](../adr/0022-2026-07-28-features-not-implemented.md)).
 
 The `Mcp-Name` table above is the built-in set; it is not the whole
-story. `mocapi-server`'s `McpRoutedParamContributor` seam
-([ADR-0038](../adr/0038-server-seams-for-extensions.md)) lets an
-extension module add its own method → expected-name-field entries
-without the transport module depending on that extension. `mocapi-tasks`
-contributes `tasks/get`, `tasks/update`, and `tasks/cancel`, each
-validated against `params.taskId`. The transport keeps owning wire
-validation ([I2](../constitution.md#i2--single-protocoltransport-coupling))
-without hardcoding extension knowledge — contributed entries are merged
-into the same validation table and enforced identically to the built-in
-ones.
+story. `mocapi-server`'s `RoutedParamContributor` seam
+([ADR-0038](../adr/0038-server-seams-for-extensions.md); renamed for
+taxonomy consistency by
+[ADR-0039](../adr/0039-extension-seam-taxonomy-and-dispatch-interception.md) —
+see its amendment note on ADR-0038 for the prior name) lets an extension
+module add its own method → expected-name-field entries without the
+transport module depending on that extension.
+`mocapi-tasks` contributes `tasks/get`, `tasks/update`, and
+`tasks/cancel`, each validated against `params.taskId`. The transport
+keeps owning wire validation
+([I2](../constitution.md#i2--single-protocoltransport-coupling)) without
+hardcoding extension knowledge — contributed entries are merged into the
+same validation table and enforced identically to the built-in ones. A
+method key colliding with another contributor's, or with a built-in,
+fails the boot naming both parties (ADR-0039).
 
 ### HTTP status from JSON-RPC error codes
 

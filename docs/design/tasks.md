@@ -10,10 +10,14 @@ For decisions, see:
 - [ADR-0037](../adr/0037-mcp-tasks-extension.md) — the `mocapi-tasks`
   module, the `@McpTask` surface, the execution model, and the scoped
   amendment to [I1](../constitution.md#i1--stateless-request-model)
-- [ADR-0038](../adr/0038-server-seams-for-extensions.md) — the three
-  `mocapi-server` seams (`ReplayExecutor` extraction,
-  `ToolCallDispatchCustomizer`, `McpRoutedParamContributor`) plus
-  `ProgressSink`, which this module is built on
+- [ADR-0038](../adr/0038-server-seams-for-extensions.md) — the original
+  four `mocapi-server` seams (`ReplayExecutor` extraction, the original
+  dispatch-hook and routing-contribution shapes, plus `ProgressSink`)
+  this module is built on *(two of the four superseded by ADR-0039; see
+  its amendment note for the prior shape)*
+- [ADR-0039](../adr/0039-extension-seam-taxonomy-and-dispatch-interception.md) —
+  `McpDispatchInterceptor`, `ToolInvocationCore`, `RoutedParamContributor`,
+  and the task-mode guard-parity fix, all used by this module
 - [ADR-0021](../adr/0021-mrtr-elicitation-replay.md) — the MRTR replay
   decision this module's resume model reuses
 - [ADR-0031](../adr/0031-server-capabilities-customizer.md) —
@@ -60,8 +64,10 @@ semantics behave identically in both modes.
 
 `TaskToolCallDispatcher.isTaskCapable` reads the per-request
 `_meta["io.modelcontextprotocol/clientCapabilities"].extensions["io.modelcontextprotocol/tasks"]`
-entry; its mere presence (even `{}`) counts as capable, matching the
-elicitation capability's gating rule
+entry via `ClientCapabilities.hasExtension(TasksExtension.EXTENSION_ID)`
+(ADR-0039) rather than a hand-rolled null/containsKey check; its mere
+presence (even `{}`) counts as capable, matching the elicitation
+capability's gating rule
 ([elicitation-mrtr.md](elicitation-mrtr.md#capability-gating)).
 
 `@McpTask(required = true)` against a non-capable client throws
@@ -88,12 +94,20 @@ top against the merged ledger.
 This works because [ADR-0038](../adr/0038-server-seams-for-extensions.md)
 extracted the replay mechanics out of `MrtrElicitationEngine` into
 `ReplayExecutor` (ordinal cursor, fingerprint enforcement,
-`InputRequiredException` conversion) and out of `McpToolsService` into
-the public `ToolCallReplayInvoker` (handler lookup, context construction,
-ScopedValue binding, the six-stratum chain, result/exception mapping).
-`McpToolsService` itself implements `ToolCallReplayInvoker` — the wire
-path and the task path both terminate in the identical execution core;
-only the ledger's carrier differs:
+`InputRequiredException` conversion), and
+[ADR-0039](../adr/0039-extension-seam-taxonomy-and-dispatch-interception.md)
+extracted the shared invocation mechanics (handler lookup, context
+construction, ScopedValue binding, the six-stratum chain,
+result/exception mapping) out of `McpToolsService` into the standalone
+`ToolInvocationCore`, which implements the public `ToolCallReplayInvoker`.
+`McpToolsService` delegates its own synchronous path to the same core —
+the wire path and the task path both terminate in the identical
+execution core; only the ledger's carrier differs. (Before ADR-0039,
+`McpToolsService` implemented `ToolCallReplayInvoker` directly, which
+needed an `ObjectProvider<McpToolsService>` workaround in
+`MocapiTasksAutoConfiguration` to break a bean-graph cycle with
+`TaskExecutionEngine`; `ToolInvocationCore` sits below both, so the
+workaround is gone.)
 
 | | Wire carrier (`tools/call` retry) | Task carrier (`tasks/update`) |
 |---|---|---|
@@ -174,16 +188,30 @@ how-to.
 
 ### Task creation (`tools/call`)
 
-`TaskToolCallDispatcher` (a `ToolCallDispatchCustomizer`,
-[ADR-0038](../adr/0038-server-seams-for-extensions.md)) claims the call
+`TaskToolCallDispatcher` (an `McpDispatchInterceptor<CallToolHandler,
+CallToolRequestParams>`,
+[ADR-0039](../adr/0039-extension-seam-taxonomy-and-dispatch-interception.md)
+— see its amendment note on ADR-0038 for the original dispatch-hook
+shape this replaces) claims the call
 when the handler carries `@McpTask` and the client declared the `tasks`
-capability. It mints a `taskId` (`TaskIds.newTaskId()`, spec-strength
-entropy), builds a `TaskRecord` (status `WORKING`, the bound principal
-from `McpPrincipalSource`, a snapshot of the request's declared client
-capabilities, the arguments, resolved `ttl`/`pollInterval`, an empty
-ledger), and hands it to `TaskExecutionEngine.createAndStart`, which
-calls `store.create(record)` — durable before returning, per the spec's
-MUST — spawns execution #1, and returns the `CreateTaskResult`.
+capability, **owning** the dispatch rather than calling `proceed()`.
+Because dispatch interceptors run before the handler chain — and
+therefore before the AUTHORIZATION stratum — `TaskToolCallDispatcher`
+evaluates `Guards.evaluate(handler.guards())` itself before minting a
+task record, throwing the same `-32010 Forbidden` a denied synchronous
+call would throw. Without this pre-check, a denied capable client would
+receive a `taskId` whose task record later failed asynchronously instead
+of the immediate synchronous rejection every other guarded call gives
+(guard parity, ADR-0039 §6). Input-schema validation is not duplicated
+here — it still runs once per execution inside the handler chain. Once
+past that check, the dispatcher mints a `taskId` (`TaskIds.newTaskId()`,
+spec-strength entropy), builds a `TaskRecord` (status `WORKING`, the
+bound principal from `McpPrincipalSource`, a snapshot of the request's
+declared client capabilities, the arguments, resolved
+`ttl`/`pollInterval`, an empty ledger), and hands it to
+`TaskExecutionEngine.createAndStart`, which calls `store.create(record)`
+— durable before returning, per the spec's MUST — spawns execution #1,
+and returns the `CreateTaskResult`.
 
 ### Executions: one routine, two trigger sites
 

@@ -31,8 +31,14 @@ server-initiated channel or handshake is introduced.
 `McpServer` ↔ `McpTransport` is the only seam between the protocol layer and
 any transport. `mocapi-server` depends on no I/O framework (no Servlet API, no
 Spring MVC); transports own their wire-format validation and map results to
-their native error format.
-→ [ADR-0002](adr/0002-protocol-transport-contract.md)
+their native error format. An extension module may still *contribute* to a
+transport's own validation table (e.g. `RoutedParamContributor` extending the
+Streamable HTTP `Mcp-Name` table) without the transport depending on that
+extension or ceding ownership of wire validation — the contribution contract
+is additive-only and the transport enforces every entry identically.
+→ [ADR-0002](adr/0002-protocol-transport-contract.md),
+[ADR-0038](adr/0038-server-seams-for-extensions.md),
+[ADR-0039](adr/0039-extension-seam-taxonomy-and-dispatch-interception.md)
 
 ### I3 — Spec-compliance target
 mocapi tracks the current MCP revision (**2026-07-28**) with a clean-break

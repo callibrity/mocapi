@@ -6,6 +6,48 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Changed
+
+- **Internal extension SPIs reshaped** — a taxonomy pass over every mocapi
+  extension seam ([ADR-0039](docs/adr/0039-extension-seam-taxonomy-and-dispatch-interception.md),
+  amending [ADR-0034](docs/adr/0034-descriptor-meta-and-customizer-seams.md)
+  and [ADR-0038](docs/adr/0038-server-seams-for-extensions.md)). Every
+  seam is now named for one of five contracts (`*Contributor`,
+  `*Customizer`, `*Interceptor`, `*Store`/`*Source`/`*Strategy`, `*Sink`)
+  documented in the new [Extending mocapi guide](docs/guides/extending-mocapi.md).
+  This is unreleased/1.1.0-vintage-type churn only — no 1.0.0 public API
+  moved.
+
+  | Old name | New name / replacement |
+  |---|---|
+  | `ToolCallDispatchCustomizer` (`Optional<Object> dispatch(handler, params)`) | `McpDispatchInterceptor<H, P>` (`Object intercept(handler, params, proceed)`) — generalized to `tools/call` + `prompts/get` + `resources/read`, assembled per-service by `DispatchChains` |
+  | `ToolDescriptorCustomizer` | deleted — use `CallToolHandlerCustomizer` + `CallToolHandlerConfig.descriptor(Tool)` |
+  | `ResourceDescriptorCustomizer` | deleted — use `ReadResourceHandlerCustomizer` + `ReadResourceHandlerConfig.descriptor(Resource)` |
+  | `McpRoutedParamContributor` | `RoutedParamContributor` (package unchanged: `com.callibrity.mocapi.server.routing`) |
+  | `mocapi-apps`'s `AppsToolDescriptorCustomizer` | `AppsToolUiMetaCustomizer` (`CallToolHandlerCustomizer`) |
+  | `mocapi-apps`'s `AppsResourceDescriptorCustomizer` | `AppsResourceUiMetaCustomizer` (`ReadResourceHandlerCustomizer`) |
+  | `McpToolsService implements ToolCallReplayInvoker` | `ToolInvocationCore implements ToolCallReplayInvoker`; `McpToolsService` delegates its sync path to the same core (closes a bean-graph cycle; the `ObjectProvider<McpToolsService>` workaround in `MocapiTasksAutoConfiguration` is removed) |
+  | `ToolCallReplayInvoker.Outcome` (nested sealed `Completed`/`InputRequired`) | `com.callibrity.mocapi.server.mrtr.ReplayOutcome<R, Q>` (generic, shared with `ReplayExecutor`) |
+  | `ToolCallReplayInvoker.invoke(..., progressOverride, ...)` | same method, parameter renamed `progress` |
+
+- **`ToolInvocationCore`'s logger category.** Tool-invocation warnings
+  (unhandled exceptions, invalid `McpToolException` structured-content
+  shape) now log under `com.callibrity.mocapi.server.tools.ToolInvocationCore`
+  instead of `McpToolsService` — update any log-category-based filters or
+  alert rules.
+- **Handler-build customizer side effects now run even when a deployment
+  overrides `McpToolsService`.** Because handler construction (including
+  every registered `*HandlerCustomizer`) moved to the shared
+  `ToolInvocationCore`/`CallToolHandlerRegistry` path, a deployment that
+  previously supplied its own `McpToolsService` bean to skip customizer
+  side effects no longer does so implicitly — customizers now run
+  unconditionally as part of handler construction.
+- Task-mode calls (`@McpTask`) now get synchronous guard parity with
+  sync-mode calls: `TaskToolCallDispatcher` evaluates the handler's
+  guards before minting a task record, so a denied capable client gets
+  the same immediate `-32010 Forbidden` a synchronous call would, instead
+  of a `taskId` whose task later fails asynchronously.
+
 ## [1.1.0] - 2026-08-01
 
 ### Added

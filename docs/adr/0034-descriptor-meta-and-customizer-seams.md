@@ -1,6 +1,6 @@
 # ADR-0034 — Descriptor `_meta` and descriptor-customizer seams
 
-- **Status:** Accepted
+- **Status:** Amended by ADR-0039
 - **Date:** 2026-07-31
 
 ## Context
@@ -86,7 +86,17 @@ build time, not per-request, matching mocapi's static-discovery model
 
 **Code anchors:**
 
-- `mocapi-server/src/main/java/com/callibrity/mocapi/server/tools/ToolDescriptorCustomizer.java`
-- `mocapi-server/src/main/java/com/callibrity/mocapi/server/resources/ResourceDescriptorCustomizer.java`
+- ~~`mocapi-server/src/main/java/com/callibrity/mocapi/server/tools/ToolDescriptorCustomizer.java`~~ (deleted, see amendment below)
+- ~~`mocapi-server/src/main/java/com/callibrity/mocapi/server/resources/ResourceDescriptorCustomizer.java`~~ (deleted, see amendment below)
 - `mocapi-model/src/main/java/com/callibrity/mocapi/model/Tool.java` (`_meta`)
 - `mocapi-model/src/main/java/com/callibrity/mocapi/model/Resource.java` (`_meta`)
+
+> **Amended ([ADR-0039](0039-extension-seam-taxonomy-and-dispatch-interception.md),
+> 2026-08-02):** `ToolDescriptorCustomizer` and `ResourceDescriptorCustomizer` are
+> deleted. Descriptor mutation folds into the four existing `*HandlerCustomizer` SPIs
+> (ADR-0011) instead of a second, descriptor-only SPI: every `*HandlerConfig` gains a
+> `void descriptor(T)` mutator alongside its `T descriptor()` accessor, applied at the
+> same build-pipeline point descriptor customizers used to run. `mocapi-apps`'s
+> `AppsToolDescriptorCustomizer` / `AppsResourceDescriptorCustomizer` become
+> `AppsToolUiMetaCustomizer` / `AppsResourceUiMetaCustomizer`. The `_meta`-on-descriptors
+> decision above, and its extension to `Prompt`/`ResourceTemplate`, stand unchanged.

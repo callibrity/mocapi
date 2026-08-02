@@ -24,9 +24,9 @@ supported path.
 A companion annotation, `@McpTask` (module `mocapi-tasks`), marks a
 `@McpTool` method eligible for task-augmented invocation under the
 `io.modelcontextprotocol/tasks` extension — no separate handler kind,
-just a `ToolCallDispatchCustomizer` that reroutes matching calls before
+just an `McpDispatchInterceptor` that reroutes matching calls before
 the default MRTR path runs. See [MCP Tasks](tasks.md) and
-[Extension SPI](extension-spi.md#tool-call-dispatch-interception).
+[Extension SPI](extension-spi.md#per-request-dispatch-interception-mcpdispatchinterceptor).
 
 ## GetPromptHandler — `prompts/get`
 
@@ -150,21 +150,40 @@ meta-annotated `@McpResource` with the `ui://` MIME type defaulted and
 bespoke registration SPI. Directly-annotated handlers are unaffected
 (merged detection is a strict superset of raw detection).
 
-## Descriptor customizers (ADR-0034)
+## Descriptor mutators (ADR-0034, folded by ADR-0039)
 
-Each handler's generated `Tool`/`Resource` descriptor is passed through
-a post-processing pass after it is otherwise built: `CallToolHandlers.build`
-applies every registered `List<ToolDescriptorCustomizer>` to the `Tool`,
-and `ReadResourceHandlers.build` applies every registered
-`List<ResourceDescriptorCustomizer>` to the `Resource`. Each customizer
-receives the handler's source `Method` alongside the descriptor, so it
-can read annotations off it to decide what to write. This lets an
-optional module enrich a descriptor's `_meta` — e.g. `mocapi-apps`
-reads `@McpUi`/`@McpAppResource` and writes `_meta.ui` — without core
-knowing what the enrichment means; core only offers "run every
-registered customizer over this descriptor before it's published."
-Descriptors with no customizers registered are unaffected (`_meta` stays
-absent, `NON_NULL`), so the change is wire-additive.
+Each of the four `*HandlerConfig` types (`CallToolHandlerConfig`,
+`GetPromptHandlerConfig`, `ReadResourceHandlerConfig`,
+`ReadResourceTemplateHandlerConfig`) exposes a `void descriptor(T)`
+mutator alongside its `T descriptor()` accessor. A customizer reads
+`config.method()` for its annotations and calls `config.descriptor(T)`
+to publish a modified `Tool`/`Prompt`/`Resource`/`ResourceTemplate` —
+typically to fold data into `_meta`, e.g. `mocapi-apps`'s
+`AppsToolUiMetaCustomizer` / `AppsResourceUiMetaCustomizer` reading
+`@McpUi`/`@McpAppResource` and writing `_meta.ui`. This runs through the
+same four `*HandlerCustomizer` SPIs (ADR-0011) that attach interceptors
+and guards — there is no separate descriptor-only SPI; ADR-0034
+originally introduced two standalone descriptor-customizer interfaces
+(see its amendment note), and
+[ADR-0039](../adr/0039-extension-seam-taxonomy-and-dispatch-interception.md)
+folded them into the existing per-handler-kind customizers instead.
+
+**Identity contract.** A customizer calling `descriptor(replacement)`
+must preserve the original's identity field (`name()`/`uri()`/
+`uriTemplate()`) and, for tools, both compiled schemas. Other
+customizers in the same chain (guards, audit, observability, schema
+validation) commonly close over the descriptor snapshotted at build
+time; replacing identity or schemas desynchronizes those closures from
+what's actually enforced/registered. The mutator exists to replace
+metadata (`title`, `description`, `_meta`) — replacing identity or
+schemas is unsupported and done at the customizer's own risk.
+
+Descriptors with no customizer calling `descriptor(T)` are unaffected
+(`_meta` stays absent, `NON_NULL`), so the change is wire-additive.
+`Tool.withMeta`/`Resource.withMeta`/`Prompt.withMeta`/
+`ResourceTemplate.withMeta` each `deepCopy()` the `ObjectNode` argument
+so a published descriptor's `_meta` can't be mutated out from under it
+by a caller retaining a reference to the node it passed in.
 
 ## Handler context injection
 

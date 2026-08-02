@@ -1,6 +1,6 @@
 # ADR-0038 — Three generic `mocapi-server` seams for the Tasks extension
 
-- **Status:** Accepted
+- **Status:** Amended by ADR-0039
 - **Date:** 2026-08-02
 
 ## Context
@@ -113,6 +113,18 @@ no detached invoker for those kinds yet.
 
 - `mocapi-server/src/main/java/com/callibrity/mocapi/server/mrtr/ReplayExecutor.java`
 - `mocapi-server/src/main/java/com/callibrity/mocapi/server/tools/ToolCallReplayInvoker.java`
-- `mocapi-server/src/main/java/com/callibrity/mocapi/server/tools/ToolCallDispatchCustomizer.java`
-- `mocapi-server/src/main/java/com/callibrity/mocapi/server/routing/McpRoutedParamContributor.java`
+- ~~`mocapi-server/src/main/java/com/callibrity/mocapi/server/tools/ToolCallDispatchCustomizer.java`~~ (deleted, see amendment below)
+- ~~`mocapi-server/src/main/java/com/callibrity/mocapi/server/routing/McpRoutedParamContributor.java`~~ (renamed, see amendment below)
 - `mocapi-server/src/main/java/com/callibrity/mocapi/server/progress/ProgressSink.java`
+
+> **Amended ([ADR-0039](0039-extension-seam-taxonomy-and-dispatch-interception.md),
+> 2026-08-02):** Seams 2 and 3 above are superseded. `ToolCallDispatchCustomizer`
+> (seam 3) is deleted in favor of the generalized, three-service
+> `McpDispatchInterceptor<H, P>` + `DispatchChains`, which also covers
+> `prompts/get` and `resources/read`, not just `tools/call`. The
+> "`McpToolsService` implements `ToolCallReplayInvoker`" placement (seam 2) moves
+> to a new `ToolInvocationCore`, shared by both the wire and detached paths, closing
+> a bean-graph cycle that previously needed an `ObjectProvider` workaround.
+> `McpRoutedParamContributor` (seam 4) is renamed **`RoutedParamContributor`**
+> (package unchanged) for taxonomy consistency; its semantics — and seam 1
+> (`ReplayExecutor`) and the `ProgressSink` seam — stand unchanged.

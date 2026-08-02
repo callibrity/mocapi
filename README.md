@@ -173,6 +173,7 @@ Docs live under [`docs/`](docs/) in three trees:
 - [Logging](docs/guides/logging.md) -- MDC correlation keys via `mocapi-logging`
 - [Audit](docs/guides/audit.md) -- structured audit logging via `mocapi-audit` for compliance queries and SIEM ingestion
 - [Actuator Endpoint](docs/guides/actuator.md) -- `/actuator/mcp` handler-inventory endpoint shape and operational checks
+- [Extending mocapi](docs/guides/extending-mocapi.md) -- the seam taxonomy (`*Contributor`/`*Customizer`/`*Interceptor`/`*Store`-`*Source`-`*Strategy`/`*Sink`), one worked example per seam, the dispatch-interceptor contract, and API-vs-SPI classification
 - [Customizers](docs/guides/customizers.md) -- the `*HandlerCustomizer` SPI for extending mocapi: attach interceptors, guards, and parameter resolvers per handler
 - [Custom Parameter Resolvers](docs/guides/parameter-resolvers.md) -- writing `@CurrentTenant`-style parameter resolvers via the customizer SPI
 - [Configuration Reference](docs/guides/configuration.md) -- all `mocapi.*` properties
