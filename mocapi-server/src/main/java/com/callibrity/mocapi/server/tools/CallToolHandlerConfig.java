@@ -51,6 +51,18 @@ public interface CallToolHandlerConfig {
    * Replaces the tool descriptor that will be advertised for this handler. Customizers call this to
    * fold in additional {@code _meta} or other descriptor changes (ADR-0039); the last customizer to
    * call it wins. {@code descriptor} must not be {@code null}.
+   *
+   * <p><strong>Identity and schema contract:</strong> the replacement must preserve {@link
+   * Tool#name()} and both the compiled {@link Tool#inputSchema()} and {@link Tool#outputSchema()}.
+   * Registration identity ({@code name}) and the guard/audit/observation strata are wired from the
+   * descriptor snapshotted at build time by other customizers in the same chain (o11y, audit,
+   * logging, validation, guards commonly close over {@code descriptor().name()}); replacing it with
+   * a different name desynchronizes those closures from the handler actually registered. Likewise,
+   * input/output schema validation is compiled once from the descriptor's schemas before this
+   * customizer chain runs, so replacing the schemas here does not change what is enforced — only
+   * what is advertised — silently drifting the two apart. This mutator exists to replace metadata
+   * ({@code title}, {@code description}, {@code _meta}); replacing identity or schemas is
+   * unsupported and done at the customizer's own risk.
    */
   void descriptor(Tool descriptor);
 

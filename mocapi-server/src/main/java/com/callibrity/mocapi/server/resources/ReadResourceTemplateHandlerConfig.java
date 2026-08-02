@@ -37,6 +37,14 @@ public interface ReadResourceTemplateHandlerConfig {
    * Replaces the resource-template descriptor that will be advertised for this handler. Customizers
    * call this to fold in additional {@code _meta} or other descriptor changes (ADR-0039); the last
    * customizer to call it wins. {@code descriptor} must not be {@code null}.
+   *
+   * <p><strong>Identity contract:</strong> the replacement must preserve {@link
+   * ResourceTemplate#uriTemplate()}. Registration identity ({@code uriTemplate}) is snapshotted
+   * from the descriptor at build time by other customizers in the same chain (o11y, audit, logging,
+   * validation, guards commonly close over {@code descriptor().uriTemplate()}); replacing it with a
+   * different URI template desynchronizes those closures from the handler actually registered. This
+   * mutator exists to replace metadata ({@code name}, {@code description}, {@code mimeType}, {@code
+   * _meta}); replacing identity is unsupported and done at the customizer's own risk.
    */
   void descriptor(ResourceTemplate descriptor);
 

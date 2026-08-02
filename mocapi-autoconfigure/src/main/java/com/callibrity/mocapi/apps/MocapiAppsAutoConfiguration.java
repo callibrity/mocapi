@@ -37,15 +37,14 @@ public class MocapiAppsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AppsToolDescriptorCustomizer appsToolDescriptorCustomizer(ObjectMapper objectMapper) {
-    return new AppsToolDescriptorCustomizer(objectMapper);
+  public AppsToolUiMetaCustomizer appsToolUiMetaCustomizer(ObjectMapper objectMapper) {
+    return new AppsToolUiMetaCustomizer(objectMapper);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public AppsResourceDescriptorCustomizer appsResourceDescriptorCustomizer(
-      ObjectMapper objectMapper) {
-    return new AppsResourceDescriptorCustomizer(objectMapper);
+  public AppsResourceUiMetaCustomizer appsResourceUiMetaCustomizer(ObjectMapper objectMapper) {
+    return new AppsResourceUiMetaCustomizer(objectMapper);
   }
 
   @Bean

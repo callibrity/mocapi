@@ -30,7 +30,7 @@ import org.jwcarman.methodical.ParameterResolver;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-class AppsDescriptorCustomizerTest {
+class AppsUiMetaCustomizerTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
 
@@ -226,7 +226,7 @@ class AppsDescriptorCustomizerTest {
 
   @Test
   void tool_customizer_stamps_ui_meta_when_McpUi_present() throws Exception {
-    var customizer = new AppsToolDescriptorCustomizer(mapper);
+    var customizer = new AppsToolUiMetaCustomizer(mapper);
     var config =
         new FakeToolConfig(
             method("tool"), new Tool("t", "T", "d", mapper.createObjectNode(), null));
@@ -238,7 +238,7 @@ class AppsDescriptorCustomizerTest {
 
   @Test
   void tool_customizer_is_a_noop_without_McpUi() throws Exception {
-    var customizer = new AppsToolDescriptorCustomizer(mapper);
+    var customizer = new AppsToolUiMetaCustomizer(mapper);
     Tool in = new Tool("t", "T", "d", mapper.createObjectNode(), null);
     var config = new FakeToolConfig(method("plain"), in);
     customizer.customize(config);
@@ -247,7 +247,7 @@ class AppsDescriptorCustomizerTest {
 
   @Test
   void resource_customizer_stamps_ui_csp_when_McpAppResource_present() throws Exception {
-    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper);
     var config =
         new FakeResourceConfig(
             method("ui"), new Resource("ui://dash", "Dash", "d", "text/html;profile=mcp-app"));
@@ -259,7 +259,7 @@ class AppsDescriptorCustomizerTest {
 
   @Test
   void resource_customizer_is_a_noop_without_McpAppResource() throws Exception {
-    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper);
     Resource in = new Resource("res://x", "X", "d", "text/plain");
     var config = new FakeResourceConfig(method("plain"), in);
     customizer.customize(config);
@@ -268,7 +268,7 @@ class AppsDescriptorCustomizerTest {
 
   @Test
   void resource_customizer_omits_csp_when_no_domains_are_declared() throws Exception {
-    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper);
     var config =
         new FakeResourceConfig(
             method("resNoCsp"), new Resource("ui://plain", "Plain", "d", "text/html"));
@@ -280,7 +280,7 @@ class AppsDescriptorCustomizerTest {
 
   @Test
   void resource_customizer_stamps_resource_domains() throws Exception {
-    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper);
     var config =
         new FakeResourceConfig(method("resResourceCsp"), new Resource("ui://res", "R", "d", "t"));
     customizer.customize(config);
@@ -291,7 +291,7 @@ class AppsDescriptorCustomizerTest {
 
   @Test
   void resource_customizer_stamps_frame_domains() throws Exception {
-    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper);
     var config =
         new FakeResourceConfig(method("resFrameCsp"), new Resource("ui://res", "R", "d", "t"));
     customizer.customize(config);
@@ -302,7 +302,7 @@ class AppsDescriptorCustomizerTest {
 
   @Test
   void resource_customizer_stamps_base_uri_domains() throws Exception {
-    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper);
     var config =
         new FakeResourceConfig(method("resBaseUriCsp"), new Resource("ui://res", "R", "d", "t"));
     customizer.customize(config);
@@ -313,7 +313,7 @@ class AppsDescriptorCustomizerTest {
 
   @Test
   void resource_customizer_stamps_sandbox_tokens() throws Exception {
-    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper);
     var config =
         new FakeResourceConfig(method("resSandbox"), new Resource("ui://res", "R", "d", "t"));
     customizer.customize(config);
@@ -324,7 +324,7 @@ class AppsDescriptorCustomizerTest {
 
   @Test
   void resource_customizer_preserves_existing_meta() throws Exception {
-    var customizer = new AppsResourceDescriptorCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper);
     Resource withMeta =
         new Resource("ui://dash", "Dash", "d", "text/html")
             .withMeta(mapper.createObjectNode().put("existing", "kept"));

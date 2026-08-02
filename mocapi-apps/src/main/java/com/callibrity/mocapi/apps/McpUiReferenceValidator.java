@@ -30,7 +30,7 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * Fails the application startup if any tool's {@code @McpUi} link points at a {@code ui://}
  * resource that no handler on this server declares. The link lives on the tool descriptor as {@code
- * _meta.ui.resourceUri} (written by {@link AppsToolDescriptorCustomizer}); this cross-checks each
+ * _meta.ui.resourceUri} (written by {@link AppsToolUiMetaCustomizer}); this cross-checks each
  * against the URIs registered with {@link McpResourcesService}. A fat-fingered URI would otherwise
  * fail silently in the host at render time — this turns it into a clear error at boot.
  *

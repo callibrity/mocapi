@@ -24,11 +24,11 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /** Writes a tool's {@code _meta.ui} from an {@link McpUi} annotation, when present (ADR-0039). */
-public class AppsToolDescriptorCustomizer implements CallToolHandlerCustomizer {
+public class AppsToolUiMetaCustomizer implements CallToolHandlerCustomizer {
 
   private final ObjectMapper mapper;
 
-  public AppsToolDescriptorCustomizer(ObjectMapper mapper) {
+  public AppsToolUiMetaCustomizer(ObjectMapper mapper) {
     this.mapper = mapper;
   }
 

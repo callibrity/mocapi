@@ -43,8 +43,8 @@ class MocapiAppsAutoConfigurationTest {
   void registers_apps_customizers() {
     runner.run(
         context -> {
-          assertThat(context).hasSingleBean(AppsToolDescriptorCustomizer.class);
-          assertThat(context).hasSingleBean(AppsResourceDescriptorCustomizer.class);
+          assertThat(context).hasSingleBean(AppsToolUiMetaCustomizer.class);
+          assertThat(context).hasSingleBean(AppsResourceUiMetaCustomizer.class);
           assertThat(context).hasSingleBean(UiCapabilityCustomizer.class);
         });
   }

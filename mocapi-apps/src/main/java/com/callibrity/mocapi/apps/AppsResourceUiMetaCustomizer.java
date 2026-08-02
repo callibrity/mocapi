@@ -28,11 +28,11 @@ import tools.jackson.databind.node.ObjectNode;
  * Writes a UI resource's {@code _meta.ui} (CSP/sandbox) from an {@link McpAppResource}, when
  * present (ADR-0039).
  */
-public class AppsResourceDescriptorCustomizer implements ReadResourceHandlerCustomizer {
+public class AppsResourceUiMetaCustomizer implements ReadResourceHandlerCustomizer {
 
   private final ObjectMapper mapper;
 
-  public AppsResourceDescriptorCustomizer(ObjectMapper mapper) {
+  public AppsResourceUiMetaCustomizer(ObjectMapper mapper) {
     this.mapper = mapper;
   }
 
