@@ -280,14 +280,14 @@ class TasksEndToEndTest {
   private JsonRpcCall tasksGet(String taskId) {
     ObjectNode params = objectMapper.createObjectNode();
     params.put("taskId", taskId);
-    params.set("_meta", meta(false, false));
+    params.set("_meta", meta(true, false));
     return new JsonRpcCall(JsonRpcProtocol.VERSION, TasksExtension.TASKS_GET, params, nextId());
   }
 
   private JsonRpcCall tasksCancel(String taskId) {
     ObjectNode params = objectMapper.createObjectNode();
     params.put("taskId", taskId);
-    params.set("_meta", meta(false, false));
+    params.set("_meta", meta(true, false));
     return new JsonRpcCall(JsonRpcProtocol.VERSION, TasksExtension.TASKS_CANCEL, params, nextId());
   }
 
@@ -299,7 +299,7 @@ class TasksEndToEndTest {
     entry.put("action", "accept");
     ObjectNode contentNode = entry.putObject("content");
     content.forEach(contentNode::putPOJO);
-    params.set("_meta", meta(false, false));
+    params.set("_meta", meta(true, false));
     return new JsonRpcCall(JsonRpcProtocol.VERSION, TasksExtension.TASKS_UPDATE, params, nextId());
   }
 

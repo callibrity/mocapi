@@ -82,7 +82,7 @@ public class TaskToolCallDispatcher implements ToolCallDispatchCustomizer {
     }
     if (!isTaskCapable(params.meta())) {
       if (annotation.required()) {
-        throw new McpTaskRequiredException(handler.name());
+        throw new McpTaskRequiredException("Tool \"" + handler.name() + "\"");
       }
       return Optional.empty(); // graceful sync degrade
     }

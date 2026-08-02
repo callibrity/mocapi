@@ -17,6 +17,7 @@ package com.callibrity.mocapi.tasks;
 
 import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.InputResponse;
+import com.callibrity.mocapi.model.RequestMeta;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
 import com.callibrity.mocapi.server.mrtr.ResponseLedgerEntry;
@@ -44,10 +45,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The {@code io.modelcontextprotocol/tasks} extension's three JSON-RPC methods: {@code tasks/get},
- * {@code tasks/update}, and {@code tasks/cancel}. Every method binds the lookup to the requesting
- * principal ({@link McpPrincipalSource}) — an unknown, expired, or foreign-owned task all report
- * the identical {@code "Unknown task"} {@code -32602} error, so a caller cannot distinguish
- * "doesn't exist" from "not yours" (spec §7.6).
+ * {@code tasks/update}, and {@code tasks/cancel}. Every method first requires the caller to have
+ * declared the {@code io.modelcontextprotocol/tasks} capability (SEP-2575 "Missing Required
+ * Capabilities"; SEP-2663 extends the gate to the whole {@code tasks/*} namespace, not just
+ * {@code @McpTask(required = true)} tools) — a non-capable caller gets {@code -32021} regardless of
+ * whether the referenced task exists. Once past that gate, every method binds the lookup to the
+ * requesting principal ({@link McpPrincipalSource}) — an unknown, expired, or foreign-owned task
+ * all report the identical {@code "Unknown task"} {@code -32602} error, so a capable caller cannot
+ * distinguish "doesn't exist" from "not yours" (spec §7.6).
  */
 public class McpTasksService {
 
@@ -69,6 +74,7 @@ public class McpTasksService {
 
   @JsonRpcMethod(TasksExtension.TASKS_GET)
   public GetTaskResult getTask(@JsonRpcParams GetTaskParams params) {
+    requireTaskCapable(params.meta(), TasksExtension.TASKS_GET);
     TaskRecord record = requireOwned(params.taskId());
     return new GetTaskResult(
         record.taskId(),
@@ -86,6 +92,7 @@ public class McpTasksService {
 
   @JsonRpcMethod(TasksExtension.TASKS_UPDATE)
   public UpdateTaskResult updateTask(@JsonRpcParams UpdateTaskParams params) {
+    requireTaskCapable(params.meta(), TasksExtension.TASKS_UPDATE);
     requireOwned(params.taskId());
     Map<String, InputResponse> responses =
         params.inputResponses() != null ? params.inputResponses() : Map.of();
@@ -120,10 +127,22 @@ public class McpTasksService {
 
   @JsonRpcMethod(TasksExtension.TASKS_CANCEL)
   public CancelTaskResult cancelTask(@JsonRpcParams CancelTaskParams params) {
+    requireTaskCapable(params.meta(), TasksExtension.TASKS_CANCEL);
     requireOwned(params.taskId());
     Instant now = clock.instant();
     store.update(params.taskId(), r -> r.cancelled(now));
     return new CancelTaskResult(ResultTypes.COMPLETE);
+  }
+
+  /**
+   * Gates every {@code tasks/*} method on the {@code io.modelcontextprotocol/tasks} capability
+   * (SEP-2575/SEP-2663), independent of task existence or ownership — checked first so a
+   * non-capable caller always sees {@code -32021}, never a task-existence signal.
+   */
+  private static void requireTaskCapable(RequestMeta meta, String method) {
+    if (!TaskToolCallDispatcher.isTaskCapable(meta)) {
+      throw new McpTaskRequiredException("Method \"" + method + "\"");
+    }
   }
 
   private TaskRecord requireOwned(String taskId) {

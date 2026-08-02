@@ -16,13 +16,19 @@
 package com.callibrity.mocapi.tasks;
 
 /**
- * Thrown when a {@code tools/call} targets an {@code @McpTask(required = true)} handler but the
- * client did not declare the {@code io.modelcontextprotocol/tasks} capability. Translated to
- * JSON-RPC {@code -32021} by {@link TaskRequiredExceptionTranslator}.
+ * Thrown when a caller needs the {@code io.modelcontextprotocol/tasks} capability but did not
+ * declare it — either a {@code tools/call} targeting an {@code @McpTask(required = true)} handler,
+ * or any of the three {@code tasks/*} namespace methods, which SEP-2575/SEP-2663 gate on the same
+ * capability regardless of a handler's {@code required} setting. Translated to JSON-RPC {@code
+ * -32021} by {@link TaskRequiredExceptionTranslator}.
  */
 public class McpTaskRequiredException extends RuntimeException {
 
-  public McpTaskRequiredException(String toolName) {
-    super("Tool \"" + toolName + "\" requires the io.modelcontextprotocol/tasks client capability");
+  /**
+   * @param subject a human-readable description of what needed the capability, e.g. {@code "Tool
+   *     \"slow_compute\""} or {@code "Method \"tasks/get\""}
+   */
+  public McpTaskRequiredException(String subject) {
+    super(subject + " requires the io.modelcontextprotocol/tasks client capability");
   }
 }

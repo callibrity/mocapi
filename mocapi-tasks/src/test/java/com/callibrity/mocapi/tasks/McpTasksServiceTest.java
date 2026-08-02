@@ -19,12 +19,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ClientCapabilities;
 import com.callibrity.mocapi.model.ElicitAction;
 import com.callibrity.mocapi.model.ElicitRequest;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.InputRequest;
 import com.callibrity.mocapi.model.InputResponse;
+import com.callibrity.mocapi.model.RequestMeta;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
 import com.callibrity.mocapi.server.mrtr.ResponseLedgerEntry;
@@ -52,6 +54,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 /**
  * Tests for {@link McpTasksService} — {@code tasks/get}, {@code tasks/update}, {@code
@@ -63,6 +66,24 @@ class McpTasksServiceTest {
   private static final Instant BASE_TIME = Instant.parse("2026-08-02T00:00:00Z");
   private static final Clock CLOCK = Clock.fixed(BASE_TIME, ZoneOffset.UTC);
   private static final Duration AWAIT_TIMEOUT = Duration.ofSeconds(2);
+
+  /** {@code _meta} declaring the {@code io.modelcontextprotocol/tasks} capability. */
+  private static final RequestMeta CAPABLE_META =
+      new RequestMeta(
+          null,
+          "2026-07-28",
+          null,
+          new ClientCapabilities(
+              null,
+              null,
+              null,
+              null,
+              Map.of(TasksExtension.EXTENSION_ID, JsonNodeFactory.instance.objectNode())));
+
+  /** {@code _meta} with no {@code io.modelcontextprotocol/tasks} capability declared. */
+  private static final RequestMeta NON_CAPABLE_META =
+      new RequestMeta(
+          null, "2026-07-28", null, new ClientCapabilities(null, null, null, null, null));
 
   private final InMemoryTaskStore store = new InMemoryTaskStore(CLOCK, Duration.ofHours(1));
 
@@ -156,7 +177,7 @@ class McpTasksServiceTest {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
-    GetTaskResult result = service.getTask(new GetTaskParams("t-working", null));
+    GetTaskResult result = service.getTask(new GetTaskParams("t-working", CAPABLE_META));
 
     assertThat(result.taskId()).isEqualTo("t-working");
     assertThat(result.status()).isEqualTo(TaskStatus.WORKING);
@@ -199,7 +220,7 @@ class McpTasksServiceTest {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
-    GetTaskResult result = service.getTask(new GetTaskParams("t-input-required", null));
+    GetTaskResult result = service.getTask(new GetTaskParams("t-input-required", CAPABLE_META));
 
     assertThat(result.status()).isEqualTo(TaskStatus.INPUT_REQUIRED);
     assertThat(result.inputRequests()).isEqualTo(inputRequests);
@@ -217,7 +238,7 @@ class McpTasksServiceTest {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
-    GetTaskResult result = service.getTask(new GetTaskParams("t-completed", null));
+    GetTaskResult result = service.getTask(new GetTaskParams("t-completed", CAPABLE_META));
 
     assertThat(result.status()).isEqualTo(TaskStatus.COMPLETED);
     assertThat(result.result()).isEqualTo(toolResult);
@@ -236,7 +257,7 @@ class McpTasksServiceTest {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
-    GetTaskResult result = service.getTask(new GetTaskParams("t-failed", null));
+    GetTaskResult result = service.getTask(new GetTaskParams("t-failed", CAPABLE_META));
 
     assertThat(result.status()).isEqualTo(TaskStatus.FAILED);
     assertThat(result.error()).isEqualTo(error);
@@ -252,7 +273,7 @@ class McpTasksServiceTest {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
-    GetTaskResult result = service.getTask(new GetTaskParams("t-cancelled", null));
+    GetTaskResult result = service.getTask(new GetTaskParams("t-cancelled", CAPABLE_META));
 
     assertThat(result.status()).isEqualTo(TaskStatus.CANCELLED);
     assertThat(result.inputRequests()).isNull();
@@ -266,7 +287,7 @@ class McpTasksServiceTest {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
-    assertThatThrownBy(() -> service.getTask(new GetTaskParams("nope", null)))
+    assertThatThrownBy(() -> service.getTask(new GetTaskParams("nope", CAPABLE_META)))
         .isInstanceOf(JsonRpcException.class)
         .satisfies(
             ex ->
@@ -282,13 +303,25 @@ class McpTasksServiceTest {
     principals.principal = "mallory";
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
-    assertThatThrownBy(() -> service.getTask(new GetTaskParams("t-alice-owned", null)))
+    assertThatThrownBy(() -> service.getTask(new GetTaskParams("t-alice-owned", CAPABLE_META)))
         .isInstanceOf(JsonRpcException.class)
         .satisfies(
             ex ->
                 assertThat(((JsonRpcException) ex).getCode())
                     .isEqualTo(JsonRpcProtocol.INVALID_PARAMS))
         .hasMessage("Unknown task");
+  }
+
+  @Test
+  void
+      get_without_the_tasks_capability_rejects_with_missing_capability_before_checking_ownership() {
+    // No task named "nope" exists — proves the capability gate runs before task lookup, per
+    // SEP-2575/SEP-2663: a non-capable caller always sees -32021, never a -32602 existence signal.
+    StubPrincipalSource principals = new StubPrincipalSource();
+    McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
+
+    assertThatThrownBy(() -> service.getTask(new GetTaskParams("nope", NON_CAPABLE_META)))
+        .isInstanceOf(McpTaskRequiredException.class);
   }
 
   // ---- tasks/update ----
@@ -327,7 +360,7 @@ class McpTasksServiceTest {
 
     Map<String, InputResponse> responses =
         Map.of("elicit-1", new ElicitResult(ElicitAction.ACCEPT, null));
-    var result = service.updateTask(new UpdateTaskParams("t-update", responses, null));
+    var result = service.updateTask(new UpdateTaskParams("t-update", responses, CAPABLE_META));
 
     assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
     TaskRecord finalRecord = await("t-update", TaskStatus.COMPLETED);
@@ -347,11 +380,11 @@ class McpTasksServiceTest {
     Map<String, InputResponse> responses =
         Map.of("elicit-1", new ElicitResult(ElicitAction.ACCEPT, null));
 
-    service.updateTask(new UpdateTaskParams("t-dup", responses, null));
+    service.updateTask(new UpdateTaskParams("t-dup", responses, CAPABLE_META));
     await("t-dup", TaskStatus.COMPLETED);
     assertThat(invoker.invocationCount()).isEqualTo(1);
 
-    var result = service.updateTask(new UpdateTaskParams("t-dup", responses, null));
+    var result = service.updateTask(new UpdateTaskParams("t-dup", responses, CAPABLE_META));
 
     assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
     assertThat(invoker.invocationCount()).isEqualTo(1);
@@ -370,7 +403,7 @@ class McpTasksServiceTest {
     Map<String, InputResponse> responses =
         Map.of("elicit-not-outstanding", new ElicitResult(ElicitAction.ACCEPT, null));
 
-    var result = service.updateTask(new UpdateTaskParams("t-unknown-key", responses, null));
+    var result = service.updateTask(new UpdateTaskParams("t-unknown-key", responses, CAPABLE_META));
 
     assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
     assertThat(store.get("t-unknown-key").orElseThrow().status())
@@ -388,7 +421,7 @@ class McpTasksServiceTest {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine(invoker));
 
-    var result = service.updateTask(new UpdateTaskParams("t-no-responses", null, null));
+    var result = service.updateTask(new UpdateTaskParams("t-no-responses", null, CAPABLE_META));
 
     assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
     assertThat(store.get("t-no-responses").orElseThrow().status())
@@ -401,9 +434,19 @@ class McpTasksServiceTest {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
-    assertThatThrownBy(() -> service.updateTask(new UpdateTaskParams("nope", null, null)))
+    assertThatThrownBy(() -> service.updateTask(new UpdateTaskParams("nope", null, CAPABLE_META)))
         .isInstanceOf(JsonRpcException.class)
         .hasMessage("Unknown task");
+  }
+
+  @Test
+  void update_without_the_tasks_capability_rejects_with_missing_capability() {
+    StubPrincipalSource principals = new StubPrincipalSource();
+    McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
+
+    assertThatThrownBy(
+            () -> service.updateTask(new UpdateTaskParams("nope", null, NON_CAPABLE_META)))
+        .isInstanceOf(McpTaskRequiredException.class);
   }
 
   // ---- tasks/cancel ----
@@ -414,7 +457,7 @@ class McpTasksServiceTest {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
-    var result = service.cancelTask(new CancelTaskParams("t-cancel-me", null));
+    var result = service.cancelTask(new CancelTaskParams("t-cancel-me", CAPABLE_META));
 
     assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
     assertThat(store.get("t-cancel-me").orElseThrow().status()).isEqualTo(TaskStatus.CANCELLED);
@@ -429,7 +472,7 @@ class McpTasksServiceTest {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
-    var result = service.cancelTask(new CancelTaskParams("t-already-done", null));
+    var result = service.cancelTask(new CancelTaskParams("t-already-done", CAPABLE_META));
 
     assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
     TaskRecord finalRecord = store.get("t-already-done").orElseThrow();
@@ -442,8 +485,17 @@ class McpTasksServiceTest {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
-    assertThatThrownBy(() -> service.cancelTask(new CancelTaskParams("nope", null)))
+    assertThatThrownBy(() -> service.cancelTask(new CancelTaskParams("nope", CAPABLE_META)))
         .isInstanceOf(JsonRpcException.class)
         .hasMessage("Unknown task");
+  }
+
+  @Test
+  void cancel_without_the_tasks_capability_rejects_with_missing_capability() {
+    StubPrincipalSource principals = new StubPrincipalSource();
+    McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
+
+    assertThatThrownBy(() -> service.cancelTask(new CancelTaskParams("nope", NON_CAPABLE_META)))
+        .isInstanceOf(McpTaskRequiredException.class);
   }
 }

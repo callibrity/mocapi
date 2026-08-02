@@ -112,10 +112,25 @@ own implementation-defined sub-range
 2026-07-28 registry defines `MissingRequiredClientCapabilityErrorData.CODE`
 as `-32021` for exactly this case — the same translator elicitation
 already uses. mocapi follows the core registry:
-`TaskRequiredExceptionTranslator` emits `-32021`. This is to be exercised
-against the `@modelcontextprotocol/conformance` suite in the follow-up
-conformance-wiring task; if the suite disagrees, that task reopens this
-call, not this ADR.
+`TaskRequiredExceptionTranslator` emits `-32021`.
+
+**Conformance verification (2026-08-02):** exercised against
+`@modelcontextprotocol/conformance@0.2.0-alpha.10`'s `tasks-required-task-error`
+and `tasks-capability-negotiation` scenarios (run individually with
+`--scenario <name> --force` — the suite's 10 tasks scenarios are tagged
+`[extension]` and excluded from `--suite all` regardless of
+`--spec-version`; see `mocapi-conformance/README.md`). The suite confirms
+`-32021` is correct: both scenarios assert `code === -32021` explicitly and
+both pass. This closes the open question — mocapi's choice to follow the
+core registry over the extension draft's stale `-32003` stands.
+Reconciling the full tasks-scenario run also surfaced a real gate-order
+bug (`tasks/get`/`update`/`cancel` had no capability check at all, so a
+non-capable caller got `-32602` "Unknown task" instead of `-32021`),
+fixed in `McpTasksService` alongside this verification, and two
+architectural v1-scope limitations waived in
+`conformance-expected-failures.yaml` (simultaneous multi-key
+`inputRequests`, and MRTR-then-escalate-to-task composition) — see the
+conformance README for detail.
 
 ## Rejected alternatives
 
@@ -144,7 +159,8 @@ mocapi is unaffected when the module is absent — see
 **Costs.** Multi-node deployments must supply a shared `TaskStore`. A
 `working` execution whose node dies is orphaned until TTL expiry —
 arbitrary Java compute is not checkpointable, a documented limitation,
-not a bug. `-32003` vs. `-32021` needs conformance verification (above).
+not a bug. `-32021` is confirmed correct against the conformance suite
+(above); `-32003` was never emitted.
 
 **Non-goals.** `notifications/tasks` push, task-augmenting
 `prompts/get`/`resources/read`, sampling/roots `inputRequests`, URL-mode

@@ -54,6 +54,49 @@ Alpha-suite caveat: with `--expected-failures`, scenarios that report
 "0 passed, 0 failed" are sometimes misreported as unexpected failures —
 re-run without the baseline to confirm the true summary.
 
+## The `io.modelcontextprotocol/tasks` extension (SEP-2663)
+
+The suite's 10 tasks scenarios are tagged `[extension]` by `list --server`
+and are **excluded from `--suite all` even with `--spec-version` set** — run
+each one individually with `--scenario <name> --force`:
+
+```bash
+npx @modelcontextprotocol/conformance@0.2.0-alpha.10 server \
+  --url http://localhost:8081/mcp --scenario tasks-lifecycle \
+  --spec-version 2026-07-28 --force \
+  --expected-failures mocapi-conformance/conformance-expected-failures.yaml
+```
+
+Scenarios: `tasks-lifecycle`, `tasks-capability-negotiation`,
+`tasks-wire-fields`, `tasks-request-state-removal`, `tasks-mrtr-input`,
+`tasks-request-headers`, `tasks-dispatch-and-envelope`,
+`tasks-status-notifications`, `tasks-required-task-error`,
+`tasks-mrtr-composition`. Fixtures live in `TasksConformanceTools.java`
+(`greet`, `slow_compute`, `failing_job` — `@McpTask(required = true)`,
+`protocol_error_job`, `confirm_delete`, `multi_input`).
+
+Latest run: **32 passed, 3 failed** — all 3 baselined
+in `conformance-expected-failures.yaml`. Notably, the extension's own
+required-capability error code **is confirmed as `-32021`**
+(`tasks-required-task-error`, `tasks-capability-negotiation`), resolving
+the open question in [ADR-0037](../docs/adr/0037-mcp-tasks-extension.md)'s
+conformance note — mocapi's choice to follow the core registry over the
+extension draft's stale `-32003` is conformant.
+
+| Scenario / check | Why |
+|---|---|
+| `tasks-mrtr-input` → `tasks-mrtr-partial-fulfillment` | Wants ONE task with TWO simultaneously pending `inputRequests` keys. mocapi's MRTR replay engine ([ADR-0021](../docs/adr/0021-mrtr-elicitation-replay.md)) captures at most one outstanding input-required exception per execution by construction. Architectural v1-scope limitation, not a bug — tracked as a follow-up. |
+| `tasks-mrtr-composition` | Wants a single tool whose round 1 is a synchronous `InputRequiredResult` and whose round 2 (answering that elicit) escalates to `CreateTaskResult`. `@McpTask` dispatch decides task-vs-sync before the handler runs at all, and ADR-0037 §1's transparency contract makes that a hard invariant. Needs a new, round-aware dispatch decision — an ADR-worthy change, not a fixture. |
+| `tasks-dispatch-and-envelope` → `tasks-result-type-complete-on-non-task-responses` | `tasks/update` MUST ack `{resultType:"complete"}` even for a garbage `inputResponses` entry (SEP-2322 "SHOULD ignore unrecognized information"). mocapi's `InputResponse` union uses Jackson deduction-based polymorphism (no wire discriminator, per spec); a value with no recognizable fingerprint fails to deduce a subtype and the whole request errors. Pre-existing gap in the shared `mocapi-model` `InputResponse` contract — would identically affect a plain `tools/call` MRTR resume, not specific to tasks. Tracked as a follow-up against `mocapi-model`, out of scope here. |
+
+A capability-gating bug was found and fixed during this reconciliation:
+`McpTasksService`'s three methods (`tasks/get`, `tasks/update`,
+`tasks/cancel`) did not check the `io.modelcontextprotocol/tasks`
+capability at all, so a non-capable caller got `-32602` ("Unknown task")
+instead of the spec-mandated `-32021`. Fixed in `mocapi-tasks` by gating
+all three methods on `TaskToolCallDispatcher.isTaskCapable(...)` before
+task lookup — see `McpTasksService.requireTaskCapable`.
+
 ## Adding new conformance scenarios
 
 1. Add a method to the appropriate `Compatibility*.java` bean (tool, prompt, or resource) with the right annotation.
