@@ -260,9 +260,12 @@ class MocapiServerAutoConfigurationTest {
   }
 
   @Test
-  void no_auditor_bean_when_there_are_no_customizers() {
+  void auditor_bean_is_always_registered_even_with_no_customizers() {
+    // Unconditional registration is the point of the fix: gating this bean on
+    // ServerCapabilitiesCustomizer beans existing would evaluate at auto-configuration
+    // processing time, before deferred producer auto-configurations (tasks, apps) run.
     contextRunner.run(
-        context -> assertThat(context).doesNotHaveBean(ServerCapabilitiesOverrideAuditor.class));
+        context -> assertThat(context).hasSingleBean(ServerCapabilitiesOverrideAuditor.class));
   }
 
   @Test

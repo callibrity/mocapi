@@ -43,7 +43,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.info.ProjectInfoAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -126,11 +125,17 @@ public class MocapiServerAutoConfiguration {
   }
 
   /**
-   * Only registered when {@link ServerCapabilitiesCustomizer} beans exist: it has nothing to warn
-   * about otherwise (see {@link ServerCapabilitiesOverrideAuditor}'s javadoc).
+   * Always registered — deliberately not gated on {@code @ConditionalOnBean
+   * (ServerCapabilitiesCustomizer.class)}. That condition is evaluated during auto-configuration
+   * processing, before deferred auto-configurations such as {@code MocapiTasksAutoConfiguration} or
+   * {@code MocapiAppsAutoConfiguration} — the modules that actually produce {@code
+   * ServerCapabilitiesCustomizer} beans — have necessarily run, since neither orders itself before
+   * this class. Gating registration here would silently skip the auditor in exactly the real-world
+   * case it exists to catch. {@link ServerCapabilitiesOverrideAuditor} instead does all of its
+   * detection inside {@code afterSingletonsInstantiated()}, which is ordering-immune: every
+   * singleton, from every auto-configuration, is guaranteed instantiated by then.
    */
   @Bean
-  @ConditionalOnBean(ServerCapabilitiesCustomizer.class)
   public ServerCapabilitiesOverrideAuditor mcpServerCapabilitiesOverrideAuditor(
       ConfigurableListableBeanFactory beanFactory) {
     return new ServerCapabilitiesOverrideAuditor(beanFactory);

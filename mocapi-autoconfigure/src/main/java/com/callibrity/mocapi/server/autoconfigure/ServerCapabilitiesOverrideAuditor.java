@@ -36,6 +36,14 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
  * <p>Detection: the factory method's bean name ({@link #FACTORY_BEAN_NAME}) is only present in the
  * bean factory when {@code @ConditionalOnMissingBean} let it through. Its absence, combined with at
  * least one {@link ServerCapabilitiesCustomizer} bean, is exactly the discarded-customizer case.
+ *
+ * <p>This bean is registered unconditionally (see {@link
+ * MocapiServerAutoConfiguration#mcpServerCapabilitiesOverrideAuditor}'s javadoc for why it must not
+ * be gated on {@code ServerCapabilitiesCustomizer} beans existing at auto-configuration processing
+ * time) and defers every lookup — both the factory-bean-name check and the customizer scan — to
+ * {@link #afterSingletonsInstantiated()}. By then every singleton, from every auto-configuration
+ * regardless of processing order, is guaranteed to exist, so the detection is immune to which
+ * auto-configuration happens to run first.
  */
 public class ServerCapabilitiesOverrideAuditor implements SmartInitializingSingleton {
 

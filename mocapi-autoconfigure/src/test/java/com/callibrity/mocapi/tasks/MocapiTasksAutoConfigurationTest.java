@@ -100,6 +100,15 @@ class MocapiTasksAutoConfigurationTest {
     }
   }
 
+  @Configuration(proxyBeanMethods = false)
+  static class UserSuppliedServerCapabilitiesConfig {
+
+    @Bean
+    ServerCapabilities serverCapabilities() {
+      return new ServerCapabilities(null, null, null, null, null, null, Map.of());
+    }
+  }
+
   /**
    * ADR-0039: {@code TaskExecutionEngine} is wired directly with the {@code ToolInvocationCore}
    * bean rather than an {@code ObjectProvider<McpToolsService>} deferred-resolution workaround.
@@ -214,5 +223,35 @@ class MocapiTasksAutoConfigurationTest {
         .withUserConfiguration(UserSuppliedTaskStoreConfig.class)
         .run(context -> assertThat(context).hasSingleBean(TaskStore.class));
     assertThat(output.getOut() + output.getErr()).doesNotContain("NOT multi-node safe");
+  }
+
+  /**
+   * Reproduces the real-world deferred-autoconfiguration chain the {@code
+   * ServerCapabilitiesOverrideAuditor} exists for: {@code MocapiTasksAutoConfiguration} is the
+   * actual producer of a {@link TasksCapabilityCustomizer} bean, and it does not order itself
+   * before {@code MocapiServerAutoConfiguration} (nor should any future producer module). A
+   * user-supplied {@code ServerCapabilities} bean here backs off {@code
+   * MocapiServerAutoConfiguration#mcpServerCapabilities}, discarding {@code
+   * mcpTasksCapabilityCustomizer} — this must still warn even though the auditor bean is registered
+   * by {@code MocapiServerAutoConfiguration}, upstream of the tasks module that produces the
+   * discarded customizer.
+   */
+  @Test
+  void warns_when_a_user_supplied_server_capabilities_bean_discards_the_tasks_customizer(
+      CapturedOutput output) {
+    runner
+        .withUserConfiguration(UserSuppliedServerCapabilitiesConfig.class)
+        .run(
+            context -> {
+              assertThat(context).hasSingleBean(ServerCapabilities.class);
+              assertThat(output).contains("mcpTasksCapabilityCustomizer");
+            });
+  }
+
+  @Test
+  void no_warning_when_the_default_server_capabilities_bean_applies_the_tasks_customizer(
+      CapturedOutput output) {
+    runner.run(context -> assertThat(context).hasSingleBean(ServerCapabilities.class));
+    assertThat(output.getOut() + output.getErr()).doesNotContain("were never applied");
   }
 }
