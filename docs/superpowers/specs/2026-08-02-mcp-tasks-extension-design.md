@@ -347,7 +347,10 @@ public interface TaskStore {
   store may physically discard it (in-memory: lazy check on access + periodic sweep;
   external stores: native TTL). Expired == unknown on the wire (`-32602`).
 - **`InMemoryTaskStore`** is the shipped default (`@ConditionalOnMissingBean(TaskStore.class)`),
-  fully satisfying the atomicity contract.
+  fully satisfying the atomicity contract. When auto-configuration falls back to it, a
+  prominent WARN is logged (mirroring the `mocapi.mrtr.secret` ephemeral-key warning):
+  task state is process-local — not multi-node safe, and tasks die on restart; production
+  clusters should provide a shared `TaskStore` bean.
 - **`TaskStoreContractTest`** ships as a test-jar TCK: an abstract test class asserting
   create-durability/collision, atomic-mutation semantics under contention, terminal
   finality, TTL expiry, and version monotonicity — so any external implementation

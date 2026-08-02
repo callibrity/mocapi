@@ -1018,6 +1018,11 @@ public class MocapiTasksAutoConfiguration {
   @Bean @ConditionalOnMissingBean(Clock.class)  Clock mcpTasksClock() { return Clock.systemUTC(); }
   @Bean @ConditionalOnMissingBean(TaskStore.class)
   InMemoryTaskStore mcpTaskStore(Clock, MocapiTasksProperties)
+  // MUST log at WARN when this default is chosen (mirror the mocapi.mrtr.secret ephemeral-key
+  // warning in MocapiServerAutoConfiguration.mcpRequestStateCodec). Exact message:
+  // "Using the in-memory TaskStore: task state is process-local — NOT multi-node safe, and
+  //  in-flight tasks are lost on restart. Provide a shared TaskStore bean for clustered or
+  //  durable deployments."
   @Bean @ConditionalOnMissingBean(ContextSnapshotFactory.class)
   ContextSnapshotFactory mcpTasksContextSnapshotFactory()   // builder().build()
   @Bean @ConditionalOnMissingBean(TaskExecutionEngine.class)
@@ -1034,7 +1039,7 @@ public class MocapiTasksAutoConfiguration {
 
 (`McpToolsService` is injected as the `ToolCallReplayInvoker` — it implements it. Note the engine bean depends on `McpToolsService`, hence `after = MocapiServerToolsAutoConfiguration.class`.)
 
-- [ ] **Step 1: Write the failing test** — `ApplicationContextRunner` (mirror `MocapiAppsAutoConfigurationTest`): with `AutoConfigurations.of(MocapiServerAutoConfiguration.class, MocapiServerToolsAutoConfiguration.class, MocapiTasksAutoConfiguration.class)` + an `Infra` config providing `ObjectMapper` → context has single beans of `TaskStore` (type `InMemoryTaskStore`), `TaskExecutionEngine`, `McpTasksService`, `TaskToolCallDispatcher`, `TasksCapabilityCustomizer`, `TasksRoutedParamContributor`, `TaskRequiredExceptionTranslator`; the `ServerCapabilities` bean's `extensions()` contains `io.modelcontextprotocol/tasks`; property override `mocapi.tasks.default-ttl=PT5M` reaches the dispatcher (`Defaults.ttl()`); a user-supplied `TaskStore` bean backs off the in-memory default.
+- [ ] **Step 1: Write the failing test** — `ApplicationContextRunner` (mirror `MocapiAppsAutoConfigurationTest`): with `AutoConfigurations.of(MocapiServerAutoConfiguration.class, MocapiServerToolsAutoConfiguration.class, MocapiTasksAutoConfiguration.class)` + an `Infra` config providing `ObjectMapper` → context has single beans of `TaskStore` (type `InMemoryTaskStore`), `TaskExecutionEngine`, `McpTasksService`, `TaskToolCallDispatcher`, `TasksCapabilityCustomizer`, `TasksRoutedParamContributor`, `TaskRequiredExceptionTranslator`; the `ServerCapabilities` bean's `extensions()` contains `io.modelcontextprotocol/tasks`; property override `mocapi.tasks.default-ttl=PT5M` reaches the dispatcher (`Defaults.ttl()`); a user-supplied `TaskStore` bean backs off the in-memory default. Add `@ExtendWith(OutputCaptureExtension.class)`-style assertions (JUnit `CapturedOutput`, already available via spring-boot-starter-test): the default-store context logs the "NOT multi-node safe" WARN; the user-supplied-store context does **not**.
 
 - [ ] **Step 2: Run to verify failure** — `mvn -q -pl mocapi-autoconfigure test -Dtest=MocapiTasksAutoConfigurationTest` → COMPILE ERROR.
 
