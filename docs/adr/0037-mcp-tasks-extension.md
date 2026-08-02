@@ -123,14 +123,20 @@ and `tasks-capability-negotiation` scenarios (run individually with
 `-32021` is correct: both scenarios assert `code === -32021` explicitly and
 both pass. This closes the open question — mocapi's choice to follow the
 core registry over the extension draft's stale `-32003` stands.
-Reconciling the full tasks-scenario run also surfaced a real gate-order
-bug (`tasks/get`/`update`/`cancel` had no capability check at all, so a
-non-capable caller got `-32602` "Unknown task" instead of `-32021`),
-fixed in `McpTasksService` alongside this verification, and two
-architectural v1-scope limitations waived in
-`conformance-expected-failures.yaml` (simultaneous multi-key
-`inputRequests`, and MRTR-then-escalate-to-task composition) — see the
-conformance README for detail.
+Reconciling the full tasks-scenario run surfaced two real bugs, both fixed
+in `mocapi-tasks`: (1) `tasks/get`/`update`/`cancel` had no capability
+check at all, so a non-capable caller got `-32602` "Unknown task" instead
+of `-32021`, fixed in `McpTasksService.requireTaskCapable`; (2) a
+malformed `tasks/update` `inputResponses` entry failed Jackson's
+deduction-based `InputResponse` typing and errored the *whole* request
+instead of being ignored per SEP-2322's SHOULD — fixed by typing
+`UpdateTaskParams.inputResponses` as `Map<String, JsonNode>` and
+converting each outstanding entry leniently in `McpTasksService`, with no
+`mocapi-model` change. Two architectural v1-scope limitations remain
+waived in `conformance-expected-failures.yaml` — simultaneous multi-key
+`inputRequests` (`tasks-mrtr-input:tasks-mrtr-partial-fulfillment`; see
+the non-goals below) and `tasks-mrtr-composition`'s
+MRTR-then-escalate-to-task shape — see the conformance README for detail.
 
 ## Rejected alternatives
 
@@ -166,7 +172,12 @@ not a bug. `-32021` is confirmed correct against the conformance suite
 `prompts/get`/`resources/read`, sampling/roots `inputRequests`, URL-mode
 elicitation, `pollIntervalMs`-based rate limiting, shipped cluster-store
 adapters, and mid-execution thread interruption on cancel are out of
-scope for v1.
+scope for v1. So is more than one simultaneously-pending `inputRequests`
+key per task: the replay engine's single-pending-key-per-round model
+(decision 3, ADR-0021) surfaces at most one outstanding input-required
+exception per execution by construction — confirmed against the
+conformance suite's `tasks-mrtr-input:tasks-mrtr-partial-fulfillment`
+check (waived in `conformance-expected-failures.yaml`), not a bug.
 
 This ADR flips the Tasks entry in
 [ADR-0022](0022-2026-07-28-features-not-implemented.md) from declined to

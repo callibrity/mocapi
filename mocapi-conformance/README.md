@@ -75,7 +75,7 @@ Scenarios: `tasks-lifecycle`, `tasks-capability-negotiation`,
 (`greet`, `slow_compute`, `failing_job` — `@McpTask(required = true)`,
 `protocol_error_job`, `confirm_delete`, `multi_input`).
 
-Latest run: **32 passed, 3 failed** — all 3 baselined
+Latest run: **33 passed, 2 failed** — both baselined
 in `conformance-expected-failures.yaml`. Notably, the extension's own
 required-capability error code **is confirmed as `-32021`**
 (`tasks-required-task-error`, `tasks-capability-negotiation`), resolving
@@ -85,17 +85,31 @@ extension draft's stale `-32003` is conformant.
 
 | Scenario / check | Why |
 |---|---|
-| `tasks-mrtr-input` → `tasks-mrtr-partial-fulfillment` | Wants ONE task with TWO simultaneously pending `inputRequests` keys. mocapi's MRTR replay engine ([ADR-0021](../docs/adr/0021-mrtr-elicitation-replay.md)) captures at most one outstanding input-required exception per execution by construction. Architectural v1-scope limitation, not a bug — tracked as a follow-up. |
+| `tasks-mrtr-input` → `tasks-mrtr-partial-fulfillment` | Wants ONE task with TWO simultaneously pending `inputRequests` keys. mocapi's MRTR replay engine ([ADR-0021](../docs/adr/0021-mrtr-elicitation-replay.md)) captures at most one outstanding input-required exception per execution by construction. Architectural v1-scope limitation, not a bug — recorded as an explicit non-goal in ADR-0037. |
 | `tasks-mrtr-composition` | Wants a single tool whose round 1 is a synchronous `InputRequiredResult` and whose round 2 (answering that elicit) escalates to `CreateTaskResult`. `@McpTask` dispatch decides task-vs-sync before the handler runs at all, and ADR-0037 §1's transparency contract makes that a hard invariant. Needs a new, round-aware dispatch decision — an ADR-worthy change, not a fixture. |
-| `tasks-dispatch-and-envelope` → `tasks-result-type-complete-on-non-task-responses` | `tasks/update` MUST ack `{resultType:"complete"}` even for a garbage `inputResponses` entry (SEP-2322 "SHOULD ignore unrecognized information"). mocapi's `InputResponse` union uses Jackson deduction-based polymorphism (no wire discriminator, per spec); a value with no recognizable fingerprint fails to deduce a subtype and the whole request errors. Pre-existing gap in the shared `mocapi-model` `InputResponse` contract — would identically affect a plain `tools/call` MRTR resume, not specific to tasks. Tracked as a follow-up against `mocapi-model`, out of scope here. |
 
-A capability-gating bug was found and fixed during this reconciliation:
-`McpTasksService`'s three methods (`tasks/get`, `tasks/update`,
-`tasks/cancel`) did not check the `io.modelcontextprotocol/tasks`
-capability at all, so a non-capable caller got `-32602` ("Unknown task")
-instead of the spec-mandated `-32021`. Fixed in `mocapi-tasks` by gating
-all three methods on `TaskToolCallDispatcher.isTaskCapable(...)` before
-task lookup — see `McpTasksService.requireTaskCapable`.
+Two bugs were found and fixed during this reconciliation:
+
+- **Capability gating.** `McpTasksService`'s three methods (`tasks/get`,
+  `tasks/update`, `tasks/cancel`) did not check the
+  `io.modelcontextprotocol/tasks` capability at all, so a non-capable
+  caller got `-32602` ("Unknown task") instead of the spec-mandated
+  `-32021`. Fixed by gating all three methods on
+  `TaskToolCallDispatcher.isTaskCapable(...)` before task lookup — see
+  `McpTasksService.requireTaskCapable`.
+- **Malformed `tasks/update` entries broke the whole request.**
+  `tasks-dispatch-and-envelope`'s `tasks-result-type-complete-on-non-task-responses`
+  check answers with a garbage entry (`{"unknown-key":{"ignored":true}}`)
+  and expects the usual `{resultType:"complete"}` ack regardless (SEP-2322
+  "servers SHOULD ignore information they do not recognize"). mocapi's
+  `InputResponse` union uses Jackson deduction-based polymorphism (no wire
+  discriminator, per spec); a fingerprint-less value failed to deduce a
+  subtype and the *whole* request errored. Fixed entirely inside
+  `mocapi-tasks` (no `mocapi-model` change): `UpdateTaskParams.inputResponses`
+  is now `Map<String, JsonNode>`, and `McpTasksService` converts each
+  outstanding entry leniently (`objectMapper.treeToValue(node,
+  ElicitResult.class)` in a try/catch), silently skipping any entry that
+  doesn't convert instead of failing the request.
 
 ## Adding new conformance scenarios
 

@@ -27,12 +27,12 @@
 #
 # The io.modelcontextprotocol/tasks extension's 10 scenarios (tagged [extension] by `list`) are
 # excluded from --suite all regardless of --spec-version and must be run individually with
-# --scenario <name> --force (see README.md). Latest tasks run: 32 passed / 3 failed across
+# --scenario <name> --force (see README.md). Latest tasks run: 33 passed / 2 failed across
 # tasks-lifecycle (8/8), tasks-capability-negotiation (4/4), tasks-wire-fields (3/3),
 # tasks-request-state-removal (2/2), tasks-mrtr-input (2/3), tasks-request-headers (4/4),
-# tasks-dispatch-and-envelope (7/8), tasks-required-task-error (2/2), and tasks-mrtr-composition
-# (0/1) — every one of the 3 failures is waived below with a comment; tasks-status-notifications
-# is suite-side SKIPPED (0/0), not counted.
+# tasks-dispatch-and-envelope (8/8), tasks-required-task-error (2/2), and tasks-mrtr-composition
+# (0/1) — both failures are architectural v1-scope limitations, waived below with a comment;
+# tasks-status-notifications is suite-side SKIPPED (0/0), not counted.
 server:
   # --- server-stateless: only these two checks fail; the other 23 are enforced. --------------
   # test_missing_capability requires the client to declare the *sampling* capability and, when
@@ -85,7 +85,8 @@ server:
   # single-key by construction. The check wants a single task with TWO simultaneously pending
   # inputRequests keys; multi_input (TasksConformanceTools) can only park them one at a time.
   # Widening the replay/ledger model to a set of concurrently-outstanding requests is a real
-  # architectural change, not a fixture — tracked as a follow-up, not attempted here.
+  # architectural change, not a fixture — tracked as a follow-up, not attempted here. Recorded as
+  # an explicit non-goal in ADR-0037.
   - tasks-mrtr-input:tasks-mrtr-partial-fulfillment
 
   # Wants a single tool whose FIRST tools/call returns a synchronous InputRequiredResult (no
@@ -98,15 +99,9 @@ server:
   # change, out of scope for this conformance-wiring pass.
   - tasks-mrtr-composition
 
-  # tasks/update's ack MUST always be {resultType:"complete"} even for a garbage inputResponses
-  # entry (SEP-2322 "servers SHOULD ignore information they don't recognize"). mocapi's
-  # InputResponse union uses Jackson JsonTypeInfo.Id.DEDUCTION (no wire discriminator, per spec) —
-  # a value with no recognizable fingerprint (e.g. {"ignored":true}) fails to deduce a unique
-  # subtype and the whole tasks/update request errors instead of the offending entry being
-  # tolerated. This is a pre-existing gap in the shared mocapi-model InputResponse contract (it
-  # would identically affect a plain tools/call MRTR resume, not just tasks/update — the base
-  # suite's own input-required-result-* scenarios exercise adjacent, differently-shaped cases and
-  # don't cover this one), not something specific to the tasks extension. Fixing it means changing
-  # shared polymorphic-deserialization behavior for every InputResponse consumer, which is beyond
-  # this task's scope; tracked as a follow-up against mocapi-model.
-  - tasks-dispatch-and-envelope:tasks-result-type-complete-on-non-task-responses
+  # NOTE: tasks-dispatch-and-envelope:tasks-result-type-complete-on-non-task-responses was
+  # waived here for one review cycle (an InputResponse Jackson-deduction failure on a garbage
+  # tasks/update entry blew up the whole request). Fixed by switching
+  # UpdateTaskParams.inputResponses to Map<String, JsonNode> and converting each entry leniently
+  # in McpTasksService (tools.jackson.databind treeToValue, per-entry try/catch) — contained
+  # entirely inside mocapi-tasks, no mocapi-model change. Now 8/8; no waiver needed.
