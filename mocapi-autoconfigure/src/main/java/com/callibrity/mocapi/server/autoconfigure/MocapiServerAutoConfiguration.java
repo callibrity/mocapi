@@ -33,6 +33,7 @@ import com.callibrity.mocapi.server.exchange.MetaEnvelopeParser;
 import com.callibrity.mocapi.server.lifecycle.McpLifecycleService;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
+import com.callibrity.mocapi.server.mrtr.ReplayExecutor;
 import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
@@ -158,11 +159,28 @@ public class MocapiServerAutoConfiguration {
     return () -> null;
   }
 
+  /**
+   * The MRTR replay core (ADR-0021/ADR-0039), shared by {@link MrtrElicitationEngine} (the wire
+   * path's {@code ctx.elicit(...)} seam) and {@code ToolInvocationCore} (the detached replay path)
+   * so both go through the identical instance rather than two separately-constructed executors that
+   * merely happen to agree today (they'd share state via {@link ReplayExecutor}'s internal {@code
+   * ScopedValue} either way, but a single bean makes that a designed invariant, not an accident of
+   * both call sites passing the same {@link ObjectMapper}).
+   */
+  @Bean
+  @ConditionalOnMissingBean(ReplayExecutor.class)
+  public ReplayExecutor mcpReplayExecutor(ObjectMapper objectMapper) {
+    return new ReplayExecutor(objectMapper);
+  }
+
   @Bean
   @ConditionalOnMissingBean(MrtrElicitationEngine.class)
   public MrtrElicitationEngine mcpElicitationEngine(
-      RequestStateCodec codec, ObjectMapper objectMapper, McpPrincipalSource principalSource) {
-    return new MrtrElicitationEngine(codec, objectMapper, principalSource);
+      RequestStateCodec codec,
+      ObjectMapper objectMapper,
+      McpPrincipalSource principalSource,
+      ReplayExecutor replayExecutor) {
+    return new MrtrElicitationEngine(codec, objectMapper, principalSource, replayExecutor);
   }
 
   /** Maps {@code McpElicitationNotSupportedException} to {@code -32021} on the wire. */

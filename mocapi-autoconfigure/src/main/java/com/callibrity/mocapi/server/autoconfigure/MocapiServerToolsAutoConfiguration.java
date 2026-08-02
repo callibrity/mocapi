@@ -23,6 +23,7 @@ import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.mrtr.ReplayExecutor;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
+import com.callibrity.mocapi.server.tools.CallToolHandlerRegistry;
 import com.callibrity.mocapi.server.tools.CallToolHandlers;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.ToolDescriptorCustomizer;
@@ -55,11 +56,15 @@ public class MocapiServerToolsAutoConfiguration {
   /**
    * The registered {@code @McpTool} handlers, built once and shared by both {@link
    * ToolInvocationCore} (invocation) and {@link McpToolsService} (registry/pagination) — the two
-   * beans that each depend on the same handler list rather than building their own copies
-   * (ADR-0039).
+   * beans that each depend on the same handler set rather than building their own copies
+   * (ADR-0039). Wrapped in {@link CallToolHandlerRegistry} rather than exposed as a bare {@code
+   * List<CallToolHandler>} bean: Spring resolves a collection-typed injection point by collecting
+   * beans of the ELEMENT type first, falling back to a list-typed bean only when none exist, so a
+   * single {@code @Bean CallToolHandler} declared anywhere else would silently starve both
+   * consumers of every {@code @McpTool}.
    */
   @Bean
-  public List<CallToolHandler> mcpCallToolHandlers(
+  public CallToolHandlerRegistry mcpCallToolHandlerRegistry(
       HandlerMethodsCache cache,
       MethodSchemaGenerator generator,
       ObjectMapper objectMapper,
@@ -78,34 +83,37 @@ public class MocapiServerToolsAutoConfiguration {
             descriptorCustomizers,
             mcpAnnotationValueResolver::resolveStringValue,
             props.isValidateOutput());
-    return cache.forAnnotation(McpTool.class).stream()
-        .map(
-            bm -> {
-              CallToolHandler handler = CallToolHandlers.build(bm.bean(), bm.method(), buildParams);
-              log.info(
-                  "Registered MCP tool: \"{}\" (bean \"{}\")",
-                  handler.descriptor().name(),
-                  bm.beanName());
-              return handler;
-            })
-        .toList();
+    List<CallToolHandler> handlers =
+        cache.forAnnotation(McpTool.class).stream()
+            .map(
+                bm -> {
+                  CallToolHandler handler =
+                      CallToolHandlers.build(bm.bean(), bm.method(), buildParams);
+                  log.info(
+                      "Registered MCP tool: \"{}\" (bean \"{}\")",
+                      handler.descriptor().name(),
+                      bm.beanName());
+                  return handler;
+                })
+            .toList();
+    return new CallToolHandlerRegistry(handlers);
   }
 
   @Bean
   @ConditionalOnMissingBean(ToolInvocationCore.class)
   public ToolInvocationCore mcpToolInvocationCore(
-      List<CallToolHandler> handlers,
+      CallToolHandlerRegistry registry,
       ObjectMapper objectMapper,
-      MrtrElicitationEngine elicitationEngine) {
-    return new ToolInvocationCore(
-        handlers, objectMapper, elicitationEngine, new ReplayExecutor(objectMapper));
+      MrtrElicitationEngine elicitationEngine,
+      ReplayExecutor replayExecutor) {
+    return new ToolInvocationCore(registry, objectMapper, elicitationEngine, replayExecutor);
   }
 
   @Bean
   @ConditionalOnMissingBean(McpToolsService.class)
   public McpToolsService mcpProtocolToolsService(
       ToolInvocationCore core,
-      List<CallToolHandler> handlers,
+      CallToolHandlerRegistry registry,
       ObjectMapper objectMapper,
       MrtrElicitationEngine elicitationEngine,
       CacheSettings cacheSettings,
@@ -116,7 +124,7 @@ public class MocapiServerToolsAutoConfiguration {
         dispatchInterceptors == null ? List.of() : dispatchInterceptors;
     return new McpToolsService(
         core,
-        handlers,
+        registry.handlers(),
         objectMapper,
         elicitationEngine,
         mocapiProperties.pagination().pageSize(),

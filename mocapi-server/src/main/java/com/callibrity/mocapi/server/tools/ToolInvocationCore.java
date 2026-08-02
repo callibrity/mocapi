@@ -36,13 +36,10 @@ import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.mrtr.ReplayExecutor;
 import com.callibrity.mocapi.server.mrtr.ReplayOutcome;
 import com.callibrity.mocapi.server.mrtr.ResponseLedgerEntry;
-import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -63,9 +60,10 @@ import tools.jackson.databind.node.ValueNode;
  * service — which also collects that carrier's dispatch interceptor, and would otherwise close a
  * bean-graph cycle.
  *
- * <p>Holds its own name→handler lookup map, built from the same {@link CallToolHandler} list {@link
- * McpToolsService} registers; {@code McpToolsService}'s registry/pagination (list, cursor,
- * guard-filtered visibility) is unrelated to invocation and stays there.
+ * <p>Delegates handler lookup to the shared {@link CallToolHandlerRegistry}, built from the same
+ * {@link CallToolHandler} list {@link McpToolsService} registers; {@code McpToolsService}'s
+ * registry/pagination (list, cursor, guard-filtered visibility) is unrelated to invocation and
+ * stays there.
  */
 public final class ToolInvocationCore implements ToolCallReplayInvoker {
 
@@ -75,7 +73,7 @@ public final class ToolInvocationCore implements ToolCallReplayInvoker {
           + "object for error payloads.";
 
   private final Logger log = LoggerFactory.getLogger(ToolInvocationCore.class);
-  private final Map<String, CallToolHandler> handlers;
+  private final CallToolHandlerRegistry registry;
   private final ObjectMapper objectMapper;
   private final MrtrElicitationEngine elicitationEngine;
   private final ReplayExecutor replayExecutor;
@@ -85,21 +83,23 @@ public final class ToolInvocationCore implements ToolCallReplayInvoker {
       ObjectMapper objectMapper,
       MrtrElicitationEngine elicitationEngine,
       ReplayExecutor replayExecutor) {
-    this.handlers =
-        handlers.stream().collect(Collectors.toMap(CallToolHandler::name, handler -> handler));
+    this(new CallToolHandlerRegistry(handlers), objectMapper, elicitationEngine, replayExecutor);
+  }
+
+  /**
+   * Primary constructor (ADR-0039): takes the shared {@link CallToolHandlerRegistry} bean directly
+   * rather than a bare handler list, so autoconfigure never has to expose a fragile {@code
+   * List<CallToolHandler>} Spring injection point (see the registry's javadoc).
+   */
+  public ToolInvocationCore(
+      CallToolHandlerRegistry registry,
+      ObjectMapper objectMapper,
+      MrtrElicitationEngine elicitationEngine,
+      ReplayExecutor replayExecutor) {
+    this.registry = Objects.requireNonNull(registry, "registry");
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.elicitationEngine = Objects.requireNonNull(elicitationEngine, "elicitationEngine");
     this.replayExecutor = Objects.requireNonNull(replayExecutor, "replayExecutor");
-  }
-
-  /** Looks up a registered handler by name, or throws the same -32602 the wire path throws. */
-  CallToolHandler lookup(String name) {
-    CallToolHandler handler = handlers.get(name);
-    if (handler == null) {
-      throw new JsonRpcException(
-          JsonRpcProtocol.INVALID_PARAMS, String.format("Tool %s not found.", name));
-    }
-    return handler;
   }
 
   /**
@@ -136,7 +136,7 @@ public final class ToolInvocationCore implements ToolCallReplayInvoker {
       List<ResponseLedgerEntry> ledger,
       McpProgressSource progress,
       McpExchange exchange) {
-    CallToolHandler handler = lookup(toolName);
+    CallToolHandler handler = registry.lookup(toolName);
     DefaultMcpToolContext ctx =
         new DefaultMcpToolContext(progress, elicitationEngine, exchange, toolName);
     ReplayOutcome<Object, ElicitRequestFormParams> outcome =
@@ -148,12 +148,13 @@ public final class ToolInvocationCore implements ToolCallReplayInvoker {
                             ledger, () -> invokeWithContext(toolName, handler, arguments, ctx)))
             : replayExecutor.execute(
                 ledger, () -> invokeWithContext(toolName, handler, arguments, ctx));
-    if (outcome instanceof ReplayOutcome.InputRequired<?, ?> ir) {
-      return new ReplayOutcome.InputRequired<>(
-          ir.key(), new ElicitRequest((ElicitRequestFormParams) ir.request()), ir.ledger());
-    }
-    CallToolResult result = (CallToolResult) ((ReplayOutcome.Completed<?, ?>) outcome).result();
-    return new ReplayOutcome.Completed<>(result);
+    return switch (outcome) {
+      case ReplayOutcome.InputRequired<?, ?> ir ->
+          new ReplayOutcome.InputRequired<>(
+              ir.key(), new ElicitRequest((ElicitRequestFormParams) ir.request()), ir.ledger());
+      case ReplayOutcome.Completed<?, ?> completed ->
+          new ReplayOutcome.Completed<>((CallToolResult) completed.result());
+    };
   }
 
   private CallToolResult invokeWithContext(
