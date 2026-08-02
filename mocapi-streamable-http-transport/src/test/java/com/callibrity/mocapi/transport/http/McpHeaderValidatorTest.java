@@ -377,14 +377,6 @@ class McpHeaderValidatorTest {
     }
   }
 
-  /**
-   * Pins the transport's header-mismatch constants to their literal wire values.
-   *
-   * <p>java:S3415 is suppressed because the assertions are not swapped. The named constant is the
-   * actual value under test and the literal is the expected wire code, which is the correct AssertJ
-   * order. Literals are deliberately spelled out so that changing a constant fails this test rather
-   * than silently altering the wire protocol.
-   */
   @Nested
   class Contributed_methods {
 
@@ -438,6 +430,14 @@ class McpHeaderValidatorTest {
     }
   }
 
+  /**
+   * Pins the transport's header-mismatch constants to their literal wire values.
+   *
+   * <p>java:S3415 is suppressed because the assertions are not swapped. The named constant is the
+   * actual value under test and the literal is the expected wire code, which is the correct AssertJ
+   * order. Literals are deliberately spelled out so that changing a constant fails this test rather
+   * than silently altering the wire protocol.
+   */
   @Nested
   @SuppressWarnings("java:S3415")
   class Constants {
