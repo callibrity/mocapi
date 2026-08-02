@@ -43,6 +43,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.info.ProjectInfoAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -122,6 +123,17 @@ public class MocapiServerAutoConfiguration {
       customizers.forEach(customizer -> customizer.customize(builder));
     }
     return builder.build();
+  }
+
+  /**
+   * Only registered when {@link ServerCapabilitiesCustomizer} beans exist: it has nothing to warn
+   * about otherwise (see {@link ServerCapabilitiesOverrideAuditor}'s javadoc).
+   */
+  @Bean
+  @ConditionalOnBean(ServerCapabilitiesCustomizer.class)
+  public ServerCapabilitiesOverrideAuditor mcpServerCapabilitiesOverrideAuditor(
+      ConfigurableListableBeanFactory beanFactory) {
+    return new ServerCapabilitiesOverrideAuditor(beanFactory);
   }
 
   @Bean

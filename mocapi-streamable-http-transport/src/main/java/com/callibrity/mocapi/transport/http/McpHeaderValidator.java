@@ -21,6 +21,7 @@ import com.callibrity.ripcurl.core.JsonRpcRequest;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.http.HttpHeaders;
 import tools.jackson.databind.JsonNode;
 
@@ -88,6 +89,18 @@ public class McpHeaderValidator {
 
   /** The merged, immutable union of {@link #NAMED_PARAM_FIELDS} and any contributed entries. */
   private final Map<String, String> namedParamFields;
+
+  /**
+   * The JSON-RPC methods mocapi's built-in {@code Mcp-Name} routing-header table already covers.
+   * Exposed so the {@code RoutedParamContributor} merge (autoconfigure) can detect a contribution
+   * that collides with a built-in method and fail the boot, before ever constructing a validator
+   * that would otherwise let the built-in value win silently.
+   *
+   * @return the built-in table's method names
+   */
+  public static Set<String> builtInNamedParamMethods() {
+    return NAMED_PARAM_FIELDS.keySet();
+  }
 
   /** Validates using only the built-in {@code Mcp-Name} routing-header table. */
   public McpHeaderValidator() {

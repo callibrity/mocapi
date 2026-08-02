@@ -20,8 +20,10 @@ import static org.mockito.Mockito.mock;
 
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerProperties;
+import com.callibrity.mocapi.server.routing.RoutedParamContributor;
 import io.micrometer.context.ContextSnapshotFactory;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -136,5 +138,59 @@ class StreamableHttpAutoConfigurationTest {
               MocapiServerProperties props = context.getBean(MocapiServerProperties.class);
               assertThat(props.allowedOrigins()).containsExactly("example.com", "other.com");
             });
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class DuplicateContributorsConfig {
+
+    @Bean
+    RoutedParamContributor firstContributor() {
+      return () -> Map.of("tasks/get", "taskId");
+    }
+
+    @Bean
+    RoutedParamContributor secondContributor() {
+      return () -> Map.of("tasks/get", "taskId");
+    }
+  }
+
+  @Test
+  void boot_fails_when_two_contributors_claim_the_same_method() {
+    contextRunner
+        .withUserConfiguration(DuplicateContributorsConfig.class)
+        .run(
+            context ->
+                assertThat(context)
+                    .hasFailed()
+                    .getFailure()
+                    .rootCause()
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("firstContributor")
+                    .hasMessageContaining("secondContributor")
+                    .hasMessageContaining("tasks/get"));
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class BuiltInCollidingContributorConfig {
+
+    @Bean
+    RoutedParamContributor collidingContributor() {
+      return () -> Map.of("tools/call", "name");
+    }
+  }
+
+  @Test
+  void boot_fails_when_a_contributor_collides_with_a_built_in_method() {
+    contextRunner
+        .withUserConfiguration(BuiltInCollidingContributorConfig.class)
+        .run(
+            context ->
+                assertThat(context)
+                    .hasFailed()
+                    .getFailure()
+                    .rootCause()
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("collidingContributor")
+                    .hasMessageContaining("tools/call"));
   }
 }

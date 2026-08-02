@@ -39,6 +39,7 @@ import com.callibrity.mocapi.server.prompts.GetPromptHandler;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.resources.ReadResourceHandler;
+import com.callibrity.mocapi.server.resources.ResourceContributor;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.CallToolHandlers;
 import com.callibrity.mocapi.server.tools.McpToolsService;
@@ -239,14 +240,14 @@ class McpDispatchInterceptorTest {
   void zero_interceptors_on_resources_service_is_the_default_path() {
     McpResourcesService withEmpty =
         new McpResourcesService(
-            List.of(resourceHandler()),
-            List.of(),
+            List.of(ResourceContributor.of(List.of(resourceHandler()), List.of())),
             engine(),
             McpResourcesService.DEFAULT_PAGE_SIZE,
             CacheSettings.defaults(),
             List.of());
     McpResourcesService withoutParam =
-        new McpResourcesService(List.of(resourceHandler()), List.of(), engine());
+        new McpResourcesService(
+            List.of(ResourceContributor.of(List.of(resourceHandler()), List.of())), engine());
 
     var params = new ResourceRequestParams("test://a", null, null, null);
 

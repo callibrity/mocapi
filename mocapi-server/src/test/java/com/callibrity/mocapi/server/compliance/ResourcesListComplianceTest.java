@@ -27,9 +27,11 @@ import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
+import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.resources.ReadResourceHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
+import com.callibrity.mocapi.server.resources.ResourceContributor;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -98,8 +100,9 @@ class ResourcesListComplianceTest {
 
     var resourcesService =
         new McpResourcesService(
-            List.of(fileResource, configResource),
-            List.of(userTemplate),
+            List.of(
+                ResourceContributor.of(
+                    List.of(fileResource, configResource), List.of(userTemplate))),
             ComplianceTestSupport.mrtrEngine());
 
     server = buildServer(resourcesService);
@@ -139,7 +142,11 @@ class ResourcesListComplianceTest {
 
     var pagedService =
         new McpResourcesService(
-            List.of(r1, r2, r3), List.of(), ComplianceTestSupport.mrtrEngine(), 2);
+            List.of(ResourceContributor.of(List.of(r1, r2, r3), List.of())),
+            ComplianceTestSupport.mrtrEngine(),
+            2,
+            CacheSettings.defaults(),
+            List.of());
     var pagedServer = buildServer(pagedService);
 
     var transport1 = mock(McpTransport.class);

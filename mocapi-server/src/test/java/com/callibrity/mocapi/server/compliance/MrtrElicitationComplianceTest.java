@@ -50,6 +50,7 @@ import com.callibrity.mocapi.server.prompts.GetPromptHandler;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.resources.ReadResourceHandler;
+import com.callibrity.mocapi.server.resources.ResourceContributor;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.StructuredResultMapper;
@@ -226,7 +227,9 @@ class MrtrElicitationComplianceTest {
                   ResultTypes.COMPLETE);
             },
             List.of());
-    var resourcesService = new McpResourcesService(List.of(readme, gated), List.of(), engine);
+    var resourcesService =
+        new McpResourcesService(
+            List.of(ResourceContributor.of(List.of(readme, gated), List.of())), engine);
 
     return buildServer(toolsService, promptsService, resourcesService);
   }

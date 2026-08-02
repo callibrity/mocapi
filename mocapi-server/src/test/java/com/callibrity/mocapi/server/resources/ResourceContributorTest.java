@@ -81,7 +81,8 @@ class ResourceContributorTest {
                 contributor(readerOnly("ui://b", "B", List.of()))),
             engine(),
             50,
-            CacheSettings.defaults());
+            CacheSettings.defaults(),
+            List.of());
 
     var listed = service.listResources(null).resources().stream().map(Resource::uri).toList();
     assertThat(listed).containsExactly("ui://a", "ui://b");
@@ -98,7 +99,7 @@ class ResourceContributorTest {
     var denied = readerOnly("ui://secret", "S", List.of(() -> new GuardDecision.Deny("nope")));
     var service =
         new McpResourcesService(
-            List.of(contributor(denied)), engine(), 50, CacheSettings.defaults());
+            List.of(contributor(denied)), engine(), 50, CacheSettings.defaults(), List.of());
 
     assertThat(service.listResources(null).resources()).isEmpty();
   }

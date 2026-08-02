@@ -113,8 +113,7 @@ public class TaskToolCallDispatcher
   static boolean isTaskCapable(RequestMeta meta) {
     return meta != null
         && meta.clientCapabilities() != null
-        && meta.clientCapabilities().extensions() != null
-        && meta.clientCapabilities().extensions().containsKey(TasksExtension.EXTENSION_ID);
+        && meta.clientCapabilities().hasExtension(TasksExtension.EXTENSION_ID);
   }
 
   private TaskRecord newRecord(

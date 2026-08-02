@@ -87,10 +87,44 @@ class McpResourcesServiceTest {
         List.of());
   }
 
+  private static McpResourcesService service(
+      List<ReadResourceHandler> handlers,
+      List<ReadResourceTemplateHandler> templates,
+      MrtrElicitationEngine engine) {
+    return new McpResourcesService(List.of(ResourceContributor.of(handlers, templates)), engine);
+  }
+
+  private static McpResourcesService service(
+      List<ReadResourceHandler> handlers,
+      List<ReadResourceTemplateHandler> templates,
+      MrtrElicitationEngine engine,
+      int pageSize) {
+    return new McpResourcesService(
+        List.of(ResourceContributor.of(handlers, templates)),
+        engine,
+        pageSize,
+        CacheSettings.defaults(),
+        List.of());
+  }
+
+  private static McpResourcesService service(
+      List<ReadResourceHandler> handlers,
+      List<ReadResourceTemplateHandler> templates,
+      MrtrElicitationEngine engine,
+      int pageSize,
+      CacheSettings cacheSettings) {
+    return new McpResourcesService(
+        List.of(ResourceContributor.of(handlers, templates)),
+        engine,
+        pageSize,
+        cacheSettings,
+        List.of());
+  }
+
   @BeforeEach
   void setUp() {
     service =
-        new McpResourcesService(
+        service(
             List.of(
                 handler("test://b", "Resource B", "desc B", "text/plain"),
                 handler("test://a", "Resource A", "desc A", "text/plain")),
@@ -145,7 +179,7 @@ class McpResourcesServiceTest {
   void exact_match_takes_precedence_over_template() {
     var exact = handler("test://items/special", "Special", "desc", "text/plain");
     var template = templateHandler("test://items/{id}", "Item", "desc", "application/json");
-    var svc = new McpResourcesService(List.of(exact), List.of(template), engine());
+    var svc = service(List.of(exact), List.of(template), engine());
 
     var result =
         (ReadResourceResult)
@@ -166,7 +200,7 @@ class McpResourcesServiceTest {
 
   @Test
   void is_empty_returns_true_when_no_resources_or_templates() {
-    var emptyService = new McpResourcesService(List.of(), List.of(), engine());
+    var emptyService = service(List.of(), List.of(), engine());
     assertThat(emptyService.isEmpty()).isTrue();
   }
 
@@ -178,7 +212,7 @@ class McpResourcesServiceTest {
   @Test
   void is_empty_returns_false_with_only_templates() {
     var svc =
-        new McpResourcesService(
+        service(
             List.of(),
             List.of(templateHandler("test://t/{id}", "T", "desc", "text/plain")),
             engine());
@@ -191,7 +225,7 @@ class McpResourcesServiceTest {
         IntStream.range(0, 5)
             .mapToObj(i -> handler(String.format("test://r%03d", i), "R" + i, "desc", "text/plain"))
             .toList();
-    var svc = new McpResourcesService(handlers, List.of(), engine(), 2);
+    var svc = service(handlers, List.of(), engine(), 2);
 
     var page1 = svc.listResources(null);
     assertThat(page1.resources()).hasSize(2);
@@ -218,7 +252,7 @@ class McpResourcesServiceTest {
                     templateHandler(
                         String.format("test://t%03d/{id}", i), "T" + i, "desc", "text/plain"))
             .toList();
-    var svc = new McpResourcesService(List.of(), templates, engine(), 2);
+    var svc = service(List.of(), templates, engine(), 2);
 
     var page1 = svc.listResourceTemplates(null);
     assertThat(page1.resourceTemplates()).hasSize(2);
@@ -245,7 +279,7 @@ class McpResourcesServiceTest {
     List<ReadResourceTemplateHandler> templates = List.of(t1, t2);
     List<ReadResourceHandler> emptyHandlers = List.of();
     var engine = engine();
-    assertThatThrownBy(() -> new McpResourcesService(emptyHandlers, templates, engine))
+    assertThatThrownBy(() -> service(emptyHandlers, templates, engine))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Duplicate URI template");
   }
@@ -257,7 +291,7 @@ class McpResourcesServiceTest {
     List<ReadResourceHandler> handlers = List.of(a1, a2);
     List<ReadResourceTemplateHandler> emptyTemplates = List.of();
     var engine = engine();
-    assertThatThrownBy(() -> new McpResourcesService(handlers, emptyTemplates, engine))
+    assertThatThrownBy(() -> service(handlers, emptyTemplates, engine))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Duplicate resource URI");
   }
@@ -265,8 +299,7 @@ class McpResourcesServiceTest {
   @Test
   void out_of_range_cursor_returns_empty_page() {
     var svc =
-        new McpResourcesService(
-            List.of(handler("test://a", "A", "desc", "text/plain")), List.of(), engine(), 2);
+        service(List.of(handler("test://a", "A", "desc", "text/plain")), List.of(), engine(), 2);
 
     var largeOffset =
         java.util.Base64.getEncoder()
@@ -310,7 +343,7 @@ class McpResourcesServiceTest {
   @Test
   void denied_resource_and_template_are_absent_from_list() {
     var svc =
-        new McpResourcesService(
+        service(
             List.of(
                 guardedHandler("file:///visible", GuardDecision.Allow::new),
                 guardedHandler("file:///hidden", () -> new GuardDecision.Deny("x"))),
@@ -344,7 +377,7 @@ class McpResourcesServiceTest {
 
     private McpResourcesService configured(
         List<ReadResourceHandler> handlers, List<ReadResourceTemplateHandler> templates) {
-      return new McpResourcesService(
+      return service(
           handlers, templates, engine(), McpResourcesService.DEFAULT_PAGE_SIZE, settings);
     }
 
@@ -443,7 +476,7 @@ class McpResourcesServiceTest {
     @Test
     void list_resources_order_is_sorted_by_uri_regardless_of_registration_order() {
       var shuffled =
-          new McpResourcesService(
+          service(
               List.of(
                   handler("test://delta", "D", "d", "text/plain"),
                   handler("test://alpha", "A", "d", "text/plain"),
@@ -460,7 +493,7 @@ class McpResourcesServiceTest {
     void
         list_resource_templates_order_is_sorted_by_uri_template_regardless_of_registration_order() {
       var shuffled =
-          new McpResourcesService(
+          service(
               List.of(),
               List.of(
                   templateHandler("test://c/{id}", "C", "d", "text/plain"),

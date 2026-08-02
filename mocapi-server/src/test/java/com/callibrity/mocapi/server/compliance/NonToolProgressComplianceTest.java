@@ -41,6 +41,7 @@ import com.callibrity.mocapi.server.prompts.GetPromptHandler;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.resources.ReadResourceHandler;
+import com.callibrity.mocapi.server.resources.ResourceContributor;
 import com.callibrity.ripcurl.core.JsonRpcMessage;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import java.util.List;
@@ -101,7 +102,8 @@ class NonToolProgressComplianceTest {
             },
             List.of());
     var resourcesService =
-        new McpResourcesService(List.of(progressResource), List.of(), mrtrEngine());
+        new McpResourcesService(
+            List.of(ResourceContributor.of(List.of(progressResource), List.of())), mrtrEngine());
 
     server = buildServer(promptsService, resourcesService);
   }

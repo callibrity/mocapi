@@ -42,15 +42,19 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
+@ExtendWith(OutputCaptureExtension.class)
 class MocapiServerAutoConfigurationTest {
 
   private final ApplicationContextRunner contextRunner =
@@ -224,6 +228,41 @@ class MocapiServerAutoConfigurationTest {
               assertThat(caps.extensions()).containsKey("io.modelcontextprotocol/tasks");
               assertThat(caps.tools()).isEqualTo(new ToolsCapability(false));
             });
+  }
+
+  @Test
+  void warns_when_customizers_are_discarded_by_a_user_supplied_server_capabilities_bean(
+      CapturedOutput output) {
+    ServerCapabilities custom =
+        new ServerCapabilities(null, null, null, null, null, null, Map.of());
+    ServerCapabilitiesCustomizer discarded =
+        caps ->
+            caps.extension("io.modelcontextprotocol/tasks", JsonNodeFactory.instance.objectNode());
+    contextRunner
+        .withBean(ServerCapabilities.class, () -> custom)
+        .withBean("discardedCustomizer", ServerCapabilitiesCustomizer.class, () -> discarded)
+        .run(
+            context -> {
+              assertThat(context).hasSingleBean(ServerCapabilitiesOverrideAuditor.class);
+              assertThat(output).contains("discardedCustomizer");
+            });
+  }
+
+  @Test
+  void no_warning_when_customizers_are_applied_to_the_default_server_capabilities(
+      CapturedOutput output) {
+    ServerCapabilitiesCustomizer applied =
+        caps ->
+            caps.extension("io.modelcontextprotocol/tasks", JsonNodeFactory.instance.objectNode());
+    contextRunner
+        .withBean("appliedCustomizer", ServerCapabilitiesCustomizer.class, () -> applied)
+        .run(context -> assertThat(output).doesNotContain("were never applied"));
+  }
+
+  @Test
+  void no_auditor_bean_when_there_are_no_customizers() {
+    contextRunner.run(
+        context -> assertThat(context).doesNotHaveBean(ServerCapabilitiesOverrideAuditor.class));
   }
 
   @Test

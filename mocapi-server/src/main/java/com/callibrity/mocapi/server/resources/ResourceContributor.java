@@ -37,4 +37,29 @@ public interface ResourceContributor {
   default List<ReadResourceTemplateHandler> resourceTemplates() {
     return List.of();
   }
+
+  /**
+   * Adapts a pair of already-built handler lists into a single {@link ResourceContributor}. Exists
+   * so callers that assemble handlers directly (chiefly tests, which predate ADR-0035's
+   * contributor-based construction) can still reach {@link McpResourcesService}'s single, primary
+   * constructor without each call site hand-rolling an anonymous contributor.
+   *
+   * @param resources fixed-URI handlers to expose
+   * @param resourceTemplates templated handlers to expose
+   * @return a contributor returning exactly the given lists
+   */
+  static ResourceContributor of(
+      List<ReadResourceHandler> resources, List<ReadResourceTemplateHandler> resourceTemplates) {
+    return new ResourceContributor() {
+      @Override
+      public List<ReadResourceHandler> resources() {
+        return resources;
+      }
+
+      @Override
+      public List<ReadResourceTemplateHandler> resourceTemplates() {
+        return resourceTemplates;
+      }
+    };
+  }
 }

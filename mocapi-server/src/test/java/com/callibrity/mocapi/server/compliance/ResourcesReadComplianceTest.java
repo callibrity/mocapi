@@ -29,6 +29,7 @@ import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.resources.ReadResourceHandler;
+import com.callibrity.mocapi.server.resources.ResourceContributor;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import java.util.Base64;
 import java.util.List;
@@ -82,7 +83,8 @@ class ResourcesReadComplianceTest {
 
     var service =
         new McpResourcesService(
-            List.of(textResource, blobResource), List.of(), ComplianceTestSupport.mrtrEngine());
+            List.of(ResourceContributor.of(List.of(textResource, blobResource), List.of())),
+            ComplianceTestSupport.mrtrEngine());
 
     server = buildServer(service);
   }

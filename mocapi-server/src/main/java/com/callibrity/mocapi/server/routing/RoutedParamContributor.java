@@ -32,7 +32,7 @@ import java.util.Map;
  * ignore contributed instances.
  */
 @FunctionalInterface
-public interface McpRoutedParamContributor {
+public interface RoutedParamContributor {
 
   /**
    * The methods this contributor adds to the {@code Mcp-Name} validation table.

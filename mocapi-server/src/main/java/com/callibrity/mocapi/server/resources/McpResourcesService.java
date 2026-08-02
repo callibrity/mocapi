@@ -67,34 +67,19 @@ public class McpResourcesService {
   private final List<McpDispatchInterceptor<ReadResourceHandler, ResourceRequestParams>>
       dispatchInterceptors;
 
-  public McpResourcesService(
-      List<ReadResourceHandler> handlers,
-      List<ReadResourceTemplateHandler> templateHandlers,
-      MrtrElicitationEngine engine) {
-    this(handlers, templateHandlers, engine, DEFAULT_PAGE_SIZE, CacheSettings.defaults());
-  }
-
   /**
-   * Construction-time merge of every {@link ResourceContributor} (ADR-0035): the service is built
-   * once from the flattened union of the contributors' resources and templates. There is no runtime
-   * registration; the maps stay immutable.
+   * Convenience constructor: no dispatch interceptors, default page size, default cache settings.
    */
-  public McpResourcesService(
-      List<ResourceContributor> contributors,
-      MrtrElicitationEngine engine,
-      int pageSize,
-      CacheSettings cacheSettings) {
-    this(
-        contributors.stream().flatMap(c -> c.resources().stream()).toList(),
-        contributors.stream().flatMap(c -> c.resourceTemplates().stream()).toList(),
-        engine,
-        pageSize,
-        cacheSettings);
+  public McpResourcesService(List<ResourceContributor> contributors, MrtrElicitationEngine engine) {
+    this(contributors, engine, DEFAULT_PAGE_SIZE, CacheSettings.defaults(), List.of());
   }
 
   /**
    * Construction-time merge of every {@link ResourceContributor} (ADR-0035), plus the {@code
-   * resources/read} {@link McpDispatchInterceptor} chain.
+   * resources/read} {@link McpDispatchInterceptor} chain: the service is built once from the
+   * flattened union of the contributors' resources and templates. There is no runtime registration;
+   * the maps stay immutable. This is the primary constructor (ADR-0039); the two-arg overload is a
+   * convenience for the common no-interceptor, default-settings case.
    */
   public McpResourcesService(
       List<ResourceContributor> contributors,
@@ -112,24 +97,7 @@ public class McpResourcesService {
         dispatchInterceptors);
   }
 
-  public McpResourcesService(
-      List<ReadResourceHandler> handlers,
-      List<ReadResourceTemplateHandler> templateHandlers,
-      MrtrElicitationEngine engine,
-      int pageSize) {
-    this(handlers, templateHandlers, engine, pageSize, CacheSettings.defaults());
-  }
-
-  public McpResourcesService(
-      List<ReadResourceHandler> handlers,
-      List<ReadResourceTemplateHandler> templateHandlers,
-      MrtrElicitationEngine engine,
-      int pageSize,
-      CacheSettings cacheSettings) {
-    this(handlers, templateHandlers, engine, pageSize, cacheSettings, List.of());
-  }
-
-  public McpResourcesService(
+  private McpResourcesService(
       List<ReadResourceHandler> handlers,
       List<ReadResourceTemplateHandler> templateHandlers,
       MrtrElicitationEngine engine,

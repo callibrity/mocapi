@@ -18,11 +18,11 @@ package com.callibrity.mocapi.transport.http;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerProperties;
-import com.callibrity.mocapi.server.routing.McpRoutedParamContributor;
+import com.callibrity.mocapi.server.routing.RoutedParamContributor;
 import io.micrometer.context.ContextSnapshotFactory;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -49,14 +49,48 @@ public class StreamableHttpAutoConfiguration {
     return new McpRequestValidator(props.allowedOrigins());
   }
 
+  /**
+   * Merges every {@link RoutedParamContributor} bean into the {@code Mcp-Name} routing-header
+   * table, failing the boot with an {@link IllegalStateException} naming both parties when two
+   * contributors claim the same JSON-RPC method, or when a contribution collides with a method
+   * mocapi's built-in table already covers (mirrors {@code ResourceContributor}'s duplicate-URI
+   * treatment). Beans are injected by name (rather than {@code List}) purely so the failure message
+   * can name the offending beans.
+   */
   @Bean
   @ConditionalOnMissingBean(McpHeaderValidator.class)
   public McpHeaderValidator mcpProtocolHeaderValidator(
-      @Autowired(required = false) List<McpRoutedParamContributor> contributors) {
+      @Autowired(required = false) Map<String, RoutedParamContributor> contributors) {
     Map<String, String> additionalNamedParamFields = new HashMap<>();
     if (contributors != null) {
-      for (McpRoutedParamContributor contributor : contributors) {
-        additionalNamedParamFields.putAll(contributor.namedParamFields());
+      Set<String> builtIns = McpHeaderValidator.builtInNamedParamMethods();
+      Map<String, String> contributedBy = new HashMap<>();
+      for (Map.Entry<String, RoutedParamContributor> contributorEntry : contributors.entrySet()) {
+        String beanName = contributorEntry.getKey();
+        for (Map.Entry<String, String> entry :
+            contributorEntry.getValue().namedParamFields().entrySet()) {
+          String method = entry.getKey();
+          if (builtIns.contains(method)) {
+            throw new IllegalStateException(
+                "RoutedParamContributor \""
+                    + beanName
+                    + "\" contributes method \""
+                    + method
+                    + "\", which collides with mocapi's built-in Mcp-Name routing table");
+          }
+          String existingBeanName = contributedBy.putIfAbsent(method, beanName);
+          if (existingBeanName != null) {
+            throw new IllegalStateException(
+                "RoutedParamContributor \""
+                    + existingBeanName
+                    + "\" and \""
+                    + beanName
+                    + "\" both contribute method \""
+                    + method
+                    + "\" to the Mcp-Name routing table");
+          }
+          additionalNamedParamFields.put(method, entry.getValue());
+        }
       }
     }
     return new McpHeaderValidator(additionalNamedParamFields);

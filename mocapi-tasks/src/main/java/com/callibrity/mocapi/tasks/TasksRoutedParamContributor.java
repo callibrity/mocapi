@@ -15,14 +15,14 @@
  */
 package com.callibrity.mocapi.tasks;
 
-import com.callibrity.mocapi.server.routing.McpRoutedParamContributor;
+import com.callibrity.mocapi.server.routing.RoutedParamContributor;
 import java.util.Map;
 
 /**
  * Extends the {@code Mcp-Name} routing-header validation table with the tasks extension's three
  * JSON-RPC methods, each of which routes against {@code params.taskId}.
  */
-public class TasksRoutedParamContributor implements McpRoutedParamContributor {
+public class TasksRoutedParamContributor implements RoutedParamContributor {
 
   @Override
   public Map<String, String> namedParamFields() {

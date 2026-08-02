@@ -37,4 +37,17 @@ public record ClientCapabilities(
     @Deprecated(since = "2026-07-28") RootsCapability roots,
     @Deprecated(since = "2026-07-28") SamplingCapability sampling,
     ElicitationCapability elicitation,
-    Map<String, ObjectNode> extensions) {}
+    Map<String, ObjectNode> extensions) {
+
+  /**
+   * Whether the client declared the given reverse-DNS extension identifier (SEP-2133) in {@link
+   * #extensions()}. Null-safe: a {@code null} {@link #extensions()} map (no {@code extensions} key
+   * on the wire at all) reports {@code false} rather than throwing.
+   *
+   * @param id the extension identifier, e.g. {@code "io.modelcontextprotocol/tasks"}
+   * @return {@code true} when the client declared the extension
+   */
+  public boolean hasExtension(String id) {
+    return extensions != null && extensions.containsKey(id);
+  }
+}

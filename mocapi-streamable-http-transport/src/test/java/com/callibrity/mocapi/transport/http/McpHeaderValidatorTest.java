@@ -416,6 +416,12 @@ class McpHeaderValidatorTest {
     }
 
     @Test
+    void built_in_named_param_methods_lists_the_three_built_in_methods() {
+      assertThat(McpHeaderValidator.builtInNamedParamMethods())
+          .containsExactlyInAnyOrder("tools/call", "prompts/get", "resources/read");
+    }
+
+    @Test
     void built_in_methods_unaffected_by_contributions() {
       var validator = new McpHeaderValidator(Map.of("tasks/get", "taskId"));
 
