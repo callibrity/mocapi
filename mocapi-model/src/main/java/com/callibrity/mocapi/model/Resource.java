@@ -31,7 +31,12 @@ public record Resource(
     this(uri, name, description, mimeType, null);
   }
 
+  /**
+   * Returns a copy of this descriptor carrying the given {@code _meta} object. The node is
+   * deep-copied so a caller mutating the {@link ObjectNode} it passed in after this call cannot
+   * reach back into the published descriptor.
+   */
   public Resource withMeta(ObjectNode meta) {
-    return new Resource(uri, name, description, mimeType, meta);
+    return new Resource(uri, name, description, mimeType, meta == null ? null : meta.deepCopy());
   }
 }

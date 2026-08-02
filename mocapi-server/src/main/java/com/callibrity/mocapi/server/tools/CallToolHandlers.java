@@ -39,6 +39,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.UnaryOperator;
@@ -63,16 +64,16 @@ public final class CallToolHandlers {
 
   /**
    * The invariant wiring shared by every {@link CallToolHandler} on a server: the schema generator,
-   * object mapper, the handler- and descriptor-customizer chains, the annotation value resolver,
-   * and whether output-schema validation is enforced. Bundled so {@link #build(Object, Method,
-   * BuildParams)} takes a single settings argument that a caller constructs once and reuses across
-   * every {@code (bean, method)} pair.
+   * object mapper, the handler-customizer chain, the annotation value resolver, and whether
+   * output-schema validation is enforced. Bundled so {@link #build(Object, Method, BuildParams)}
+   * takes a single settings argument that a caller constructs once and reuses across every {@code
+   * (bean, method)} pair.
    *
    * @param generator generates input and output schemas from method signatures
    * @param objectMapper the Jackson mapper used for schema mapping and the catch-all resolver
-   * @param customizers the {@link CallToolHandlerCustomizer} chain applied to each handler
-   * @param descriptorCustomizers the {@link ToolDescriptorCustomizer} chain applied to each tool
-   *     descriptor
+   * @param customizers the {@link CallToolHandlerCustomizer} chain applied to each handler; a
+   *     customizer may replace the descriptor via {@link CallToolHandlerConfig#descriptor(Tool)}
+   *     (ADR-0039)
    * @param valueResolver resolves placeholder values in {@code @McpTool} annotation attributes
    * @param validateOutput when {@code true}, installs an output-schema validator for tools that
    *     declare one
@@ -81,7 +82,6 @@ public final class CallToolHandlers {
       MethodSchemaGenerator generator,
       ObjectMapper objectMapper,
       List<CallToolHandlerCustomizer> customizers,
-      List<ToolDescriptorCustomizer> descriptorCustomizers,
       UnaryOperator<String> valueResolver,
       boolean validateOutput) {}
 
@@ -110,7 +110,6 @@ public final class CallToolHandlers {
     MethodSchemaGenerator generator = params.generator();
     ObjectMapper objectMapper = params.objectMapper();
     List<CallToolHandlerCustomizer> customizers = params.customizers();
-    List<ToolDescriptorCustomizer> descriptorCustomizers = params.descriptorCustomizers();
     UnaryOperator<String> valueResolver = params.valueResolver();
     boolean validateOutput = params.validateOutput();
     validateMcpToolParams(bean, method);
@@ -131,12 +130,10 @@ public final class CallToolHandlers {
     ObjectNode outputSchema = mapperAndSchema.outputSchema();
 
     Tool descriptor = new Tool(name, title, description, inputSchema, outputSchema);
-    for (ToolDescriptorCustomizer descriptorCustomizer : descriptorCustomizers) {
-      descriptor = descriptorCustomizer.customize(method, descriptor);
-    }
     Schema compiledInputSchema = compile(inputSchema);
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
+    descriptor = config.descriptor();
     MutableHandlerState<JsonNode> state = config.state;
     List<ParameterResolver<? super JsonNode>> resolvers =
         buildResolvers(objectMapper, state.resolvers);
@@ -280,7 +277,7 @@ public final class CallToolHandlers {
   }
 
   private static final class MutableConfig implements CallToolHandlerConfig {
-    private final Tool descriptor;
+    private Tool descriptor;
     private final Method method;
     private final Object bean;
     final MutableHandlerState<JsonNode> state = new MutableHandlerState<>();
@@ -294,6 +291,11 @@ public final class CallToolHandlers {
     @Override
     public Tool descriptor() {
       return descriptor;
+    }
+
+    @Override
+    public void descriptor(Tool descriptor) {
+      this.descriptor = Objects.requireNonNull(descriptor, "descriptor");
     }
 
     @Override

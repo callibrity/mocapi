@@ -21,31 +21,29 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
-class ToolTest {
+class PromptTest {
   private final ObjectMapper mapper = new ObjectMapper();
 
   @Test
   void omits_meta_when_absent() {
-    Tool tool = new Tool("t", "T", "desc", mapper.createObjectNode(), null);
-    assertThat(mapper.valueToTree(tool).has("_meta")).isFalse();
+    Prompt prompt = new Prompt("p", "P", "desc", null, null);
+    assertThat(mapper.valueToTree(prompt).has("_meta")).isFalse();
   }
 
   @Test
   void serializes_meta_under_underscore_meta_key() {
-    ObjectNode meta = mapper.createObjectNode();
-    meta.putObject("ui").put("resourceUri", "ui://x");
-    Tool tool = new Tool("t", "T", "desc", mapper.createObjectNode(), null).withMeta(meta);
-    assertThat(mapper.valueToTree(tool).path("_meta").path("ui").path("resourceUri").asString())
-        .isEqualTo("ui://x");
+    ObjectNode meta = mapper.createObjectNode().put("k", "v");
+    Prompt prompt = new Prompt("p", "P", "desc", null, null).withMeta(meta);
+    assertThat(mapper.valueToTree(prompt).path("_meta").path("k").asString()).isEqualTo("v");
   }
 
   @Test
   void withMeta_deep_copies_so_later_mutation_of_the_input_node_does_not_leak_through() {
     ObjectNode meta = mapper.createObjectNode().put("k", "original");
-    Tool tool = new Tool("t", "T", "desc", mapper.createObjectNode(), null).withMeta(meta);
+    Prompt prompt = new Prompt("p", "P", "desc", null, null).withMeta(meta);
 
     meta.put("k", "mutated-after-build");
 
-    assertThat(tool.meta().path("k").asString()).isEqualTo("original");
+    assertThat(prompt.meta().path("k").asString()).isEqualTo("original");
   }
 }

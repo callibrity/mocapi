@@ -31,7 +31,7 @@ import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
-import com.callibrity.mocapi.server.resources.ResourceDescriptorCustomizer;
+import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -298,12 +298,13 @@ class ResourceServiceAutoConfigurationTest {
 
   @Test
   void applies_resource_descriptor_customizers() {
-    ResourceDescriptorCustomizer stamp =
-        (method, descriptor) ->
-            descriptor.withMeta(new ObjectMapper().createObjectNode().put("k", "v"));
+    ReadResourceHandlerCustomizer stamp =
+        config ->
+            config.descriptor(
+                config.descriptor().withMeta(new ObjectMapper().createObjectNode().put("k", "v")));
     contextRunner
         .withBean(SampleResourceService.class, SampleResourceService::new)
-        .withBean(ResourceDescriptorCustomizer.class, () -> stamp)
+        .withBean(ReadResourceHandlerCustomizer.class, () -> stamp)
         .run(
             context -> {
               var service = context.getBean(McpResourcesService.class);

@@ -16,14 +16,15 @@
 package com.callibrity.mocapi.apps;
 
 import com.callibrity.mocapi.model.Tool;
-import com.callibrity.mocapi.server.tools.ToolDescriptorCustomizer;
+import com.callibrity.mocapi.server.tools.CallToolHandlerConfig;
+import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import java.lang.reflect.Method;
 import java.util.List;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
-/** Writes a tool's {@code _meta.ui} from an {@link McpUi} annotation, when present. */
-public class AppsToolDescriptorCustomizer implements ToolDescriptorCustomizer {
+/** Writes a tool's {@code _meta.ui} from an {@link McpUi} annotation, when present (ADR-0039). */
+public class AppsToolDescriptorCustomizer implements CallToolHandlerCustomizer {
 
   private final ObjectMapper mapper;
 
@@ -32,14 +33,16 @@ public class AppsToolDescriptorCustomizer implements ToolDescriptorCustomizer {
   }
 
   @Override
-  public Tool customize(Method method, Tool descriptor) {
+  public void customize(CallToolHandlerConfig config) {
+    Method method = config.method();
     McpUi ui = method.getAnnotation(McpUi.class);
     if (ui == null) {
-      return descriptor;
+      return;
     }
     McpUiToolMeta uiMeta = new McpUiToolMeta(ui.value(), List.of(ui.visibility()));
+    Tool descriptor = config.descriptor();
     ObjectNode meta = descriptor.meta() != null ? descriptor.meta() : mapper.createObjectNode();
     meta.set("ui", mapper.valueToTree(uiMeta));
-    return descriptor.withMeta(meta);
+    config.descriptor(descriptor.withMeta(meta));
   }
 }

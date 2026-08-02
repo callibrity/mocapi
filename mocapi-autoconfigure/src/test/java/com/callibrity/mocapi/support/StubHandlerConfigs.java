@@ -28,6 +28,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.ParameterResolver;
 import tools.jackson.databind.JsonNode;
@@ -50,7 +51,7 @@ public final class StubHandlerConfigs {
   }
 
   public static final class StubToolConfig implements CallToolHandlerConfig {
-    private final Tool descriptor;
+    private Tool descriptor;
     private final Method method;
     public final List<MethodInterceptor<? super JsonNode>> interceptors = new ArrayList<>();
     public final List<Guard> guards = new ArrayList<>();
@@ -67,6 +68,11 @@ public final class StubHandlerConfigs {
     @Override
     public Tool descriptor() {
       return descriptor;
+    }
+
+    @Override
+    public void descriptor(Tool descriptor) {
+      this.descriptor = Objects.requireNonNull(descriptor, "descriptor");
     }
 
     @Override
@@ -126,7 +132,7 @@ public final class StubHandlerConfigs {
   }
 
   public static final class StubPromptConfig implements GetPromptHandlerConfig {
-    private final Prompt descriptor;
+    private Prompt descriptor;
     private final Method method;
     public final List<MethodInterceptor<? super Map<String, String>>> interceptors =
         new ArrayList<>();
@@ -144,6 +150,11 @@ public final class StubHandlerConfigs {
     @Override
     public Prompt descriptor() {
       return descriptor;
+    }
+
+    @Override
+    public void descriptor(Prompt descriptor) {
+      this.descriptor = Objects.requireNonNull(descriptor, "descriptor");
     }
 
     @Override
@@ -206,7 +217,7 @@ public final class StubHandlerConfigs {
   }
 
   public static final class StubResourceConfig implements ReadResourceHandlerConfig {
-    private final Resource descriptor;
+    private Resource descriptor;
     private final Method method;
     public final List<MethodInterceptor<? super Object>> interceptors = new ArrayList<>();
     public final List<Guard> guards = new ArrayList<>();
@@ -223,6 +234,11 @@ public final class StubHandlerConfigs {
     @Override
     public Resource descriptor() {
       return descriptor;
+    }
+
+    @Override
+    public void descriptor(Resource descriptor) {
+      this.descriptor = Objects.requireNonNull(descriptor, "descriptor");
     }
 
     @Override
@@ -285,7 +301,7 @@ public final class StubHandlerConfigs {
 
   public static final class StubResourceTemplateConfig
       implements ReadResourceTemplateHandlerConfig {
-    private final ResourceTemplate descriptor;
+    private ResourceTemplate descriptor;
     private final Method method;
     public final List<MethodInterceptor<? super Map<String, String>>> interceptors =
         new ArrayList<>();
@@ -303,6 +319,11 @@ public final class StubHandlerConfigs {
     @Override
     public ResourceTemplate descriptor() {
       return descriptor;
+    }
+
+    @Override
+    public void descriptor(ResourceTemplate descriptor) {
+      this.descriptor = Objects.requireNonNull(descriptor, "descriptor");
     }
 
     @Override

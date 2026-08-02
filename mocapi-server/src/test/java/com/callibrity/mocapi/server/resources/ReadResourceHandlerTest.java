@@ -42,13 +42,14 @@ import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.ParameterInfo;
 import org.jwcarman.methodical.ParameterResolver;
+import tools.jackson.databind.ObjectMapper;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ReadResourceHandlerTest {
 
   private List<ReadResourceHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpResource.class).stream()
-        .map(m -> ReadResourceHandlers.build(target, m, List.of(), List.of(), s -> s))
+        .map(m -> ReadResourceHandlers.build(target, m, List.of(), s -> s))
         .toList();
   }
 
@@ -183,7 +184,7 @@ class ReadResourceHandlerTest {
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResource.class).getFirst();
 
-    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), List.of(), s -> s);
+    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), s -> s);
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();
@@ -193,6 +194,21 @@ class ReadResourceHandlerTest {
 
     handler.read();
     assertThat(hits).hasValue(1);
+  }
+
+  @Test
+  void customizer_can_replace_the_resource_descriptor() {
+    var bean = new Fixture();
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResource.class).getFirst();
+    ReadResourceHandlerCustomizer customizer =
+        config ->
+            config.descriptor(
+                config.descriptor().withMeta(new ObjectMapper().createObjectNode().put("k", "v")));
+
+    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), s -> s);
+
+    assertThat(handler.descriptor().meta().path("k").asString()).isEqualTo("v");
   }
 
   @Test
@@ -235,7 +251,7 @@ class ReadResourceHandlerTest {
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResource.class).getFirst();
 
-    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), List.of(), s -> s);
+    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), s -> s);
     handler.read();
 
     assertThat(order)
@@ -250,7 +266,7 @@ class ReadResourceHandlerTest {
     ReadResourceHandlerCustomizer customizer =
         config -> config.resolver(new CurrentTenantResolver());
 
-    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), List.of(), s -> s);
+    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), s -> s);
     var result = handler.read();
 
     var content = (TextResourceContents) result.contents().getFirst();
@@ -272,7 +288,7 @@ class ReadResourceHandlerTest {
         };
     var method =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResource.class).getFirst();
-    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), List.of(), s -> s);
+    var handler = ReadResourceHandlers.build(bean, method, List.of(customizer), s -> s);
 
     assertThatThrownBy(handler::read)
         .isInstanceOf(JsonRpcException.class)

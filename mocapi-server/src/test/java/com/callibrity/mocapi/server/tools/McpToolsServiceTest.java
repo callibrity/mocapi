@@ -81,8 +81,7 @@ class McpToolsServiceTest {
                 CallToolHandlers.build(
                     target,
                     m,
-                    new CallToolHandlers.BuildParams(
-                        generator, mapper, List.of(), List.of(), s -> s, false)))
+                    new CallToolHandlers.BuildParams(generator, mapper, List.of(), s -> s, false)))
         .toList();
   }
 
@@ -310,7 +309,6 @@ class McpToolsServiceTest {
                         generator,
                         mapper,
                         List.of(config -> java.util.Arrays.stream(guards).forEach(config::guard)),
-                        List.of(),
                         s -> s,
                         false)))
         .toList();

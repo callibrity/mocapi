@@ -80,6 +80,7 @@ public final class GetPromptHandlers {
     Prompt descriptor = new Prompt(name, title, description, null, argumentsOf(method));
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
+    descriptor = config.descriptor();
     MutableHandlerState<Map<String, String>> state = config.state;
     List<ParameterResolver<? super Map<String, String>>> resolvers =
         buildResolvers(conversionService, state.resolvers);
@@ -110,7 +111,7 @@ public final class GetPromptHandlers {
   }
 
   private static final class MutableConfig implements GetPromptHandlerConfig {
-    private final Prompt descriptor;
+    private Prompt descriptor;
     private final Method method;
     private final Object bean;
     final MutableHandlerState<Map<String, String>> state = new MutableHandlerState<>();
@@ -124,6 +125,11 @@ public final class GetPromptHandlers {
     @Override
     public Prompt descriptor() {
       return descriptor;
+    }
+
+    @Override
+    public void descriptor(Prompt descriptor) {
+      this.descriptor = Objects.requireNonNull(descriptor, "descriptor");
     }
 
     @Override

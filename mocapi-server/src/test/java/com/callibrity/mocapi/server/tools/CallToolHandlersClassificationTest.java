@@ -63,7 +63,7 @@ class CallToolHandlersClassificationTest {
     return CallToolHandlers.build(
         bean,
         method,
-        new CallToolHandlers.BuildParams(generator, mapper, List.of(), List.of(), s -> s, false));
+        new CallToolHandlers.BuildParams(generator, mapper, List.of(), s -> s, false));
   }
 
   private boolean hasAwaitInterceptor(CallToolHandler handler) {

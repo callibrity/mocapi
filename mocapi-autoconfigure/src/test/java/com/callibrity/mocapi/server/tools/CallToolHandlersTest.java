@@ -119,12 +119,13 @@ class CallToolHandlersTest {
 
   @Test
   void applies_tool_descriptor_customizers() {
-    ToolDescriptorCustomizer stamp =
-        (method, descriptor) ->
-            descriptor.withMeta(new ObjectMapper().createObjectNode().put("k", "v"));
+    CallToolHandlerCustomizer stamp =
+        config ->
+            config.descriptor(
+                config.descriptor().withMeta(new ObjectMapper().createObjectNode().put("k", "v")));
     contextRunner
         .withBean(SampleToolService.class, SampleToolService::new)
-        .withBean(ToolDescriptorCustomizer.class, () -> stamp)
+        .withBean(CallToolHandlerCustomizer.class, () -> stamp)
         .run(
             context -> {
               McpToolsService service = context.getBean(McpToolsService.class);

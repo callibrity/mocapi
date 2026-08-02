@@ -56,8 +56,7 @@ class AsyncToolHandlerTest {
     return CallToolHandlers.build(
         bean,
         method,
-        new CallToolHandlers.BuildParams(
-            generator, mapper, List.of(), List.of(), s -> s, validateOutput));
+        new CallToolHandlers.BuildParams(generator, mapper, List.of(), s -> s, validateOutput));
   }
 
   @Nested

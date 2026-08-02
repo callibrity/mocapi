@@ -148,8 +148,7 @@ class McpDispatchInterceptorTest {
                 CallToolHandlers.build(
                     target,
                     m,
-                    new CallToolHandlers.BuildParams(
-                        generator, MAPPER, List.of(), List.of(), s -> s, false)))
+                    new CallToolHandlers.BuildParams(generator, MAPPER, List.of(), s -> s, false)))
         .toList();
   }
 

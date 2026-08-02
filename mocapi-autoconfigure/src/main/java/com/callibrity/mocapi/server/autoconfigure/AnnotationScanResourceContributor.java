@@ -24,7 +24,6 @@ import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlers;
 import com.callibrity.mocapi.server.resources.ResourceContributor;
-import com.callibrity.mocapi.server.resources.ResourceDescriptorCustomizer;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,8 +49,7 @@ public final class AnnotationScanResourceContributor implements ResourceContribu
       ConversionService conversionService,
       StringValueResolver valueResolver,
       List<ReadResourceHandlerCustomizer> resourceCustomizers,
-      List<ReadResourceTemplateHandlerCustomizer> resourceTemplateCustomizers,
-      List<ResourceDescriptorCustomizer> resourceDescriptorCustomizers) {
+      List<ReadResourceTemplateHandlerCustomizer> resourceTemplateCustomizers) {
     this.resources =
         cache.forAnnotation(McpResource.class).stream()
             .map(
@@ -61,7 +59,6 @@ public final class AnnotationScanResourceContributor implements ResourceContribu
                           bm.bean(),
                           bm.method(),
                           resourceCustomizers,
-                          resourceDescriptorCustomizers,
                           valueResolver::resolveStringValue);
                   log.info(
                       "Registered MCP resource: \"{}\" (bean \"{}\")",

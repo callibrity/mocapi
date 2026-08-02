@@ -16,7 +16,8 @@
 package com.callibrity.mocapi.apps;
 
 import com.callibrity.mocapi.model.Resource;
-import com.callibrity.mocapi.server.resources.ResourceDescriptorCustomizer;
+import com.callibrity.mocapi.server.resources.ReadResourceHandlerConfig;
+import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import java.lang.reflect.Method;
 import java.util.List;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -25,9 +26,9 @@ import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Writes a UI resource's {@code _meta.ui} (CSP/sandbox) from an {@link McpAppResource}, when
- * present.
+ * present (ADR-0039).
  */
-public class AppsResourceDescriptorCustomizer implements ResourceDescriptorCustomizer {
+public class AppsResourceDescriptorCustomizer implements ReadResourceHandlerCustomizer {
 
   private final ObjectMapper mapper;
 
@@ -36,15 +37,17 @@ public class AppsResourceDescriptorCustomizer implements ResourceDescriptorCusto
   }
 
   @Override
-  public Resource customize(Method method, Resource descriptor) {
+  public void customize(ReadResourceHandlerConfig config) {
+    Method method = config.method();
     McpAppResource app = AnnotatedElementUtils.findMergedAnnotation(method, McpAppResource.class);
     if (app == null) {
-      return descriptor;
+      return;
     }
     UiResourceMeta uiMeta = new UiResourceMeta(csp(app.csp()), listOrNull(app.sandbox()));
+    Resource descriptor = config.descriptor();
     ObjectNode meta = descriptor.meta() != null ? descriptor.meta() : mapper.createObjectNode();
     meta.set("ui", mapper.valueToTree(uiMeta));
-    return descriptor.withMeta(meta);
+    config.descriptor(descriptor.withMeta(meta));
   }
 
   private McpUiResourceCsp csp(Csp csp) {

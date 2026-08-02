@@ -38,8 +38,13 @@ public record Tool(
     this(name, title, description, inputSchema, outputSchema, null);
   }
 
-  /** Returns a copy of this descriptor carrying the given {@code _meta} object. */
+  /**
+   * Returns a copy of this descriptor carrying the given {@code _meta} object. The node is
+   * deep-copied so a caller mutating the {@link ObjectNode} it passed in after this call cannot
+   * reach back into the published descriptor.
+   */
   public Tool withMeta(ObjectNode meta) {
-    return new Tool(name, title, description, inputSchema, outputSchema, meta);
+    return new Tool(
+        name, title, description, inputSchema, outputSchema, meta == null ? null : meta.deepCopy());
   }
 }

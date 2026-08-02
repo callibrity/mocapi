@@ -33,6 +33,13 @@ public interface GetPromptHandlerConfig {
 
   Prompt descriptor();
 
+  /**
+   * Replaces the prompt descriptor that will be advertised for this handler. Customizers call this
+   * to fold in additional {@code _meta} or other descriptor changes (ADR-0039); the last customizer
+   * to call it wins. {@code descriptor} must not be {@code null}.
+   */
+  void descriptor(Prompt descriptor);
+
   Method method();
 
   Object bean();

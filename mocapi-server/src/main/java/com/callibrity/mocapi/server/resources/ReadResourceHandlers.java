@@ -30,6 +30,7 @@ import com.callibrity.mocapi.server.handler.MutableHandlerState;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.UnaryOperator;
 import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.MethodInvoker;
@@ -54,7 +55,6 @@ public final class ReadResourceHandlers {
       Object bean,
       Method method,
       List<ReadResourceHandlerCustomizer> customizers,
-      List<ResourceDescriptorCustomizer> descriptorCustomizers,
       UnaryOperator<String> valueResolver) {
     validateReturnType(bean, method);
     McpResource annotation = AnnotatedElementUtils.findMergedAnnotation(method, McpResource.class);
@@ -64,11 +64,9 @@ public final class ReadResourceHandlers {
     String description = resolveOrDefault(valueResolver, annotation.description(), () -> name);
     String mimeType = resolveOrNull(valueResolver, annotation.mimeType());
     Resource descriptor = new Resource(uri, name, description, mimeType);
-    for (ResourceDescriptorCustomizer descriptorCustomizer : descriptorCustomizers) {
-      descriptor = descriptorCustomizer.customize(method, descriptor);
-    }
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
+    descriptor = config.descriptor();
     MutableHandlerState<Object> state = config.state;
     MethodInvoker.Builder<Object> builder = MethodInvoker.builder(method, bean, Object.class);
     builder.resolver(new McpResourceContextResolver());
@@ -89,7 +87,7 @@ public final class ReadResourceHandlers {
   }
 
   private static final class MutableConfig implements ReadResourceHandlerConfig {
-    private final Resource descriptor;
+    private Resource descriptor;
     private final Method method;
     private final Object bean;
     final MutableHandlerState<Object> state = new MutableHandlerState<>();
@@ -103,6 +101,11 @@ public final class ReadResourceHandlers {
     @Override
     public Resource descriptor() {
       return descriptor;
+    }
+
+    @Override
+    public void descriptor(Resource descriptor) {
+      this.descriptor = Objects.requireNonNull(descriptor, "descriptor");
     }
 
     @Override

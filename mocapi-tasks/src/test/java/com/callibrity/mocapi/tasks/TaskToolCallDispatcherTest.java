@@ -144,7 +144,7 @@ class TaskToolCallDispatcherTest {
     return CallToolHandlers.build(
         bean,
         method,
-        new CallToolHandlers.BuildParams(generator, mapper, customizers, List.of(), s -> s, false));
+        new CallToolHandlers.BuildParams(generator, mapper, customizers, s -> s, false));
   }
 
   private RequestMeta capableMeta() {

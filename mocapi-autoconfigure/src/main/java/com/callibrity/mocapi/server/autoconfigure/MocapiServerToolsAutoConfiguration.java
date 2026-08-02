@@ -26,7 +26,6 @@ import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlerRegistry;
 import com.callibrity.mocapi.server.tools.CallToolHandlers;
 import com.callibrity.mocapi.server.tools.McpToolsService;
-import com.callibrity.mocapi.server.tools.ToolDescriptorCustomizer;
 import com.callibrity.mocapi.server.tools.ToolInvocationCore;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
@@ -69,18 +68,14 @@ public class MocapiServerToolsAutoConfiguration {
       MethodSchemaGenerator generator,
       ObjectMapper objectMapper,
       @Autowired(required = false) List<CallToolHandlerCustomizer> toolCustomizers,
-      @Autowired(required = false) List<ToolDescriptorCustomizer> toolDescriptorCustomizers,
       StringValueResolver mcpAnnotationValueResolver) {
     List<CallToolHandlerCustomizer> customizers =
         toolCustomizers == null ? List.of() : toolCustomizers;
-    List<ToolDescriptorCustomizer> descriptorCustomizers =
-        toolDescriptorCustomizers == null ? List.of() : toolDescriptorCustomizers;
     CallToolHandlers.BuildParams buildParams =
         new CallToolHandlers.BuildParams(
             generator,
             objectMapper,
             customizers,
-            descriptorCustomizers,
             mcpAnnotationValueResolver::resolveStringValue,
             props.isValidateOutput());
     List<CallToolHandler> handlers =

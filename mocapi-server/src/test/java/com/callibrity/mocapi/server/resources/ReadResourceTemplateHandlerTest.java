@@ -45,6 +45,7 @@ import org.jwcarman.methodical.ParameterInfo;
 import org.jwcarman.methodical.ParameterResolver;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
+import tools.jackson.databind.ObjectMapper;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ReadResourceTemplateHandlerTest {
@@ -210,6 +211,24 @@ class ReadResourceTemplateHandlerTest {
 
     handler.read("test://items/1", Map.of("id", "1"));
     assertThat(hits).hasValue(1);
+  }
+
+  @Test
+  void customizer_can_replace_the_resource_template_descriptor() {
+    var bean = new Fixture();
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpResourceTemplate.class)
+            .getFirst();
+    ReadResourceTemplateHandlerCustomizer customizer =
+        config ->
+            config.descriptor(
+                config.descriptor().withMeta(new ObjectMapper().createObjectNode().put("k", "v")));
+
+    var handler =
+        ReadResourceTemplateHandlers.build(
+            bean, method, conversionService, List.of(customizer), s -> s);
+
+    assertThat(handler.descriptor().meta().path("k").asString()).isEqualTo("v");
   }
 
   @Test

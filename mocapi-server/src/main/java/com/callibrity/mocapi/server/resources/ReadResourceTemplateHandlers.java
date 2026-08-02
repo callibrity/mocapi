@@ -78,6 +78,7 @@ public final class ReadResourceTemplateHandlers {
     ResourceTemplate descriptor = new ResourceTemplate(uriTemplate, name, description, mimeType);
     MutableConfig config = new MutableConfig(descriptor, method, bean);
     customizers.forEach(c -> c.customize(config));
+    descriptor = config.descriptor();
     MutableHandlerState<Map<String, String>> state = config.state;
     List<ParameterResolver<? super Map<String, String>>> resolvers =
         buildResolvers(conversionService, state.resolvers);
@@ -115,7 +116,7 @@ public final class ReadResourceTemplateHandlers {
   }
 
   private static final class MutableConfig implements ReadResourceTemplateHandlerConfig {
-    private final ResourceTemplate descriptor;
+    private ResourceTemplate descriptor;
     private final Method method;
     private final Object bean;
     final MutableHandlerState<Map<String, String>> state = new MutableHandlerState<>();
@@ -129,6 +130,11 @@ public final class ReadResourceTemplateHandlers {
     @Override
     public ResourceTemplate descriptor() {
       return descriptor;
+    }
+
+    @Override
+    public void descriptor(ResourceTemplate descriptor) {
+      this.descriptor = Objects.requireNonNull(descriptor, "descriptor");
     }
 
     @Override

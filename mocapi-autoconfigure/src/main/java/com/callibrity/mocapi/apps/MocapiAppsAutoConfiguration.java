@@ -28,8 +28,8 @@ import org.springframework.core.io.ResourceLoader;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Registers the MCP Apps descriptor customizers and the {@code ui} capability when mocapi-apps is
- * present.
+ * Registers the MCP Apps handler customizers (ADR-0039) and the {@code ui} capability when
+ * mocapi-apps is present.
  */
 @AutoConfiguration
 @ConditionalOnClass(UiCapabilityCustomizer.class)

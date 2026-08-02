@@ -25,7 +25,6 @@ import com.callibrity.mocapi.server.resources.ReadResourceHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ResourceContributor;
-import com.callibrity.mocapi.server.resources.ResourceDescriptorCustomizer;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -60,9 +59,7 @@ public class MocapiServerResourcesAutoConfiguration {
       StringValueResolver mcpAnnotationValueResolver,
       @Autowired(required = false) List<ReadResourceHandlerCustomizer> resourceCustomizers,
       @Autowired(required = false)
-          List<ReadResourceTemplateHandlerCustomizer> resourceTemplateCustomizers,
-      @Autowired(required = false)
-          List<ResourceDescriptorCustomizer> resourceDescriptorCustomizers) {
+          List<ReadResourceTemplateHandlerCustomizer> resourceTemplateCustomizers) {
     ConversionService cs =
         conversionService.getIfAvailable(DefaultConversionService::getSharedInstance);
     return new AnnotationScanResourceContributor(
@@ -70,8 +67,7 @@ public class MocapiServerResourcesAutoConfiguration {
         cs,
         mcpAnnotationValueResolver,
         resourceCustomizers == null ? List.of() : resourceCustomizers,
-        resourceTemplateCustomizers == null ? List.of() : resourceTemplateCustomizers,
-        resourceDescriptorCustomizers == null ? List.of() : resourceDescriptorCustomizers);
+        resourceTemplateCustomizers == null ? List.of() : resourceTemplateCustomizers);
   }
 
   @Bean

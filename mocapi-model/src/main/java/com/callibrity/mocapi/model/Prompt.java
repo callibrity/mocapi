@@ -16,7 +16,9 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+import tools.jackson.databind.node.ObjectNode;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record Prompt(
@@ -24,4 +26,26 @@ public record Prompt(
     String title,
     String description,
     List<Icon> icons,
-    List<PromptArgument> arguments) {}
+    List<PromptArgument> arguments,
+    @JsonProperty("_meta") ObjectNode meta) {
+
+  /** Backward-compatible constructor for descriptors without extension metadata. */
+  public Prompt(
+      String name,
+      String title,
+      String description,
+      List<Icon> icons,
+      List<PromptArgument> arguments) {
+    this(name, title, description, icons, arguments, null);
+  }
+
+  /**
+   * Returns a copy of this descriptor carrying the given {@code _meta} object. The node is
+   * deep-copied so a caller mutating the {@link ObjectNode} it passed in after this call cannot
+   * reach back into the published descriptor.
+   */
+  public Prompt withMeta(ObjectNode meta) {
+    return new Prompt(
+        name, title, description, icons, arguments, meta == null ? null : meta.deepCopy());
+  }
+}

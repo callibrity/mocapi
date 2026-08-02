@@ -67,8 +67,7 @@ class CallToolHandlerTest {
                 CallToolHandlers.build(
                     target,
                     m,
-                    new CallToolHandlers.BuildParams(
-                        generator, mapper, List.of(), List.of(), s -> s, false)))
+                    new CallToolHandlers.BuildParams(generator, mapper, List.of(), s -> s, false)))
         .toList();
   }
 
@@ -170,7 +169,7 @@ class CallToolHandlerTest {
             bean,
             method,
             new CallToolHandlers.BuildParams(
-                generator, mapper, List.of(customizer), List.of(), s -> s, false));
+                generator, mapper, List.of(customizer), s -> s, false));
 
     assertThat(captured).hasSize(1);
     var config = captured.getFirst();
@@ -180,6 +179,26 @@ class CallToolHandlerTest {
 
     handler.call(mapper.createObjectNode().put("name", "World"));
     assertThat(hits).hasValue(1);
+  }
+
+  @Test
+  void customizer_can_replace_the_tool_descriptor() {
+    var bean = new HelloTool();
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpTool.class).getFirst();
+    CallToolHandlerCustomizer customizer =
+        config ->
+            config.descriptor(
+                config.descriptor().withMeta(mapper.createObjectNode().put("k", "v")));
+
+    var handler =
+        CallToolHandlers.build(
+            bean,
+            method,
+            new CallToolHandlers.BuildParams(
+                generator, mapper, List.of(customizer), s -> s, false));
+
+    assertThat(handler.descriptor().meta().path("k").asString()).isEqualTo("v");
   }
 
   @Test
@@ -227,7 +246,7 @@ class CallToolHandlerTest {
             bean,
             method,
             new CallToolHandlers.BuildParams(
-                generator, mapper, List.of(customizer), List.of(), s -> s, false));
+                generator, mapper, List.of(customizer), s -> s, false));
     handler.call(mapper.createObjectNode().put("name", "World"));
 
     assertThat(order)
@@ -246,7 +265,7 @@ class CallToolHandlerTest {
             bean,
             method,
             new CallToolHandlers.BuildParams(
-                generator, mapper, List.of(customizer), List.of(), s -> s, false));
+                generator, mapper, List.of(customizer), s -> s, false));
     var result = handler.call(mapper.createObjectNode());
 
     assertThat(mapper.valueToTree(result).get("tenant").stringValue()).isEqualTo("acme");
@@ -272,7 +291,7 @@ class CallToolHandlerTest {
             bean,
             method,
             new CallToolHandlers.BuildParams(
-                generator, mapper, List.of(customizer), List.of(), s -> s, false));
+                generator, mapper, List.of(customizer), s -> s, false));
     var result = handler.call(mapper.createObjectNode().put("input", "from-json"));
 
     assertThat(mapper.valueToTree(result).get("value").stringValue()).isEqualTo("from-resolver");
@@ -304,7 +323,7 @@ class CallToolHandlerTest {
             bean,
             method,
             new CallToolHandlers.BuildParams(
-                generator, mapper, List.of(customizer), List.of(), s -> s, false));
+                generator, mapper, List.of(customizer), s -> s, false));
 
     // Invalid args (missing required "name") would trip schema validation — but guards evaluate
     // first, so we get FORBIDDEN rather than a schema error.
@@ -334,7 +353,7 @@ class CallToolHandlerTest {
             bean,
             method,
             new CallToolHandlers.BuildParams(
-                generator, mapper, List.of(customizer), List.of(), s -> s, false));
+                generator, mapper, List.of(customizer), s -> s, false));
 
     var result = handler.call(mapper.createObjectNode().put("name", "World"));
     assertThat(result).isNotNull();
@@ -414,8 +433,7 @@ class CallToolHandlerTest {
       return CallToolHandlers.build(
           bean,
           method,
-          new CallToolHandlers.BuildParams(
-              generator, mapper, List.of(), List.of(), s -> s, validateOutput));
+          new CallToolHandlers.BuildParams(generator, mapper, List.of(), s -> s, validateOutput));
     }
 
     @Test

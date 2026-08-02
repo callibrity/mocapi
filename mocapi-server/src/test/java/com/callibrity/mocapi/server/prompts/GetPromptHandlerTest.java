@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.model.GetPromptResult;
+import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.Role;
@@ -356,6 +357,28 @@ class GetPromptHandlerTest {
         .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
         .hasMessageContaining("no-access");
     assertThat(customizerHits).hasValue(1);
+  }
+
+  @Test
+  void customizer_can_replace_the_prompt_descriptor() {
+    var bean = new SummarizePrompt();
+    var method =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), McpPrompt.class).getFirst();
+    GetPromptHandlerCustomizer customizer =
+        config ->
+            config.descriptor(
+                new Prompt(
+                    config.descriptor().name(),
+                    config.descriptor().title(),
+                    config.descriptor().description() + " (extended)",
+                    config.descriptor().icons(),
+                    config.descriptor().arguments()));
+
+    var handler =
+        GetPromptHandlers.build(bean, method, conversionService, List.of(customizer), s -> s);
+
+    assertThat(handler.descriptor().description())
+        .isEqualTo("Summarize text at a specified detail level (extended)");
   }
 
   @Test

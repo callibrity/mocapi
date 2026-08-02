@@ -16,7 +16,29 @@
 package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import tools.jackson.databind.node.ObjectNode;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ResourceTemplate(
-    String uriTemplate, String name, String description, String mimeType) {}
+    String uriTemplate,
+    String name,
+    String description,
+    String mimeType,
+    @JsonProperty("_meta") ObjectNode meta) {
+
+  /** Backward-compatible constructor for descriptors without extension metadata. */
+  public ResourceTemplate(String uriTemplate, String name, String description, String mimeType) {
+    this(uriTemplate, name, description, mimeType, null);
+  }
+
+  /**
+   * Returns a copy of this descriptor carrying the given {@code _meta} object. The node is
+   * deep-copied so a caller mutating the {@link ObjectNode} it passed in after this call cannot
+   * reach back into the published descriptor.
+   */
+  public ResourceTemplate withMeta(ObjectNode meta) {
+    return new ResourceTemplate(
+        uriTemplate, name, description, mimeType, meta == null ? null : meta.deepCopy());
+  }
+}

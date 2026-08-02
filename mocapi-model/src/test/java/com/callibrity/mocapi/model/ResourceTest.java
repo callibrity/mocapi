@@ -46,4 +46,14 @@ class ResourceTest {
                 .asString())
         .isEqualTo("https://api.example.com");
   }
+
+  @Test
+  void withMeta_deep_copies_so_later_mutation_of_the_input_node_does_not_leak_through() {
+    ObjectNode meta = mapper.createObjectNode().put("k", "original");
+    Resource r = new Resource("ui://x", "X", "desc", "text/html").withMeta(meta);
+
+    meta.put("k", "mutated-after-build");
+
+    assertThat(r.meta().path("k").asString()).isEqualTo("original");
+  }
 }
