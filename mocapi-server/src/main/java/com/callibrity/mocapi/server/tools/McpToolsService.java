@@ -20,11 +20,13 @@ import static com.callibrity.mocapi.model.McpMethods.TOOLS_LIST;
 
 import com.callibrity.mocapi.api.elicitation.McpElicitationNotSupportedException;
 import com.callibrity.mocapi.api.elicitation.McpElicitor;
+import com.callibrity.mocapi.api.progress.McpProgressSource;
 import com.callibrity.mocapi.api.tools.McpToolContext;
 import com.callibrity.mocapi.api.tools.McpToolException;
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ContentBlock;
+import com.callibrity.mocapi.model.ElicitRequest;
 import com.callibrity.mocapi.model.ListToolsResult;
 import com.callibrity.mocapi.model.PaginatedRequestParams;
 import com.callibrity.mocapi.model.ResultTypes;
@@ -38,6 +40,8 @@ import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.mrtr.ElicitationLedgerMismatchException;
 import com.callibrity.mocapi.server.mrtr.InputRequiredException;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
+import com.callibrity.mocapi.server.mrtr.ReplayOutcome;
+import com.callibrity.mocapi.server.mrtr.ResponseLedgerEntry;
 import com.callibrity.mocapi.server.util.PaginatedService;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
@@ -57,7 +61,8 @@ import tools.jackson.databind.node.ValueNode;
  * interceptor wired into each {@link CallToolHandler}'s invoker; see {@link
  * InputSchemaValidatingInterceptor}.
  */
-public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
+public class McpToolsService extends PaginatedService<CallToolHandler, Tool>
+    implements ToolCallReplayInvoker {
 
   private static final String INVALID_STRUCTURED_CONTENT_SHAPE =
       "McpToolException structuredContent must serialize to a JSON object, but %s serialized to "
@@ -159,7 +164,39 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool> {
     ValueNode progressToken = params.meta() != null ? params.meta().progressToken() : null;
     DefaultMcpToolContext ctx =
         new DefaultMcpToolContext(transport, progressToken, elicitationEngine, exchange, name);
+    return invokeWithContext(name, handler, args, ctx);
+  }
 
+  /**
+   * Detached (off-dispatch-thread) re-invocation of a tool by name (ADR-0021/ADR-0025 seam), driven
+   * by a caller-supplied response ledger rather than the {@code tools/call} request/retry envelope.
+   * Unlike {@link #callTool}, there is no wire {@code requestState} to encode/decode — the caller
+   * owns the ledger's identity and lifecycle; {@link ElicitationLedgerMismatchException} propagates
+   * to the caller rather than being translated to a JSON-RPC error here, since there is no JSON-RPC
+   * response to shape.
+   */
+  @Override
+  public Outcome invoke(
+      String toolName,
+      JsonNode arguments,
+      List<ResponseLedgerEntry> ledger,
+      McpProgressSource progressOverride,
+      McpExchange exchange) {
+    CallToolHandler handler = lookup(toolName);
+    DefaultMcpToolContext ctx =
+        new DefaultMcpToolContext(progressOverride, elicitationEngine, exchange, toolName);
+    ReplayOutcome outcome =
+        elicitationEngine
+            .replayExecutor()
+            .execute(ledger, () -> invokeWithContext(toolName, handler, arguments, ctx));
+    if (outcome instanceof ReplayOutcome.InputRequired ir) {
+      return new Outcome.InputRequired(ir.key(), new ElicitRequest(ir.params()), ir.entries());
+    }
+    return new Outcome.Completed((CallToolResult) ((ReplayOutcome.Completed) outcome).result());
+  }
+
+  private CallToolResult invokeWithContext(
+      String name, CallToolHandler handler, JsonNode args, DefaultMcpToolContext ctx) {
     try {
       Object result =
           ScopedValue.where(McpToolContext.CURRENT, ctx)
