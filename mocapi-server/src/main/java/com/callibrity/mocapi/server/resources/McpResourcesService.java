@@ -29,6 +29,8 @@ import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.cache.CacheSettings;
+import com.callibrity.mocapi.server.dispatch.DispatchChains;
+import com.callibrity.mocapi.server.dispatch.McpDispatchInterceptor;
 import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
@@ -42,6 +44,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +64,8 @@ public class McpResourcesService {
   private final int pageSize;
   private final MrtrElicitationEngine elicitationEngine;
   private final CacheSettings cacheSettings;
+  private final List<McpDispatchInterceptor<ReadResourceHandler, ResourceRequestParams>>
+      dispatchInterceptors;
 
   public McpResourcesService(
       List<ReadResourceHandler> handlers,
@@ -87,6 +92,26 @@ public class McpResourcesService {
         cacheSettings);
   }
 
+  /**
+   * Construction-time merge of every {@link ResourceContributor} (ADR-0035), plus the {@code
+   * resources/read} {@link McpDispatchInterceptor} chain.
+   */
+  public McpResourcesService(
+      List<ResourceContributor> contributors,
+      MrtrElicitationEngine engine,
+      int pageSize,
+      CacheSettings cacheSettings,
+      List<McpDispatchInterceptor<ReadResourceHandler, ResourceRequestParams>>
+          dispatchInterceptors) {
+    this(
+        contributors.stream().flatMap(c -> c.resources().stream()).toList(),
+        contributors.stream().flatMap(c -> c.resourceTemplates().stream()).toList(),
+        engine,
+        pageSize,
+        cacheSettings,
+        dispatchInterceptors);
+  }
+
   public McpResourcesService(
       List<ReadResourceHandler> handlers,
       List<ReadResourceTemplateHandler> templateHandlers,
@@ -101,6 +126,17 @@ public class McpResourcesService {
       MrtrElicitationEngine engine,
       int pageSize,
       CacheSettings cacheSettings) {
+    this(handlers, templateHandlers, engine, pageSize, cacheSettings, List.of());
+  }
+
+  public McpResourcesService(
+      List<ReadResourceHandler> handlers,
+      List<ReadResourceTemplateHandler> templateHandlers,
+      MrtrElicitationEngine engine,
+      int pageSize,
+      CacheSettings cacheSettings,
+      List<McpDispatchInterceptor<ReadResourceHandler, ResourceRequestParams>>
+          dispatchInterceptors) {
     this.resources =
         handlers.stream()
             .collect(
@@ -135,6 +171,7 @@ public class McpResourcesService {
     this.pageSize = pageSize;
     this.elicitationEngine = engine;
     this.cacheSettings = cacheSettings;
+    this.dispatchInterceptors = DispatchChains.sort(dispatchInterceptors);
   }
 
   /**
@@ -197,6 +234,13 @@ public class McpResourcesService {
    * Object}; ripcurl serializes the runtime type. The {@link MrtrElicitationEngine} wraps the
    * invocation: this method is one of the exactly three MRTR-capable RPC seams (see the engine's
    * javadoc).
+   *
+   * <p>The {@link McpDispatchInterceptor} chain only sees requests that resolve to a fixed {@link
+   * ReadResourceHandler} — the interceptor's {@code H} type parameter. A URI that resolves via a
+   * {@link ReadResourceTemplateHandler} instead has no {@link Resource}-typed descriptor to hand
+   * the chain, so template-matched reads bypass the interceptor seam entirely and always take the
+   * default path (still through the MRTR {@link MrtrElicitationEngine}). This is a deliberate scope
+   * limit, not an oversight: see ADR-0039.
    */
   @JsonRpcMethod(McpMethods.RESOURCES_READ)
   public Object readResource(@JsonRpcParams ResourceRequestParams params) {
@@ -207,15 +251,22 @@ public class McpResourcesService {
     ValueNode progressToken = params.meta() != null ? params.meta().progressToken() : null;
     DefaultMcpResourceContext ctx =
         new DefaultMcpResourceContext(transport, progressToken, elicitationEngine, exchange, uri);
-    return elicitationEngine.execute(
-        McpMethods.RESOURCES_READ,
-        params,
-        params.inputResponses(),
-        params.requestState(),
+    Supplier<Object> defaultPath =
         () ->
-            ScopedValue.where(McpResourceContext.CURRENT, ctx)
-                .where(McpElicitor.CURRENT, ctx)
-                .call(() -> doReadResource(uri)));
+            elicitationEngine.execute(
+                McpMethods.RESOURCES_READ,
+                params,
+                params.inputResponses(),
+                params.requestState(),
+                () ->
+                    ScopedValue.where(McpResourceContext.CURRENT, ctx)
+                        .where(McpElicitor.CURRENT, ctx)
+                        .call(() -> doReadResource(uri)));
+    ReadResourceHandler exact = resources.get(uri);
+    if (exact == null) {
+      return defaultPath.get();
+    }
+    return DispatchChains.run(dispatchInterceptors, exact, params, defaultPath);
   }
 
   private ReadResourceResult doReadResource(String uri) {

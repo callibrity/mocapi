@@ -42,7 +42,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -129,6 +129,9 @@ class TaskToolCallDispatcherTest {
         engine(), new StubPrincipalSource(), mapper, DEFAULTS, CLOCK, valueResolver);
   }
 
+  private static final String SYNC_MARKER = "SYNC";
+  private static final Supplier<Object> PROCEED_SYNC = () -> SYNC_MARKER;
+
   @Test
   void no_annotation_never_becomes_a_task() throws Exception {
     CallToolHandler handler = handlerFor("plain");
@@ -136,9 +139,9 @@ class TaskToolCallDispatcherTest {
         new CallToolRequestParams(
             handler.name(), mapper.createObjectNode(), null, null, capableMeta());
 
-    Optional<Object> result = dispatcher().dispatch(handler, params);
+    Object result = dispatcher().intercept(handler, params, PROCEED_SYNC);
 
-    assertThat(result).isEmpty();
+    assertThat(result).isEqualTo(SYNC_MARKER);
   }
 
   @Test
@@ -148,11 +151,10 @@ class TaskToolCallDispatcherTest {
         new CallToolRequestParams(
             handler.name(), mapper.createObjectNode(), null, null, capableMeta());
 
-    Optional<Object> result = dispatcher().dispatch(handler, params);
+    Object result = dispatcher().intercept(handler, params, PROCEED_SYNC);
 
-    assertThat(result).isPresent();
-    assertThat(result.get()).isInstanceOf(CreateTaskResult.class);
-    var createResult = (CreateTaskResult) result.get();
+    assertThat(result).isInstanceOf(CreateTaskResult.class);
+    var createResult = (CreateTaskResult) result;
     assertThat(createResult.ttlMs()).isEqualTo(Duration.parse("PT2M").toMillis());
 
     TaskRecord rec = store.get(createResult.taskId()).orElseThrow();
@@ -169,9 +171,9 @@ class TaskToolCallDispatcherTest {
         new CallToolRequestParams(
             handler.name(), mapper.createObjectNode(), null, null, nonCapableMeta());
 
-    Optional<Object> result = dispatcher().dispatch(handler, params);
+    Object result = dispatcher().intercept(handler, params, PROCEED_SYNC);
 
-    assertThat(result).isEmpty();
+    assertThat(result).isEqualTo(SYNC_MARKER);
   }
 
   @Test
@@ -181,7 +183,7 @@ class TaskToolCallDispatcherTest {
         new CallToolRequestParams(
             handler.name(), mapper.createObjectNode(), null, null, nonCapableMeta());
 
-    assertThatThrownBy(() -> dispatcher().dispatch(handler, params))
+    assertThatThrownBy(() -> dispatcher().intercept(handler, params, PROCEED_SYNC))
         .isInstanceOf(McpTaskRequiredException.class);
   }
 
@@ -193,10 +195,9 @@ class TaskToolCallDispatcherTest {
             handler.name(), mapper.createObjectNode(), null, null, capableMeta());
     UnaryOperator<String> resolver = value -> "${demo.ttl}".equals(value) ? "PT7M" : value;
 
-    Optional<Object> result = dispatcher(resolver).dispatch(handler, params);
+    Object result = dispatcher(resolver).intercept(handler, params, PROCEED_SYNC);
 
-    assertThat(result).isPresent();
-    var createResult = (CreateTaskResult) result.get();
+    var createResult = (CreateTaskResult) result;
     assertThat(createResult.ttlMs()).isEqualTo(Duration.ofMinutes(7).toMillis());
   }
 
@@ -209,7 +210,7 @@ class TaskToolCallDispatcherTest {
     UnaryOperator<String> resolver =
         value -> "${demo.ttl}".equals(value) ? "not-a-duration" : value;
 
-    assertThatThrownBy(() -> dispatcher(resolver).dispatch(handler, params))
+    assertThatThrownBy(() -> dispatcher(resolver).intercept(handler, params, PROCEED_SYNC))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining(handler.name())
         .hasMessageContaining("not-a-duration");

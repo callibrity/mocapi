@@ -16,8 +16,10 @@
 package com.callibrity.mocapi.server.autoconfigure;
 
 import com.callibrity.mocapi.api.prompts.McpPrompt;
+import com.callibrity.mocapi.model.GetPromptRequestParams;
 import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
+import com.callibrity.mocapi.server.dispatch.McpDispatchInterceptor;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.prompts.GetPromptHandler;
 import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
@@ -54,11 +56,16 @@ public class MocapiServerPromptsAutoConfiguration {
       McpCompletionsService completions,
       MrtrElicitationEngine elicitationEngine,
       CacheSettings cacheSettings,
-      @Autowired(required = false) List<GetPromptHandlerCustomizer> promptCustomizers) {
+      @Autowired(required = false) List<GetPromptHandlerCustomizer> promptCustomizers,
+      @Autowired(required = false)
+          List<McpDispatchInterceptor<GetPromptHandler, GetPromptRequestParams>>
+              dispatchInterceptors) {
     ConversionService cs =
         conversionService.getIfAvailable(DefaultConversionService::getSharedInstance);
     List<GetPromptHandlerCustomizer> customizers =
         promptCustomizers == null ? List.of() : promptCustomizers;
+    List<McpDispatchInterceptor<GetPromptHandler, GetPromptRequestParams>> interceptors =
+        dispatchInterceptors == null ? List.of() : dispatchInterceptors;
     List<GetPromptHandler> handlers =
         cache.forAnnotation(McpPrompt.class).stream()
             .map(
@@ -90,6 +97,6 @@ public class MocapiServerPromptsAutoConfiguration {
                           c.values());
                     }));
     return new McpPromptsService(
-        handlers, elicitationEngine, props.pagination().pageSize(), cacheSettings);
+        handlers, elicitationEngine, props.pagination().pageSize(), cacheSettings, interceptors);
   }
 }

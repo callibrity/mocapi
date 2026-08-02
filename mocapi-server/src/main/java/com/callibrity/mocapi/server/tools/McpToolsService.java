@@ -35,6 +35,8 @@ import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.cache.CacheSettings;
+import com.callibrity.mocapi.server.dispatch.DispatchChains;
+import com.callibrity.mocapi.server.dispatch.McpDispatchInterceptor;
 import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.mrtr.ElicitationLedgerMismatchException;
@@ -49,7 +51,6 @@ import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -74,7 +75,8 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool>
   private final ObjectMapper objectMapper;
   private final MrtrElicitationEngine elicitationEngine;
   private final CacheSettings cacheSettings;
-  private final List<ToolCallDispatchCustomizer> dispatchCustomizers;
+  private final List<McpDispatchInterceptor<CallToolHandler, CallToolRequestParams>>
+      dispatchInterceptors;
 
   public McpToolsService(
       List<CallToolHandler> handlers,
@@ -106,7 +108,7 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool>
       MrtrElicitationEngine elicitationEngine,
       int pageSize,
       CacheSettings cacheSettings,
-      List<ToolCallDispatchCustomizer> dispatchCustomizers) {
+      List<McpDispatchInterceptor<CallToolHandler, CallToolRequestParams>> dispatchInterceptors) {
     super(
         handlers,
         CallToolHandler::name,
@@ -117,7 +119,7 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool>
     this.objectMapper = objectMapper;
     this.elicitationEngine = elicitationEngine;
     this.cacheSettings = cacheSettings;
-    this.dispatchCustomizers = List.copyOf(dispatchCustomizers);
+    this.dispatchInterceptors = DispatchChains.sort(dispatchInterceptors);
   }
 
   /**
@@ -162,18 +164,17 @@ public class McpToolsService extends PaginatedService<CallToolHandler, Tool>
     JsonNode args =
         params.arguments() != null ? params.arguments() : objectMapper.createObjectNode();
     CallToolHandler handler = lookup(name);
-    for (ToolCallDispatchCustomizer customizer : dispatchCustomizers) {
-      Optional<Object> claimed = customizer.dispatch(handler, params);
-      if (claimed.isPresent()) {
-        return claimed.get();
-      }
-    }
-    return elicitationEngine.execute(
-        TOOLS_CALL,
+    return DispatchChains.run(
+        dispatchInterceptors,
+        handler,
         params,
-        params.inputResponses(),
-        params.requestState(),
-        () -> invokeTool(name, handler, args, params));
+        () ->
+            elicitationEngine.execute(
+                TOOLS_CALL,
+                params,
+                params.inputResponses(),
+                params.requestState(),
+                () -> invokeTool(name, handler, args, params)));
   }
 
   private CallToolResult invokeTool(

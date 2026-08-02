@@ -81,10 +81,11 @@ public class MocapiTasksAutoConfiguration {
 
   /**
    * {@link McpToolsService} is itself the {@link ToolCallReplayInvoker}, but it also collects the
-   * {@link TaskToolCallDispatcher} bean (below) into its {@code ToolCallDispatchCustomizer} list —
-   * a genuine bean-graph cycle if this engine resolved {@link McpToolsService} eagerly. Deferring
-   * resolution through {@link ObjectProvider} breaks the cycle: by the time a task actually runs,
-   * {@link McpToolsService} has long since finished construction.
+   * {@link TaskToolCallDispatcher} bean (below) into its {@link
+   * com.callibrity.mocapi.server.dispatch.McpDispatchInterceptor} list — a genuine bean-graph cycle
+   * if this engine resolved {@link McpToolsService} eagerly. Deferring resolution through {@link
+   * ObjectProvider} breaks the cycle: by the time a task actually runs, {@link McpToolsService} has
+   * long since finished construction.
    */
   @Bean
   @ConditionalOnMissingBean(TaskExecutionEngine.class)

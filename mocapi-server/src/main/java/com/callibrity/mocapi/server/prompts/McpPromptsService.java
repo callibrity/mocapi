@@ -26,6 +26,8 @@ import com.callibrity.mocapi.model.Prompt;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.server.McpTransport;
 import com.callibrity.mocapi.server.cache.CacheSettings;
+import com.callibrity.mocapi.server.dispatch.DispatchChains;
+import com.callibrity.mocapi.server.dispatch.McpDispatchInterceptor;
 import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
@@ -45,6 +47,8 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
   private final Logger log = LoggerFactory.getLogger(McpPromptsService.class);
   private final MrtrElicitationEngine elicitationEngine;
   private final CacheSettings cacheSettings;
+  private final List<McpDispatchInterceptor<GetPromptHandler, GetPromptRequestParams>>
+      dispatchInterceptors;
 
   public McpPromptsService(List<GetPromptHandler> handlers, MrtrElicitationEngine engine) {
     this(handlers, engine, DEFAULT_PAGE_SIZE, CacheSettings.defaults());
@@ -60,6 +64,15 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
       MrtrElicitationEngine engine,
       int pageSize,
       CacheSettings cacheSettings) {
+    this(handlers, engine, pageSize, cacheSettings, List.of());
+  }
+
+  public McpPromptsService(
+      List<GetPromptHandler> handlers,
+      MrtrElicitationEngine engine,
+      int pageSize,
+      CacheSettings cacheSettings,
+      List<McpDispatchInterceptor<GetPromptHandler, GetPromptRequestParams>> dispatchInterceptors) {
     super(
         handlers,
         GetPromptHandler::name,
@@ -69,6 +82,7 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
         pageSize);
     this.elicitationEngine = engine;
     this.cacheSettings = cacheSettings;
+    this.dispatchInterceptors = DispatchChains.sort(dispatchInterceptors);
   }
 
   /**
@@ -107,14 +121,19 @@ public class McpPromptsService extends PaginatedService<GetPromptHandler, Prompt
     ValueNode progressToken = params.meta() != null ? params.meta().progressToken() : null;
     DefaultMcpPromptContext ctx =
         new DefaultMcpPromptContext(transport, progressToken, elicitationEngine, exchange, name);
-    return elicitationEngine.execute(
-        McpMethods.PROMPTS_GET,
+    return DispatchChains.run(
+        dispatchInterceptors,
+        handler,
         params,
-        params.inputResponses(),
-        params.requestState(),
         () ->
-            ScopedValue.where(McpPromptContext.CURRENT, ctx)
-                .where(McpElicitor.CURRENT, ctx)
-                .call(() -> handler.get(arguments)));
+            elicitationEngine.execute(
+                McpMethods.PROMPTS_GET,
+                params,
+                params.inputResponses(),
+                params.requestState(),
+                () ->
+                    ScopedValue.where(McpPromptContext.CURRENT, ctx)
+                        .where(McpElicitor.CURRENT, ctx)
+                        .call(() -> handler.get(arguments))));
   }
 }

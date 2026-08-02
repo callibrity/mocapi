@@ -17,9 +17,9 @@ package com.callibrity.mocapi.tasks;
 
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.RequestMeta;
+import com.callibrity.mocapi.server.dispatch.McpDispatchInterceptor;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
-import com.callibrity.mocapi.server.tools.ToolCallDispatchCustomizer;
 import com.callibrity.mocapi.server.util.AnnotationStrings;
 import com.callibrity.mocapi.tasks.engine.TaskExecutionEngine;
 import com.callibrity.mocapi.tasks.engine.TaskIds;
@@ -31,7 +31,7 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import tools.jackson.databind.ObjectMapper;
@@ -44,7 +44,8 @@ import tools.jackson.databind.ObjectMapper;
  * {@code required = true} rejects a non-capable client with {@code -32021} instead of degrading to
  * synchronous execution.
  */
-public class TaskToolCallDispatcher implements ToolCallDispatchCustomizer {
+public class TaskToolCallDispatcher
+    implements McpDispatchInterceptor<CallToolHandler, CallToolRequestParams> {
 
   /**
    * Fallback {@code ttl}/{@code pollInterval} for {@code @McpTask} handlers that leave either
@@ -80,20 +81,21 @@ public class TaskToolCallDispatcher implements ToolCallDispatchCustomizer {
   }
 
   @Override
-  public Optional<Object> dispatch(CallToolHandler handler, CallToolRequestParams params) {
+  public Object intercept(
+      CallToolHandler handler, CallToolRequestParams params, Supplier<Object> proceed) {
     McpTask annotation =
         AnnotatedElementUtils.findMergedAnnotation(handler.method(), McpTask.class);
     if (annotation == null) {
-      return Optional.empty(); // never a task
+      return proceed.get(); // never a task
     }
     if (!isTaskCapable(params.meta())) {
       if (annotation.required()) {
         throw new McpTaskRequiredException("Tool \"" + handler.name() + "\"");
       }
-      return Optional.empty(); // graceful sync degrade
+      return proceed.get(); // graceful sync degrade
     }
     TaskRecord rec = newRecord(handler, params, annotation);
-    return Optional.of(engine.createAndStart(rec));
+    return engine.createAndStart(rec);
   }
 
   static boolean isTaskCapable(RequestMeta meta) {

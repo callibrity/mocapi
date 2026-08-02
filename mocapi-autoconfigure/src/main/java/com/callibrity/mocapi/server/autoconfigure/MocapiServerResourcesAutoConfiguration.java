@@ -15,10 +15,13 @@
  */
 package com.callibrity.mocapi.server.autoconfigure;
 
+import com.callibrity.mocapi.model.ResourceRequestParams;
 import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
+import com.callibrity.mocapi.server.dispatch.McpDispatchInterceptor;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
+import com.callibrity.mocapi.server.resources.ReadResourceHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ResourceContributor;
@@ -77,7 +80,12 @@ public class MocapiServerResourcesAutoConfiguration {
       List<ResourceContributor> contributors,
       McpCompletionsService completions,
       MrtrElicitationEngine elicitationEngine,
-      CacheSettings cacheSettings) {
+      CacheSettings cacheSettings,
+      @Autowired(required = false)
+          List<McpDispatchInterceptor<ReadResourceHandler, ResourceRequestParams>>
+              dispatchInterceptors) {
+    List<McpDispatchInterceptor<ReadResourceHandler, ResourceRequestParams>> interceptors =
+        dispatchInterceptors == null ? List.of() : dispatchInterceptors;
     contributors.stream()
         .flatMap(c -> c.resourceTemplates().stream())
         .forEach(
@@ -93,6 +101,10 @@ public class MocapiServerResourcesAutoConfiguration {
                               c.values());
                         }));
     return new McpResourcesService(
-        contributors, elicitationEngine, props.pagination().pageSize(), cacheSettings);
+        contributors,
+        elicitationEngine,
+        props.pagination().pageSize(),
+        cacheSettings,
+        interceptors);
   }
 }
