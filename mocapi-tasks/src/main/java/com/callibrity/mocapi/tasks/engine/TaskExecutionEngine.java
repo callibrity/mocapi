@@ -29,6 +29,7 @@ import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
 import java.time.Clock;
+import java.time.Instant;
 
 /**
  * Runs {@code @McpTask}-annotated tool calls to completion off the {@code tools/call} dispatch
@@ -100,29 +101,34 @@ public class TaskExecutionEngine {
           invoker.invoke(
               record.toolName(), record.arguments(), record.ledger(), progress, exchange);
       switch (outcome) {
-        case ToolCallReplayInvoker.Outcome.Completed c ->
-            store.update(taskId, r -> r.completed(c.result(), clock.instant()));
-        case ToolCallReplayInvoker.Outcome.InputRequired ir ->
-            store.update(
-                taskId, r -> r.inputRequired(ir.key(), ir.request(), ir.ledger(), clock.instant()));
+        case ToolCallReplayInvoker.Outcome.Completed c -> {
+          Instant now = clock.instant();
+          store.update(taskId, r -> r.completed(c.result(), now));
+        }
+        case ToolCallReplayInvoker.Outcome.InputRequired ir -> {
+          Instant now = clock.instant();
+          store.update(taskId, r -> r.inputRequired(ir.key(), ir.request(), ir.ledger(), now));
+        }
       }
     } catch (ElicitationLedgerMismatchException e) {
       // Handler violated the replay idempotency contract mid-task (spec §12): -32602, not -32603.
+      Instant now = clock.instant();
       store.update(
           taskId,
           r ->
               r.failed(
                   new JsonRpcErrorDetail(JsonRpcProtocol.INVALID_PARAMS, e.getMessage(), null),
                   "replay ledger mismatch",
-                  clock.instant()));
+                  now));
     } catch (Exception e) {
+      Instant now = clock.instant();
       store.update(
           taskId,
           r ->
               r.failed(
                   new JsonRpcErrorDetail(JsonRpcProtocol.INTERNAL_ERROR, e.getMessage(), null),
                   "task execution failed: " + e.getClass().getSimpleName(),
-                  clock.instant()));
+                  now));
     }
   }
 

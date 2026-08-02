@@ -19,6 +19,7 @@ import com.callibrity.mocapi.api.progress.McpProgressSource;
 import com.callibrity.mocapi.server.progress.DefaultMcpProgressSource;
 import com.callibrity.mocapi.tasks.store.TaskStore;
 import java.time.Clock;
+import java.time.Instant;
 
 /**
  * Factory for {@link McpProgressSource} instances that route progress emits to a task's
@@ -36,7 +37,8 @@ public final class TaskProgressSource {
         (progress, total, message) -> {
           String label = total != null ? progress + "/" + total : String.valueOf(progress);
           String statusMessage = message != null ? label + ": " + message : label;
-          store.update(taskId, r -> r.withStatusMessage(statusMessage, clock.instant()));
+          Instant now = clock.instant();
+          store.update(taskId, r -> r.withStatusMessage(statusMessage, now));
         });
   }
 }
