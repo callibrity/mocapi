@@ -24,15 +24,23 @@ import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.McpMetaKeys;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.mocapi.oauth2.MocapiOAuth2AutoConfiguration;
+import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
+import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResult;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -65,6 +73,9 @@ class TasksEndToEndTest {
 
   private static final Duration POLL_TIMEOUT = Duration.ofSeconds(2);
 
+  /** Simulates a caller's auth context for the guarded {@code must_be_admin} task tool. */
+  static final ThreadLocal<String> CURRENT_SCOPE = new ThreadLocal<>();
+
   @Autowired JsonRpcDispatcher dispatcher;
   @Autowired ObjectMapper objectMapper;
   @Autowired SwitchablePrincipalSource principalSource;
@@ -76,6 +87,12 @@ class TasksEndToEndTest {
   void resetFixtures() {
     principalSource.setPrincipal("alice");
     testTools.confirmTwiceExecutions.set(0);
+    CURRENT_SCOPE.remove();
+  }
+
+  @AfterEach
+  void clearScope() {
+    CURRENT_SCOPE.remove();
   }
 
   // ---- 1: create -> poll -> complete ----
@@ -233,6 +250,53 @@ class TasksEndToEndTest {
     assertThat(required.path("extensions").path(TasksExtension.EXTENSION_ID).isObject()).isTrue();
   }
 
+  // ---- 9: task-mode/sync-mode guard parity (spec §6) ----
+
+  @Test
+  void
+      a_guarded_task_tool_denies_an_unauthorized_capable_client_synchronously_with_no_task_created() {
+    CURRENT_SCOPE.set("read");
+
+    var response =
+        dispatcher.dispatch(callTool("must_be_admin", Map.of("message", "x"), true, false));
+
+    JsonRpcError error = errorOf(response);
+    assertThat(error.error().code()).isEqualTo(JsonRpcErrorCodes.FORBIDDEN);
+    assertThat(error.error().message()).startsWith("Forbidden").contains("admin");
+  }
+
+  @Test
+  void the_same_guarded_tool_denies_identically_through_the_synchronous_degrade_path() {
+    CURRENT_SCOPE.set("read");
+
+    JsonRpcError taskModeError =
+        errorOf(
+            dispatcher.dispatch(callTool("must_be_admin", Map.of("message", "x"), true, false)));
+    JsonRpcError syncModeError =
+        errorOf(
+            dispatcher.dispatch(callTool("must_be_admin", Map.of("message", "x"), false, false)));
+
+    assertThat(taskModeError.error().code()).isEqualTo(JsonRpcErrorCodes.FORBIDDEN);
+    assertThat(syncModeError.error().code()).isEqualTo(JsonRpcErrorCodes.FORBIDDEN);
+    assertThat(taskModeError.error().message()).isEqualTo(syncModeError.error().message());
+  }
+
+  @Test
+  void an_authorized_capable_client_still_gets_a_task_for_the_guarded_tool() {
+    // Only asserts the synchronous pre-check passes and a task is minted; the guarded tool's
+    // async execution runs on a separate virtual thread that does not inherit the test's
+    // ThreadLocal auth context, so completion isn't asserted here (that's covered by the
+    // non-guarded slow_echo scenarios above).
+    CURRENT_SCOPE.set("admin");
+
+    JsonNode created =
+        resultOf(
+            dispatcher.dispatch(callTool("must_be_admin", Map.of("message", "hi"), true, false)));
+
+    assertThat(created.path("resultType").asString()).isEqualTo(TasksExtension.RESULT_TYPE_TASK);
+    assertThat(created.path("taskId").asString()).hasSize(43);
+  }
+
   // ---- helpers ----
 
   private JsonNode resultOf(Object response) {
@@ -369,6 +433,19 @@ class TasksEndToEndTest {
     public String mustTask(String message) {
       return "must:" + message;
     }
+
+    @McpTool(name = "must_be_admin", description = "Requires admin scope, task-capable")
+    @McpTask
+    @RequiresScope("admin")
+    public String mustBeAdmin(String message) {
+      return "guarded:" + message;
+    }
+  }
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.METHOD)
+  @interface RequiresScope {
+    String value();
   }
 
   @SpringBootConfiguration
@@ -383,6 +460,24 @@ class TasksEndToEndTest {
     @Bean
     SwitchablePrincipalSource switchablePrincipalSource() {
       return new SwitchablePrincipalSource();
+    }
+
+    @Bean
+    CallToolHandlerCustomizer scopeGuardCustomizer() {
+      return config -> {
+        RequiresScope annotation = config.method().getAnnotation(RequiresScope.class);
+        if (annotation != null) {
+          String required = annotation.value();
+          config.guard(
+              () -> {
+                String current = CURRENT_SCOPE.get();
+                if (required.equals(current)) {
+                  return new GuardDecision.Allow();
+                }
+                return new GuardDecision.Deny("requires scope " + required);
+              });
+        }
+      };
     }
   }
 }

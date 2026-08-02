@@ -17,7 +17,10 @@ package com.callibrity.mocapi.tasks;
 
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.RequestMeta;
+import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.dispatch.McpDispatchInterceptor;
+import com.callibrity.mocapi.server.guards.GuardDecision;
+import com.callibrity.mocapi.server.guards.Guards;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.util.AnnotationStrings;
@@ -25,6 +28,7 @@ import com.callibrity.mocapi.tasks.engine.TaskExecutionEngine;
 import com.callibrity.mocapi.tasks.engine.TaskIds;
 import com.callibrity.mocapi.tasks.model.TaskStatus;
 import com.callibrity.mocapi.tasks.store.TaskRecord;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -93,6 +97,14 @@ public class TaskToolCallDispatcher
         throw new McpTaskRequiredException("Tool \"" + handler.name() + "\"");
       }
       return proceed.get(); // graceful sync degrade
+    }
+    // Guards normally run inside the handler chain (GuardEvaluationInterceptor), but the task
+    // path never enters that chain — it short-circuits to createAndStart. Evaluate the same
+    // guard list here, before minting the task record, so an unauthorized capable client gets
+    // the identical synchronous -32010 the sync path would produce, instead of a taskId whose
+    // record later lands FAILED.
+    if (Guards.evaluate(handler.guards()) instanceof GuardDecision.Deny deny) {
+      throw new JsonRpcException(JsonRpcErrorCodes.FORBIDDEN, "Forbidden: " + deny.reason());
     }
     TaskRecord rec = newRecord(handler, params, annotation);
     return engine.createAndStart(rec);

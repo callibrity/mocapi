@@ -22,9 +22,12 @@ import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.model.ClientCapabilities;
 import com.callibrity.mocapi.model.RequestMeta;
+import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
 import com.callibrity.mocapi.server.mrtr.ResponseLedgerEntry;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
+import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlers;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tasks.engine.TaskExecutionEngine;
@@ -33,6 +36,7 @@ import com.callibrity.mocapi.tasks.model.TaskStatus;
 import com.callibrity.mocapi.tasks.store.InMemoryTaskStore;
 import com.callibrity.mocapi.tasks.store.TaskRecord;
 import com.callibrity.mocapi.tasks.store.TaskStore;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import io.micrometer.context.ContextSnapshotFactory;
 import java.lang.reflect.Method;
@@ -42,6 +46,8 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.AfterEach;
@@ -90,17 +96,52 @@ class TaskToolCallDispatcherTest {
   }
 
   private TaskExecutionEngine engine() {
+    return engine(store);
+  }
+
+  private TaskExecutionEngine engine(TaskStore taskStore) {
     return new TaskExecutionEngine(
-        store, new NoopInvoker(), ContextSnapshotFactory.builder().build(), CLOCK);
+        taskStore, new NoopInvoker(), ContextSnapshotFactory.builder().build(), CLOCK);
+  }
+
+  /** Bare {@link TaskStore} test double that records whether {@link #create} was ever invoked. */
+  private static final class RecordingTaskStore implements TaskStore {
+    private final Map<String, TaskRecord> records = new ConcurrentHashMap<>();
+
+    @Override
+    public void create(TaskRecord rec) {
+      records.put(rec.taskId(), rec);
+    }
+
+    @Override
+    public Optional<TaskRecord> get(String taskId) {
+      return Optional.ofNullable(records.get(taskId));
+    }
+
+    @Override
+    public Optional<TaskRecord> update(String taskId, UnaryOperator<TaskRecord> mutation) {
+      return Optional.ofNullable(
+          records.computeIfPresent(taskId, (id, rec) -> mutation.apply(rec)));
+    }
+
+    @Override
+    public void delete(String taskId) {
+      records.remove(taskId);
+    }
   }
 
   private CallToolHandler handlerFor(String methodName) throws NoSuchMethodException {
+    return handlerFor(methodName, List.of());
+  }
+
+  private CallToolHandler handlerFor(String methodName, List<CallToolHandlerCustomizer> customizers)
+      throws NoSuchMethodException {
     Object bean = new Fixture();
     Method method = Fixture.class.getMethod(methodName);
     return CallToolHandlers.build(
         bean,
         method,
-        new CallToolHandlers.BuildParams(generator, mapper, List.of(), List.of(), s -> s, false));
+        new CallToolHandlers.BuildParams(generator, mapper, customizers, List.of(), s -> s, false));
   }
 
   private RequestMeta capableMeta() {
@@ -127,6 +168,11 @@ class TaskToolCallDispatcherTest {
   private TaskToolCallDispatcher dispatcher(UnaryOperator<String> valueResolver) {
     return new TaskToolCallDispatcher(
         engine(), new StubPrincipalSource(), mapper, DEFAULTS, CLOCK, valueResolver);
+  }
+
+  private TaskToolCallDispatcher dispatcher(TaskExecutionEngine engine) {
+    return new TaskToolCallDispatcher(
+        engine, new StubPrincipalSource(), mapper, DEFAULTS, CLOCK, UnaryOperator.identity());
   }
 
   private static final String SYNC_MARKER = "SYNC";
@@ -216,6 +262,43 @@ class TaskToolCallDispatcherTest {
         .hasMessageContaining("not-a-duration");
   }
 
+  @Test
+  void a_denying_guard_aborts_before_the_task_is_created_with_the_sync_paths_forbidden_error()
+      throws Exception {
+    CallToolHandler handler =
+        handlerFor(
+            "guardedTaskTool",
+            List.of(config -> config.guard(() -> new GuardDecision.Deny("requires scope admin"))));
+    CallToolRequestParams params =
+        new CallToolRequestParams(
+            handler.name(), mapper.createObjectNode(), null, null, capableMeta());
+    RecordingTaskStore recordingStore = new RecordingTaskStore();
+    TaskToolCallDispatcher dispatcher = dispatcher(engine(recordingStore));
+
+    assertThatThrownBy(() -> dispatcher.intercept(handler, params, PROCEED_SYNC))
+        .isInstanceOf(JsonRpcException.class)
+        .satisfies(
+            e -> {
+              JsonRpcException ex = (JsonRpcException) e;
+              assertThat(ex.getCode()).isEqualTo(JsonRpcErrorCodes.FORBIDDEN);
+              assertThat(ex.getMessage()).isEqualTo("Forbidden: requires scope admin");
+            });
+    assertThat(recordingStore.records).isEmpty();
+  }
+
+  @Test
+  void an_allowing_guard_creates_the_task_normally() throws Exception {
+    CallToolHandler handler =
+        handlerFor("guardedTaskTool", List.of(config -> config.guard(GuardDecision.Allow::new)));
+    CallToolRequestParams params =
+        new CallToolRequestParams(
+            handler.name(), mapper.createObjectNode(), null, null, capableMeta());
+
+    Object result = dispatcher().intercept(handler, params, PROCEED_SYNC);
+
+    assertThat(result).isInstanceOf(CreateTaskResult.class);
+  }
+
   static class Fixture {
     @McpTool(description = "plain tool")
     public String plain() {
@@ -237,6 +320,12 @@ class TaskToolCallDispatcherTest {
     @McpTask(ttl = "${demo.ttl}")
     @McpTool(description = "placeholder ttl tool")
     public String placeholderTtlTool() {
+      return "ok";
+    }
+
+    @McpTask(ttl = "PT2M")
+    @McpTool(description = "guarded task tool")
+    public String guardedTaskTool() {
       return "ok";
     }
   }
