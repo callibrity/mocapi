@@ -19,6 +19,7 @@ import com.callibrity.mocapi.api.progress.McpProgressSource;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ElicitRequest;
 import com.callibrity.mocapi.server.exchange.McpExchange;
+import com.callibrity.mocapi.server.mrtr.ReplayOutcome;
 import com.callibrity.mocapi.server.mrtr.ResponseLedgerEntry;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
@@ -34,25 +35,11 @@ import tools.jackson.databind.JsonNode;
  * <p>Unlike {@link McpToolsService#callTool}, this seam has no wire envelope: no {@code
  * requestState} encode/decode, no principal/target verification. Callers own the ledger's identity
  * and lifecycle; this method only replays it against the handler.
+ *
+ * <p>This is an API other modules call (not an SPI they implement) — the production implementation
+ * is {@link ToolInvocationCore} (ADR-0039).
  */
 public interface ToolCallReplayInvoker {
-
-  /** The outcome of one detached invocation: either the handler completed, or it needs input. */
-  sealed interface Outcome {
-
-    /** The handler ran to completion and produced {@code result}. */
-    record Completed(CallToolResult result) implements Outcome {}
-
-    /**
-     * The handler unwound at an unanswered elicitation.
-     *
-     * @param key the {@code inputRequests} key issued for the pending elicitation
-     * @param request the elicitation request the handler built
-     * @param ledger the response ledger as of the unwind, including the newly issued slot
-     */
-    record InputRequired(String key, ElicitRequest request, List<ResponseLedgerEntry> ledger)
-        implements Outcome {}
-  }
 
   /**
    * Invokes a registered tool by name against the given response ledger, off the normal {@code
@@ -61,17 +48,16 @@ public interface ToolCallReplayInvoker {
    * @param toolName the registered tool name
    * @param arguments the tool's call arguments
    * @param ledger the response ledger to replay against (empty on a fresh invocation)
-   * @param progressOverride the progress source the tool's context should emit through
+   * @param progress the progress source the tool's context should emit through
    * @param exchange the client view (capabilities, protocol version) the tool's context exposes
-   * @return {@link Outcome.Completed} with the handler's result, or {@link Outcome.InputRequired}
-   *     if it elicited an unanswered question
-   * @throws JsonRpcException if no tool is registered under {@code toolName} (the same exception
-   *     {@link McpToolsService#lookup} throws)
+   * @return {@link ReplayOutcome.Completed} with the handler's result, or {@link
+   *     ReplayOutcome.InputRequired} if it elicited an unanswered question
+   * @throws JsonRpcException if no tool is registered under {@code toolName}
    */
-  Outcome invoke(
+  ReplayOutcome<CallToolResult, ElicitRequest> invoke(
       String toolName,
       JsonNode arguments,
       List<ResponseLedgerEntry> ledger,
-      McpProgressSource progressOverride,
+      McpProgressSource progress,
       McpExchange exchange);
 }

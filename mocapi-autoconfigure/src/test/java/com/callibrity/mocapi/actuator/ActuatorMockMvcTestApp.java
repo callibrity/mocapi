@@ -30,6 +30,9 @@ import com.callibrity.mocapi.server.autoconfigure.MocapiServerResourcesAutoConfi
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerToolsAutoConfiguration;
 import com.callibrity.mocapi.server.handler.HandlerDescriptor;
 import com.callibrity.mocapi.server.handler.HandlerKind;
+import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
+import com.callibrity.mocapi.server.mrtr.ReplayExecutor;
+import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.mocapi.server.prompts.GetPromptHandler;
 import com.callibrity.mocapi.server.prompts.McpPromptsService;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
@@ -37,12 +40,14 @@ import com.callibrity.mocapi.server.resources.ReadResourceHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
+import com.callibrity.mocapi.server.tools.ToolInvocationCore;
 import com.callibrity.mocapi.transport.http.StreamableHttpAutoConfiguration;
 import com.callibrity.mocapi.transport.stdio.StdioAutoConfiguration;
 import java.util.List;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Minimal Spring Boot test application for the MockMvc exposure tests. Excludes the mocapi-server
@@ -77,6 +82,26 @@ public class ActuatorMockMvcTestApp {
     McpToolsService m = mock(McpToolsService.class);
     when(m.allItems()).thenReturn(List.of(handler));
     return m;
+  }
+
+  /**
+   * {@link MocapiServerToolsAutoConfiguration} is excluded above (this app supplies its own mock
+   * {@link McpToolsService}), so the {@code ToolInvocationCore} bean that autoconfig would
+   * otherwise declare is missing too. {@link
+   * com.callibrity.mocapi.tasks.MocapiTasksAutoConfiguration} (pulled in via classpath
+   * auto-configuration) wires its {@code TaskExecutionEngine} directly to that bean (ADR-0039), so
+   * a real, self-contained stand-in (built from its own {@link ObjectMapper} and {@link
+   * MrtrElicitationEngine}, not shared with any other bean) is declared here purely to satisfy that
+   * dependency; {@code ToolInvocationCore} is {@code final} so Mockito cannot mock it without the
+   * inline mock maker, and nothing in these tests exercises task execution anyway.
+   */
+  @Bean
+  ToolInvocationCore toolInvocationCore() {
+    ObjectMapper mapper = new ObjectMapper();
+    MrtrElicitationEngine engine =
+        new MrtrElicitationEngine(
+            RequestStateCodec.withEphemeralKey(RequestStateCodec.DEFAULT_TTL, mapper), mapper);
+    return new ToolInvocationCore(List.of(), mapper, engine, new ReplayExecutor(mapper));
   }
 
   @Bean

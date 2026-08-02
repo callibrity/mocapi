@@ -21,6 +21,7 @@ import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ElicitRequest;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.server.mrtr.ElicitationLedgerMismatchException;
+import com.callibrity.mocapi.server.mrtr.ReplayOutcome;
 import com.callibrity.mocapi.server.mrtr.ResponseLedgerEntry;
 import com.callibrity.mocapi.server.tools.ToolCallReplayInvoker;
 import com.callibrity.mocapi.tasks.model.CreateTaskResult;
@@ -91,7 +92,7 @@ class TaskExecutionEngineTest {
       CallToolResult result = new CallToolResult(List.of(), false, null, "complete");
       ToolCallReplayInvoker invoker =
           (toolName, arguments, ledger, progress, exchange) ->
-              new ToolCallReplayInvoker.Outcome.Completed(result);
+              new ReplayOutcome.Completed<>(result);
       TaskExecutionEngine engine =
           new TaskExecutionEngine(store, invoker, ContextSnapshotFactory.builder().build(), CLOCK);
 
@@ -117,7 +118,7 @@ class TaskExecutionEngineTest {
           List.of(new ResponseLedgerEntry("elicit-1", "fingerprint-1", null));
       ToolCallReplayInvoker invoker =
           (toolName, arguments, ledgerArg, progress, exchange) ->
-              new ToolCallReplayInvoker.Outcome.InputRequired("elicit-1", request, ledger);
+              new ReplayOutcome.InputRequired<>("elicit-1", request, ledger);
       TaskExecutionEngine engine =
           new TaskExecutionEngine(store, invoker, ContextSnapshotFactory.builder().build(), CLOCK);
 
@@ -222,7 +223,7 @@ class TaskExecutionEngineTest {
               Thread.currentThread().interrupt();
               throw new RuntimeException(e);
             }
-            return new ToolCallReplayInvoker.Outcome.Completed(result);
+            return new ReplayOutcome.Completed<>(result);
           };
       TaskExecutionEngine engine =
           new TaskExecutionEngine(store, invoker, ContextSnapshotFactory.builder().build(), CLOCK);

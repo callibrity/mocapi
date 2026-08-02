@@ -15,31 +15,36 @@
  */
 package com.callibrity.mocapi.server.mrtr;
 
-import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import java.util.List;
 
 /**
- * The result of one {@link ReplayExecutor#execute} round trip (ADR-0021): either the handler ran to
- * completion, or it hit an unanswered elicitation and unwound.
+ * The result of one MRTR replay round trip (ADR-0021/ADR-0039): either the handler ran to
+ * completion and produced {@code R}, or it hit an unanswered elicitation of type {@code Q} and
+ * unwound. Generic so the same shape serves both {@link ReplayExecutor#execute} (the untyped {@code
+ * Object}/{@link com.callibrity.mocapi.model.ElicitRequestFormParams} replay core) and {@link
+ * com.callibrity.mocapi.server.tools.ToolCallReplayInvoker#invoke} (the typed detached
+ * tool-invocation seam) without a second, parallel hierarchy.
+ *
+ * @param <R> the handler's completed result type
+ * @param <Q> the elicitation request type carried by an unwind
  */
-public sealed interface ReplayOutcome {
+public sealed interface ReplayOutcome<R, Q> {
 
-  /** The handler completed and produced {@code result}. */
-  record Completed(Object result) implements ReplayOutcome {}
+  /** The handler ran to completion and produced {@code result}. */
+  record Completed<R, Q>(R result) implements ReplayOutcome<R, Q> {}
 
   /**
    * The handler unwound at an unanswered elicitation.
    *
    * @param key the {@code inputRequests} key issued for the pending elicitation
-   * @param params the elicitation request the handler built
-   * @param entries the response ledger as of the unwind, including the newly issued slot
+   * @param request the elicitation request the handler built
+   * @param ledger the response ledger as of the unwind, including the newly issued slot
    */
-  record InputRequired(
-      String key, ElicitRequestFormParams params, List<ResponseLedgerEntry> entries)
-      implements ReplayOutcome {
+  record InputRequired<R, Q>(String key, Q request, List<ResponseLedgerEntry> ledger)
+      implements ReplayOutcome<R, Q> {
 
     public InputRequired {
-      entries = List.copyOf(entries);
+      ledger = List.copyOf(ledger);
     }
   }
 }

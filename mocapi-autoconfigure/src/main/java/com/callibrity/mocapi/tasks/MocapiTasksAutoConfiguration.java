@@ -18,8 +18,7 @@ package com.callibrity.mocapi.tasks;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerToolsAutoConfiguration;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
-import com.callibrity.mocapi.server.tools.McpToolsService;
-import com.callibrity.mocapi.server.tools.ToolCallReplayInvoker;
+import com.callibrity.mocapi.server.tools.ToolInvocationCore;
 import com.callibrity.mocapi.tasks.engine.TaskExecutionEngine;
 import com.callibrity.mocapi.tasks.store.InMemoryTaskStore;
 import com.callibrity.mocapi.tasks.store.TaskStore;
@@ -43,8 +42,11 @@ import tools.jackson.databind.ObjectMapper;
  * -32021} exception translator.
  *
  * <p>Runs {@code after} {@link MocapiServerToolsAutoConfiguration} because {@link
- * TaskExecutionEngine} is wired with the {@link McpToolsService} bean as its {@code
- * ToolCallReplayInvoker}.
+ * TaskExecutionEngine} is wired directly with the {@link ToolInvocationCore} bean that
+ * autoconfiguration declares. {@code ToolInvocationCore} — not the full tools service — is the
+ * dependency here (ADR-0039): the tools service also collects the {@link TaskToolCallDispatcher}
+ * bean (below) into its dispatch-interceptor list, which would close a genuine bean-graph cycle if
+ * this engine depended on it instead of on the invocation core.
  */
 @AutoConfiguration(after = MocapiServerToolsAutoConfiguration.class)
 @ConditionalOnClass(TaskExecutionEngine.class)
@@ -79,27 +81,14 @@ public class MocapiTasksAutoConfiguration {
     return ContextSnapshotFactory.builder().build();
   }
 
-  /**
-   * {@link McpToolsService} is itself the {@link ToolCallReplayInvoker}, but it also collects the
-   * {@link TaskToolCallDispatcher} bean (below) into its {@link
-   * com.callibrity.mocapi.server.dispatch.McpDispatchInterceptor} list — a genuine bean-graph cycle
-   * if this engine resolved {@link McpToolsService} eagerly. Deferring resolution through {@link
-   * ObjectProvider} breaks the cycle: by the time a task actually runs, {@link McpToolsService} has
-   * long since finished construction.
-   */
   @Bean
   @ConditionalOnMissingBean(TaskExecutionEngine.class)
   public TaskExecutionEngine mcpTaskExecutionEngine(
       TaskStore store,
-      ObjectProvider<McpToolsService> toolsService,
+      ToolInvocationCore toolInvocationCore,
       ContextSnapshotFactory contextSnapshotFactory,
       Clock clock) {
-    ToolCallReplayInvoker invoker =
-        (toolName, arguments, ledger, progressOverride, exchange) ->
-            toolsService
-                .getObject()
-                .invoke(toolName, arguments, ledger, progressOverride, exchange);
-    return new TaskExecutionEngine(store, invoker, contextSnapshotFactory, clock);
+    return new TaskExecutionEngine(store, toolInvocationCore, contextSnapshotFactory, clock);
   }
 
   @Bean

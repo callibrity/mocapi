@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
+import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ClientCapabilities;
 import com.callibrity.mocapi.model.ElicitAction;
 import com.callibrity.mocapi.model.ElicitResult;
@@ -26,6 +27,8 @@ import com.callibrity.mocapi.model.ElicitationCapability;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
+import com.callibrity.mocapi.server.mrtr.ReplayExecutor;
+import com.callibrity.mocapi.server.mrtr.ReplayOutcome;
 import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.mocapi.server.progress.DefaultMcpProgressSource;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
@@ -53,7 +56,7 @@ class ToolCallReplayInvokerTest {
           RequestStateCodec.withEphemeralKey(RequestStateCodec.DEFAULT_TTL, new ObjectMapper()),
           new ObjectMapper());
 
-  private McpToolsService service;
+  private ToolInvocationCore core;
 
   private List<CallToolHandler> createHandlers(Object target) {
     return MethodUtils.getMethodsListWithAnnotation(target.getClass(), McpTool.class).stream()
@@ -73,7 +76,9 @@ class ToolCallReplayInvokerTest {
     handlers.addAll(createHandlers(new EchoTool()));
     handlers.addAll(createHandlers(new ThrowingTool()));
     handlers.addAll(createHandlers(new ExchangeReadingTool()));
-    service = new McpToolsService(List.copyOf(handlers), mapper, elicitationEngine);
+    core =
+        new ToolInvocationCore(
+            List.copyOf(handlers), mapper, elicitationEngine, new ReplayExecutor(mapper));
   }
 
   private McpExchange formCapableExchange() {
@@ -91,15 +96,15 @@ class ToolCallReplayInvokerTest {
   @Test
   void detached_invoke_with_empty_ledger_yields_input_required() {
     var outcome =
-        service.invoke(
+        core.invoke(
             "echo-tool.confirm-and-echo",
             JsonNodeFactory.instance.objectNode(),
             List.of(),
             new DefaultMcpProgressSource((p, t, m) -> {}),
             formCapableExchange());
 
-    assertThat(outcome).isInstanceOf(ToolCallReplayInvoker.Outcome.InputRequired.class);
-    var ir = (ToolCallReplayInvoker.Outcome.InputRequired) outcome;
+    assertThat(outcome).isInstanceOf(ReplayOutcome.InputRequired.class);
+    var ir = (ReplayOutcome.InputRequired<?, ?>) outcome;
     assertThat(ir.key()).isEqualTo("elicit-1");
     assertThat(ir.ledger()).hasSize(1);
   }
@@ -107,8 +112,8 @@ class ToolCallReplayInvokerTest {
   @Test
   void detached_invoke_with_answered_ledger_completes() {
     var first =
-        (ToolCallReplayInvoker.Outcome.InputRequired)
-            service.invoke(
+        (ReplayOutcome.InputRequired<?, ?>)
+            core.invoke(
                 "echo-tool.confirm-and-echo",
                 JsonNodeFactory.instance.objectNode(),
                 List.of(),
@@ -122,15 +127,15 @@ class ToolCallReplayInvokerTest {
             first.ledger().getFirst().answeredWith(new ElicitResult(ElicitAction.ACCEPT, content)));
 
     var outcome =
-        service.invoke(
+        core.invoke(
             "echo-tool.confirm-and-echo",
             JsonNodeFactory.instance.objectNode(),
             answered,
             new DefaultMcpProgressSource((p, t, m) -> {}),
             formCapableExchange());
 
-    assertThat(outcome).isInstanceOf(ToolCallReplayInvoker.Outcome.Completed.class);
-    var result = ((ToolCallReplayInvoker.Outcome.Completed) outcome).result();
+    assertThat(outcome).isInstanceOf(ReplayOutcome.Completed.class);
+    CallToolResult result = (CallToolResult) ((ReplayOutcome.Completed<?, ?>) outcome).result();
     assertThat(((TextContent) result.content().getFirst()).text()).isEqualTo("confirmed");
   }
 
@@ -139,30 +144,30 @@ class ToolCallReplayInvokerTest {
     McpExchange exchange = formCapableExchange();
 
     var outcome =
-        service.invoke(
+        core.invoke(
             "exchange-reading-tool.read-protocol-version",
             JsonNodeFactory.instance.objectNode(),
             List.of(),
             new DefaultMcpProgressSource((p, t, m) -> {}),
             exchange);
 
-    var completed = (ToolCallReplayInvoker.Outcome.Completed) outcome;
-    assertThat(((TextContent) completed.result().content().getFirst()).text())
+    CallToolResult completed = (CallToolResult) ((ReplayOutcome.Completed<?, ?>) outcome).result();
+    assertThat(((TextContent) completed.content().getFirst()).text())
         .isEqualTo(exchange.protocolVersion());
   }
 
   @Test
   void tool_exception_maps_to_isError_result_not_a_throw() {
     var outcome =
-        service.invoke(
+        core.invoke(
             "throwing-tool.explode",
             mapper.createObjectNode().put("input", "test"),
             List.of(),
             new DefaultMcpProgressSource((p, t, m) -> {}),
             formCapableExchange());
 
-    var completed = (ToolCallReplayInvoker.Outcome.Completed) outcome;
-    assertThat(completed.result().isError()).isTrue();
+    CallToolResult completed = (CallToolResult) ((ReplayOutcome.Completed<?, ?>) outcome).result();
+    assertThat(completed.isError()).isTrue();
   }
 }
 

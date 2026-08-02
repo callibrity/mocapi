@@ -28,6 +28,7 @@ import com.callibrity.mocapi.model.InputRequest;
 import com.callibrity.mocapi.model.RequestMeta;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
+import com.callibrity.mocapi.server.mrtr.ReplayOutcome;
 import com.callibrity.mocapi.server.mrtr.ResponseLedgerEntry;
 import com.callibrity.mocapi.server.tools.ToolCallReplayInvoker;
 import com.callibrity.mocapi.tasks.engine.TaskExecutionEngine;
@@ -105,18 +106,18 @@ class McpTasksServiceTest {
 
   private static final class CountingInvoker implements ToolCallReplayInvoker {
     private final AtomicInteger invocations = new AtomicInteger();
-    private volatile Outcome outcome;
+    private volatile ReplayOutcome<CallToolResult, ElicitRequest> outcome;
 
-    private CountingInvoker(Outcome outcome) {
+    private CountingInvoker(ReplayOutcome<CallToolResult, ElicitRequest> outcome) {
       this.outcome = outcome;
     }
 
     @Override
-    public Outcome invoke(
+    public ReplayOutcome<CallToolResult, ElicitRequest> invoke(
         String toolName,
         tools.jackson.databind.JsonNode arguments,
         List<ResponseLedgerEntry> ledger,
-        com.callibrity.mocapi.api.progress.McpProgressSource progressOverride,
+        com.callibrity.mocapi.api.progress.McpProgressSource progress,
         com.callibrity.mocapi.server.exchange.McpExchange exchange) {
       invocations.incrementAndGet();
       return outcome;
@@ -358,8 +359,7 @@ class McpTasksServiceTest {
   void update_answering_the_outstanding_key_flips_to_working_and_resumes_exactly_once() {
     store.create(inputRequiredRecord("t-update"));
     CallToolResult toolResult = new CallToolResult(List.of(), false, null, "complete");
-    CountingInvoker invoker =
-        new CountingInvoker(new ToolCallReplayInvoker.Outcome.Completed(toolResult));
+    CountingInvoker invoker = new CountingInvoker(new ReplayOutcome.Completed<>(toolResult));
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine(invoker));
 
@@ -377,8 +377,7 @@ class McpTasksServiceTest {
   void duplicate_update_acks_without_a_second_resume() {
     store.create(inputRequiredRecord("t-dup"));
     CallToolResult toolResult = new CallToolResult(List.of(), false, null, "complete");
-    CountingInvoker invoker =
-        new CountingInvoker(new ToolCallReplayInvoker.Outcome.Completed(toolResult));
+    CountingInvoker invoker = new CountingInvoker(new ReplayOutcome.Completed<>(toolResult));
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine(invoker));
     Map<String, JsonNode> responses = Map.of("elicit-1", acceptNode());
@@ -399,8 +398,7 @@ class McpTasksServiceTest {
     store.create(inputRequiredRecord("t-unknown-key"));
     CountingInvoker invoker =
         new CountingInvoker(
-            new ToolCallReplayInvoker.Outcome.Completed(
-                new CallToolResult(List.of(), false, null, "complete")));
+            new ReplayOutcome.Completed<>(new CallToolResult(List.of(), false, null, "complete")));
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine(invoker));
     Map<String, JsonNode> responses = Map.of("elicit-not-outstanding", acceptNode());
@@ -445,8 +443,7 @@ class McpTasksServiceTest {
     store.create(twoOutstanding);
     CountingInvoker invoker =
         new CountingInvoker(
-            new ToolCallReplayInvoker.Outcome.Completed(
-                new CallToolResult(List.of(), false, null, "complete")));
+            new ReplayOutcome.Completed<>(new CallToolResult(List.of(), false, null, "complete")));
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine(invoker));
     // "ignored" has no recognizable ElicitResult/CreateMessageResult/ListRootsResult fingerprint —
@@ -476,8 +473,7 @@ class McpTasksServiceTest {
     store.create(inputRequiredRecord("t-no-responses"));
     CountingInvoker invoker =
         new CountingInvoker(
-            new ToolCallReplayInvoker.Outcome.Completed(
-                new CallToolResult(List.of(), false, null, "complete")));
+            new ReplayOutcome.Completed<>(new CallToolResult(List.of(), false, null, "complete")));
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine(invoker));
 

@@ -76,10 +76,23 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
 
   public MrtrElicitationEngine(
       RequestStateCodec codec, ObjectMapper objectMapper, McpPrincipalSource principalSource) {
+    this(codec, objectMapper, principalSource, new ReplayExecutor(objectMapper));
+  }
+
+  /**
+   * Primary constructor (ADR-0039): the {@link ReplayExecutor} is constructor-injected rather than
+   * {@code new}'d internally, so a shared instance can also back a detached carrier's {@code
+   * ToolCallReplayInvoker} (e.g. {@code ToolInvocationCore}) without going through this engine.
+   */
+  public MrtrElicitationEngine(
+      RequestStateCodec codec,
+      ObjectMapper objectMapper,
+      McpPrincipalSource principalSource,
+      ReplayExecutor replayExecutor) {
     this.codec = Objects.requireNonNull(codec, "codec");
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.principalSource = Objects.requireNonNull(principalSource, "principalSource");
-    this.replayExecutor = new ReplayExecutor(objectMapper);
+    this.replayExecutor = Objects.requireNonNull(replayExecutor, "replayExecutor");
   }
 
   /**
@@ -94,11 +107,6 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
   @Override
   public ElicitResult elicit(ElicitRequestFormParams params) {
     return replayExecutor.elicit(params);
-  }
-
-  /** The extracted replay core (ADR-0021) this engine delegates the ledger mechanics to. */
-  public ReplayExecutor replayExecutor() {
-    return replayExecutor;
   }
 
   /**
@@ -130,14 +138,17 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
     List<ResponseLedgerEntry> ledger =
         ledgerFor(method, originalParams, inputResponses, requestState);
     try {
-      ReplayOutcome outcome = replayExecutor.execute(ledger, invocation);
-      if (outcome instanceof ReplayOutcome.InputRequired ir) {
+      ReplayOutcome<Object, ElicitRequestFormParams> outcome =
+          replayExecutor.execute(ledger, invocation);
+      if (outcome instanceof ReplayOutcome.InputRequired<?, ?> ir) {
         String token =
-            codec.encode(method, originalParams, ir.entries(), principalSource.currentPrincipal());
+            codec.encode(method, originalParams, ir.ledger(), principalSource.currentPrincipal());
         return new InputRequiredResult(
-            Map.of(ir.key(), new ElicitRequest(ir.params())), token, ResultTypes.INPUT_REQUIRED);
+            Map.of(ir.key(), new ElicitRequest((ElicitRequestFormParams) ir.request())),
+            token,
+            ResultTypes.INPUT_REQUIRED);
       }
-      return ((ReplayOutcome.Completed) outcome).result();
+      return ((ReplayOutcome.Completed<?, ?>) outcome).result();
     } catch (ElicitationLedgerMismatchException e) {
       throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, e.getMessage());
     }

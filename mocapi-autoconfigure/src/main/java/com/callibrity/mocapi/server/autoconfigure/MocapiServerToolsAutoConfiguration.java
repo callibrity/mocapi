@@ -20,11 +20,13 @@ import com.callibrity.mocapi.model.CallToolRequestParams;
 import com.callibrity.mocapi.server.cache.CacheSettings;
 import com.callibrity.mocapi.server.dispatch.McpDispatchInterceptor;
 import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
+import com.callibrity.mocapi.server.mrtr.ReplayExecutor;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlers;
 import com.callibrity.mocapi.server.tools.McpToolsService;
 import com.callibrity.mocapi.server.tools.ToolDescriptorCustomizer;
+import com.callibrity.mocapi.server.tools.ToolInvocationCore;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.server.tools.schema.MethodSchemaGenerator;
 import java.util.List;
@@ -50,25 +52,24 @@ public class MocapiServerToolsAutoConfiguration {
   private final MocapiServerToolsProperties props;
   private final MocapiServerProperties mocapiProperties;
 
+  /**
+   * The registered {@code @McpTool} handlers, built once and shared by both {@link
+   * ToolInvocationCore} (invocation) and {@link McpToolsService} (registry/pagination) — the two
+   * beans that each depend on the same handler list rather than building their own copies
+   * (ADR-0039).
+   */
   @Bean
-  @ConditionalOnMissingBean(McpToolsService.class)
-  public McpToolsService mcpProtocolToolsService(
+  public List<CallToolHandler> mcpCallToolHandlers(
       HandlerMethodsCache cache,
       MethodSchemaGenerator generator,
       ObjectMapper objectMapper,
-      MrtrElicitationEngine elicitationEngine,
-      CacheSettings cacheSettings,
       @Autowired(required = false) List<CallToolHandlerCustomizer> toolCustomizers,
       @Autowired(required = false) List<ToolDescriptorCustomizer> toolDescriptorCustomizers,
-      @Autowired(required = false)
-          List<McpDispatchInterceptor<CallToolHandler, CallToolRequestParams>> dispatchInterceptors,
       StringValueResolver mcpAnnotationValueResolver) {
     List<CallToolHandlerCustomizer> customizers =
         toolCustomizers == null ? List.of() : toolCustomizers;
     List<ToolDescriptorCustomizer> descriptorCustomizers =
         toolDescriptorCustomizers == null ? List.of() : toolDescriptorCustomizers;
-    List<McpDispatchInterceptor<CallToolHandler, CallToolRequestParams>> interceptors =
-        dispatchInterceptors == null ? List.of() : dispatchInterceptors;
     CallToolHandlers.BuildParams buildParams =
         new CallToolHandlers.BuildParams(
             generator,
@@ -77,20 +78,44 @@ public class MocapiServerToolsAutoConfiguration {
             descriptorCustomizers,
             mcpAnnotationValueResolver::resolveStringValue,
             props.isValidateOutput());
-    List<CallToolHandler> handlers =
-        cache.forAnnotation(McpTool.class).stream()
-            .map(
-                bm -> {
-                  CallToolHandler handler =
-                      CallToolHandlers.build(bm.bean(), bm.method(), buildParams);
-                  log.info(
-                      "Registered MCP tool: \"{}\" (bean \"{}\")",
-                      handler.descriptor().name(),
-                      bm.beanName());
-                  return handler;
-                })
-            .toList();
+    return cache.forAnnotation(McpTool.class).stream()
+        .map(
+            bm -> {
+              CallToolHandler handler = CallToolHandlers.build(bm.bean(), bm.method(), buildParams);
+              log.info(
+                  "Registered MCP tool: \"{}\" (bean \"{}\")",
+                  handler.descriptor().name(),
+                  bm.beanName());
+              return handler;
+            })
+        .toList();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(ToolInvocationCore.class)
+  public ToolInvocationCore mcpToolInvocationCore(
+      List<CallToolHandler> handlers,
+      ObjectMapper objectMapper,
+      MrtrElicitationEngine elicitationEngine) {
+    return new ToolInvocationCore(
+        handlers, objectMapper, elicitationEngine, new ReplayExecutor(objectMapper));
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(McpToolsService.class)
+  public McpToolsService mcpProtocolToolsService(
+      ToolInvocationCore core,
+      List<CallToolHandler> handlers,
+      ObjectMapper objectMapper,
+      MrtrElicitationEngine elicitationEngine,
+      CacheSettings cacheSettings,
+      @Autowired(required = false)
+          List<McpDispatchInterceptor<CallToolHandler, CallToolRequestParams>>
+              dispatchInterceptors) {
+    List<McpDispatchInterceptor<CallToolHandler, CallToolRequestParams>> interceptors =
+        dispatchInterceptors == null ? List.of() : dispatchInterceptors;
     return new McpToolsService(
+        core,
         handlers,
         objectMapper,
         elicitationEngine,

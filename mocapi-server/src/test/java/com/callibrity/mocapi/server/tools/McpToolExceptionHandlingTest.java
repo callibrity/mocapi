@@ -354,7 +354,7 @@ class McpToolExceptionHandlingTest {
     static class NullMessageException extends McpToolException {
       NullMessageException() {
         // Message-less constructor path — getMessage() will return null, exercising the
-        // toString() fallback inside McpToolsService.toErrorCallToolResult.
+        // toString() fallback inside ToolInvocationCore.toErrorCallToolResult.
         super(null);
       }
     }

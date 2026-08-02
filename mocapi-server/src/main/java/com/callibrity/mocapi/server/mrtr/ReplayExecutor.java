@@ -77,13 +77,14 @@ public final class ReplayExecutor implements ElicitationDispatcher {
    * @return {@link ReplayOutcome.Completed} with the handler's result, or {@link
    *     ReplayOutcome.InputRequired} if it elicited an unanswered question
    */
-  public ReplayOutcome execute(List<ResponseLedgerEntry> ledger, Supplier<Object> invocation) {
+  public ReplayOutcome<Object, ElicitRequestFormParams> execute(
+      List<ResponseLedgerEntry> ledger, Supplier<Object> invocation) {
     ReplayExecution execution = new ReplayExecution(ledger);
     try {
       Object result = ScopedValue.where(EXECUTION, execution).call(invocation::get);
-      return new ReplayOutcome.Completed(result);
+      return new ReplayOutcome.Completed<>(result);
     } catch (InputRequiredException signal) {
-      return new ReplayOutcome.InputRequired(signal.key(), signal.params(), execution.entries());
+      return new ReplayOutcome.InputRequired<>(signal.key(), signal.params(), execution.entries());
     }
   }
 

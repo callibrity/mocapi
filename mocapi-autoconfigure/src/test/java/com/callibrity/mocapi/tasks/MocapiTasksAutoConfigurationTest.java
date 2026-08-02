@@ -26,6 +26,8 @@ import com.callibrity.mocapi.model.ServerCapabilities;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerToolsAutoConfiguration;
 import com.callibrity.mocapi.server.tools.McpToolsService;
+import com.callibrity.mocapi.server.tools.ToolInvocationCore;
+import com.callibrity.mocapi.tasks.engine.TaskExecutionEngine;
 import com.callibrity.mocapi.tasks.model.CreateTaskResult;
 import com.callibrity.mocapi.tasks.store.InMemoryTaskStore;
 import com.callibrity.mocapi.tasks.store.TaskStore;
@@ -96,6 +98,26 @@ class MocapiTasksAutoConfigurationTest {
       instance = new InMemoryTaskStore(Clock.systemUTC());
       return instance;
     }
+  }
+
+  /**
+   * ADR-0039: {@code TaskExecutionEngine} is wired directly with the {@code ToolInvocationCore}
+   * bean rather than an {@code ObjectProvider<McpToolsService>} deferred-resolution workaround.
+   * {@code spring.main.allow-circular-references=false} (Boot's own default) makes the context
+   * refresh fail fast on any genuine bean-graph cycle, so a clean startup here is itself proof the
+   * tools/tasks autoconfig pair is acyclic.
+   */
+  @Test
+  void tools_and_tasks_autoconfigure_without_a_bean_cycle() {
+    runner
+        .withPropertyValues("spring.main.allow-circular-references=false")
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              assertThat(context).hasSingleBean(ToolInvocationCore.class);
+              assertThat(context).hasSingleBean(McpToolsService.class);
+              assertThat(context).hasSingleBean(TaskExecutionEngine.class);
+            });
   }
 
   @Test

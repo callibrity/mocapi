@@ -121,13 +121,13 @@ public class TasksConformanceTools {
   /**
    * Scenario: tasks-lifecycle (the {@code protocol_error_job} fixture asserting {@code
    * status:"failed"} with an inlined JSON-RPC {@code error}, not a tool-level {@code isError}
-   * result). {@code McpToolsService#invokeWithContext} rethrows exactly one exception shape instead
-   * of wrapping it into an {@code isError} {@link CallToolResult}: a {@link JsonRpcException}
-   * carrying {@link JsonRpcErrorCodes#FORBIDDEN} (the guard-denial code, ADR-0023). {@code
-   * TaskExecutionEngine} then catches that propagated exception and writes the task record as
-   * {@code failed} with an inlined {@code error{code,message}} — precisely the shape this scenario
-   * checks for. The guard-denial code is reused only as the vehicle that survives the rethrow; the
-   * failure it produces is a generic internal error, not an authorization denial.
+   * result). {@code ToolInvocationCore#invokeWithContext} rethrows exactly one exception shape
+   * instead of wrapping it into an {@code isError} {@link CallToolResult}: a {@link
+   * JsonRpcException} carrying {@link JsonRpcErrorCodes#FORBIDDEN} (the guard-denial code,
+   * ADR-0023). {@code TaskExecutionEngine} then catches that propagated exception and writes the
+   * task record as {@code failed} with an inlined {@code error{code,message}} — precisely the shape
+   * this scenario checks for. The guard-denial code is reused only as the vehicle that survives the
+   * rethrow; the failure it produces is a generic internal error, not an authorization denial.
    */
   @McpTool(
       name = "protocol_error_job",

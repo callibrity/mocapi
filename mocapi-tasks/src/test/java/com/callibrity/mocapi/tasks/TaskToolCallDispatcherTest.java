@@ -20,15 +20,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.model.CallToolRequestParams;
+import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ClientCapabilities;
+import com.callibrity.mocapi.model.ElicitRequest;
 import com.callibrity.mocapi.model.RequestMeta;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
 import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.mocapi.server.mrtr.McpPrincipalSource;
+import com.callibrity.mocapi.server.mrtr.ReplayOutcome;
 import com.callibrity.mocapi.server.mrtr.ResponseLedgerEntry;
 import com.callibrity.mocapi.server.tools.CallToolHandler;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlers;
+import com.callibrity.mocapi.server.tools.ToolCallReplayInvoker;
 import com.callibrity.mocapi.server.tools.schema.DefaultMethodSchemaGenerator;
 import com.callibrity.mocapi.tasks.engine.TaskExecutionEngine;
 import com.callibrity.mocapi.tasks.model.CreateTaskResult;
@@ -82,14 +86,13 @@ class TaskToolCallDispatcherTest {
     }
   }
 
-  private static final class NoopInvoker
-      implements com.callibrity.mocapi.server.tools.ToolCallReplayInvoker {
+  private static final class NoopInvoker implements ToolCallReplayInvoker {
     @Override
-    public Outcome invoke(
+    public ReplayOutcome<CallToolResult, ElicitRequest> invoke(
         String toolName,
         tools.jackson.databind.JsonNode arguments,
         List<ResponseLedgerEntry> ledger,
-        com.callibrity.mocapi.api.progress.McpProgressSource progressOverride,
+        com.callibrity.mocapi.api.progress.McpProgressSource progress,
         com.callibrity.mocapi.server.exchange.McpExchange exchange) {
       return null;
     }

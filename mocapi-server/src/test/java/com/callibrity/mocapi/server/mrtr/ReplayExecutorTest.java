@@ -40,39 +40,39 @@ class ReplayExecutorTest {
 
   @Test
   void first_unanswered_elicit_yields_input_required_outcome_with_key_elicit_1() {
-    ReplayOutcome outcome =
+    ReplayOutcome<Object, ElicitRequestFormParams> outcome =
         executor.execute(List.of(), () -> executor.elicit(question("Your email?")));
     assertThat(outcome).isInstanceOf(ReplayOutcome.InputRequired.class);
-    var ir = (ReplayOutcome.InputRequired) outcome;
+    var ir = (ReplayOutcome.InputRequired<?, ElicitRequestFormParams>) outcome;
     assertThat(ir.key()).isEqualTo("elicit-1");
-    assertThat(ir.params().message()).isEqualTo("Your email?");
-    assertThat(ir.entries()).hasSize(1);
-    assertThat(ir.entries().getFirst().isAnswered()).isFalse();
+    assertThat(ir.request().message()).isEqualTo("Your email?");
+    assertThat(ir.ledger()).hasSize(1);
+    assertThat(ir.ledger().getFirst().isAnswered()).isFalse();
   }
 
   @Test
   void answered_ordinal_returns_result_and_completes() {
     // Round 1: capture the ledger.
     var round1 =
-        (ReplayOutcome.InputRequired)
+        (ReplayOutcome.InputRequired<?, ElicitRequestFormParams>)
             executor.execute(List.of(), () -> executor.elicit(question("Your email?")));
     // Answer it.
     var answer = new ElicitResult(ElicitAction.ACCEPT, JsonNodeFactory.instance.objectNode());
-    List<ResponseLedgerEntry> answered = List.of(round1.entries().getFirst().answeredWith(answer));
+    List<ResponseLedgerEntry> answered = List.of(round1.ledger().getFirst().answeredWith(answer));
     // Round 2: replay completes.
-    ReplayOutcome outcome =
+    ReplayOutcome<Object, ElicitRequestFormParams> outcome =
         executor.execute(answered, () -> executor.elicit(question("Your email?")).action());
     assertThat(outcome).isInstanceOf(ReplayOutcome.Completed.class);
-    assertThat(((ReplayOutcome.Completed) outcome).result()).isEqualTo(ElicitAction.ACCEPT);
+    assertThat(((ReplayOutcome.Completed<?, ?>) outcome).result()).isEqualTo(ElicitAction.ACCEPT);
   }
 
   @Test
   void fingerprint_mismatch_at_answered_ordinal_throws_ledger_mismatch() {
     var round1 =
-        (ReplayOutcome.InputRequired)
+        (ReplayOutcome.InputRequired<?, ElicitRequestFormParams>)
             executor.execute(List.of(), () -> executor.elicit(question("Your email?")));
     var answer = new ElicitResult(ElicitAction.ACCEPT, JsonNodeFactory.instance.objectNode());
-    List<ResponseLedgerEntry> answered = List.of(round1.entries().getFirst().answeredWith(answer));
+    List<ResponseLedgerEntry> answered = List.of(round1.ledger().getFirst().answeredWith(answer));
     assertThatThrownBy(
             () -> executor.execute(answered, () -> executor.elicit(question("DIFFERENT?"))))
         .isInstanceOf(ElicitationLedgerMismatchException.class);

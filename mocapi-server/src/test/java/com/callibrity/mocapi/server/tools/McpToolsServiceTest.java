@@ -367,7 +367,7 @@ class McpToolsServiceTest {
   @Test
   void to_error_call_tool_result_uses_to_string_when_message_is_null() {
     var exception = new RuntimeException((String) null);
-    var result = McpToolsService.toErrorCallToolResult(exception);
+    var result = ToolInvocationCore.toErrorCallToolResult(exception);
 
     assertThat(result.isError()).isTrue();
     assertThat(result.content()).hasSize(1);

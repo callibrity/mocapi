@@ -16,8 +16,11 @@
 package com.callibrity.mocapi.tasks.engine;
 
 import com.callibrity.mocapi.api.progress.McpProgressSource;
+import com.callibrity.mocapi.model.CallToolResult;
+import com.callibrity.mocapi.model.ElicitRequest;
 import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.mocapi.server.mrtr.ElicitationLedgerMismatchException;
+import com.callibrity.mocapi.server.mrtr.ReplayOutcome;
 import com.callibrity.mocapi.server.tools.ToolCallReplayInvoker;
 import com.callibrity.mocapi.tasks.TasksExtension;
 import com.callibrity.mocapi.tasks.model.CreateTaskResult;
@@ -100,14 +103,14 @@ public class TaskExecutionEngine {
     McpExchange exchange = new McpExchange(rec.protocolVersion(), null, rec.clientCapabilities());
     McpProgressSource progress = TaskProgressSource.forTask(store, taskId, clock);
     try {
-      var outcome =
+      ReplayOutcome<CallToolResult, ElicitRequest> outcome =
           invoker.invoke(rec.toolName(), rec.arguments(), rec.ledger(), progress, exchange);
       switch (outcome) {
-        case ToolCallReplayInvoker.Outcome.Completed c -> {
+        case ReplayOutcome.Completed<CallToolResult, ElicitRequest> c -> {
           Instant now = clock.instant();
           store.update(taskId, r -> r.completed(c.result(), now));
         }
-        case ToolCallReplayInvoker.Outcome.InputRequired ir -> {
+        case ReplayOutcome.InputRequired<CallToolResult, ElicitRequest> ir -> {
           Instant now = clock.instant();
           store.update(taskId, r -> r.inputRequired(ir.key(), ir.request(), ir.ledger(), now));
         }
