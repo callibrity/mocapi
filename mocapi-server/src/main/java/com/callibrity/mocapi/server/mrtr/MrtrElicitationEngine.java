@@ -22,7 +22,6 @@ import com.callibrity.mocapi.model.InputRequiredResult;
 import com.callibrity.mocapi.model.InputResponse;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.server.elicitation.ElicitationDispatcher;
-import com.callibrity.mocapi.server.util.Hashes;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.ArrayList;
@@ -66,13 +65,10 @@ import tools.jackson.databind.node.ObjectNode;
  */
 public class MrtrElicitationEngine implements ElicitationDispatcher {
 
-  private static final ScopedValue<ReplayExecution> EXECUTION = ScopedValue.newInstance();
-
-  private static final String KEY_PREFIX = "elicit-";
-
   private final RequestStateCodec codec;
   private final ObjectMapper objectMapper;
   private final McpPrincipalSource principalSource;
+  private final ReplayExecutor replayExecutor;
 
   public MrtrElicitationEngine(RequestStateCodec codec, ObjectMapper objectMapper) {
     this(codec, objectMapper, () -> null);
@@ -83,6 +79,7 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
     this.codec = Objects.requireNonNull(codec, "codec");
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.principalSource = Objects.requireNonNull(principalSource, "principalSource");
+    this.replayExecutor = new ReplayExecutor(objectMapper);
   }
 
   /**
@@ -96,13 +93,12 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
    */
   @Override
   public ElicitResult elicit(ElicitRequestFormParams params) {
-    if (!EXECUTION.isBound()) {
-      throw new IllegalStateException(
-          "ctx.elicit(...) called outside an MRTR dispatch. Elicitation is only available while "
-              + "the handler executes on the dispatch thread of tools/call, prompts/get, or "
-              + "resources/read — not from detached async threads.");
-    }
-    return EXECUTION.get().elicit(params, fingerprintOf(params));
+    return replayExecutor.elicit(params);
+  }
+
+  /** The extracted replay core (ADR-0021) this engine delegates the ledger mechanics to. */
+  public ReplayExecutor replayExecutor() {
+    return replayExecutor;
   }
 
   /**
@@ -131,18 +127,17 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
       String requestState,
       Supplier<Object> invocation) {
     ObjectNode originalParams = originalParamsOf(requestParams);
-    ReplayExecution execution =
-        new ReplayExecution(ledgerFor(method, originalParams, inputResponses, requestState));
+    List<ResponseLedgerEntry> ledger =
+        ledgerFor(method, originalParams, inputResponses, requestState);
     try {
-      return ScopedValue.where(EXECUTION, execution).call(invocation::get);
-    } catch (InputRequiredException signal) {
-      String token =
-          codec.encode(
-              method, originalParams, execution.entries(), principalSource.currentPrincipal());
-      return new InputRequiredResult(
-          Map.of(signal.key(), new ElicitRequest(signal.params())),
-          token,
-          ResultTypes.INPUT_REQUIRED);
+      ReplayOutcome outcome = replayExecutor.execute(ledger, invocation);
+      if (outcome instanceof ReplayOutcome.InputRequired ir) {
+        String token =
+            codec.encode(method, originalParams, ir.entries(), principalSource.currentPrincipal());
+        return new InputRequiredResult(
+            Map.of(ir.key(), new ElicitRequest(ir.params())), token, ResultTypes.INPUT_REQUIRED);
+      }
+      return ((ReplayOutcome.Completed) outcome).result();
     } catch (ElicitationLedgerMismatchException e) {
       throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, e.getMessage());
     }
@@ -239,50 +234,7 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
             key));
   }
 
-  private String fingerprintOf(ElicitRequestFormParams params) {
-    return Hashes.sha256Of(objectMapper.valueToTree(params).toString());
-  }
-
   private static JsonRpcException invalidParams(String message) {
     return new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, message);
-  }
-
-  /** Per-dispatch replay state: the response ledger plus the elicit-call cursor. */
-  private static final class ReplayExecution {
-
-    private final List<ResponseLedgerEntry> entries;
-    private int cursor;
-
-    ReplayExecution(List<ResponseLedgerEntry> entries) {
-      this.entries = new ArrayList<>(entries);
-    }
-
-    ElicitResult elicit(ElicitRequestFormParams params, String fingerprint) {
-      cursor++;
-      if (cursor <= entries.size()) {
-        ResponseLedgerEntry entry = entries.get(cursor - 1);
-        if (!entry.fingerprint().equals(fingerprint)) {
-          throw new ElicitationLedgerMismatchException(
-              String.format(
-                  "MRTR replay mismatch at elicitation #%d (key \"%s\"): the handler asked a "
-                      + "different question than the one this ledger position answers. Handlers "
-                      + "must honor the MRTR idempotency contract: code before the last elicit() "
-                      + "re-executes once per round trip, and the Nth elicit() reached during a "
-                      + "replay must issue the same message and schema as the original execution.",
-                  cursor, entry.key()));
-        }
-        if (entry.isAnswered()) {
-          return entry.response();
-        }
-        throw new InputRequiredException(entry.key(), params);
-      }
-      String key = KEY_PREFIX + cursor;
-      entries.add(new ResponseLedgerEntry(key, fingerprint, null));
-      throw new InputRequiredException(key, params);
-    }
-
-    List<ResponseLedgerEntry> entries() {
-      return List.copyOf(entries);
-    }
   }
 }
