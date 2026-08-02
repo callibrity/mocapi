@@ -1,6 +1,6 @@
 ### (1) tools/call batch_resize — capable client (tasks extension declared) -> CreateTaskResult
 # Response: {"result":{"taskId":"...","status":"working","statusMessage":null,"createdAt":"...",
-# "lastUpdatedAt":"...","ttlMs":600000,"pollIntervalMs":1000,"resultType":"complete"}}
+# "lastUpdatedAt":"...","ttlMs":600000,"pollIntervalMs":1000,"resultType":"task"}}
 # Copy the taskId into {{taskId}} below (or use the response handler to capture it automatically).
 POST http://localhost:8082/mcp
 Content-Type: application/json
