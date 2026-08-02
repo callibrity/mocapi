@@ -69,21 +69,21 @@ public abstract class TaskStoreContractTest {
   void create_then_get_round_trips() {
     MutableClock clock = MutableClock.at(Instant.parse("2026-08-02T00:00:00Z"));
     TaskStore store = newStore(clock);
-    TaskRecord record = newRecord("t1", clock.instant(), Duration.ofMinutes(5));
+    TaskRecord rec = newRecord("t1", clock.instant(), Duration.ofMinutes(5));
 
-    store.create(record);
+    store.create(rec);
 
-    assertThat(store.get("t1")).contains(record);
+    assertThat(store.get("t1")).contains(rec);
   }
 
   @Test
   void create_collision_throws() {
     MutableClock clock = MutableClock.at(Instant.parse("2026-08-02T00:00:00Z"));
     TaskStore store = newStore(clock);
-    TaskRecord record = newRecord("t1", clock.instant(), Duration.ofMinutes(5));
-    store.create(record);
+    TaskRecord rec = newRecord("t1", clock.instant(), Duration.ofMinutes(5));
+    store.create(rec);
 
-    assertThatThrownBy(() -> store.create(record)).isInstanceOf(TaskAlreadyExistsException.class);
+    assertThatThrownBy(() -> store.create(rec)).isInstanceOf(TaskAlreadyExistsException.class);
   }
 
   @Test
@@ -104,8 +104,8 @@ public abstract class TaskStoreContractTest {
   void expired_record_is_purged_on_get() {
     MutableClock clock = MutableClock.at(Instant.parse("2026-08-02T00:00:00Z"));
     TaskStore store = newStore(clock);
-    TaskRecord record = newRecord("t1", clock.instant(), Duration.ofMinutes(5));
-    store.create(record);
+    TaskRecord rec = newRecord("t1", clock.instant(), Duration.ofMinutes(5));
+    store.create(rec);
 
     clock.advance(Duration.ofMinutes(6));
 
@@ -120,8 +120,8 @@ public abstract class TaskStoreContractTest {
   void expired_record_is_purged_on_update() {
     MutableClock clock = MutableClock.at(Instant.parse("2026-08-02T00:00:00Z"));
     TaskStore store = newStore(clock);
-    TaskRecord record = newRecord("t1", clock.instant(), Duration.ofMinutes(5));
-    store.create(record);
+    TaskRecord rec = newRecord("t1", clock.instant(), Duration.ofMinutes(5));
+    store.create(rec);
 
     clock.advance(Duration.ofMinutes(6));
 
@@ -163,9 +163,9 @@ public abstract class TaskStoreContractTest {
         .isEqualTo(threadCount * incrementsPerThread);
   }
 
-  private static TaskRecord incrementCounter(TaskRecord record) {
-    int current = Integer.parseInt(record.statusMessage());
-    return record.withStatusMessage(String.valueOf(current + 1), record.lastUpdatedAt());
+  private static TaskRecord incrementCounter(TaskRecord rec) {
+    int current = Integer.parseInt(rec.statusMessage());
+    return rec.withStatusMessage(String.valueOf(current + 1), rec.lastUpdatedAt());
   }
 
   private static void awaitUninterruptibly(CountDownLatch latch) {

@@ -92,8 +92,8 @@ public class TaskToolCallDispatcher implements ToolCallDispatchCustomizer {
       }
       return Optional.empty(); // graceful sync degrade
     }
-    TaskRecord record = newRecord(handler, params, annotation);
-    return Optional.of(engine.createAndStart(record));
+    TaskRecord rec = newRecord(handler, params, annotation);
+    return Optional.of(engine.createAndStart(rec));
   }
 
   static boolean isTaskCapable(RequestMeta meta) {

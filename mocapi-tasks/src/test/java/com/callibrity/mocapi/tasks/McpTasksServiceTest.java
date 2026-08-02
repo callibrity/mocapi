@@ -150,17 +150,17 @@ class McpTasksServiceTest {
 
   private TaskRecord await(String taskId, TaskStatus status) {
     long deadline = System.nanoTime() + AWAIT_TIMEOUT.toNanos();
-    TaskRecord record = store.get(taskId).orElseThrow();
-    while (record.status() != status && System.nanoTime() < deadline) {
+    TaskRecord rec = store.get(taskId).orElseThrow();
+    while (rec.status() != status && System.nanoTime() < deadline) {
       try {
         Thread.sleep(10);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new AssertionError(e);
       }
-      record = store.get(taskId).orElseThrow();
+      rec = store.get(taskId).orElseThrow();
     }
-    return record;
+    return rec;
   }
 
   private McpTasksService service(McpPrincipalSource principalSource, TaskExecutionEngine engine) {
@@ -198,27 +198,27 @@ class McpTasksServiceTest {
   void get_input_required_task_populates_input_requests_only() {
     ElicitRequest request = new ElicitRequest(new ElicitRequestFormParams("please answer", null));
     Map<String, InputRequest> inputRequests = Map.of("elicit-1", request);
-    TaskRecord record = baseRecord("t-input-required", TaskStatus.INPUT_REQUIRED);
-    record =
+    TaskRecord rec = baseRecord("t-input-required", TaskStatus.INPUT_REQUIRED);
+    rec =
         new TaskRecord(
-            record.taskId(),
-            record.toolName(),
-            record.arguments(),
-            record.principal(),
-            record.protocolVersion(),
-            record.clientCapabilities(),
-            record.status(),
-            record.statusMessage(),
-            record.createdAt(),
-            record.lastUpdatedAt(),
-            record.ttl(),
-            record.pollInterval(),
+            rec.taskId(),
+            rec.toolName(),
+            rec.arguments(),
+            rec.principal(),
+            rec.protocolVersion(),
+            rec.clientCapabilities(),
+            rec.status(),
+            rec.statusMessage(),
+            rec.createdAt(),
+            rec.lastUpdatedAt(),
+            rec.ttl(),
+            rec.pollInterval(),
             List.of(new ResponseLedgerEntry("elicit-1", "fp-1", null)),
             inputRequests,
             null,
             null,
-            record.version());
-    store.create(record);
+            rec.version());
+    store.create(rec);
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
@@ -234,9 +234,8 @@ class McpTasksServiceTest {
   @Test
   void get_completed_task_populates_result_only() {
     CallToolResult toolResult = new CallToolResult(List.of(), false, null, "complete");
-    TaskRecord record =
-        baseRecord("t-completed", TaskStatus.WORKING).completed(toolResult, BASE_TIME);
-    store.create(record);
+    TaskRecord rec = baseRecord("t-completed", TaskStatus.WORKING).completed(toolResult, BASE_TIME);
+    store.create(rec);
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
@@ -252,10 +251,10 @@ class McpTasksServiceTest {
   @Test
   void get_failed_task_populates_error_only() {
     JsonRpcErrorDetail error = new JsonRpcErrorDetail(JsonRpcProtocol.INTERNAL_ERROR, "boom", null);
-    TaskRecord record =
+    TaskRecord rec =
         baseRecord("t-failed", TaskStatus.WORKING)
             .failed(error, "task execution failed", BASE_TIME);
-    store.create(record);
+    store.create(rec);
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
@@ -270,8 +269,8 @@ class McpTasksServiceTest {
 
   @Test
   void get_cancelled_task_populates_only_common_fields() {
-    TaskRecord record = baseRecord("t-cancelled", TaskStatus.WORKING).cancelled(BASE_TIME);
-    store.create(record);
+    TaskRecord rec = baseRecord("t-cancelled", TaskStatus.WORKING).cancelled(BASE_TIME);
+    store.create(rec);
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 
@@ -527,9 +526,9 @@ class McpTasksServiceTest {
   @Test
   void cancel_completed_task_stays_completed() {
     CallToolResult toolResult = new CallToolResult(List.of(), false, null, "complete");
-    TaskRecord record =
+    TaskRecord rec =
         baseRecord("t-already-done", TaskStatus.WORKING).completed(toolResult, BASE_TIME);
-    store.create(record);
+    store.create(rec);
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
 

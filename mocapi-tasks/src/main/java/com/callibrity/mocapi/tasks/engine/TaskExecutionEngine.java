@@ -73,10 +73,10 @@ public class TaskExecutionEngine {
    * Durably creates the record, spawns execution #1 on a snapshot-wrapped virtual thread, and
    * returns the {@link CreateTaskResult} acknowledging the task's creation.
    */
-  public CreateTaskResult createAndStart(TaskRecord record) {
-    store.create(record);
-    spawn(record.taskId());
-    return toCreateTaskResult(record);
+  public CreateTaskResult createAndStart(TaskRecord rec) {
+    store.create(rec);
+    spawn(rec.taskId());
+    return toCreateTaskResult(rec);
   }
 
   /**
@@ -93,17 +93,15 @@ public class TaskExecutionEngine {
   }
 
   private void run(String taskId) {
-    TaskRecord record = store.get(taskId).orElse(null);
-    if (record == null || record.status() != TaskStatus.WORKING) {
+    TaskRecord rec = store.get(taskId).orElse(null);
+    if (rec == null || rec.status() != TaskStatus.WORKING) {
       return; // expired, deleted, or already terminal (e.g. cancel won before we started)
     }
-    McpExchange exchange =
-        new McpExchange(record.protocolVersion(), null, record.clientCapabilities());
+    McpExchange exchange = new McpExchange(rec.protocolVersion(), null, rec.clientCapabilities());
     McpProgressSource progress = TaskProgressSource.forTask(store, taskId, clock);
     try {
       var outcome =
-          invoker.invoke(
-              record.toolName(), record.arguments(), record.ledger(), progress, exchange);
+          invoker.invoke(rec.toolName(), rec.arguments(), rec.ledger(), progress, exchange);
       switch (outcome) {
         case ToolCallReplayInvoker.Outcome.Completed c -> {
           Instant now = clock.instant();

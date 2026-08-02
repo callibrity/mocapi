@@ -72,17 +72,17 @@ class TaskExecutionEngineTest {
 
   private TaskRecord await(InMemoryTaskStore store, String taskId, TaskStatus status) {
     long deadline = System.nanoTime() + AWAIT_TIMEOUT.toNanos();
-    TaskRecord record = store.get(taskId).orElseThrow();
-    while (record.status() != status && System.nanoTime() < deadline) {
+    TaskRecord rec = store.get(taskId).orElseThrow();
+    while (rec.status() != status && System.nanoTime() < deadline) {
       try {
         Thread.sleep(10);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new AssertionError(e);
       }
-      record = store.get(taskId).orElseThrow();
+      rec = store.get(taskId).orElseThrow();
     }
-    return record;
+    return rec;
   }
 
   @Test
@@ -95,8 +95,8 @@ class TaskExecutionEngineTest {
       TaskExecutionEngine engine =
           new TaskExecutionEngine(store, invoker, ContextSnapshotFactory.builder().build(), CLOCK);
 
-      TaskRecord record = newRecord("t-completed");
-      CreateTaskResult createResult = engine.createAndStart(record);
+      TaskRecord rec = newRecord("t-completed");
+      CreateTaskResult createResult = engine.createAndStart(rec);
 
       assertThat(createResult.resultType()).isEqualTo("task");
       assertThat(createResult.status()).isEqualTo(TaskStatus.WORKING);
@@ -227,8 +227,8 @@ class TaskExecutionEngineTest {
       TaskExecutionEngine engine =
           new TaskExecutionEngine(store, invoker, ContextSnapshotFactory.builder().build(), CLOCK);
 
-      TaskRecord record = newRecord("t-cancel-race");
-      engine.createAndStart(record);
+      TaskRecord rec = newRecord("t-cancel-race");
+      engine.createAndStart(rec);
       assertThat(enteredLatch.await(2, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
 
       store.update("t-cancel-race", r -> r.cancelled(BASE_TIME));

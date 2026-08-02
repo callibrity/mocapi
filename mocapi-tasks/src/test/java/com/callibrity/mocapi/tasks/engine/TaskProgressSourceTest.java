@@ -64,8 +64,8 @@ class TaskProgressSourceTest {
   @Test
   void longProgress_with_total_formats_correctly() {
     TaskStore store = new InMemoryTaskStore(fixedClock, Duration.ofHours(1));
-    TaskRecord record = newRecord("t1", TaskStatus.WORKING);
-    store.create(record);
+    TaskRecord rec = newRecord("t1", TaskStatus.WORKING);
+    store.create(rec);
 
     McpProgressSource source = TaskProgressSource.forTask(store, "t1", fixedClock);
     source.longProgress(100L).emit(42, "resizing");
@@ -78,8 +78,8 @@ class TaskProgressSourceTest {
   @Test
   void countingProgress_without_total_increments() {
     TaskStore store = new InMemoryTaskStore(fixedClock, Duration.ofHours(1));
-    TaskRecord record = newRecord("t1", TaskStatus.WORKING);
-    store.create(record);
+    TaskRecord rec = newRecord("t1", TaskStatus.WORKING);
+    store.create(rec);
 
     McpProgressSource source = TaskProgressSource.forTask(store, "t1", fixedClock);
     var counter = source.countingProgress(null);
@@ -93,8 +93,8 @@ class TaskProgressSourceTest {
   @Test
   void emit_against_cancelled_record_leaves_status_untouched() {
     TaskStore store = new InMemoryTaskStore(fixedClock, Duration.ofHours(1));
-    TaskRecord record = newRecord("t1", TaskStatus.CANCELLED);
-    store.create(record);
+    TaskRecord rec = newRecord("t1", TaskStatus.CANCELLED);
+    store.create(rec);
 
     McpProgressSource source = TaskProgressSource.forTask(store, "t1", fixedClock);
     source.longProgress(100L).emit(42, "resizing");
@@ -107,8 +107,8 @@ class TaskProgressSourceTest {
   @Test
   void non_monotonic_emit_throws() {
     TaskStore store = new InMemoryTaskStore(fixedClock, Duration.ofHours(1));
-    TaskRecord record = newRecord("t1", TaskStatus.WORKING);
-    store.create(record);
+    TaskRecord rec = newRecord("t1", TaskStatus.WORKING);
+    store.create(rec);
 
     McpProgressSource source = TaskProgressSource.forTask(store, "t1", fixedClock);
     var emitter = source.longProgress(100L);

@@ -80,18 +80,18 @@ public class McpTasksService {
   @JsonRpcMethod(TasksExtension.TASKS_GET)
   public GetTaskResult getTask(@JsonRpcParams GetTaskParams params) {
     requireTaskCapable(params.meta(), TasksExtension.TASKS_GET);
-    TaskRecord record = requireOwned(params.taskId());
+    TaskRecord rec = requireOwned(params.taskId());
     return new GetTaskResult(
-        record.taskId(),
-        record.status(),
-        record.statusMessage(),
-        record.createdAt().toString(),
-        record.lastUpdatedAt().toString(),
-        record.ttl().toMillis(),
-        record.pollInterval().toMillis(),
-        record.status() == TaskStatus.INPUT_REQUIRED ? record.inputRequests() : null,
-        record.status() == TaskStatus.COMPLETED ? record.result() : null,
-        record.status() == TaskStatus.FAILED ? record.error() : null,
+        rec.taskId(),
+        rec.status(),
+        rec.statusMessage(),
+        rec.createdAt().toString(),
+        rec.lastUpdatedAt().toString(),
+        rec.ttl().toMillis(),
+        rec.pollInterval().toMillis(),
+        rec.status() == TaskStatus.INPUT_REQUIRED ? rec.inputRequests() : null,
+        rec.status() == TaskStatus.COMPLETED ? rec.result() : null,
+        rec.status() == TaskStatus.FAILED ? rec.error() : null,
         ResultTypes.COMPLETE);
   }
 
@@ -153,7 +153,7 @@ public class McpTasksService {
   private TaskRecord requireOwned(String taskId) {
     return store
         .get(taskId)
-        .filter(record -> Objects.equals(record.principal(), principalSource.currentPrincipal()))
+        .filter(rec -> Objects.equals(rec.principal(), principalSource.currentPrincipal()))
         .orElseThrow(() -> new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "Unknown task"));
   }
 

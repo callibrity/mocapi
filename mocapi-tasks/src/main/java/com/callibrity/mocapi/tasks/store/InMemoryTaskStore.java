@@ -50,7 +50,7 @@ public class InMemoryTaskStore implements TaskStore, AutoCloseable {
       while (!Thread.currentThread().isInterrupted()) {
         Thread.sleep(sweepInterval);
         Instant now = clock.instant();
-        records.values().removeIf(record -> record.isExpired(now));
+        records.values().removeIf(rec -> rec.isExpired(now));
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -58,24 +58,24 @@ public class InMemoryTaskStore implements TaskStore, AutoCloseable {
   }
 
   @Override
-  public void create(TaskRecord record) {
-    TaskRecord prior = records.putIfAbsent(record.taskId(), record);
+  public void create(TaskRecord rec) {
+    TaskRecord prior = records.putIfAbsent(rec.taskId(), rec);
     if (prior != null) {
-      throw new TaskAlreadyExistsException(record.taskId());
+      throw new TaskAlreadyExistsException(rec.taskId());
     }
   }
 
   @Override
   public Optional<TaskRecord> get(String taskId) {
-    TaskRecord record = records.get(taskId);
-    if (record == null) {
+    TaskRecord rec = records.get(taskId);
+    if (rec == null) {
       return Optional.empty();
     }
-    if (record.isExpired(clock.instant())) {
-      records.remove(taskId, record);
+    if (rec.isExpired(clock.instant())) {
+      records.remove(taskId, rec);
       return Optional.empty();
     }
-    return Optional.of(record);
+    return Optional.of(rec);
   }
 
   @Override

@@ -155,11 +155,11 @@ class TaskToolCallDispatcherTest {
     var createResult = (CreateTaskResult) result.get();
     assertThat(createResult.ttlMs()).isEqualTo(Duration.parse("PT2M").toMillis());
 
-    TaskRecord record = store.get(createResult.taskId()).orElseThrow();
-    assertThat(record.status()).isEqualTo(TaskStatus.WORKING);
-    assertThat(record.ttl()).isEqualTo(Duration.parse("PT2M"));
-    assertThat(record.toolName()).isEqualTo(handler.name());
-    assertThat(record.principal()).isEqualTo("alice");
+    TaskRecord rec = store.get(createResult.taskId()).orElseThrow();
+    assertThat(rec.status()).isEqualTo(TaskStatus.WORKING);
+    assertThat(rec.ttl()).isEqualTo(Duration.parse("PT2M"));
+    assertThat(rec.toolName()).isEqualTo(handler.name());
+    assertThat(rec.principal()).isEqualTo("alice");
   }
 
   @Test

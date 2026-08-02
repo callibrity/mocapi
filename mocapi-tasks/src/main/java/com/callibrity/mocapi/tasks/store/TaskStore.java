@@ -31,7 +31,7 @@ public interface TaskStore {
    *
    * @throws TaskAlreadyExistsException on {@code taskId} collision
    */
-  void create(TaskRecord record);
+  void create(TaskRecord rec);
 
   /** Empty if unknown OR expired ({@code createdAt + ttl} before now). */
   Optional<TaskRecord> get(String taskId);
