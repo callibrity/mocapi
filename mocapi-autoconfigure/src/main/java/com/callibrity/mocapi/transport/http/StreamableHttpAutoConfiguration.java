@@ -18,8 +18,13 @@ package com.callibrity.mocapi.transport.http;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerProperties;
+import com.callibrity.mocapi.server.routing.McpRoutedParamContributor;
 import io.micrometer.context.ContextSnapshotFactory;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -46,8 +51,15 @@ public class StreamableHttpAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(McpHeaderValidator.class)
-  public McpHeaderValidator mcpProtocolHeaderValidator() {
-    return new McpHeaderValidator();
+  public McpHeaderValidator mcpProtocolHeaderValidator(
+      @Autowired(required = false) List<McpRoutedParamContributor> contributors) {
+    Map<String, String> additionalNamedParamFields = new HashMap<>();
+    if (contributors != null) {
+      for (McpRoutedParamContributor contributor : contributors) {
+        additionalNamedParamFields.putAll(contributor.namedParamFields());
+      }
+    }
+    return new McpHeaderValidator(additionalNamedParamFields);
   }
 
   @Bean

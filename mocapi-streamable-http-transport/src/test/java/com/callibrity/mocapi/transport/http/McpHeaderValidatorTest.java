@@ -21,6 +21,7 @@ import com.callibrity.mocapi.model.McpMetaKeys;
 import com.callibrity.mocapi.server.McpServer;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Nested;
@@ -384,6 +385,59 @@ class McpHeaderValidatorTest {
    * order. Literals are deliberately spelled out so that changing a constant fails this test rather
    * than silently altering the wire protocol.
    */
+  @Nested
+  class Contributed_methods {
+
+    @Test
+    void contributed_method_requires_and_validates_mcp_name() {
+      var validator = new McpHeaderValidator(Map.of("tasks/get", "taskId"));
+
+      ObjectNode params = paramsWithEnvelope();
+      params.put("taskId", "task-1");
+
+      var missingHeaderResult =
+          validator.validate(validHeadersFor("tasks/get"), call("tasks/get", params));
+
+      assertThat(missingHeaderResult)
+          .hasValueSatisfying(
+              msg ->
+                  assertThat(msg)
+                      .startsWith("HeaderMismatch")
+                      .contains("Mcp-Name")
+                      .contains("tasks/get"));
+
+      HttpHeaders matchingHeaders = validHeadersFor("tasks/get");
+      matchingHeaders.set(McpHeaderValidator.MCP_NAME_HEADER, "task-1");
+
+      var matchingResult = validator.validate(matchingHeaders, call("tasks/get", params));
+
+      assertThat(matchingResult).isEmpty();
+
+      HttpHeaders mismatchedHeaders = validHeadersFor("tasks/get");
+      mismatchedHeaders.set(McpHeaderValidator.MCP_NAME_HEADER, "task-2");
+
+      var mismatchedResult = validator.validate(mismatchedHeaders, call("tasks/get", params));
+
+      assertThat(mismatchedResult)
+          .hasValueSatisfying(
+              msg -> assertThat(msg).startsWith("HeaderMismatch").contains("task-2"));
+    }
+
+    @Test
+    void built_in_methods_unaffected_by_contributions() {
+      var validator = new McpHeaderValidator(Map.of("tasks/get", "taskId"));
+
+      ObjectNode params = paramsWithEnvelope();
+      params.put("name", "echo");
+      HttpHeaders headers = validHeadersFor("tools/call");
+      headers.set(McpHeaderValidator.MCP_NAME_HEADER, "echo");
+
+      var result = validator.validate(headers, call("tools/call", params));
+
+      assertThat(result).isEmpty();
+    }
+  }
+
   @Nested
   @SuppressWarnings("java:S3415")
   class Constants {

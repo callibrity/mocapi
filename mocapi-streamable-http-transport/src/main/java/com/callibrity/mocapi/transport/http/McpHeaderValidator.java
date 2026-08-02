@@ -18,6 +18,7 @@ package com.callibrity.mocapi.transport.http;
 import com.callibrity.mocapi.model.McpMetaKeys;
 import com.callibrity.mocapi.model.McpMethods;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.http.HttpHeaders;
@@ -78,12 +79,32 @@ public class McpHeaderValidator {
 
   private static final String META_FIELD = "_meta";
 
-  /** Which params field {@code Mcp-Name} mirrors, per method. */
+  /** Which params field {@code Mcp-Name} mirrors, per built-in method. */
   private static final Map<String, String> NAMED_PARAM_FIELDS =
       Map.of(
           McpMethods.TOOLS_CALL, "name",
           McpMethods.PROMPTS_GET, "name",
           McpMethods.RESOURCES_READ, "uri");
+
+  /** The merged, immutable union of {@link #NAMED_PARAM_FIELDS} and any contributed entries. */
+  private final Map<String, String> namedParamFields;
+
+  /** Validates using only the built-in {@code Mcp-Name} routing-header table. */
+  public McpHeaderValidator() {
+    this(Map.of());
+  }
+
+  /**
+   * Validates using the built-in {@code Mcp-Name} routing-header table, extended with the given
+   * entries. Built-in mappings win on key collision with the additions.
+   *
+   * @param additionalNamedParamFields extension-contributed method-to-params-field mappings
+   */
+  public McpHeaderValidator(Map<String, String> additionalNamedParamFields) {
+    Map<String, String> merged = new HashMap<>(additionalNamedParamFields);
+    merged.putAll(NAMED_PARAM_FIELDS);
+    this.namedParamFields = Map.copyOf(merged);
+  }
 
   /**
    * Validates the routing headers against the request body.
@@ -116,7 +137,7 @@ public class McpHeaderValidator {
                   .formatted(method, request.method()));
     }
 
-    String namedField = NAMED_PARAM_FIELDS.get(request.method());
+    String namedField = namedParamFields.get(request.method());
     if (namedField != null) {
       String name = headers.getFirst(MCP_NAME_HEADER);
       if (name == null) {
