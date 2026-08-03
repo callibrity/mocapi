@@ -8,6 +8,32 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- **MCP Tasks extension (`mocapi-tasks`)** — a task-eligible tool gets a
+  single annotation, `@McpTask`, added to an otherwise-ordinary
+  `@McpTool` method ([ADR-0037](docs/adr/0037-mcp-tasks-extension.md),
+  [ADR-0038](docs/adr/0038-server-seams-for-extensions.md)). For a
+  client that declares the `tasks` capability, the tool runs as a
+  polled background task (`tasks/get`/`tasks/update`/`tasks/cancel`);
+  for a non-capable client it degrades transparently to synchronous
+  execution, unless `@McpTask(required = true)`, which instead rejects
+  with `-32021`. Progress emitters route to the task's `statusMessage`
+  instead of `notifications/progress`, and mid-task elicitation resumes
+  via MRTR replay through the store rather than a parked thread. Ships
+  a `TaskStore` SPI with an `InMemoryTaskStore` default (logs a
+  prominent WARN — process-local, not multi-node safe) and a
+  `TaskStoreContractTest` test-jar so external implementations can
+  prove themselves against the same bar. New `mocapi.tasks.*`
+  configuration properties (`default-ttl`, `default-poll-interval`).
+  Guards re-run under a fresh `ContextSnapshot` on every execution, so
+  authorization has full parity between synchronous and task mode. See
+  the [Tasks guide](docs/guides/tasks.md). Verified against
+  `@modelcontextprotocol/conformance@0.2.0-alpha.10`'s tasks
+  scenarios: 33 passed / 2 waived (both documented v1-scope
+  limitations — see ADR-0037).
+- **`examples/tasks`** — a runnable MCP Tasks demo app exercising
+  `mocapi-tasks`: progress polling, mid-task elicitation, and the
+  `required = true` degrade-to-rejection path. See
+  [`examples/tasks/README.md`](examples/tasks/README.md).
 - **`${...}` placeholder resolution extended to `mocapi-apps` and
   `mocapi-spring-security-guards`.** `@McpUi` (`value`, `resource`,
   `visibility`), `@McpAppResource` (`csp` domain lists, `sandbox`), and
