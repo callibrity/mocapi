@@ -946,3 +946,46 @@ of already-converged work, (3) the `schema/` directory listing shows no
 new revision has started. No open uncertainties beyond the
 already-tracked `HeaderMismatch` location note (unchanged, not touched by
 this run).
+
+## 2026-08-03 monitor check — no drift, finalized pin still current
+
+Daily MCP `2026-07-28` monitor run. **No convergence work needed.**
+
+**RELEASE status:** confirmed still finalized (unchanged since the
+2026-07-28 finalization). `schema/` on upstream `main` contains
+`2024-11-05`, `2025-03-26`, `2025-06-18`, `2025-11-25`, `2026-07-28`, and
+`draft` — no newer date-stamped directory has appeared.
+
+**`schema/draft/schema.ts` commit history:** newest commit is still
+`f7e99af` (Jul 28, 2026, "schema(draft): align subscriptions/listen with
+envelope and `_meta` naming conventions") — the same commit already
+triaged in the 2026-08-02 addendum above as a content-identical backport
+of already-converged work. No commits have landed since. `draft/schema.ts`
+still reports `LATEST_PROTOCOL_VERSION = "2026-07-28"`. → **mocapi:** no
+action.
+
+**`schema/2026-07-28/schema.ts` (finalized) commit history:** not
+independently re-walked this run — the 2026-08-02 addendum already
+confirmed it is unchanged and byte-identical to the pinned snapshot, and
+today's directory listing and draft-history checks show no upstream
+activity since then that would touch it.
+
+**Note on tooling:** `api.github.com` returned HTTP 403 via WebFetch this
+run (both the commits endpoint and the contents endpoint); fell back to
+the `github.com` HTML commit-log and tree views for the same data, which
+succeeded and cross-checks consistently with the 2026-08-02 findings.
+Worth a human look if this persists on future runs.
+
+**Snapshot status:** not re-pinned — not needed. No new commits exist to
+re-pin against since the 2026-08-02 check.
+
+**`mvn verify`:** not run. Docs-only change, no `mocapi-model`/
+`mocapi-server`/transport code touched.
+
+**Confidence:** high on "no new drift since 2026-08-02" — the draft
+commit history and the `schema/` directory listing were both independently
+re-checked today and match the prior run exactly. Slightly lower
+confidence (medium) on the finalized directory specifically, since it
+was not independently re-walked this run (see above) — carried forward
+from the 2026-08-02 high-confidence check rather than re-verified byte
+for byte today.
