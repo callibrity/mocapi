@@ -15,5 +15,8 @@
  */
 package com.callibrity.mocapi.model;
 
+import tools.jackson.databind.annotation.JsonDeserialize;
+
+@JsonDeserialize(using = PrimitiveSchemaDefinitionDeserializer.class)
 public sealed interface PrimitiveSchemaDefinition
     permits StringSchema, NumberSchema, BooleanSchema, EnumSchema {}

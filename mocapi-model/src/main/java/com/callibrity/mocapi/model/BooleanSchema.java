@@ -17,7 +17,12 @@ package com.callibrity.mocapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import tools.jackson.databind.annotation.JsonDeserialize;
 
+// Cancels the @JsonDeserialize inherited from the PrimitiveSchemaDefinition sealed interface —
+// without this, PrimitiveSchemaDefinitionDeserializer's own delegation to this concrete type via
+// ctxt.readTreeAsValue would re-enter itself and stack-overflow.
+@JsonDeserialize
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record BooleanSchema(
     String title, String description, @JsonProperty("default") Boolean defaultValue)

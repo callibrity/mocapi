@@ -18,6 +18,7 @@ package com.callibrity.mocapi.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+import tools.jackson.databind.annotation.JsonDeserialize;
 
 /**
  * Legacy titled enum schema variant using the {@code enum} + {@code enumNames} array form.
@@ -27,6 +28,10 @@ import java.util.List;
  *     use the {@code enumNames} array form. Not scheduled for removal because the MCP spec still
  *     defines this as a valid backward-compatibility variant.
  */
+// Cancels the @JsonDeserialize inherited from the PrimitiveSchemaDefinition sealed interface —
+// without this, PrimitiveSchemaDefinitionDeserializer's own delegation to this concrete type via
+// ctxt.readTreeAsValue would re-enter itself and stack-overflow.
+@JsonDeserialize
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Deprecated(since = "0.0.1", forRemoval = false)
 @SuppressWarnings("java:S1874")
