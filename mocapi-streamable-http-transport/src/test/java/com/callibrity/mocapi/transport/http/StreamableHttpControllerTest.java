@@ -450,15 +450,24 @@ class StreamableHttpControllerTest {
           .when(server)
           .handleCall(any(), any());
 
-      CompletableFuture<ResponseEntity<Object>> future =
-          controller.handlePost(
-              objectMapper.treeToValue(callBody("tools/list"), JsonRpcMessage.class),
-              validHeadersFor("tools/list"));
+      // The controller deliberately rethrows the Error on the dispatch thread; capture it so the
+      // JVM's default uncaught-exception handler doesn't spray the stack trace into test output
+      // (CI's problem matcher promotes that stderr line to a build annotation).
+      Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
+      Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {});
+      try {
+        CompletableFuture<ResponseEntity<Object>> future =
+            controller.handlePost(
+                objectMapper.treeToValue(callBody("tools/list"), JsonRpcMessage.class),
+                validHeadersFor("tools/list"));
 
-      assertThatThrownBy(() -> future.get(2, TimeUnit.SECONDS))
-          .isInstanceOf(ExecutionException.class)
-          .hasCauseInstanceOf(NoSuchMethodError.class)
-          .hasMessageContaining("simulated linkage error");
+        assertThatThrownBy(() -> future.get(2, TimeUnit.SECONDS))
+            .isInstanceOf(ExecutionException.class)
+            .hasCauseInstanceOf(NoSuchMethodError.class)
+            .hasMessageContaining("simulated linkage error");
+      } finally {
+        Thread.setDefaultUncaughtExceptionHandler(previous);
+      }
     }
 
     @Test
