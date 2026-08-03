@@ -21,17 +21,31 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.UnaryOperator;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * In-memory {@link TaskStore}, suitable for single-node deployments and tests. Expired entries are
  * removed lazily on {@link #get(String)}/{@link #update(String, UnaryOperator)} and proactively by
  * a background sweeper virtual thread.
+ *
+ * <p>Records are held as serialized JSON strings, not live {@link TaskRecord} object graphs. This
+ * is deliberate, not an optimization opportunity to "fix": (1) it gives this store parity with
+ * every external store (Redis, a database, Substrate) that necessarily serializes, so a bug in
+ * {@code TaskRecord}'s wire representation — such as the missing {@code PrimitiveSchemaDefinition}
+ * deserialization routing this store rework accompanies — is caught by the in-memory path too,
+ * instead of only surfacing against a real backing store; and (2) {@link TaskRecord#arguments()}
+ * and other fields carry mutable {@code JsonNode}s, and holding live references would let a caller
+ * mutate a node after {@link #create(TaskRecord)} and silently corrupt the stored state, or mutate
+ * a {@link #get(String)}-returned record's node and corrupt what a subsequent {@code get} returns.
+ * Serializing on write and deserializing on every read make that aliasing impossible: every {@link
+ * #get(String)}/{@link #update(String, UnaryOperator)} result is a fresh instance.
  */
 public class InMemoryTaskStore implements TaskStore, AutoCloseable {
 
   private static final Duration DEFAULT_SWEEP_INTERVAL = Duration.ofSeconds(30);
+  private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
-  private final ConcurrentHashMap<String, TaskRecord> records = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, String> records = new ConcurrentHashMap<>();
   private final Clock clock;
   private final Thread sweeper;
 
@@ -50,7 +64,7 @@ public class InMemoryTaskStore implements TaskStore, AutoCloseable {
       while (!Thread.currentThread().isInterrupted()) {
         Thread.sleep(sweepInterval);
         Instant now = clock.instant();
-        records.values().removeIf(rec -> rec.isExpired(now));
+        records.values().removeIf(json -> deserialize(json).isExpired(now));
       }
     } catch (InterruptedException _) {
       Thread.currentThread().interrupt();
@@ -59,7 +73,7 @@ public class InMemoryTaskStore implements TaskStore, AutoCloseable {
 
   @Override
   public void create(TaskRecord rec) {
-    TaskRecord prior = records.putIfAbsent(rec.taskId(), rec);
+    String prior = records.putIfAbsent(rec.taskId(), serialize(rec));
     if (prior != null) {
       throw new TaskAlreadyExistsException(rec.taskId());
     }
@@ -67,12 +81,13 @@ public class InMemoryTaskStore implements TaskStore, AutoCloseable {
 
   @Override
   public Optional<TaskRecord> get(String taskId) {
-    TaskRecord rec = records.get(taskId);
-    if (rec == null) {
+    String json = records.get(taskId);
+    if (json == null) {
       return Optional.empty();
     }
+    TaskRecord rec = deserialize(json);
     if (rec.isExpired(clock.instant())) {
-      records.remove(taskId, rec);
+      records.remove(taskId, json);
       return Optional.empty();
     }
     return Optional.of(rec);
@@ -81,12 +96,17 @@ public class InMemoryTaskStore implements TaskStore, AutoCloseable {
   @Override
   public Optional<TaskRecord> update(String taskId, UnaryOperator<TaskRecord> mutation) {
     Instant now = clock.instant();
-    TaskRecord updated =
+    String updatedJson =
         records.compute(
             taskId,
-            (id, current) ->
-                current == null || current.isExpired(now) ? null : mutation.apply(current));
-    return Optional.ofNullable(updated);
+            (id, currentJson) -> {
+              if (currentJson == null) {
+                return null;
+              }
+              TaskRecord current = deserialize(currentJson);
+              return current.isExpired(now) ? null : serialize(mutation.apply(current));
+            });
+    return updatedJson == null ? Optional.empty() : Optional.of(deserialize(updatedJson));
   }
 
   @Override
@@ -102,5 +122,13 @@ public class InMemoryTaskStore implements TaskStore, AutoCloseable {
   @Override
   public void close() {
     sweeper.interrupt();
+  }
+
+  private static String serialize(TaskRecord rec) {
+    return MAPPER.writeValueAsString(rec);
+  }
+
+  private static TaskRecord deserialize(String json) {
+    return MAPPER.readValue(json, TaskRecord.class);
   }
 }

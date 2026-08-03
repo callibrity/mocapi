@@ -17,12 +17,18 @@ package com.callibrity.mocapi.tasks.substrate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.mocapi.model.BooleanSchema;
 import com.callibrity.mocapi.model.CallToolResult;
 import com.callibrity.mocapi.model.ElicitAction;
 import com.callibrity.mocapi.model.ElicitRequest;
 import com.callibrity.mocapi.model.ElicitRequestFormParams;
 import com.callibrity.mocapi.model.ElicitResult;
 import com.callibrity.mocapi.model.InputRequest;
+import com.callibrity.mocapi.model.LegacyTitledEnumSchema;
+import com.callibrity.mocapi.model.NumberSchema;
+import com.callibrity.mocapi.model.PrimitiveSchemaDefinition;
+import com.callibrity.mocapi.model.RequestedSchema;
+import com.callibrity.mocapi.model.StringSchema;
 import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.mrtr.ResponseLedgerEntry;
 import com.callibrity.mocapi.tasks.model.TaskStatus;
@@ -33,6 +39,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -56,6 +63,22 @@ import tools.jackson.databind.node.ObjectNode;
 class TaskRecordRoundTripTest {
 
   private static final JsonMapper MAPPER = JsonMapper.builder().build();
+
+  @SuppressWarnings(
+      "deprecation") // Exercises the deprecated LegacyTitledEnumSchema per MCP spec backward
+  // compatibility (docs/plans/2026-07-28-schema.ts) — the "type":"string" collision case that
+  // PrimitiveSchemaDefinitionDeserializer must route correctly.
+  private static RequestedSchema populatedRequestedSchema() {
+    Map<String, PrimitiveSchemaDefinition> properties = new LinkedHashMap<>();
+    properties.put("city", new StringSchema("City", "Destination city", null, null, null, null));
+    properties.put("travelers", new NumberSchema("integer", "Travelers", null, 1, 10, 1));
+    properties.put("confirmed", new BooleanSchema("Confirmed", null, null));
+    properties.put(
+        "status",
+        new LegacyTitledEnumSchema(
+            "Status", null, List.of("pending", "approved"), List.of("Pending", "Approved"), null));
+    return new RequestedSchema(properties, List.of("city"), null);
+  }
 
   @Test
   void maximallyPopulatedRecordRoundTrips() {
@@ -82,7 +105,9 @@ class TaskRecordRoundTripTest {
                     "slot-1", "fp-1", new ElicitResult(ElicitAction.ACCEPT, answer)),
                 new ResponseLedgerEntry("slot-2", "fp-2", null)),
             Map.of(
-                "slot-2", new ElicitRequest(new ElicitRequestFormParams("Confirm the city", null))),
+                "slot-2",
+                new ElicitRequest(
+                    new ElicitRequestFormParams("Confirm the city", populatedRequestedSchema()))),
             new CallToolResult(List.of(new TextContent("done", null)), false, null, null),
             new JsonRpcErrorDetail(-32000, "boom"),
             3L);

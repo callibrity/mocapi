@@ -18,6 +18,14 @@ package com.callibrity.mocapi.tasks.store;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import com.callibrity.mocapi.model.BooleanSchema;
+import com.callibrity.mocapi.model.ElicitRequest;
+import com.callibrity.mocapi.model.ElicitRequestFormParams;
+import com.callibrity.mocapi.model.LegacyTitledEnumSchema;
+import com.callibrity.mocapi.model.NumberSchema;
+import com.callibrity.mocapi.model.PrimitiveSchemaDefinition;
+import com.callibrity.mocapi.model.RequestedSchema;
+import com.callibrity.mocapi.model.StringSchema;
 import com.callibrity.mocapi.tasks.model.TaskStatus;
 import java.lang.reflect.Method;
 import java.time.Clock;
@@ -25,11 +33,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class InMemoryTaskStoreTest extends TaskStoreContractTest {
@@ -100,6 +111,91 @@ class InMemoryTaskStoreTest extends TaskStoreContractTest {
           .until(() -> store.size() == 0);
 
       assertThat(store.size()).isZero();
+    }
+  }
+
+  @Test
+  void stored_records_are_not_aliased_with_the_caller_or_the_returned_copy() {
+    Clock clock = Clock.fixed(Instant.parse("2026-08-02T00:00:00Z"), ZoneOffset.UTC);
+    JsonMapper mapper = JsonMapper.builder().build();
+    ObjectNode arguments = mapper.createObjectNode().put("city", "Cincinnati");
+    try (InMemoryTaskStore store = new InMemoryTaskStore(clock, Duration.ofDays(1))) {
+      TaskRecord rec =
+          new TaskRecord(
+              "t1",
+              "demo.tool",
+              arguments,
+              "user-1",
+              "2026-07-28",
+              null,
+              TaskStatus.WORKING,
+              "0",
+              clock.instant(),
+              clock.instant(),
+              Duration.ofHours(1),
+              Duration.ofSeconds(1),
+              List.of(),
+              Map.of(),
+              null,
+              null,
+              0L);
+      store.create(rec);
+
+      // Mutating the ORIGINAL node after create() must not affect what's stored.
+      arguments.put("city", "Columbus");
+      assertThat(store.get("t1").orElseThrow().arguments().get("city").asString())
+          .isEqualTo("Cincinnati");
+
+      // Mutating the RETURNED record's node must not affect a subsequent get().
+      TaskRecord returned = store.get("t1").orElseThrow();
+      ((ObjectNode) returned.arguments()).put("city", "Dayton");
+      assertThat(store.get("t1").orElseThrow().arguments().get("city").asString())
+          .isEqualTo("Cincinnati");
+    }
+  }
+
+  @Test
+  @SuppressWarnings(
+      "deprecation") // Exercises the deprecated LegacyTitledEnumSchema per MCP spec backward
+  // compatibility (docs/plans/2026-07-28-schema.ts) — the "type":"string" collision case that
+  // PrimitiveSchemaDefinitionDeserializer must route correctly.
+  void a_fully_populated_requested_schema_round_trips_through_the_in_memory_store() {
+    Clock clock = Clock.fixed(Instant.parse("2026-08-02T00:00:00Z"), ZoneOffset.UTC);
+    Map<String, PrimitiveSchemaDefinition> properties = new LinkedHashMap<>();
+    properties.put("city", new StringSchema("City", "Destination city", null, null, null, null));
+    properties.put("travelers", new NumberSchema("integer", "Travelers", null, 1, 10, 1));
+    properties.put("confirmed", new BooleanSchema("Confirmed", null, null));
+    properties.put(
+        "status",
+        new LegacyTitledEnumSchema(
+            "Status", null, List.of("pending", "approved"), List.of("Pending", "Approved"), null));
+    RequestedSchema requestedSchema = new RequestedSchema(properties, List.of("city"), null);
+
+    try (InMemoryTaskStore store = new InMemoryTaskStore(clock, Duration.ofDays(1))) {
+      TaskRecord rec =
+          new TaskRecord(
+              "t1",
+              "demo.tool",
+              null,
+              "user-1",
+              "2026-07-28",
+              null,
+              TaskStatus.INPUT_REQUIRED,
+              "waiting",
+              clock.instant(),
+              clock.instant(),
+              Duration.ofHours(1),
+              Duration.ofSeconds(1),
+              List.of(),
+              Map.of(
+                  "slot-1",
+                  new ElicitRequest(new ElicitRequestFormParams("Confirm", requestedSchema))),
+              null,
+              null,
+              0L);
+      store.create(rec);
+
+      assertThat(store.get("t1")).contains(rec);
     }
   }
 
