@@ -21,6 +21,7 @@ import com.callibrity.mocapi.tasks.store.TaskStore;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 import org.jwcarman.substrate.atom.Atom;
@@ -45,6 +46,16 @@ import org.jwcarman.substrate.atom.Snapshot;
  * TaskRecord#isExpired} against this store's {@link Clock}, checked on every read and update (with
  * an eager purge), which keeps behavior correct even when backend clocks drift from the application
  * clock.
+ *
+ * <p><strong>Eager purges</strong> (on {@code get}, {@code update}, and {@code create}-retry) are
+ * best-effort and can race with a concurrent re-create; the Atom SPI has no token-conditioned
+ * delete, so purged atoms may be re-created immediately by another thread. This is safe: the {@code
+ * isExpired} gate remains the authoritative liveness check.
+ *
+ * <p><strong>Create behavior</strong> — {@code create(rec)} silently no-ops if the record is
+ * already expired per {@link TaskRecord#isExpired}. If a collision with a live incumbent is
+ * detected, throws {@link TaskAlreadyExistsException}. If an expired incumbent exists, purges it
+ * and retries create once.
  */
 public class SubstrateTaskStore implements TaskStore {
 
@@ -58,25 +69,27 @@ public class SubstrateTaskStore implements TaskStore {
    * @param keyPrefix prefix for backend atom keys, e.g. {@code "mocapi:tasks:"}
    */
   public SubstrateTaskStore(AtomFactory atomFactory, Clock clock, String keyPrefix) {
-    this.atomFactory = atomFactory;
-    this.clock = clock;
-    this.keyPrefix = keyPrefix;
+    this.atomFactory = Objects.requireNonNull(atomFactory, "atomFactory");
+    this.clock = Objects.requireNonNull(clock, "clock");
+    this.keyPrefix = Objects.requireNonNull(keyPrefix, "keyPrefix");
   }
 
   @Override
   public void create(TaskRecord rec) {
-    Duration remaining = remaining(rec, clock.instant());
-    if (remaining.isZero() || remaining.isNegative()) {
+    Instant now = clock.instant();
+    if (rec.isExpired(now)) {
       return;
     }
-    if (tryCreate(rec, remaining)) {
+    Duration remaining = remaining(rec, now);
+    if (tryCreate(rec, backendTtl(remaining))) {
       return;
     }
     if (!incumbentIsExpired(rec.taskId())) {
       throw new TaskAlreadyExistsException(rec.taskId());
     }
     connect(rec.taskId()).delete();
-    if (!tryCreate(rec, remaining)) {
+    remaining = remaining(rec, clock.instant());
+    if (!tryCreate(rec, backendTtl(remaining))) {
       throw new TaskAlreadyExistsException(rec.taskId());
     }
   }
@@ -108,12 +121,12 @@ public class SubstrateTaskStore implements TaskStore {
           return Optional.empty();
         }
         TaskRecord mutated = mutation.apply(snapshot.value());
-        Duration remaining = remaining(mutated, now);
-        if (remaining.isZero() || remaining.isNegative()) {
+        if (mutated.isExpired(now)) {
           atom.delete();
           return Optional.empty();
         }
-        if (atom.compareAndSet(snapshot, mutated, remaining)) {
+        Duration remaining = remaining(mutated, now);
+        if (atom.compareAndSet(snapshot, mutated, backendTtl(remaining))) {
           return Optional.of(mutated);
         }
       }
@@ -150,5 +163,18 @@ public class SubstrateTaskStore implements TaskStore {
 
   private static Duration remaining(TaskRecord rec, Instant now) {
     return Duration.between(now, rec.createdAt().plus(rec.ttl()));
+  }
+
+  /**
+   * Clamps remaining time to the minimum positive TTL required by Substrate atoms. When a record's
+   * deadline has passed or is exactly now, the adapter's {@link TaskRecord#isExpired} gate (checked
+   * on every operation) governs actual liveness. The backend lease only needs to stay positive long
+   * enough to be purged by an eager delete.
+   */
+  private static Duration backendTtl(Duration remaining) {
+    if (remaining.isNegative() || remaining.isZero()) {
+      return Duration.ofMillis(1);
+    }
+    return remaining;
   }
 }
