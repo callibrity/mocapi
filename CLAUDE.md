@@ -106,6 +106,8 @@ Follow the global OSS release runbook in `~/CLAUDE.md`. The mocapi-specific bits
   ```
   mvn -P release javadoc:jar -DskipTests
   ```
+- `mvn verify` now requires a running Docker daemon — `mocapi-tasks-substrate`'s
+  Redis Testcontainers IT (`RedisSubstrateTaskStoreIT`) runs as part of `verify`.
 - For the Maven Central badge in `README.md`, use `mocapi-server` as the
   artifact. The Solr search index that shields.io queries has gaps — not all
   mocapi artifacts are indexed; `mocapi-server` is confirmed to work.

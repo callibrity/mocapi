@@ -19,14 +19,17 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 
 /**
  * Ordering-only auto-configuration that forces Substrate's {@code SubstrateAutoConfiguration} to
- * run after {@code codec-jackson}'s {@code JacksonCodecAutoConfiguration}. Substrate 0.8.0's
- * factory beans ({@code AtomFactory}, {@code Notifier}, etc.) use
- * {@code @ConditionalOnBean(CodecFactory.class)}, but Substrate declares no ordering against the
- * codec auto-configurations, so those conditions evaluate before the {@code CodecFactory} bean
- * registers and the whole chain silently backs off. Wedging this empty class between the two in the
- * sort graph heals the chain. Both references are by name: neither substrate-core nor codec-jackson
- * is a compile dependency of this module, and absent classes make the ordering a no-op, so this
- * class is harmless when Substrate is not on the classpath.
+ * run after the codec auto-configurations ({@code codec-jackson}'s {@code
+ * JacksonCodecAutoConfiguration}, {@code codec-gson}'s {@code GsonCodecAutoConfiguration}, and
+ * {@code codec-protobuf}'s {@code ProtobufCodecAutoConfiguration}). Substrate 0.8.0's factory beans
+ * ({@code AtomFactory}, {@code Notifier}, etc.) use {@code @ConditionalOnBean(CodecFactory.class)},
+ * but Substrate declares no ordering against the codec auto-configurations, so those conditions
+ * evaluate before the {@code CodecFactory} bean registers and the whole chain silently backs off.
+ * Wedging this empty class between Substrate and every codec auto-configuration in the sort graph
+ * heals the chain regardless of which codec module the application picks. All references are by
+ * name: neither substrate-core nor any codec-* module is a compile dependency of this module, and
+ * absent classes make the ordering a no-op, so this class is harmless when Substrate is not on the
+ * classpath.
  *
  * <p>Resurrects the identical pre-2026-07-28 fix ({@code SubstrateOrderingAutoConfiguration} in the
  * old mocapi-protocol module). The proper fix belongs upstream (Substrate declaring
@@ -35,5 +38,9 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
  */
 @AutoConfiguration(
     beforeName = "org.jwcarman.substrate.core.autoconfigure.SubstrateAutoConfiguration",
-    afterName = "org.jwcarman.codec.jackson.JacksonCodecAutoConfiguration")
+    afterName = {
+      "org.jwcarman.codec.jackson.JacksonCodecAutoConfiguration",
+      "org.jwcarman.codec.gson.GsonCodecAutoConfiguration",
+      "org.jwcarman.codec.protobuf.ProtobufCodecAutoConfiguration"
+    })
 public class SubstrateOrderingAutoConfiguration {}

@@ -247,7 +247,13 @@ bug could previously hide behind (see the
 [`PrimitiveSchemaDefinition` fix](../../CHANGELOG.md) uncovered by this
 work) and removes an aliasing hazard where a caller could mutate a
 returned record's `JsonNode` and corrupt stored state. Both of
-`InMemoryTaskStore`'s public constructors are unchanged.
+`InMemoryTaskStore`'s public constructors are unchanged. This does mean
+the background sweeper now deserializes every stored record once per
+sweep interval and `get` deserializes on every call, an accepted O(n)
+JSON-parse cost per sweep appropriate for the in-memory store's intended
+scale (single-process, moderate task counts) rather than the
+high-throughput regime a distributed store like
+`SubstrateTaskStore` is meant for.
 
 ### Autoconfiguration activation and back-off order
 

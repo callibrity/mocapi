@@ -60,6 +60,18 @@ class MocapiTasksSubstrateAutoConfigurationTest {
   }
 
   @Test
+  void fullAutoConfigurationChainBacksOffWithoutOrderingShim() {
+    new ApplicationContextRunner()
+        .withBean(ObjectMapper.class, () -> JsonMapper.builder().build())
+        .withConfiguration(
+            AutoConfigurations.of(
+                JacksonCodecAutoConfiguration.class,
+                SubstrateAutoConfiguration.class,
+                MocapiTasksSubstrateAutoConfiguration.class))
+        .run(context -> assertThat(context).doesNotHaveBean(TaskStore.class));
+  }
+
+  @Test
   void registersSubstrateTaskStoreWhenAtomFactoryPresent() {
     new ApplicationContextRunner()
         .withBean(AtomFactory.class, MocapiTasksSubstrateAutoConfigurationTest::inMemoryAtomFactory)

@@ -149,8 +149,28 @@ compare-and-set. See [ADR-0040](../adr/0040-substrate-taskstore-adapter.md)
 and the [design doc's substrate-store section](../design/tasks.md#distributed-store-mocapi-tasks-substrate)
 for the full mechanics (TTL/lease model, autoconfiguration ordering).
 
-Add the adapter, a Substrate backend module, and a Substrate codec to
-your app:
+`mocapi-bom` deliberately does not manage Substrate or codec artifact
+versions — Substrate and codec release on their own cadence,
+independent of mocapi's, and folding them into mocapi's BOM would tie
+mocapi releases to theirs. Import Substrate's own BOM alongside
+`mocapi-bom` and pin the codec module explicitly:
+
+```xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.jwcarman.substrate</groupId>
+            <artifactId>substrate-bom</artifactId>
+            <version>0.8.0</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+Then add the adapter, a Substrate backend module, and a Substrate codec
+to your app:
 
 ```xml
 <dependency>
@@ -164,6 +184,7 @@ your app:
 <dependency>
     <groupId>org.jwcarman.codec</groupId>
     <artifactId>codec-jackson</artifactId>
+    <version>0.1.0</version>
 </dependency>
 ```
 

@@ -95,10 +95,12 @@ optional Maven dependencies on `substrate-api` and
 **`SubstrateOrderingAutoConfiguration`: an ordering shim, resurrected.**
 Substrate 0.8.0's factory beans (`AtomFactory`, `Notifier`, …) are
 `@ConditionalOnBean(CodecFactory.class)`, but Substrate declares no
-`@AutoConfigureAfter`/`@AutoConfigureBefore` against `codec-jackson`'s
-`JacksonCodecAutoConfiguration`. Left alone, Spring Boot's default
+`@AutoConfigureAfter`/`@AutoConfigureBefore` against the codec
+auto-configurations (`codec-jackson`'s `JacksonCodecAutoConfiguration`,
+`codec-gson`'s `GsonCodecAutoConfiguration`, `codec-protobuf`'s
+`ProtobufCodecAutoConfiguration`). Left alone, Spring Boot's default
 auto-configuration ordering can evaluate Substrate's conditional beans
-before `JacksonCodecAutoConfiguration` registers its `CodecFactory`
+before the codec auto-configuration in use registers its `CodecFactory`
 bean, silently backing off the entire Substrate chain — and with it,
 `MocapiTasksSubstrateAutoConfiguration`'s `AtomFactory` condition, which
 would silently fall back to the in-memory store with no error. This is
@@ -108,9 +110,9 @@ between the two (`SubstrateOrderingAutoConfiguration`, commit
 `770d00fd`, deleted along with the rest of the old `mocapi-protocol`
 module in the 2026-07-28 clean break, ADR-0019). This ADR resurrects
 that identical class in `mocapi-autoconfigure`
-(`beforeName = "...SubstrateAutoConfiguration"`, `afterName =
-"...JacksonCodecAutoConfiguration"`, both referenced by name so neither
-`substrate-core` nor `codec-jackson` is a compile dependency of
+(`beforeName = "...SubstrateAutoConfiguration"`, `afterName` listing all
+three codec auto-configurations, all referenced by name so neither
+`substrate-core` nor any `codec-*` module is a compile dependency of
 `mocapi-autoconfigure`). The proper fix belongs upstream — Substrate
 declaring `@AutoConfigureAfter` on the codec auto-configurations it
 conditions on — and is tracked for a future Substrate release; this shim
