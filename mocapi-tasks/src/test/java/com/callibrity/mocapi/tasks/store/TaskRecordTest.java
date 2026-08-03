@@ -70,9 +70,9 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"COMPLETED", "FAILED", "CANCELLED"})
   void working_is_a_no_op_once_terminal(TaskStatus terminal) {
-    TaskRecord record = newRecord(terminal);
+    TaskRecord rec = newRecord(terminal);
 
-    assertThat(record.working(LATER)).isSameAs(record);
+    assertThat(rec.working(LATER)).isSameAs(rec);
   }
 
   @ParameterizedTest
@@ -80,10 +80,10 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"COMPLETED", "FAILED", "CANCELLED"})
   void completed_is_a_no_op_once_terminal(TaskStatus terminal) {
-    TaskRecord record = newRecord(terminal);
+    TaskRecord rec = newRecord(terminal);
 
-    assertThat(record.completed(new CallToolResult(List.of(), false, null, "complete"), LATER))
-        .isSameAs(record);
+    assertThat(rec.completed(new CallToolResult(List.of(), false, null, "complete"), LATER))
+        .isSameAs(rec);
   }
 
   @ParameterizedTest
@@ -91,10 +91,9 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"COMPLETED", "FAILED", "CANCELLED"})
   void failed_is_a_no_op_once_terminal(TaskStatus terminal) {
-    TaskRecord record = newRecord(terminal);
+    TaskRecord rec = newRecord(terminal);
 
-    assertThat(record.failed(new JsonRpcErrorDetail(-32000, "boom"), "boom", LATER))
-        .isSameAs(record);
+    assertThat(rec.failed(new JsonRpcErrorDetail(-32000, "boom"), "boom", LATER)).isSameAs(rec);
   }
 
   @ParameterizedTest
@@ -102,9 +101,9 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"COMPLETED", "FAILED", "CANCELLED"})
   void cancelled_is_a_no_op_once_terminal(TaskStatus terminal) {
-    TaskRecord record = newRecord(terminal);
+    TaskRecord rec = newRecord(terminal);
 
-    assertThat(record.cancelled(LATER)).isSameAs(record);
+    assertThat(rec.cancelled(LATER)).isSameAs(rec);
   }
 
   @ParameterizedTest
@@ -112,10 +111,10 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"COMPLETED", "FAILED", "CANCELLED"})
   void inputRequired_is_a_no_op_once_terminal(TaskStatus terminal) {
-    TaskRecord record = newRecord(terminal);
+    TaskRecord rec = newRecord(terminal);
     InputRequest request = new ElicitRequest(new ElicitRequestFormParams("please answer", null));
 
-    assertThat(record.inputRequired("elicit-1", request, List.of(), LATER)).isSameAs(record);
+    assertThat(rec.inputRequired("elicit-1", request, List.of(), LATER)).isSameAs(rec);
   }
 
   @ParameterizedTest
@@ -123,9 +122,9 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"COMPLETED", "FAILED", "CANCELLED"})
   void withStatusMessage_is_a_no_op_once_terminal(TaskStatus terminal) {
-    TaskRecord record = newRecord(terminal);
+    TaskRecord rec = newRecord(terminal);
 
-    assertThat(record.withStatusMessage("halfway", LATER)).isSameAs(record);
+    assertThat(rec.withStatusMessage("halfway", LATER)).isSameAs(rec);
   }
 
   @ParameterizedTest
@@ -133,10 +132,10 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"COMPLETED", "FAILED", "CANCELLED"})
   void withLedger_is_a_no_op_once_terminal(TaskStatus terminal) {
-    TaskRecord record = newRecord(terminal);
+    TaskRecord rec = newRecord(terminal);
 
-    assertThat(record.withLedger(List.of(new ResponseLedgerEntry("elicit-1", "fp-1", null)), LATER))
-        .isSameAs(record);
+    assertThat(rec.withLedger(List.of(new ResponseLedgerEntry("elicit-1", "fp-1", null)), LATER))
+        .isSameAs(rec);
   }
 
   @ParameterizedTest
@@ -144,14 +143,14 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"WORKING", "INPUT_REQUIRED"})
   void working_advances_a_non_terminal_record(TaskStatus nonTerminal) {
-    TaskRecord record = newRecord(nonTerminal);
+    TaskRecord rec = newRecord(nonTerminal);
 
-    TaskRecord result = record.working(LATER);
+    TaskRecord result = rec.working(LATER);
 
-    assertThat(result).isNotSameAs(record);
+    assertThat(result).isNotSameAs(rec);
     assertThat(result.status()).isEqualTo(TaskStatus.WORKING);
     assertThat(result.lastUpdatedAt()).isEqualTo(LATER);
-    assertThat(result.version()).isEqualTo(record.version() + 1);
+    assertThat(result.version()).isEqualTo(rec.version() + 1);
   }
 
   @ParameterizedTest
@@ -159,16 +158,16 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"WORKING", "INPUT_REQUIRED"})
   void completed_advances_a_non_terminal_record(TaskStatus nonTerminal) {
-    TaskRecord record = newRecord(nonTerminal);
+    TaskRecord rec = newRecord(nonTerminal);
     CallToolResult toolResult = new CallToolResult(List.of(), false, null, "complete");
 
-    TaskRecord result = record.completed(toolResult, LATER);
+    TaskRecord result = rec.completed(toolResult, LATER);
 
-    assertThat(result).isNotSameAs(record);
+    assertThat(result).isNotSameAs(rec);
     assertThat(result.status()).isEqualTo(TaskStatus.COMPLETED);
     assertThat(result.result()).isEqualTo(toolResult);
     assertThat(result.lastUpdatedAt()).isEqualTo(LATER);
-    assertThat(result.version()).isEqualTo(record.version() + 1);
+    assertThat(result.version()).isEqualTo(rec.version() + 1);
   }
 
   @ParameterizedTest
@@ -176,17 +175,17 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"WORKING", "INPUT_REQUIRED"})
   void failed_advances_a_non_terminal_record(TaskStatus nonTerminal) {
-    TaskRecord record = newRecord(nonTerminal);
+    TaskRecord rec = newRecord(nonTerminal);
     JsonRpcErrorDetail error = new JsonRpcErrorDetail(-32000, "boom");
 
-    TaskRecord result = record.failed(error, "boom", LATER);
+    TaskRecord result = rec.failed(error, "boom", LATER);
 
-    assertThat(result).isNotSameAs(record);
+    assertThat(result).isNotSameAs(rec);
     assertThat(result.status()).isEqualTo(TaskStatus.FAILED);
     assertThat(result.error()).isEqualTo(error);
     assertThat(result.statusMessage()).isEqualTo("boom");
     assertThat(result.lastUpdatedAt()).isEqualTo(LATER);
-    assertThat(result.version()).isEqualTo(record.version() + 1);
+    assertThat(result.version()).isEqualTo(rec.version() + 1);
   }
 
   @ParameterizedTest
@@ -194,14 +193,14 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"WORKING", "INPUT_REQUIRED"})
   void cancelled_advances_a_non_terminal_record(TaskStatus nonTerminal) {
-    TaskRecord record = newRecord(nonTerminal);
+    TaskRecord rec = newRecord(nonTerminal);
 
-    TaskRecord result = record.cancelled(LATER);
+    TaskRecord result = rec.cancelled(LATER);
 
-    assertThat(result).isNotSameAs(record);
+    assertThat(result).isNotSameAs(rec);
     assertThat(result.status()).isEqualTo(TaskStatus.CANCELLED);
     assertThat(result.lastUpdatedAt()).isEqualTo(LATER);
-    assertThat(result.version()).isEqualTo(record.version() + 1);
+    assertThat(result.version()).isEqualTo(rec.version() + 1);
   }
 
   @ParameterizedTest
@@ -209,18 +208,18 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"WORKING", "INPUT_REQUIRED"})
   void inputRequired_advances_a_non_terminal_record(TaskStatus nonTerminal) {
-    TaskRecord record = newRecord(nonTerminal);
+    TaskRecord rec = newRecord(nonTerminal);
     InputRequest request = new ElicitRequest(new ElicitRequestFormParams("please answer", null));
     List<ResponseLedgerEntry> ledger = List.of(new ResponseLedgerEntry("elicit-1", "fp-1", null));
 
-    TaskRecord result = record.inputRequired("elicit-1", request, ledger, LATER);
+    TaskRecord result = rec.inputRequired("elicit-1", request, ledger, LATER);
 
-    assertThat(result).isNotSameAs(record);
+    assertThat(result).isNotSameAs(rec);
     assertThat(result.status()).isEqualTo(TaskStatus.INPUT_REQUIRED);
     assertThat(result.inputRequests()).isEqualTo(Map.of("elicit-1", request));
     assertThat(result.ledger()).isEqualTo(ledger);
     assertThat(result.lastUpdatedAt()).isEqualTo(LATER);
-    assertThat(result.version()).isEqualTo(record.version() + 1);
+    assertThat(result.version()).isEqualTo(rec.version() + 1);
   }
 
   @ParameterizedTest
@@ -228,15 +227,15 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"WORKING", "INPUT_REQUIRED"})
   void withStatusMessage_advances_a_non_terminal_record(TaskStatus nonTerminal) {
-    TaskRecord record = newRecord(nonTerminal);
+    TaskRecord rec = newRecord(nonTerminal);
 
-    TaskRecord result = record.withStatusMessage("halfway", LATER);
+    TaskRecord result = rec.withStatusMessage("halfway", LATER);
 
-    assertThat(result).isNotSameAs(record);
+    assertThat(result).isNotSameAs(rec);
     assertThat(result.status()).isEqualTo(nonTerminal);
     assertThat(result.statusMessage()).isEqualTo("halfway");
     assertThat(result.lastUpdatedAt()).isEqualTo(LATER);
-    assertThat(result.version()).isEqualTo(record.version() + 1);
+    assertThat(result.version()).isEqualTo(rec.version() + 1);
   }
 
   @ParameterizedTest
@@ -244,15 +243,15 @@ class TaskRecordTest {
       value = TaskStatus.class,
       names = {"WORKING", "INPUT_REQUIRED"})
   void withLedger_advances_a_non_terminal_record(TaskStatus nonTerminal) {
-    TaskRecord record = newRecord(nonTerminal);
+    TaskRecord rec = newRecord(nonTerminal);
     List<ResponseLedgerEntry> ledger = List.of(new ResponseLedgerEntry("elicit-1", "fp-1", null));
 
-    TaskRecord result = record.withLedger(ledger, LATER);
+    TaskRecord result = rec.withLedger(ledger, LATER);
 
-    assertThat(result).isNotSameAs(record);
+    assertThat(result).isNotSameAs(rec);
     assertThat(result.status()).isEqualTo(nonTerminal);
     assertThat(result.ledger()).isEqualTo(ledger);
     assertThat(result.lastUpdatedAt()).isEqualTo(LATER);
-    assertThat(result.version()).isEqualTo(record.version() + 1);
+    assertThat(result.version()).isEqualTo(rec.version() + 1);
   }
 }

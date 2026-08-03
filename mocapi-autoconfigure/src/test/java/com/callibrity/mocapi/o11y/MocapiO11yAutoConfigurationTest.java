@@ -195,12 +195,9 @@ class MocapiO11yAutoConfigurationTest {
 
   @Test
   void server_operation_customizer_resolves_tcp_transport_from_the_module_s_own_classpath() {
-    // This module always has both mocapi-streamable-http-transport and mocapi-stdio-transport as
-    // optional dependencies (see StreamableHttpAutoConfigurationTest / StdioAutoConfigurationTest),
-    // so the bean-creation path always resolves the "HTTP present" branch of networkTransport();
-    // the "stdio only" and "neither" branches are covered by
-    // MocapiO11yAutoConfigurationNetworkTransportTest, which isolates the classpath lookup for
-    // that private helper directly.
+    // This module has both HTTP and stdio transports on its classpath, so bean creation always
+    // resolves the "HTTP present" branch of networkTransport(); the other branches are covered by
+    // MocapiO11yAutoConfigurationNetworkTransportTest, which isolates that private helper directly.
     runner
         .withUserConfiguration(TestObservationRegistryConfig.class)
         .run(

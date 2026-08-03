@@ -47,9 +47,10 @@ class ServerCapabilitiesTest {
   @Test
   void build_with_zero_extensions_returns_the_empty_map_singleton() {
     ServerCapabilities caps = ServerCapabilities.builder().build();
+    Map<String, ObjectNode> extensions = caps.extensions();
 
-    assertThat(caps.extensions()).isEqualTo(Map.of());
-    assertThatThrownBy(() -> caps.extensions().put("x", mapper.createObjectNode()))
+    assertThat(extensions).isEqualTo(Map.of());
+    assertThatThrownBy(() -> extensions.put("x", mapper.createObjectNode()))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 
@@ -96,10 +97,11 @@ class ServerCapabilitiesTest {
         ServerCapabilities.builder()
             .extension("io.modelcontextprotocol/tasks", mapper.createObjectNode().put("k", "v"));
     ServerCapabilities caps = builder.build();
+    Map<String, ObjectNode> extensions = caps.extensions();
 
-    assertThatThrownBy(() -> caps.extensions().put("new", mapper.createObjectNode()))
+    assertThatThrownBy(() -> extensions.put("new", mapper.createObjectNode()))
         .isInstanceOf(UnsupportedOperationException.class);
-    assertThatThrownBy(() -> caps.extensions().remove("io.modelcontextprotocol/tasks"))
+    assertThatThrownBy(() -> extensions.remove("io.modelcontextprotocol/tasks"))
         .isInstanceOf(UnsupportedOperationException.class);
 
     builder.extension("io.modelcontextprotocol/other", mapper.createObjectNode());

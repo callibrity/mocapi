@@ -418,7 +418,7 @@ class ReadResourceTemplateHandlerTest {
     var descriptor =
         new ResourceTemplate("test://contrib/{id}", "Contrib", "Contrib", "text/plain");
     var candidates = List.of(new CompletionCandidate("id", List.of("a", "b")));
-    Guard guard = () -> new GuardDecision.Allow();
+    Guard guard = GuardDecision.Allow::new;
     ResourceTemplateReader reader =
         (uri, variables) ->
             new ReadResourceResult(

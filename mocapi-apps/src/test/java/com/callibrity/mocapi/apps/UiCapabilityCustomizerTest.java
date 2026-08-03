@@ -37,12 +37,11 @@ class UiCapabilityCustomizerTest {
     new UiCapabilityCustomizer(mapper).customize(builder);
 
     ServerCapabilities capabilities = builder.build();
-    assertThat(capabilities.extensions()).containsKey("io.modelcontextprotocol/ui");
 
     ObjectNode expected = mapper.createObjectNode();
     ArrayNode mimeTypes = expected.putArray("mimeTypes");
     mimeTypes.add("text/html;profile=mcp-app");
 
-    assertThat(capabilities.extensions().get("io.modelcontextprotocol/ui")).isEqualTo(expected);
+    assertThat(capabilities.extensions()).containsEntry("io.modelcontextprotocol/ui", expected);
   }
 }
