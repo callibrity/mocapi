@@ -1,6 +1,6 @@
 # ADR-0037 — `mocapi-tasks`: the MCP Tasks extension and its execution model
 
-- **Status:** Accepted
+- **Status:** Amended by ADR-0040
 - **Date:** 2026-08-02
 
 ## Context
@@ -144,6 +144,14 @@ MRTR-then-escalate-to-task shape — see the conformance README for detail.
   reintroduce exactly the liabilities MRTR replay was adopted to avoid.
 - **Substrate dependency in mocapi** — a `TaskStore` adapter belongs on
   the Substrate side; mocapi adds zero new dependencies for tasks.
+
+  > **Amended ([ADR-0040](0040-substrate-taskstore-adapter.md),
+  > 2026-08-03):** Reversed. Substrate 0.8.0 shipped token
+  > `compareAndSet` across all nine backends, which is exactly the
+  > primitive `TaskStore.update`'s atomicity contract needs; with that
+  > primitive available, mocapi ships the adapter itself
+  > (`mocapi-tasks-substrate`) rather than asking Substrate to depend on
+  > mocapi's `TaskRecord`/`TaskStore` types instead.
 - **Hand-rolled JDBC/JPA/Redis stores in-tree** — rebuilding a backend
   fleet mocapi has no business maintaining; users bring their own bean.
 - **Event-sourced store** — deterministic conflict resolution, but the

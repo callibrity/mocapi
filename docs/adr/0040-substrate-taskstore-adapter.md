@@ -122,11 +122,7 @@ that no longer need one is a no-op).
 mocapi gains one optional third-party compile dependency —
 `substrate-api` — confined to one leaf module (`mocapi-tasks-substrate`)
 and to `mocapi-autoconfigure`'s optional dependency set; nothing in
-`mocapi-tasks` or `mocapi-server` depends on Substrate. The "adapter is
-Substrate-side" rejected-alternative in
-[ADR-0037](0037-mcp-tasks-extension.md#rejected-alternatives) is
-superseded by this ADR: mocapi now ships the adapter itself, once the
-CAS primitive it needs existed to build it on.
+`mocapi-tasks` or `mocapi-server` depends on Substrate.
 
 A deployment enabling this store must configure its chosen Substrate
 backend's `TtlBounds` maximum to be at least as large as the largest
@@ -173,8 +169,9 @@ WARN absent, in both.
 this module (not scoped to Substrate specifically).**
 `PrimitiveSchemaDefinition` (`mocapi-model`) had no deserialization
 routing at all — every serializing `TaskStore` (this one included) broke
-`tasks/get` with `-32603` for any task whose ledger held an elicitation
-schema. Fixed with `PrimitiveSchemaDefinitionDeserializer`, a
+`tasks/get` with `-32603` for any task whose `inputRequests` held a
+pending elicitation's `requestedSchema`. Fixed with
+`PrimitiveSchemaDefinitionDeserializer`, a
 shape-sniffing router covering all eight sealed-hierarchy leaves per
 `docs/plans/2026-07-28-schema.ts` (including the documented
 `LegacyTitledEnumSchema`-without-`enumNames`-vs-`UntitledSingleSelectEnumSchema`
@@ -185,6 +182,13 @@ unchanged; the released 1.2.0 wire path was never affected, because
 definitions. Discovering this only after `mocapi-tasks-substrate` forced
 every store to serialize is itself evidence for `InMemoryTaskStore`'s
 companion fix below.
+
+**Amends.** [ADR-0037](0037-mcp-tasks-extension.md)'s rejected
+alternative "a `TaskStore` adapter belongs on the Substrate side" is
+reversed by this ADR now that Substrate 0.8.0 supplies the CAS
+primitive that alternative was waiting on; see the amendment note at
+that site in ADR-0037 itself. Every other decision in ADR-0037 stands
+unchanged.
 
 **`InMemoryTaskStore` now serializes too — parity with every external
 store.** It previously held live `TaskRecord` object graphs in its

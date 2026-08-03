@@ -31,8 +31,9 @@ All notable changes to this project are documented in this file. The format is b
 - **`PrimitiveSchemaDefinition` deserialization routing
   (`mocapi-model`).** The sealed elicitation-schema hierarchy had no
   deserialization routing at all, breaking `tasks/get` with `-32603`
-  for any task whose ledger held an elicitation schema, through any
-  serializing `TaskStore`. `PrimitiveSchemaDefinitionDeserializer` now
+  for any task whose `inputRequests` held a pending elicitation's
+  `requestedSchema`, through any serializing `TaskStore`.
+  `PrimitiveSchemaDefinitionDeserializer` now
   shape-sniffs the wire payload to route to the correct one of the
   eight leaf types per `docs/plans/2026-07-28-schema.ts`, including the
   documented `LegacyTitledEnumSchema`(no `enumNames`)-vs-
