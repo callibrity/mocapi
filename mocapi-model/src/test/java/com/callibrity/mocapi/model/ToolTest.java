@@ -48,4 +48,20 @@ class ToolTest {
 
     assertThat(tool.meta().path("k").asString()).isEqualTo("original");
   }
+
+  @Test
+  void withMeta_null_clears_a_previously_set_meta_while_leaving_other_fields_unchanged() {
+    ObjectNode inputSchema = mapper.createObjectNode().put("type", "object");
+    ObjectNode meta = mapper.createObjectNode().put("k", "v");
+    Tool withMeta = new Tool("t", "T", "desc", inputSchema, null).withMeta(meta);
+
+    Tool cleared = withMeta.withMeta(null);
+
+    assertThat(cleared.meta()).isNull();
+    assertThat(cleared.name()).isEqualTo("t");
+    assertThat(cleared.title()).isEqualTo("T");
+    assertThat(cleared.description()).isEqualTo("desc");
+    assertThat(cleared.inputSchema()).isEqualTo(inputSchema);
+    assertThat(cleared.outputSchema()).isNull();
+  }
 }

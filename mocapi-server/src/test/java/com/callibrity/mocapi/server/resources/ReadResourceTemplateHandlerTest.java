@@ -21,9 +21,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
 import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.ReadResourceResult;
+import com.callibrity.mocapi.model.ResourceTemplate;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.JsonRpcErrorCodes;
+import com.callibrity.mocapi.server.completions.CompletionCandidate;
+import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.guards.GuardDecision;
 import com.callibrity.mocapi.server.handler.HandlerKind;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -408,5 +411,73 @@ class ReadResourceTemplateHandlerTest {
         .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcErrorCodes.FORBIDDEN)
         .hasMessageContaining("no-access");
     assertThat(customizerHits).hasValue(1);
+  }
+
+  @Test
+  void reader_only_handler_has_no_reflective_method_bean_or_invoker() {
+    var descriptor =
+        new ResourceTemplate("test://contrib/{id}", "Contrib", "Contrib", "text/plain");
+    var candidates = List.of(new CompletionCandidate("id", List.of("a", "b")));
+    Guard guard = () -> new GuardDecision.Allow();
+    ResourceTemplateReader reader =
+        (uri, variables) ->
+            new ReadResourceResult(
+                List.of(new TextResourceContents(uri, "text/plain", "id=" + variables.get("id"))),
+                0L,
+                CacheScope.PRIVATE,
+                ResultTypes.COMPLETE);
+
+    var handler = new ReadResourceTemplateHandler(descriptor, candidates, List.of(guard), reader);
+
+    assertThat(handler.method()).isNull();
+    assertThat(handler.bean()).isNull();
+    assertThat(handler.descriptor()).isEqualTo(descriptor);
+    assertThat(handler.uriTemplate()).isEqualTo("test://contrib/{id}");
+    assertThat(handler.completionCandidates()).containsExactly(candidates.getFirst());
+    assertThat(handler.guards()).containsExactly(guard);
+  }
+
+  @Test
+  void reader_only_handler_dispatches_to_the_supplied_reader() {
+    ResourceTemplateReader reader =
+        (uri, variables) ->
+            new ReadResourceResult(
+                List.of(new TextResourceContents(uri, "text/plain", "id=" + variables.get("id"))),
+                0L,
+                CacheScope.PRIVATE,
+                ResultTypes.COMPLETE);
+    var handler =
+        new ReadResourceTemplateHandler(
+            new ResourceTemplate("test://contrib/{id}", "Contrib", "Contrib", "text/plain"),
+            List.of(),
+            List.of(),
+            reader);
+
+    var result = handler.read("test://contrib/9", Map.of("id", "9"));
+
+    var content = (TextResourceContents) result.contents().getFirst();
+    assertThat(content.uri()).isEqualTo("test://contrib/9");
+    assertThat(content.text()).isEqualTo("id=9");
+  }
+
+  @Test
+  void
+      describe_on_reader_only_handler_reports_resource_template_kind_with_no_reflective_metadata() {
+    ResourceTemplateReader reader =
+        (uri, variables) ->
+            new ReadResourceResult(List.of(), 0L, CacheScope.PRIVATE, ResultTypes.COMPLETE);
+    var handler =
+        new ReadResourceTemplateHandler(
+            new ResourceTemplate("test://contrib/{id}", "Contrib", "Contrib", "text/plain"),
+            List.of(),
+            List.of(),
+            reader);
+
+    var descriptor = handler.describe();
+
+    assertThat(descriptor.kind()).isEqualTo(HandlerKind.RESOURCE_TEMPLATE);
+    assertThat(descriptor.declaringClassName()).isNull();
+    assertThat(descriptor.methodName()).isNull();
+    assertThat(descriptor.interceptors()).isEmpty();
   }
 }

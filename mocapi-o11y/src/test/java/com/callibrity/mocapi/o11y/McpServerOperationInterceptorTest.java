@@ -24,6 +24,7 @@ import com.callibrity.mocapi.server.exchange.McpExchange;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcErrorDetail;
+import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
 import io.micrometer.observation.tck.TestObservationRegistry;
 import java.lang.reflect.Method;
@@ -181,6 +182,120 @@ class McpServerOperationInterceptorTest {
           .doesNotHaveHighCardinalityKeyValueWithKey("jsonrpc.request.id")
           .hasBeenStopped();
     }
+
+    @Test
+    void bound_exchange_with_a_null_protocol_version_omits_the_attribute() {
+      // Guards the isBound() && protocolVersion() != null branch: an exchange can be bound
+      // (the _meta envelope was present) while still carrying no protocol version.
+      var interceptor = interceptor("tools/list", "tcp");
+      var call = call("tools/list", params());
+      var exchange = new McpExchange(null, null, null);
+
+      ScopedValue.where(JsonRpcDispatcher.CURRENT_REQUEST, call)
+          .where(McpExchange.CURRENT, exchange)
+          .run(() -> interceptor.intercept(successfulInvocation(result())));
+
+      assertThat(registry)
+          .hasObservationWithNameEqualTo(McpServerOperationInterceptor.OBSERVATION_NAME)
+          .that()
+          .doesNotHaveLowCardinalityKeyValueWithKey("mcp.protocol.version");
+    }
+
+    @Test
+    void notification_requests_carry_no_jsonrpc_request_id() {
+      // Guards the `instanceof JsonRpcCall call` branch: a bound request that is a
+      // JsonRpcNotification (no id) must not produce a jsonrpc.request.id attribute.
+      var interceptor = interceptor("tools/list", "tcp");
+      var notification = JsonRpcNotification.of("tools/list", params());
+
+      ScopedValue.where(JsonRpcDispatcher.CURRENT_REQUEST, notification)
+          .run(() -> interceptor.intercept(successfulInvocation(result())));
+
+      assertThat(registry)
+          .hasObservationWithNameEqualTo(McpServerOperationInterceptor.OBSERVATION_NAME)
+          .that()
+          .doesNotHaveHighCardinalityKeyValueWithKey("jsonrpc.request.id");
+    }
+  }
+
+  @Nested
+  class Absent_and_non_conforming_target_fields {
+
+    @Test
+    void tools_call_with_null_params_has_no_tool_name() {
+      // Guards stringField's params == null branch: a bound call whose params is null (not an
+      // empty object) must not blow up and must omit the target-bearing attributes.
+      var interceptor = interceptor("tools/call", "tcp");
+      var call = JsonRpcCall.of("tools/call", null, JsonNodeFactory.instance.numberNode(1));
+
+      inScope(call, () -> interceptor.intercept(successfulInvocation(result())));
+
+      assertThat(registry)
+          .hasObservationWithNameEqualTo(McpServerOperationInterceptor.OBSERVATION_NAME)
+          .that()
+          .hasContextualNameEqualTo("tools/call")
+          .hasLowCardinalityKeyValue("gen_ai.operation.name", "execute_tool")
+          .doesNotHaveLowCardinalityKeyValueWithKey("gen_ai.tool.name");
+    }
+
+    @Test
+    void tools_call_with_non_object_params_has_no_tool_name() {
+      // Guards stringField's !params.isObject() branch.
+      var interceptor = interceptor("tools/call", "tcp");
+      var call =
+          JsonRpcCall.of(
+              "tools/call",
+              JsonNodeFactory.instance.textNode("not-an-object"),
+              JsonNodeFactory.instance.numberNode(1));
+
+      inScope(call, () -> interceptor.intercept(successfulInvocation(result())));
+
+      assertThat(registry)
+          .hasObservationWithNameEqualTo(McpServerOperationInterceptor.OBSERVATION_NAME)
+          .that()
+          .doesNotHaveLowCardinalityKeyValueWithKey("gen_ai.tool.name");
+    }
+
+    @Test
+    void prompts_get_without_a_name_field_omits_the_prompt_name_attribute() {
+      var interceptor = interceptor("prompts/get", "tcp");
+      var call = call("prompts/get", params());
+
+      inScope(call, () -> interceptor.intercept(successfulInvocation(result())));
+
+      assertThat(registry)
+          .hasObservationWithNameEqualTo(McpServerOperationInterceptor.OBSERVATION_NAME)
+          .that()
+          .hasContextualNameEqualTo("prompts/get")
+          .doesNotHaveLowCardinalityKeyValueWithKey("gen_ai.prompt.name");
+    }
+
+    @Test
+    void resources_read_without_a_uri_field_omits_the_resource_uri_attribute() {
+      var interceptor = interceptor("resources/read", "tcp");
+      var call = call("resources/read", params());
+
+      inScope(call, () -> interceptor.intercept(successfulInvocation(result())));
+
+      assertThat(registry)
+          .hasObservationWithNameEqualTo(McpServerOperationInterceptor.OBSERVATION_NAME)
+          .that()
+          .doesNotHaveHighCardinalityKeyValueWithKey("mcp.resource.uri");
+    }
+
+    @Test
+    void resources_read_with_a_non_string_uri_field_omits_the_resource_uri_attribute() {
+      // Guards stringField's value.isString() branch: a uri field that parses but isn't a string.
+      var interceptor = interceptor("resources/read", "tcp");
+      var call = call("resources/read", params().put("uri", 42));
+
+      inScope(call, () -> interceptor.intercept(successfulInvocation(result())));
+
+      assertThat(registry)
+          .hasObservationWithNameEqualTo(McpServerOperationInterceptor.OBSERVATION_NAME)
+          .that()
+          .doesNotHaveHighCardinalityKeyValueWithKey("mcp.resource.uri");
+    }
   }
 
   @Nested
@@ -237,6 +352,22 @@ class McpServerOperationInterceptorTest {
     }
 
     @Test
+    void tools_call_returning_a_null_result_is_not_treated_as_tool_error() {
+      // Guards isToolError's result != null branch: a successful invocation can still return a
+      // null JsonNode (e.g. a handler that legitimately produces no result).
+      var interceptor = interceptor("tools/call", "tcp");
+      var call = call("tools/call", params().put("name", "echo"));
+
+      inScope(call, () -> interceptor.intercept(successfulInvocation(null)));
+
+      assertThat(registry)
+          .hasObservationWithNameEqualTo(McpServerOperationInterceptor.OBSERVATION_NAME)
+          .that()
+          .doesNotHaveLowCardinalityKeyValueWithKey("error.type")
+          .hasBeenStopped();
+    }
+
+    @Test
     void isError_on_a_non_tools_call_method_is_ignored() {
       var interceptor = interceptor("prompts/get", "tcp");
       var call = call("prompts/get", params().put("name", "greeting"));
@@ -249,6 +380,16 @@ class McpServerOperationInterceptorTest {
           .that()
           .doesNotHaveLowCardinalityKeyValueWithKey("error.type");
     }
+  }
+
+  @Test
+  void toString_describes_the_observation_name_and_the_bound_method() {
+    var interceptor = interceptor("tools/call", "tcp");
+
+    org.assertj.core.api.Assertions.assertThat(interceptor)
+        .hasToString(
+            "Records Micrometer 'mcp.server.operation' observations (OpenTelemetry MCP semantic"
+                + " conventions) for method 'tools/call'");
   }
 
   private McpServerOperationInterceptor interceptor(String method, String transport) {

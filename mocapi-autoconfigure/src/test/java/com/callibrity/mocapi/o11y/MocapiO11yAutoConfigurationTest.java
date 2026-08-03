@@ -38,14 +38,20 @@ import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerConfig;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
 import com.callibrity.ripcurl.o11y.JsonRpcObservationCustomizer;
 import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.tck.TestObservationRegistry;
+import io.micrometer.observation.tck.TestObservationRegistryAssert;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInterceptor;
+import org.jwcarman.methodical.MethodInvocation;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MocapiO11yAutoConfigurationTest {
@@ -188,6 +194,46 @@ class MocapiO11yAutoConfigurationTest {
   }
 
   @Test
+  void server_operation_customizer_resolves_tcp_transport_from_the_module_s_own_classpath() {
+    // This module always has both mocapi-streamable-http-transport and mocapi-stdio-transport as
+    // optional dependencies (see StreamableHttpAutoConfigurationTest / StdioAutoConfigurationTest),
+    // so the bean-creation path always resolves the "HTTP present" branch of networkTransport();
+    // the "stdio only" and "neither" branches are covered by
+    // MocapiO11yAutoConfigurationNetworkTransportTest, which isolates the classpath lookup for
+    // that private helper directly.
+    runner
+        .withUserConfiguration(TestObservationRegistryConfig.class)
+        .run(
+            context -> {
+              McpServerOperationCustomizer customizer =
+                  context.getBean(McpServerOperationCustomizer.class);
+              TestObservationRegistry probe = context.getBean(TestObservationRegistry.class);
+
+              JsonRpcMethodHandlerConfig config = mock(JsonRpcMethodHandlerConfig.class);
+              when(config.name()).thenReturn("tools/list");
+              AtomicReference<MethodInterceptor<JsonNode>> captured = new AtomicReference<>();
+              when(config.interceptor(any()))
+                  .thenAnswer(
+                      invocation -> {
+                        captured.set(invocation.getArgument(0));
+                        return config;
+                      });
+
+              customizer.customize(config);
+              captured.get().intercept(successfulInvocation(JsonNodeFactory.instance.objectNode()));
+
+              TestObservationRegistryAssert.assertThat(probe)
+                  .hasObservationWithNameEqualTo(McpServerOperationInterceptor.OBSERVATION_NAME)
+                  .that()
+                  .hasLowCardinalityKeyValue("network.transport", "tcp");
+            });
+  }
+
+  private static MethodInvocation<JsonNode> successfulInvocation(JsonNode result) {
+    return MethodInvocation.of(null, null, null, new Object[0], () -> result);
+  }
+
+  @Test
   void inactive_when_no_observation_registry_bean_present() {
     runner.run(
         context -> {
@@ -214,6 +260,22 @@ class MocapiO11yAutoConfigurationTest {
     @Bean
     ObservationRegistry observationRegistry() {
       return ObservationRegistry.create();
+    }
+  }
+
+  @Configuration
+  static class TestObservationRegistryConfig {
+    // A single bean: TestObservationRegistry already implements ObservationRegistry, so it
+    // satisfies both the @ConditionalOnBean(ObservationRegistry.class) gate and the
+    // TestObservationRegistry lookup used to make assertions below.
+    @Bean
+    TestObservationRegistry observationRegistry() {
+      return TestObservationRegistry.create();
+    }
+
+    @Bean
+    JsonRpcExceptionTranslatorRegistry translators() {
+      return mock(JsonRpcExceptionTranslatorRegistry.class);
     }
   }
 }

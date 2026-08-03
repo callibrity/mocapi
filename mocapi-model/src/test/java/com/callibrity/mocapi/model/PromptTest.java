@@ -46,4 +46,19 @@ class PromptTest {
 
     assertThat(prompt.meta().path("k").asString()).isEqualTo("original");
   }
+
+  @Test
+  void withMeta_null_clears_a_previously_set_meta_while_leaving_other_fields_unchanged() {
+    ObjectNode meta = mapper.createObjectNode().put("k", "v");
+    Prompt withMeta = new Prompt("p", "P", "desc", null, null).withMeta(meta);
+
+    Prompt cleared = withMeta.withMeta(null);
+
+    assertThat(cleared.meta()).isNull();
+    assertThat(cleared.name()).isEqualTo("p");
+    assertThat(cleared.title()).isEqualTo("P");
+    assertThat(cleared.description()).isEqualTo("desc");
+    assertThat(cleared.icons()).isNull();
+    assertThat(cleared.arguments()).isNull();
+  }
 }

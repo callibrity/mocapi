@@ -56,4 +56,18 @@ class ResourceTest {
 
     assertThat(r.meta().path("k").asString()).isEqualTo("original");
   }
+
+  @Test
+  void withMeta_null_clears_a_previously_set_meta_while_leaving_other_fields_unchanged() {
+    ObjectNode meta = mapper.createObjectNode().put("k", "v");
+    Resource withMeta = new Resource("ui://x", "X", "desc", "text/html").withMeta(meta);
+
+    Resource cleared = withMeta.withMeta(null);
+
+    assertThat(cleared.meta()).isNull();
+    assertThat(cleared.uri()).isEqualTo("ui://x");
+    assertThat(cleared.name()).isEqualTo("X");
+    assertThat(cleared.description()).isEqualTo("desc");
+    assertThat(cleared.mimeType()).isEqualTo("text/html");
+  }
 }
