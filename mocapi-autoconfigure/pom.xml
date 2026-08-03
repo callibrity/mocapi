@@ -93,6 +93,16 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <groupId>org.jwcarman.substrate</groupId>
+            <artifactId>substrate-api</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.callibrity.mocapi</groupId>
+            <artifactId>mocapi-tasks-substrate</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.callibrity.mocapi</groupId>
             <artifactId>mocapi-actuator</artifactId>
             <version>${project.version}</version>
@@ -195,6 +205,16 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jwcarman.substrate</groupId>
+            <artifactId>substrate-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jwcarman.codec</groupId>
+            <artifactId>codec-jackson</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

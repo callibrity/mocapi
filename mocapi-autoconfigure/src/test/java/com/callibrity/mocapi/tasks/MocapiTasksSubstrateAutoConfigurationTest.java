@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.tasks.substrate;
+package com.callibrity.mocapi.tasks;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.mocapi.tasks.store.TaskRecord;
 import com.callibrity.mocapi.tasks.store.TaskStore;
+import com.callibrity.mocapi.tasks.substrate.SubstrateTaskStore;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.UnaryOperator;

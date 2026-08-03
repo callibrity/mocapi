@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.mocapi.tasks.substrate;
+package com.callibrity.mocapi.tasks;
 
-import com.callibrity.mocapi.tasks.MocapiTasksAutoConfiguration;
 import com.callibrity.mocapi.tasks.engine.TaskExecutionEngine;
 import com.callibrity.mocapi.tasks.store.TaskStore;
+import com.callibrity.mocapi.tasks.substrate.SubstrateTaskStore;
 import java.time.Clock;
 import org.jwcarman.substrate.atom.AtomFactory;
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ import org.springframework.context.annotation.Bean;
 @AutoConfiguration(
     before = MocapiTasksAutoConfiguration.class,
     afterName = "org.jwcarman.substrate.core.autoconfigure.SubstrateAutoConfiguration")
-@ConditionalOnClass({AtomFactory.class, TaskExecutionEngine.class})
+@ConditionalOnClass({AtomFactory.class, TaskExecutionEngine.class, SubstrateTaskStore.class})
 @EnableConfigurationProperties(MocapiTasksSubstrateProperties.class)
 public class MocapiTasksSubstrateAutoConfiguration {
 
