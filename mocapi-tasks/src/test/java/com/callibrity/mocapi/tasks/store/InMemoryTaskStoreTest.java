@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.callibrity.mocapi.tasks.model.TaskStatus;
+import java.lang.reflect.Method;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,6 +37,34 @@ class InMemoryTaskStoreTest extends TaskStoreContractTest {
   @Override
   protected TaskStore newStore(Clock clock) {
     return new InMemoryTaskStore(clock, Duration.ofDays(1));
+  }
+
+  @Test
+  void single_arg_constructor_uses_the_default_sweep_interval() {
+    Clock clock = Clock.fixed(Instant.parse("2026-08-02T00:00:00Z"), ZoneOffset.UTC);
+    try (InMemoryTaskStore store = new InMemoryTaskStore(clock)) {
+      assertThat(store.size()).isZero();
+    }
+  }
+
+  @Test
+  void sweep_loop_exits_immediately_when_the_thread_is_already_interrupted() throws Exception {
+    // The sweeper's while-condition false branch is only reachable when the running thread's
+    // interrupt flag is already set before the loop's first check — in production that happens
+    // via close()'s sweeper.interrupt() racing the loop, which is not deterministically testable.
+    // Driving the private sweep() method directly on a pre-interrupted current thread exercises
+    // the same condition deterministically without waiting on Thread.sleep to throw.
+    Clock clock = Clock.fixed(Instant.parse("2026-08-02T00:00:00Z"), ZoneOffset.UTC);
+    try (InMemoryTaskStore store = new InMemoryTaskStore(clock, Duration.ofHours(1))) {
+      Method sweep = InMemoryTaskStore.class.getDeclaredMethod("sweep", Duration.class);
+      sweep.setAccessible(true);
+      Thread.currentThread().interrupt();
+      try {
+        sweep.invoke(store, Duration.ofMillis(1));
+      } finally {
+        assertThat(Thread.interrupted()).isTrue(); // clears the flag for subsequent tests
+      }
+    }
   }
 
   @Test

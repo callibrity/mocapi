@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import com.callibrity.mocapi.api.prompts.McpPrompt;
 import com.callibrity.mocapi.model.CompleteRequestParams;
 import com.callibrity.mocapi.model.CompletionArgument;
+import com.callibrity.mocapi.model.GetPromptRequestParams;
 import com.callibrity.mocapi.model.GetPromptResult;
 import com.callibrity.mocapi.model.PromptMessage;
 import com.callibrity.mocapi.model.PromptReference;
@@ -30,8 +31,10 @@ import com.callibrity.mocapi.model.TextContent;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerAutoConfiguration;
 import com.callibrity.mocapi.server.autoconfigure.MocapiServerPromptsAutoConfiguration;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
+import com.callibrity.mocapi.server.dispatch.McpDispatchInterceptor;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -180,6 +183,32 @@ class GetPromptHandlersTest {
                           null));
               assertThat(result.completion().values())
                   .containsExactly("BRIEF", "STANDARD", "DETAILED");
+            });
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class DispatchInterceptorConfig {
+    @Bean
+    McpDispatchInterceptor<GetPromptHandler, GetPromptRequestParams> passThroughInterceptor() {
+      return (handler, params, proceed) -> proceed.get();
+    }
+  }
+
+  @Test
+  void wires_up_configured_dispatch_interceptors() {
+    contextRunner
+        .withBean(SamplePromptService.class, SamplePromptService::new)
+        .withUserConfiguration(DispatchInterceptorConfig.class)
+        .run(
+            context -> {
+              var service = context.getBean(McpPromptsService.class);
+              GetPromptResult result =
+                  (GetPromptResult)
+                      service.getPrompt(
+                          new GetPromptRequestParams(
+                              "greet", Map.of("name", "Ada"), null, null, null));
+              var content = (TextContent) result.messages().getFirst().content();
+              assertThat(content.text()).isEqualTo("Hello, Ada!");
             });
   }
 }

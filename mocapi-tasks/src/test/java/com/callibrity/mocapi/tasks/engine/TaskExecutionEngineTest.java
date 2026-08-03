@@ -209,6 +209,54 @@ class TaskExecutionEngineTest {
   }
 
   @Test
+  void resume_of_a_deleted_task_is_a_silent_no_op() {
+    try (InMemoryTaskStore store = new InMemoryTaskStore(CLOCK, Duration.ofHours(1))) {
+      var invocations = new java.util.concurrent.atomic.AtomicInteger();
+      ToolCallReplayInvoker invoker =
+          (toolName, arguments, ledger, progress, exchange) -> {
+            invocations.incrementAndGet();
+            return new ReplayOutcome.Completed<>(new CallToolResult(List.of(), false, null, "c"));
+          };
+      TaskExecutionEngine engine =
+          new TaskExecutionEngine(store, invoker, ContextSnapshotFactory.builder().build(), CLOCK);
+
+      // No record was ever created for this taskId: run() must see rec == null and return
+      // immediately, never reaching the invoker.
+      engine.resume("t-never-created");
+
+      Awaitility.await().pollDelay(Duration.ofMillis(100)).until(() -> true);
+      assertThat(invocations).hasValue(0);
+      assertThat(store.get("t-never-created")).isEmpty();
+    }
+  }
+
+  @Test
+  void resume_of_an_already_terminal_task_does_not_re_invoke() {
+    try (InMemoryTaskStore store = new InMemoryTaskStore(CLOCK, Duration.ofHours(1))) {
+      var invocations = new java.util.concurrent.atomic.AtomicInteger();
+      ToolCallReplayInvoker invoker =
+          (toolName, arguments, ledger, progress, exchange) -> {
+            invocations.incrementAndGet();
+            return new ReplayOutcome.Completed<>(new CallToolResult(List.of(), false, null, "c"));
+          };
+      TaskExecutionEngine engine =
+          new TaskExecutionEngine(store, invoker, ContextSnapshotFactory.builder().build(), CLOCK);
+
+      store.create(newRecord("t-already-cancelled"));
+      store.update("t-already-cancelled", r -> r.cancelled(BASE_TIME));
+
+      // The record exists but is already terminal (CANCELLED): run() must see
+      // status != WORKING and return immediately, never reaching the invoker.
+      engine.resume("t-already-cancelled");
+
+      Awaitility.await().pollDelay(Duration.ofMillis(100)).until(() -> true);
+      assertThat(invocations).hasValue(0);
+      assertThat(store.get("t-already-cancelled").orElseThrow().status())
+          .isEqualTo(TaskStatus.CANCELLED);
+    }
+  }
+
+  @Test
   void cancel_wins_race_discards_completed_output() throws InterruptedException {
     try (InMemoryTaskStore store = new InMemoryTaskStore(CLOCK, Duration.ofHours(1))) {
       CountDownLatch releaseLatch = new CountDownLatch(1);

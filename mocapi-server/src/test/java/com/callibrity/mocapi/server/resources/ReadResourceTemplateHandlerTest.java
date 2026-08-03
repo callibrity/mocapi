@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.api.resources.McpResourceTemplate;
+import com.callibrity.mocapi.model.BlobResourceContents;
 import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.ResourceTemplate;
@@ -119,6 +120,44 @@ class ReadResourceTemplateHandlerTest {
     @McpResourceTemplate(uriTemplate = "test://pages/{slug}", mimeType = "text/markdown")
     public String page(String slug) {
       return "# " + slug;
+    }
+  }
+
+  public enum Stage {
+    DEV,
+    PROD
+  }
+
+  public static class EnumParamFixture {
+    @McpResourceTemplate(uriTemplate = "test://stages/{stage}", name = "Stage")
+    public ReadResourceResult stage(Stage stage) {
+      return new ReadResourceResult(
+          List.of(new TextResourceContents("test://stages/" + stage, "text/plain", stage.name())),
+          0L,
+          CacheScope.PRIVATE,
+          ResultTypes.COMPLETE);
+    }
+  }
+
+  public static class ByteArrayTemplateFixture {
+    @McpResourceTemplate(uriTemplate = "test://bytes/{id}", mimeType = "application/octet-stream")
+    public byte[] bytes(String id) {
+      return id.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+  }
+
+  public static class ByteBufferTemplateFixture {
+    @McpResourceTemplate(uriTemplate = "test://buffers/{id}", mimeType = "application/octet-stream")
+    public java.nio.ByteBuffer buffer(String id) {
+      return java.nio.ByteBuffer.wrap(id.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+  }
+
+  public static class SpringResourceTemplateFixture {
+    @McpResourceTemplate(uriTemplate = "test://spring/{id}", mimeType = "text/plain")
+    public org.springframework.core.io.Resource resource(String id) {
+      return new org.springframework.core.io.ByteArrayResource(
+          id.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
   }
 
@@ -240,6 +279,42 @@ class ReadResourceTemplateHandlerTest {
     assertThatThrownBy(() -> createHandlers(target))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("must return one of");
+  }
+
+  @Test
+  void enum_typed_parameter_registers_completion_candidates_from_its_constants() {
+    var handler = createHandlers(new EnumParamFixture()).getFirst();
+
+    assertThat(handler.completionCandidates()).hasSize(1);
+    assertThat(handler.completionCandidates().getFirst().values()).containsExactly("DEV", "PROD");
+  }
+
+  @Test
+  void byte_array_return_is_wrapped_as_blob() {
+    var handler = createHandlers(new ByteArrayTemplateFixture()).getFirst();
+
+    var result = handler.read("test://bytes/42", Map.of("id", "42"));
+
+    assertThat(result.contents().getFirst()).isInstanceOf(BlobResourceContents.class);
+  }
+
+  @Test
+  void byte_buffer_return_is_wrapped_as_blob() {
+    var handler = createHandlers(new ByteBufferTemplateFixture()).getFirst();
+
+    var result = handler.read("test://buffers/42", Map.of("id", "42"));
+
+    assertThat(result.contents().getFirst()).isInstanceOf(BlobResourceContents.class);
+  }
+
+  @Test
+  void spring_resource_return_is_wrapped_per_resource_content_mode() {
+    var handler = createHandlers(new SpringResourceTemplateFixture()).getFirst();
+
+    var result = handler.read("test://spring/42", Map.of("id", "42"));
+
+    var content = (TextResourceContents) result.contents().getFirst();
+    assertThat(content.text()).isEqualTo("42");
   }
 
   @Test

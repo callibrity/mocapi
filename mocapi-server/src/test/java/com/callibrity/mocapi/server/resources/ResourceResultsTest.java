@@ -17,6 +17,8 @@ package com.callibrity.mocapi.server.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.callibrity.mocapi.api.resources.ResourceContent;
 import com.callibrity.mocapi.model.BlobResourceContents;
@@ -24,6 +26,8 @@ import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.ReadResourceResult;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -31,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ResourceResultsTest {
@@ -140,6 +145,53 @@ class ResourceResultsTest {
                 .contents()
                 .getFirst())
         .isInstanceOf(BlobResourceContents.class);
+  }
+
+  @Test
+  void resource_read_failure_is_wrapped_as_unchecked_io_exception() throws IOException {
+    Resource resource = mock(Resource.class);
+    when(resource.getContentAsByteArray()).thenThrow(new IOException("disk on fire"));
+    when(resource.getDescription()).thenReturn("mock resource");
+
+    assertThatThrownBy(
+            () -> ResourceResults.toResult(resource, URI, "text/plain", ResourceContent.AUTO))
+        .isInstanceOf(UncheckedIOException.class)
+        .hasMessageContaining("mock resource");
+  }
+
+  @Test
+  void auto_treats_ecmascript_subtype_outside_the_text_type_as_text() {
+    var resource = new ByteArrayResource("payload".getBytes(StandardCharsets.UTF_8));
+
+    assertThat(
+            ResourceResults.toResult(resource, URI, "application/ecmascript", ResourceContent.AUTO)
+                .contents()
+                .getFirst())
+        .isInstanceOf(TextResourceContents.class);
+  }
+
+  @Test
+  void auto_treats_null_mime_type_as_blob() {
+    var resource = new ByteArrayResource(new byte[] {9});
+
+    assertThat(
+            ResourceResults.toResult(resource, URI, null, ResourceContent.AUTO)
+                .contents()
+                .getFirst())
+        .isInstanceOf(BlobResourceContents.class);
+  }
+
+  @Test
+  void forced_text_with_a_null_mime_type_decodes_as_utf8() {
+    var resource = new ByteArrayResource("hello".getBytes(StandardCharsets.UTF_8));
+
+    var content =
+        (TextResourceContents)
+            ResourceResults.toResult(resource, URI, null, ResourceContent.TEXT)
+                .contents()
+                .getFirst();
+
+    assertThat(content.text()).isEqualTo("hello");
   }
 
   @Test

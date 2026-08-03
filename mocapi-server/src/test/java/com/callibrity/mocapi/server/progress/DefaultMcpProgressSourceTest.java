@@ -185,4 +185,19 @@ class DefaultMcpProgressSourceTest {
       verifyNoInteractions(transport);
     }
   }
+
+  @Nested
+  class Without_a_transport {
+
+    @Test
+    void validates_but_sends_nothing() {
+      var emitter = new DefaultMcpProgressSource(null, TOKEN).doubleProgress(10.0);
+
+      emitter.emit(5.0); // accepted, nothing sent since there is no transport to send it on
+
+      assertThatThrownBy(() -> emitter.emit(5.0))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("strictly increase");
+    }
+  }
 }

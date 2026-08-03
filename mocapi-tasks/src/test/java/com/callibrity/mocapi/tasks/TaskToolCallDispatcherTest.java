@@ -292,6 +292,29 @@ class TaskToolCallDispatcherTest {
   }
 
   @Test
+  void is_task_capable_treats_a_null_meta_as_not_capable() {
+    assertThat(TaskToolCallDispatcher.isTaskCapable(null)).isFalse();
+  }
+
+  @Test
+  void defaults_accessor_returns_the_configured_defaults() {
+    assertThat(dispatcher().defaults()).isEqualTo(DEFAULTS);
+  }
+
+  @Test
+  void null_arguments_create_the_task_with_an_empty_object_node() throws Exception {
+    CallToolHandler handler = handlerFor("taskTool");
+    CallToolRequestParams params =
+        new CallToolRequestParams(handler.name(), null, null, null, capableMeta());
+
+    Object result = dispatcher().intercept(handler, params, PROCEED_SYNC);
+
+    var createResult = (CreateTaskResult) result;
+    TaskRecord rec = store.get(createResult.taskId()).orElseThrow();
+    assertThat(rec.arguments()).isEqualTo(mapper.createObjectNode());
+  }
+
+  @Test
   void an_allowing_guard_creates_the_task_normally() throws Exception {
     CallToolHandler handler =
         handlerFor("guardedTaskTool", List.of(config -> config.guard(GuardDecision.Allow::new)));

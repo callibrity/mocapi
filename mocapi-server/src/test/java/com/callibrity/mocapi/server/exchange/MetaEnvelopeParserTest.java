@@ -226,6 +226,21 @@ class MetaEnvelopeParserTest {
           .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcProtocol.INVALID_PARAMS)
           .hasMessageContaining(McpMetaKeys.CLIENT_CAPABILITIES);
     }
+
+    @Test
+    void client_capabilities_that_fail_to_deserialize_are_invalid_params() {
+      // The node is a well-formed object (passes the isObject() gate), but "roots" doesn't match
+      // RootsCapability's shape, so objectMapper.treeToValue throws a JacksonException that must be
+      // wrapped as -32602 rather than propagating raw.
+      ObjectNode params = validParams();
+      ((ObjectNode) meta(params).get(McpMetaKeys.CLIENT_CAPABILITIES))
+          .put("roots", "not-an-object");
+
+      assertThatThrownBy(() -> parser.parse(params))
+          .isInstanceOf(JsonRpcException.class)
+          .matches(e -> ((JsonRpcException) e).getCode() == JsonRpcProtocol.INVALID_PARAMS)
+          .hasMessageContaining(McpMetaKeys.CLIENT_CAPABILITIES);
+    }
   }
 
   @Nested

@@ -387,6 +387,38 @@ class McpResourcesServiceTest {
   }
 
   @Test
+  void resource_uris_exposes_every_fixed_resource_uri_but_not_templates() {
+    assertThat(service.resourceUris()).containsExactlyInAnyOrder("test://a", "test://b");
+  }
+
+  @Test
+  void all_resource_handlers_returns_every_handler_sorted_and_unfiltered() {
+    var uris = service.allResourceHandlers().stream().map(h -> h.descriptor().uri()).toList();
+    assertThat(uris).containsExactly("test://a", "test://b");
+  }
+
+  @Test
+  void all_resource_template_handlers_returns_every_handler_sorted_and_unfiltered() {
+    var uriTemplates =
+        service.allResourceTemplateHandlers().stream()
+            .map(h -> h.descriptor().uriTemplate())
+            .toList();
+    assertThat(uriTemplates).containsExactly("test://items/{id}");
+  }
+
+  @Test
+  void all_resource_handlers_are_unfiltered_by_guards() {
+    var svc =
+        service(
+            List.of(guardedHandler("file:///hidden", () -> new GuardDecision.Deny("x"))),
+            List.of(),
+            engine());
+
+    assertThat(svc.allResourceHandlers()).hasSize(1);
+    assertThat(svc.listResources(null).resources()).isEmpty();
+  }
+
+  @Test
   void template_handler_read_receives_path_variables() {
     var params = new ResourceRequestParams("test://items/abc", null, null, null);
     var content =
@@ -493,6 +525,43 @@ class McpResourcesServiceTest {
 
       assertThat(result.ttlMs()).isEqualTo(5_000L);
       assertThat(result.cacheScope()).isEqualTo(CacheScope.PRIVATE);
+    }
+
+    @Test
+    void read_resource_tolerates_a_handler_returning_a_null_result() {
+      var nullResultHandler =
+          new ReadResourceHandler(
+              new Resource("test://null", "N", "d", "text/plain"), List.of(), () -> null);
+      var svc = configured(List.of(nullResultHandler), List.of());
+
+      var result = svc.readResource(new ResourceRequestParams("test://null", null, null, null));
+
+      assertThat(result).isNull();
+    }
+
+    @Test
+    void read_resource_keeps_an_explicit_non_private_scope_even_with_zero_ttl() {
+      var explicitScope =
+          new ReadResourceHandler(
+              new Resource("test://explicit-scope", "E", "d", "text/plain"),
+              null,
+              null,
+              ignored ->
+                  new ReadResourceResult(
+                      List.of(new TextResourceContents("test://explicit-scope", "text/plain", "x")),
+                      0L,
+                      CacheScope.PUBLIC,
+                      ResultTypes.COMPLETE),
+              List.of());
+      var svc = configured(List.of(explicitScope), List.of());
+
+      var result =
+          (ReadResourceResult)
+              svc.readResource(
+                  new ResourceRequestParams("test://explicit-scope", null, null, null));
+
+      assertThat(result.ttlMs()).isZero();
+      assertThat(result.cacheScope()).isEqualTo(CacheScope.PUBLIC);
     }
   }
 

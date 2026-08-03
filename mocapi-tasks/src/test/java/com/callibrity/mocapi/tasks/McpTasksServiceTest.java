@@ -488,6 +488,57 @@ class McpTasksServiceTest {
   }
 
   @Test
+  void update_skips_an_already_answered_entry_and_one_no_longer_outstanding() {
+    // "elicit-old" was answered in a prior round (isAnswered() true, so it's skipped outright);
+    // "elicit-mismatch" is unanswered but not a key the record currently lists as outstanding
+    // (SEP-2322 SHOULD-ignore: stale/unrecognized ledger state must not fail the request). Neither
+    // entry should get merged, so the task stays INPUT_REQUIRED with no resume.
+    ElicitRequest request = new ElicitRequest(new ElicitRequestFormParams("please answer", null));
+    TaskRecord base = baseRecord("t-stale-ledger", TaskStatus.INPUT_REQUIRED);
+    TaskRecord rec =
+        new TaskRecord(
+            base.taskId(),
+            base.toolName(),
+            base.arguments(),
+            base.principal(),
+            base.protocolVersion(),
+            base.clientCapabilities(),
+            base.status(),
+            base.statusMessage(),
+            base.createdAt(),
+            base.lastUpdatedAt(),
+            base.ttl(),
+            base.pollInterval(),
+            List.of(
+                new ResponseLedgerEntry("elicit-old", "fp-old", acceptResult()),
+                new ResponseLedgerEntry("elicit-mismatch", "fp-mismatch", null)),
+            Map.of("only-outstanding", request),
+            null,
+            null,
+            base.version());
+    store.create(rec);
+    CountingInvoker invoker =
+        new CountingInvoker(
+            new ReplayOutcome.Completed<>(new CallToolResult(List.of(), false, null, "complete")));
+    StubPrincipalSource principals = new StubPrincipalSource();
+    McpTasksService service = service(principals, engine(invoker));
+    Map<String, JsonNode> responses =
+        Map.of("elicit-old", acceptNode(), "elicit-mismatch", acceptNode());
+
+    var result =
+        service.updateTask(new UpdateTaskParams("t-stale-ledger", responses, CAPABLE_META));
+
+    assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
+    assertThat(store.get("t-stale-ledger").orElseThrow().status())
+        .isEqualTo(TaskStatus.INPUT_REQUIRED);
+    assertThat(invoker.invocationCount()).isZero();
+  }
+
+  private static ElicitResult acceptResult() {
+    return new ElicitResult(ElicitAction.ACCEPT, null);
+  }
+
+  @Test
   void update_unknown_task_id_throws_invalid_params() {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));

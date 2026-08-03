@@ -30,7 +30,9 @@ import com.callibrity.mocapi.model.ResourceTemplateReference;
 import com.callibrity.mocapi.model.ResultTypes;
 import com.callibrity.mocapi.model.TextResourceContents;
 import com.callibrity.mocapi.server.completions.McpCompletionsService;
+import com.callibrity.mocapi.server.dispatch.McpDispatchInterceptor;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
+import com.callibrity.mocapi.server.resources.ReadResourceHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import java.lang.annotation.ElementType;
@@ -310,6 +312,31 @@ class ResourceServiceAutoConfigurationTest {
               var service = context.getBean(McpResourcesService.class);
               var resource = service.listResources(null).resources().getFirst();
               assertThat(resource.meta().path("k").asString()).isEqualTo("v");
+            });
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class DispatchInterceptorConfig {
+    @Bean
+    McpDispatchInterceptor<ReadResourceHandler, ResourceRequestParams> passThroughInterceptor() {
+      return (handler, params, proceed) -> proceed.get();
+    }
+  }
+
+  @Test
+  void wires_up_configured_dispatch_interceptors() {
+    contextRunner
+        .withBean(SampleResourceService.class, SampleResourceService::new)
+        .withUserConfiguration(DispatchInterceptorConfig.class)
+        .run(
+            context -> {
+              var service = context.getBean(McpResourcesService.class);
+              var result =
+                  (ReadResourceResult)
+                      service.readResource(
+                          new ResourceRequestParams("test://hello", null, null, null));
+              var content = (TextResourceContents) result.contents().getFirst();
+              assertThat(content.text()).isEqualTo("hi");
             });
   }
 

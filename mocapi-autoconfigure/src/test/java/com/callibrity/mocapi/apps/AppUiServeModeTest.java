@@ -65,6 +65,20 @@ class AppUiServeModeTest {
     }
   }
 
+  static class SameUriSameLocationApp {
+    @McpTool(name = "a")
+    @McpUi(value = "ui://demo/app.html", resource = "classpath:/ui/serve-mode-app.html")
+    public String a() {
+      return "a";
+    }
+
+    @McpTool(name = "b")
+    @McpUi(value = "ui://demo/app.html", resource = "classpath:/ui/serve-mode-app.html")
+    public String b() {
+      return "b";
+    }
+  }
+
   @Configuration(proxyBeanMethods = false)
   static class Infra {
     @Bean
@@ -145,6 +159,16 @@ class AppUiServeModeTest {
     var contributor =
         new AppUiResourceContributor(null, new DefaultResourceLoader(), new ObjectMapper(), v -> v);
     assertThat(contributor.resources()).isEmpty();
+  }
+
+  @Test
+  void two_tools_sharing_the_same_uri_and_location_register_a_single_resource() {
+    runnerWith(SameUriSameLocationApp.class)
+        .run(
+            context -> {
+              var resources = context.getBean(McpResourcesService.class);
+              assertThat(resources.listResources(null).resources()).hasSize(1);
+            });
   }
 
   @Test

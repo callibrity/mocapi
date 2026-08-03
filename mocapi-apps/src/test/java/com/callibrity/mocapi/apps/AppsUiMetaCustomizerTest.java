@@ -256,6 +256,26 @@ class AppsUiMetaCustomizerTest {
   }
 
   @Test
+  void tool_customizer_preserves_existing_meta() throws Exception {
+    var customizer = new AppsToolUiMetaCustomizer(mapper, v -> v);
+    Tool withMeta =
+        new Tool(
+            "t",
+            "T",
+            "d",
+            mapper.createObjectNode(),
+            null,
+            mapper.createObjectNode().put("existing", "kept"));
+    var config = new FakeToolConfig(method("tool"), withMeta);
+
+    customizer.customize(config);
+
+    Tool out = config.descriptor();
+    assertThat(out.meta().path("existing").asString()).isEqualTo("kept");
+    assertThat(out.meta().path("ui").path("resourceUri").asString()).isEqualTo("ui://dash");
+  }
+
+  @Test
   void tool_customizer_is_a_noop_without_McpUi() throws Exception {
     var customizer = new AppsToolUiMetaCustomizer(mapper, v -> v);
     Tool in = new Tool("t", "T", "d", mapper.createObjectNode(), null);

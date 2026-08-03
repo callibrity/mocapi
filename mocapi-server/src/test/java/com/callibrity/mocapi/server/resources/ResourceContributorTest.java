@@ -95,6 +95,20 @@ class ResourceContributorTest {
   }
 
   @Test
+  void default_resources_method_is_empty_when_a_contributor_only_overrides_templates() {
+    ResourceContributor templatesOnly =
+        new ResourceContributor() {
+          @Override
+          public List<com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler>
+              resourceTemplates() {
+            return List.of();
+          }
+        };
+
+    assertThat(templatesOnly.resources()).isEmpty();
+  }
+
+  @Test
   void denied_guard_hides_a_reader_only_resource_from_the_list() {
     var denied = readerOnly("ui://secret", "S", List.of(() -> new GuardDecision.Deny("nope")));
     var service =

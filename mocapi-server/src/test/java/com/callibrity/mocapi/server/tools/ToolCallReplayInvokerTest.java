@@ -156,6 +156,20 @@ class ToolCallReplayInvokerTest {
   }
 
   @Test
+  void detached_invoke_with_a_null_exchange_runs_without_binding_mcp_exchange_current() {
+    var outcome =
+        core.invoke(
+            "exchange-reading-tool.read-protocol-version",
+            JsonNodeFactory.instance.objectNode(),
+            List.of(),
+            new DefaultMcpProgressSource((p, t, m) -> {}),
+            null);
+
+    CallToolResult completed = (CallToolResult) ((ReplayOutcome.Completed<?, ?>) outcome).result();
+    assertThat(((TextContent) completed.content().getFirst()).text()).isEqualTo("unbound");
+  }
+
+  @Test
   void tool_exception_maps_to_isError_result_not_a_throw() {
     var outcome =
         core.invoke(

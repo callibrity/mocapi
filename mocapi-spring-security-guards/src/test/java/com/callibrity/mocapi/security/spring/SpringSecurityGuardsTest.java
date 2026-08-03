@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.security.spring;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.mocapi.server.guards.Guard;
 import java.lang.reflect.Method;
@@ -61,6 +62,12 @@ class SpringSecurityGuardsTest {
     public void placeholders() {
       /* empty reflection target — see class javadoc. */
     }
+
+    /** Fixture target whose placeholder resolves to a blank value. */
+    @RequiresScope("${app.unresolved-scope}")
+    public void unresolvedScopePlaceholder() {
+      /* empty reflection target — see class javadoc. */
+    }
   }
 
   @Test
@@ -102,6 +109,20 @@ class SpringSecurityGuardsTest {
     assertThat(collected).hasSize(2);
     assertThat(collected.get(0)).asString().isEqualTo("RequiresScope(admin:write)");
     assertThat(collected.get(1)).asString().isEqualTo("RequiresRole(ADMIN)");
+  }
+
+  @Test
+  void resolving_to_a_blank_value_throws_a_diagnostic_naming_the_method_and_annotation()
+      throws Exception {
+    Method method = Fixture.class.getMethod("unresolvedScopePlaceholder");
+    Object config = new Object();
+
+    assertThatThrownBy(
+            () -> SpringSecurityGuards.attach(config, method, v -> "", (cfg, guard) -> {}))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining(Fixture.class.getName())
+        .hasMessageContaining("unresolvedScopePlaceholder")
+        .hasMessageContaining("@RequiresScope");
   }
 
   private static List<Guard> attachFor(String methodName) throws NoSuchMethodException {
