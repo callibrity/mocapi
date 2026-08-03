@@ -1,2 +1,5 @@
+org.springframework.beans.factory.aot.BeanRegistrationAotProcessor=\
+com.callibrity.mocapi.apps.aot.AppsResourceAotProcessor
+
 org.springframework.aot.hint.RuntimeHintsRegistrar=\
 com.callibrity.mocapi.apps.aot.AppsRuntimeHints

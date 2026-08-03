@@ -72,6 +72,8 @@ The scanner is configured with `useDefaultFilters=false`, `isCandidateComponent`
 
 `mocapi-autoconfigure/src/test/java/.../aot/MocapiServicesAotProcessorTest.java` covers the per-bean processor.
 
+`mocapi-apps/src/test/java/.../aot/AppsResourceAotProcessorTest.java` covers the resource-inclusion processor: a classpath-scheme `@McpUi(resource = ...)` bundle gets a registered pattern, a `${...}`-placeholder-valued one resolves through the embedded-value resolver first, a `file:`-scheme location is skipped, and a bean with no `resource()` attribute contributes nothing.
+
 When new model types land, these tests currently pass automatically because of the package scan — but it's worth adding an assertion for anything with a non-trivial shape (new sealed hierarchies especially) to catch regressions if the scan filters ever change.
 
 ## Extension modules own their hints
@@ -116,9 +118,54 @@ explicitly registers the three records `AppsToolUiMetaCustomizer` and
 `AppsResourceUiMetaCustomizer` hand to `ObjectMapper#valueToTree`:
 `McpUiToolMeta`, `UiResourceMeta`, and its nested `McpUiResourceCsp` — the
 same explicit-registration style `MocapiRuntimeHints` uses for `McpExchange`
-and `RequestStatePayload`. `AppsRuntimeHints` was added by symmetry with the
-tasks fix (structurally identical `_meta` exposure via `valueToTree`) but has
-not itself been exercised against a native rebuild.
+and `RequestStatePayload`.
+
+### `AppsResourceAotProcessor` (`mocapi-apps`) — resource inclusion, a separate hint category
+
+`AppsRuntimeHints` only covers Jackson **reflection** for the `_meta.ui` wire
+records. It does not cover a second, unrelated GraalVM concern: **resource
+inclusion**. `AppUiResourceContributor` (`mocapi-autoconfigure`) reads an
+`@McpUi(resource = ...)` bundle's raw bytes off the classpath via
+`ResourceLoader#getResource(String)` at bean-construction time (ADR-0036).
+GraalVM does not bundle arbitrary classpath resources into the native binary
+unless a resource-inclusion hint (`RuntimeHints.resources().registerPattern(...)`)
+names them — a completely separate mechanism from the reflection hints above.
+
+This gap was found empirically, one build after the `mocapi-tasks` reflection
+gap above: a native-image build of `examples/apps` crashed on `ApplicationContext`
+refresh, not with the `UnsupportedFeatureError` the tasks gap produced, but with:
+
+```
+Caused by: java.io.FileNotFoundException: class path resource [ui/get-time/mcp-app.html]
+cannot be opened because it does not exist
+```
+
+— even though the resource was genuinely present in the jar. `AppsRuntimeHints`
+registered no resource pattern at all; being added "by symmetry" with the tasks
+fix, it inherited that fix's frame (Jackson reflection) but not this module's
+actual sharp edge (reading raw bundle bytes).
+
+`com.callibrity.mocapi.apps.aot.AppsResourceAotProcessor` closes it: a
+`BeanRegistrationAotProcessor` (same shape as `MocapiServicesAotProcessor`,
+registered per-bean rather than as a `RuntimeHintsRegistrar`) that, for every
+bean whose class carries an `@McpUi`-annotated method with a non-blank
+`resource()`, resolves `${...}` placeholders via the owning bean factory's
+embedded-value resolver — the same mechanism `AppUiResourceContributor` uses
+at runtime — and registers a `hints.resources().registerPattern(...)` for the
+resolved classpath location. `file:` (and other non-classpath-scheme)
+locations are skipped: they are read from outside the image at runtime and
+need no inclusion hint.
+
+**Placeholder limitation:** if a `${...}`-valued `resource()` attribute cannot
+be resolved at AOT-processing time (e.g. the property isn't bound yet in that
+phase), the processor falls back to registering the *literal, unresolved*
+string as the pattern and logs a warning. If the actually-resolved runtime
+value differs from the literal, that fallback pattern won't match, and the
+bundle needs a manual `RuntimeHintsRegistrar` entry for the real location. In
+practice this only bites placeholders resolved from a source not yet active
+during AOT processing (profile-specific property files, etc.) — a build-time
+`application.properties` value resolves fine, as covered by
+`AppsResourceAotProcessorTest`.
 
 ## Verification
 

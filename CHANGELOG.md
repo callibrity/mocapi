@@ -114,6 +114,13 @@ All notable changes to this project are documented in this file. The format is b
   native-image via module-owned `RuntimeHintsRegistrar`s
   (`TasksRuntimeHints`, `AppsRuntimeHints`), so a task-shaped `tools/call`
   response no longer throws `UnsupportedFeatureError` under `native-image`.
+- **Native-image resource-inclusion gap in `mocapi-apps`.** A distinct gap from
+  the reflection one above: `@McpUi(resource = ...)` classpath bundles were
+  never registered as a GraalVM resource-inclusion hint, so `AppUiResourceContributor`
+  threw `FileNotFoundException` reading a bundle that was genuinely on the
+  classpath, crashing native boot. The new `AppsResourceAotProcessor`
+  (`BeanRegistrationAotProcessor`) registers a `RuntimeHints.resources()`
+  pattern for every `@McpUi(resource = ...)` bundle it finds.
 - **`withMeta` on `Tool` and `Resource` now deep-copies its input.**
   Both released-1.1.0 methods take a defensive `deepCopy()` of the
   `ObjectNode` passed in, so a caller mutating the node after calling
