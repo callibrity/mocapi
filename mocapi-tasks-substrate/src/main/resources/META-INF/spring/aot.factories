@@ -1,0 +1,2 @@
+org.springframework.aot.hint.RuntimeHintsRegistrar=\
+com.callibrity.mocapi.tasks.substrate.aot.SubstrateTaskStoreRuntimeHints
