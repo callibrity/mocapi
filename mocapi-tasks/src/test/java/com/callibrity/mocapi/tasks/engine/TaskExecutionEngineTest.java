@@ -38,6 +38,8 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -72,18 +74,16 @@ class TaskExecutionEngineTest {
   }
 
   private TaskRecord await(InMemoryTaskStore store, String taskId, TaskStatus status) {
-    long deadline = System.nanoTime() + AWAIT_TIMEOUT.toNanos();
-    TaskRecord rec = store.get(taskId).orElseThrow();
-    while (rec.status() != status && System.nanoTime() < deadline) {
-      try {
-        Thread.sleep(10);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new AssertionError(e);
-      }
-      rec = store.get(taskId).orElseThrow();
-    }
-    return rec;
+    AtomicReference<TaskRecord> rec = new AtomicReference<>(store.get(taskId).orElseThrow());
+    Awaitility.await()
+        .atMost(AWAIT_TIMEOUT)
+        .pollInterval(Duration.ofMillis(10))
+        .until(
+            () -> {
+              rec.set(store.get(taskId).orElseThrow());
+              return rec.get().status() == status;
+            });
+    return rec.get();
   }
 
   @Test
@@ -236,7 +236,7 @@ class TaskExecutionEngineTest {
       releaseLatch.countDown();
 
       // Give the run loop time to attempt (and fail) its terminal write.
-      Thread.sleep(200);
+      Awaitility.await().pollDelay(Duration.ofMillis(200)).until(() -> true);
       TaskRecord finalRecord = store.get("t-cancel-race").orElseThrow();
       assertThat(finalRecord.status()).isEqualTo(TaskStatus.CANCELLED);
       assertThat(finalRecord.result()).isNull();

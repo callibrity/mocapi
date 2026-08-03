@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.tasks;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.callibrity.mocapi.api.tools.McpTool;
 import com.callibrity.mocapi.api.tools.McpToolContext;
@@ -40,6 +41,7 @@ import java.lang.annotation.Target;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -315,18 +317,17 @@ class TasksEndToEndTest {
   }
 
   private JsonNode pollTaskUntil(String taskId, String status) {
-    long deadline = System.nanoTime() + POLL_TIMEOUT.toNanos();
-    JsonNode result = resultOf(dispatcher.dispatch(tasksGet(taskId)));
-    while (!status.equals(result.path("status").asString()) && System.nanoTime() < deadline) {
-      try {
-        Thread.sleep(10);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new AssertionError(e);
-      }
-      result = resultOf(dispatcher.dispatch(tasksGet(taskId)));
-    }
-    return result;
+    AtomicReference<JsonNode> result = new AtomicReference<>();
+    await()
+        .atMost(POLL_TIMEOUT)
+        .pollInterval(Duration.ofMillis(10))
+        .until(
+            () -> {
+              JsonNode polled = resultOf(dispatcher.dispatch(tasksGet(taskId)));
+              result.set(polled);
+              return status.equals(polled.path("status").asString());
+            });
+    return result.get();
   }
 
   private JsonNode nextId() {
@@ -413,7 +414,7 @@ class TasksEndToEndTest {
     public String slowEcho(String message) {
       try {
         Thread.sleep(30);
-      } catch (InterruptedException e) {
+      } catch (InterruptedException _) {
         Thread.currentThread().interrupt();
       }
       return "echo:" + message;

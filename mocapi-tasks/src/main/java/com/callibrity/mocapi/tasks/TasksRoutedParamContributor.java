@@ -24,11 +24,13 @@ import java.util.Map;
  */
 public class TasksRoutedParamContributor implements RoutedParamContributor {
 
+  private static final String TASK_ID_FIELD = "taskId";
+
   @Override
   public Map<String, String> namedParamFields() {
     return Map.of(
-        TasksExtension.TASKS_GET, "taskId",
-        TasksExtension.TASKS_UPDATE, "taskId",
-        TasksExtension.TASKS_CANCEL, "taskId");
+        TasksExtension.TASKS_GET, TASK_ID_FIELD,
+        TasksExtension.TASKS_UPDATE, TASK_ID_FIELD,
+        TasksExtension.TASKS_CANCEL, TASK_ID_FIELD);
   }
 }

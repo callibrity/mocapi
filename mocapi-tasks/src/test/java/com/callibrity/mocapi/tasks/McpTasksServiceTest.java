@@ -50,6 +50,8 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -150,18 +152,16 @@ class McpTasksServiceTest {
   }
 
   private TaskRecord await(String taskId, TaskStatus status) {
-    long deadline = System.nanoTime() + AWAIT_TIMEOUT.toNanos();
-    TaskRecord rec = store.get(taskId).orElseThrow();
-    while (rec.status() != status && System.nanoTime() < deadline) {
-      try {
-        Thread.sleep(10);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new AssertionError(e);
-      }
-      rec = store.get(taskId).orElseThrow();
-    }
-    return rec;
+    AtomicReference<TaskRecord> rec = new AtomicReference<>(store.get(taskId).orElseThrow());
+    Awaitility.await()
+        .atMost(AWAIT_TIMEOUT)
+        .pollInterval(Duration.ofMillis(10))
+        .until(
+            () -> {
+              rec.set(store.get(taskId).orElseThrow());
+              return rec.get().status() == status;
+            });
+    return rec.get();
   }
 
   private McpTasksService service(McpPrincipalSource principalSource, TaskExecutionEngine engine) {
@@ -288,8 +288,9 @@ class McpTasksServiceTest {
   void get_unknown_task_id_throws_invalid_params_with_generic_message() {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
+    var params = new GetTaskParams("nope", CAPABLE_META);
 
-    assertThatThrownBy(() -> service.getTask(new GetTaskParams("nope", CAPABLE_META)))
+    assertThatThrownBy(() -> service.getTask(params))
         .isInstanceOf(JsonRpcException.class)
         .satisfies(
             ex ->
@@ -304,8 +305,9 @@ class McpTasksServiceTest {
     StubPrincipalSource principals = new StubPrincipalSource();
     principals.principal = "mallory";
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
+    var params = new GetTaskParams("t-alice-owned", CAPABLE_META);
 
-    assertThatThrownBy(() -> service.getTask(new GetTaskParams("t-alice-owned", CAPABLE_META)))
+    assertThatThrownBy(() -> service.getTask(params))
         .isInstanceOf(JsonRpcException.class)
         .satisfies(
             ex ->
@@ -321,9 +323,9 @@ class McpTasksServiceTest {
     // SEP-2575/SEP-2663: a non-capable caller always sees -32021, never a -32602 existence signal.
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
+    var params = new GetTaskParams("nope", NON_CAPABLE_META);
 
-    assertThatThrownBy(() -> service.getTask(new GetTaskParams("nope", NON_CAPABLE_META)))
-        .isInstanceOf(McpTaskRequiredException.class);
+    assertThatThrownBy(() -> service.getTask(params)).isInstanceOf(McpTaskRequiredException.class);
   }
 
   // ---- tasks/update ----
@@ -408,7 +410,7 @@ class McpTasksServiceTest {
     assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
     assertThat(store.get("t-unknown-key").orElseThrow().status())
         .isEqualTo(TaskStatus.INPUT_REQUIRED);
-    assertThat(invoker.invocationCount()).isEqualTo(0);
+    assertThat(invoker.invocationCount()).isZero();
   }
 
   @Test
@@ -482,15 +484,16 @@ class McpTasksServiceTest {
     assertThat(result.resultType()).isEqualTo(ResultTypes.COMPLETE);
     assertThat(store.get("t-no-responses").orElseThrow().status())
         .isEqualTo(TaskStatus.INPUT_REQUIRED);
-    assertThat(invoker.invocationCount()).isEqualTo(0);
+    assertThat(invoker.invocationCount()).isZero();
   }
 
   @Test
   void update_unknown_task_id_throws_invalid_params() {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
+    var params = new UpdateTaskParams("nope", null, CAPABLE_META);
 
-    assertThatThrownBy(() -> service.updateTask(new UpdateTaskParams("nope", null, CAPABLE_META)))
+    assertThatThrownBy(() -> service.updateTask(params))
         .isInstanceOf(JsonRpcException.class)
         .hasMessage("Unknown task");
   }
@@ -499,9 +502,9 @@ class McpTasksServiceTest {
   void update_without_the_tasks_capability_rejects_with_missing_capability() {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
+    var params = new UpdateTaskParams("nope", null, NON_CAPABLE_META);
 
-    assertThatThrownBy(
-            () -> service.updateTask(new UpdateTaskParams("nope", null, NON_CAPABLE_META)))
+    assertThatThrownBy(() -> service.updateTask(params))
         .isInstanceOf(McpTaskRequiredException.class);
   }
 
@@ -540,8 +543,9 @@ class McpTasksServiceTest {
   void cancel_unknown_task_id_throws_invalid_params() {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
+    var params = new CancelTaskParams("nope", CAPABLE_META);
 
-    assertThatThrownBy(() -> service.cancelTask(new CancelTaskParams("nope", CAPABLE_META)))
+    assertThatThrownBy(() -> service.cancelTask(params))
         .isInstanceOf(JsonRpcException.class)
         .hasMessage("Unknown task");
   }
@@ -550,8 +554,9 @@ class McpTasksServiceTest {
   void cancel_without_the_tasks_capability_rejects_with_missing_capability() {
     StubPrincipalSource principals = new StubPrincipalSource();
     McpTasksService service = service(principals, engine((n, a, l, p, e) -> null));
+    var params = new CancelTaskParams("nope", NON_CAPABLE_META);
 
-    assertThatThrownBy(() -> service.cancelTask(new CancelTaskParams("nope", NON_CAPABLE_META)))
+    assertThatThrownBy(() -> service.cancelTask(params))
         .isInstanceOf(McpTaskRequiredException.class);
   }
 }

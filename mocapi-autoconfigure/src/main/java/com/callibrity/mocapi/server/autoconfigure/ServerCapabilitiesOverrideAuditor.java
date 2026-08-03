@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.autoconfigure;
 
 import com.callibrity.mocapi.server.discover.ServerCapabilitiesCustomizer;
+import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.SmartInitializingSingleton;
@@ -74,6 +75,6 @@ public class ServerCapabilitiesOverrideAuditor implements SmartInitializingSingl
     log.warn(
         "A user-supplied ServerCapabilities bean replaced mocapi's default; the following "
             + "ServerCapabilitiesCustomizer bean(s) were never applied and are being discarded: {}",
-        String.join(", ", customizerNames));
+        Arrays.asList(customizerNames));
   }
 }

@@ -103,8 +103,8 @@ public class TaskToolCallDispatcher
     // guard list here, before minting the task record, so an unauthorized capable client gets
     // the identical synchronous -32010 the sync path would produce, instead of a taskId whose
     // record later lands FAILED.
-    if (Guards.evaluate(handler.guards()) instanceof GuardDecision.Deny deny) {
-      throw new JsonRpcException(JsonRpcErrorCodes.FORBIDDEN, "Forbidden: " + deny.reason());
+    if (Guards.evaluate(handler.guards()) instanceof GuardDecision.Deny(var reason)) {
+      throw new JsonRpcException(JsonRpcErrorCodes.FORBIDDEN, "Forbidden: " + reason);
     }
     TaskRecord rec = newRecord(handler, params, annotation);
     return engine.createAndStart(rec);

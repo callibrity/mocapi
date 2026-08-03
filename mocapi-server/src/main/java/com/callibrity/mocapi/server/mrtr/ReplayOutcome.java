@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.server.mrtr;
 
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * The result of one MRTR replay round trip (ADR-0021/ADR-0039): either the handler ran to
@@ -30,8 +31,29 @@ import java.util.List;
  */
 public sealed interface ReplayOutcome<R, Q> {
 
+  /**
+   * Folds this outcome into a single value, dispatching to the branch matching the actual variant.
+   * Gives both type parameters {@code R}/{@code Q} a genuine use on the interface itself, not just
+   * on the record implementors.
+   *
+   * @param onCompleted applied when this outcome is a {@link Completed}
+   * @param onInputRequired applied when this outcome is an {@link InputRequired}
+   * @param <T> the folded result type
+   * @return the value produced by whichever branch matches
+   */
+  <T> T fold(
+      Function<Completed<R, Q>, T> onCompleted, Function<InputRequired<R, Q>, T> onInputRequired);
+
   /** The handler ran to completion and produced {@code result}. */
-  record Completed<R, Q>(R result) implements ReplayOutcome<R, Q> {}
+  record Completed<R, Q>(R result) implements ReplayOutcome<R, Q> {
+
+    @Override
+    public <T> T fold(
+        Function<Completed<R, Q>, T> onCompleted,
+        Function<InputRequired<R, Q>, T> onInputRequired) {
+      return onCompleted.apply(this);
+    }
+  }
 
   /**
    * The handler unwound at an unanswered elicitation.
@@ -45,6 +67,13 @@ public sealed interface ReplayOutcome<R, Q> {
 
     public InputRequired {
       ledger = List.copyOf(ledger);
+    }
+
+    @Override
+    public <T> T fold(
+        Function<Completed<R, Q>, T> onCompleted,
+        Function<InputRequired<R, Q>, T> onInputRequired) {
+      return onInputRequired.apply(this);
     }
   }
 }

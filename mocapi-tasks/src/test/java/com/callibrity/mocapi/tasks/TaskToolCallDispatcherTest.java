@@ -231,8 +231,9 @@ class TaskToolCallDispatcherTest {
     CallToolRequestParams params =
         new CallToolRequestParams(
             handler.name(), mapper.createObjectNode(), null, null, nonCapableMeta());
+    var dispatcher = dispatcher();
 
-    assertThatThrownBy(() -> dispatcher().intercept(handler, params, PROCEED_SYNC))
+    assertThatThrownBy(() -> dispatcher.intercept(handler, params, PROCEED_SYNC))
         .isInstanceOf(McpTaskRequiredException.class);
   }
 
@@ -258,8 +259,9 @@ class TaskToolCallDispatcherTest {
             handler.name(), mapper.createObjectNode(), null, null, capableMeta());
     UnaryOperator<String> resolver =
         value -> "${demo.ttl}".equals(value) ? "not-a-duration" : value;
+    var dispatcher = dispatcher(resolver);
 
-    assertThatThrownBy(() -> dispatcher(resolver).intercept(handler, params, PROCEED_SYNC))
+    assertThatThrownBy(() -> dispatcher.intercept(handler, params, PROCEED_SYNC))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining(handler.name())
         .hasMessageContaining("not-a-duration");

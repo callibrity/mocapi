@@ -32,9 +32,7 @@ class TaskIdsTest {
   void newTaskId_is_43_char_base64url_without_padding() {
     String id = TaskIds.newTaskId();
 
-    assertThat(id).hasSize(43);
-    assertThat(id).matches("[A-Za-z0-9_-]+");
-    assertThat(id).doesNotContain("=");
+    assertThat(id).hasSize(43).matches("[A-Za-z0-9_-]+").doesNotContain("=");
   }
 
   @Test

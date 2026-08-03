@@ -106,13 +106,16 @@ public class TaskExecutionEngine {
       ReplayOutcome<CallToolResult, ElicitRequest> outcome =
           invoker.invoke(rec.toolName(), rec.arguments(), rec.ledger(), progress, exchange);
       switch (outcome) {
-        case ReplayOutcome.Completed<CallToolResult, ElicitRequest> c -> {
+        case ReplayOutcome.Completed<CallToolResult, ElicitRequest>(var result) -> {
           Instant now = clock.instant();
-          store.update(taskId, r -> r.completed(c.result(), now));
+          store.update(taskId, r -> r.completed(result, now));
         }
-        case ReplayOutcome.InputRequired<CallToolResult, ElicitRequest> ir -> {
+        case ReplayOutcome.InputRequired<CallToolResult, ElicitRequest>(
+                var key,
+                var request,
+                var ledger) -> {
           Instant now = clock.instant();
-          store.update(taskId, r -> r.inputRequired(ir.key(), ir.request(), ir.ledger(), now));
+          store.update(taskId, r -> r.inputRequired(key, request, ledger, now));
         }
       }
     } catch (ElicitationLedgerMismatchException e) {

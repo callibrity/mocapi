@@ -149,11 +149,13 @@ public final class ToolInvocationCore implements ToolCallReplayInvoker {
             : replayExecutor.execute(
                 ledger, () -> invokeWithContext(toolName, handler, arguments, ctx));
     return switch (outcome) {
-      case ReplayOutcome.InputRequired<?, ?> ir ->
-          new ReplayOutcome.InputRequired<>(
-              ir.key(), new ElicitRequest((ElicitRequestFormParams) ir.request()), ir.ledger());
-      case ReplayOutcome.Completed<?, ?> completed ->
-          new ReplayOutcome.Completed<>((CallToolResult) completed.result());
+      case ReplayOutcome.InputRequired<Object, ElicitRequestFormParams>(
+              var key,
+              var request,
+              var ledgerAtUnwind) ->
+          new ReplayOutcome.InputRequired<>(key, new ElicitRequest(request), ledgerAtUnwind);
+      case ReplayOutcome.Completed<Object, ElicitRequestFormParams>(var result) ->
+          new ReplayOutcome.Completed<>((CallToolResult) result);
     };
   }
 

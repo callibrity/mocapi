@@ -52,7 +52,7 @@ public class InMemoryTaskStore implements TaskStore, AutoCloseable {
         Instant now = clock.instant();
         records.values().removeIf(rec -> rec.isExpired(now));
       }
-    } catch (InterruptedException e) {
+    } catch (InterruptedException _) {
       Thread.currentThread().interrupt();
     }
   }

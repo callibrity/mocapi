@@ -312,8 +312,10 @@ class McpResourcesServiceTest {
       }
     }
     ResourceContributor second = new SecondContributor();
+    var contributors = List.of(first, second);
+    var engine = engine();
 
-    assertThatThrownBy(() -> new McpResourcesService(List.of(first, second), engine()))
+    assertThatThrownBy(() -> new McpResourcesService(contributors, engine))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("test://dup")
         .hasMessageContaining(first.getClass().getName())

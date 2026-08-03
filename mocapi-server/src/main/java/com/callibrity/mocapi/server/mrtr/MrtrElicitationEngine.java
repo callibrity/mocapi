@@ -140,15 +140,19 @@ public class MrtrElicitationEngine implements ElicitationDispatcher {
     try {
       ReplayOutcome<Object, ElicitRequestFormParams> outcome =
           replayExecutor.execute(ledger, invocation);
-      if (outcome instanceof ReplayOutcome.InputRequired<?, ?> ir) {
-        String token =
-            codec.encode(method, originalParams, ir.ledger(), principalSource.currentPrincipal());
-        return new InputRequiredResult(
-            Map.of(ir.key(), new ElicitRequest((ElicitRequestFormParams) ir.request())),
-            token,
-            ResultTypes.INPUT_REQUIRED);
-      }
-      return ((ReplayOutcome.Completed<?, ?>) outcome).result();
+      return switch (outcome) {
+        case ReplayOutcome.InputRequired<Object, ElicitRequestFormParams>(
+                var key,
+                var request,
+                var ledgerAtUnwind) -> {
+          String token =
+              codec.encode(
+                  method, originalParams, ledgerAtUnwind, principalSource.currentPrincipal());
+          yield new InputRequiredResult(
+              Map.of(key, new ElicitRequest(request)), token, ResultTypes.INPUT_REQUIRED);
+        }
+        case ReplayOutcome.Completed<Object, ElicitRequestFormParams>(var result) -> result;
+      };
     } catch (ElicitationLedgerMismatchException e) {
       throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, e.getMessage());
     }

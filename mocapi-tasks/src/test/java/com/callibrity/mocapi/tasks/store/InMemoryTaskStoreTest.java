@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.tasks.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.callibrity.mocapi.tasks.model.TaskStatus;
 import java.time.Clock;
@@ -38,7 +39,7 @@ class InMemoryTaskStoreTest extends TaskStoreContractTest {
   }
 
   @Test
-  void sweeper_physically_removes_expired_records_without_any_get() throws InterruptedException {
+  void sweeper_physically_removes_expired_records_without_any_get() {
     MutableClock clock = MutableClock.at(Instant.parse("2026-08-02T00:00:00Z"));
     try (InMemoryTaskStore store = new InMemoryTaskStore(clock, Duration.ofMillis(20))) {
       store.create(
@@ -64,10 +65,10 @@ class InMemoryTaskStoreTest extends TaskStoreContractTest {
 
       clock.advance(Duration.ofMinutes(5));
 
-      long deadline = System.nanoTime() + Duration.ofSeconds(2).toNanos();
-      while (store.size() != 0 && System.nanoTime() < deadline) {
-        Thread.sleep(10);
-      }
+      await()
+          .atMost(Duration.ofSeconds(2))
+          .pollInterval(Duration.ofMillis(10))
+          .until(() -> store.size() == 0);
 
       assertThat(store.size()).isZero();
     }

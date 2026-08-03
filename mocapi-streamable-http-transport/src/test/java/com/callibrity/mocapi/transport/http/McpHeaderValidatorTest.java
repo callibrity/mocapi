@@ -382,13 +382,13 @@ class McpHeaderValidatorTest {
 
     @Test
     void contributed_method_requires_and_validates_mcp_name() {
-      var validator = new McpHeaderValidator(Map.of("tasks/get", "taskId"));
+      var contributedValidator = new McpHeaderValidator(Map.of("tasks/get", "taskId"));
 
       ObjectNode params = paramsWithEnvelope();
       params.put("taskId", "task-1");
 
       var missingHeaderResult =
-          validator.validate(validHeadersFor("tasks/get"), call("tasks/get", params));
+          contributedValidator.validate(validHeadersFor("tasks/get"), call("tasks/get", params));
 
       assertThat(missingHeaderResult)
           .hasValueSatisfying(
@@ -401,14 +401,16 @@ class McpHeaderValidatorTest {
       HttpHeaders matchingHeaders = validHeadersFor("tasks/get");
       matchingHeaders.set(McpHeaderValidator.MCP_NAME_HEADER, "task-1");
 
-      var matchingResult = validator.validate(matchingHeaders, call("tasks/get", params));
+      var matchingResult =
+          contributedValidator.validate(matchingHeaders, call("tasks/get", params));
 
       assertThat(matchingResult).isEmpty();
 
       HttpHeaders mismatchedHeaders = validHeadersFor("tasks/get");
       mismatchedHeaders.set(McpHeaderValidator.MCP_NAME_HEADER, "task-2");
 
-      var mismatchedResult = validator.validate(mismatchedHeaders, call("tasks/get", params));
+      var mismatchedResult =
+          contributedValidator.validate(mismatchedHeaders, call("tasks/get", params));
 
       assertThat(mismatchedResult)
           .hasValueSatisfying(
@@ -423,14 +425,14 @@ class McpHeaderValidatorTest {
 
     @Test
     void built_in_methods_unaffected_by_contributions() {
-      var validator = new McpHeaderValidator(Map.of("tasks/get", "taskId"));
+      var contributedValidator = new McpHeaderValidator(Map.of("tasks/get", "taskId"));
 
       ObjectNode params = paramsWithEnvelope();
       params.put("name", "echo");
       HttpHeaders headers = validHeadersFor("tools/call");
       headers.set(McpHeaderValidator.MCP_NAME_HEADER, "echo");
 
-      var result = validator.validate(headers, call("tools/call", params));
+      var result = contributedValidator.validate(headers, call("tools/call", params));
 
       assertThat(result).isEmpty();
     }

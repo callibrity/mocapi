@@ -80,7 +80,9 @@ class ReplayExecutorTest {
 
   @Test
   void elicit_outside_execute_throws_illegal_state() {
-    assertThatThrownBy(() -> executor.elicit(question("hi")))
+    var request = question("hi");
+
+    assertThatThrownBy(() -> executor.elicit(request))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("MRTR dispatch");
   }

@@ -198,7 +198,7 @@ public class McpTasksService {
     }
     try {
       return objectMapper.treeToValue(node, ElicitResult.class);
-    } catch (JacksonException e) {
+    } catch (JacksonException _) {
       return null;
     }
   }
