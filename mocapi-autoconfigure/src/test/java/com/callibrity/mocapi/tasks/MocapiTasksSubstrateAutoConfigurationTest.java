@@ -24,10 +24,12 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.codec.jackson.JacksonCodecAutoConfiguration;
 import org.jwcarman.codec.jackson.JacksonCodecFactory;
 import org.jwcarman.codec.spi.CodecFactory;
 import org.jwcarman.substrate.atom.AtomFactory;
 import org.jwcarman.substrate.core.atom.DefaultAtomFactory;
+import org.jwcarman.substrate.core.autoconfigure.SubstrateAutoConfiguration;
 import org.jwcarman.substrate.core.lifecycle.ShutdownCoordinator;
 import org.jwcarman.substrate.core.memory.atom.InMemoryAtomSpi;
 import org.jwcarman.substrate.core.memory.notifier.InMemoryNotifier;
@@ -35,9 +37,27 @@ import org.jwcarman.substrate.core.notifier.DefaultNotifier;
 import org.jwcarman.substrate.core.transform.PayloadTransformer;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 class MocapiTasksSubstrateAutoConfigurationTest {
+
+  @Test
+  void fullAutoConfigurationChainActivatesSubstrateTaskStore() {
+    new ApplicationContextRunner()
+        .withBean(ObjectMapper.class, () -> JsonMapper.builder().build())
+        .withConfiguration(
+            AutoConfigurations.of(
+                JacksonCodecAutoConfiguration.class,
+                SubstrateOrderingAutoConfiguration.class,
+                SubstrateAutoConfiguration.class,
+                MocapiTasksSubstrateAutoConfiguration.class))
+        .run(
+            context -> {
+              assertThat(context).hasSingleBean(TaskStore.class);
+              assertThat(context.getBean(TaskStore.class)).isInstanceOf(SubstrateTaskStore.class);
+            });
+  }
 
   @Test
   void registersSubstrateTaskStoreWhenAtomFactoryPresent() {
