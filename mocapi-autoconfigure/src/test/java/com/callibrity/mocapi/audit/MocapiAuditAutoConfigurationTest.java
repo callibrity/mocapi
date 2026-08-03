@@ -101,4 +101,17 @@ class MocapiAuditAutoConfigurationTest {
     assertThat(cfg.auditCallerIdentityProvider().currentCaller())
         .isEqualTo(AuditCallerIdentityProvider.ANONYMOUS);
   }
+
+  @Test
+  void
+      without_spring_security_on_the_classpath_audit_entries_are_attributed_to_anonymous_not_left_blank() {
+    // A deployment without spring-security-core activates AnonymousCallerIdentityConfiguration
+    // instead. If its provider ever returned null or threw, every audited call/prompt/resource
+    // invocation would either NPE or silently omit "caller" from the audit trail.
+    MocapiAuditAutoConfiguration.AnonymousCallerIdentityConfiguration cfg =
+        new MocapiAuditAutoConfiguration.AnonymousCallerIdentityConfiguration();
+
+    assertThat(cfg.auditCallerIdentityProvider().currentCaller())
+        .isEqualTo(AuditCallerIdentityProvider.ANONYMOUS);
+  }
 }

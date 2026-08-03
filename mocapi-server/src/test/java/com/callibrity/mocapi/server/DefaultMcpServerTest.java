@@ -265,6 +265,42 @@ class DefaultMcpServerTest {
     }
 
     @Test
+    void a_non_object_result_is_sent_through_untouched_instead_of_crashing_the_response_path() {
+      // tools/call and friends always return an object result, but a handler that returns a bare
+      // scalar (a future extension, or a bug) must not blow up serverInfo injection: the response
+      // has to reach the client as-is rather than the request failing with an internal error.
+      JsonRpcCall call = validCall("tools/list");
+      when(dispatcher.dispatch(any(JsonRpcCall.class)))
+          .thenAnswer(_ -> call.result(JsonNodeFactory.instance.textNode("not-an-object")));
+
+      server.handleCall(call, transport);
+
+      var sent = (JsonRpcResult) captureSent();
+      assertThat(sent.result().isTextual()).isTrue();
+      assertThat(sent.result().asString()).isEqualTo("not-an-object");
+    }
+
+    @Test
+    void a_handler_that_already_stamped_its_own_serverInfo_keeps_that_value_uncorrupted() {
+      // Guards against clobbering a handler-supplied serverInfo with the server-wide one: if a
+      // future handler ever populates _meta.serverInfo itself (e.g. a proxy relaying an upstream
+      // server's identity), injection must not silently overwrite it with this server's own
+      // Implementation.
+      JsonRpcCall call = validCall("tools/list");
+      ObjectNode result = JsonNodeFactory.instance.objectNode();
+      ObjectNode meta = result.putObject("_meta");
+      ObjectNode handlerSuppliedServerInfo = meta.putObject(McpMetaKeys.SERVER_INFO);
+      handlerSuppliedServerInfo.put("name", "upstream-server");
+      when(dispatcher.dispatch(any(JsonRpcCall.class))).thenAnswer(_ -> call.result(result));
+
+      server.handleCall(call, transport);
+
+      var sent = (JsonRpcResult) captureSent();
+      assertThat(sent.result().path("_meta").path(McpMetaKeys.SERVER_INFO).path("name").asString())
+          .isEqualTo("upstream-server");
+    }
+
+    @Test
     void existing_result_meta_is_preserved() {
       JsonRpcCall call = validCall("tools/list");
       ObjectNode result = JsonNodeFactory.instance.objectNode();

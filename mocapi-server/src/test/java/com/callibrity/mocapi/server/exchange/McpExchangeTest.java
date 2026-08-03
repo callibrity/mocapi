@@ -38,6 +38,45 @@ class McpExchangeTest {
   }
 
   @Nested
+  class Trace_context {
+
+    @Test
+    void
+        a_null_trace_context_passed_to_the_canonical_constructor_falls_back_to_none_not_a_live_npe() {
+      // A caller invoking the 4-arg canonical constructor directly (bypassing the 3-arg convenience
+      // overload, which always supplies TraceContext.NONE itself) with a literal null must still
+      // get a safe, non-null TraceContext — never an NPE the first time traceContext() is read, and
+      // never silently left null underneath a record that promises "never null" in its own javadoc.
+      var exchange =
+          new McpExchange(
+              McpServer.PROTOCOL_VERSION,
+              new Implementation("test-client", null, "1.0.0", null),
+              null,
+              null);
+
+      assertThat(exchange.traceContext()).isSameAs(TraceContext.NONE);
+    }
+
+    @Test
+    void an_explicitly_supplied_trace_context_is_kept_verbatim_not_replaced_by_the_null_default() {
+      // If the canonical constructor's null-coalescing ever became unconditional, a transport that
+      // extracted a real W3C traceparent from the request would have it silently discarded and
+      // replaced with TraceContext.NONE — breaking distributed trace joining for every request
+      // that actually carried trace context.
+      var traceContext = new TraceContext("00-trace-01", "vendor=state", null);
+
+      var exchange =
+          new McpExchange(
+              McpServer.PROTOCOL_VERSION,
+              new Implementation("test-client", null, "1.0.0", null),
+              null,
+              traceContext);
+
+      assertThat(exchange.traceContext()).isSameAs(traceContext);
+    }
+  }
+
+  @Nested
   class Supports_elicitation_form {
 
     @Test

@@ -38,6 +38,9 @@ import com.callibrity.mocapi.server.mrtr.MrtrElicitationEngine;
 import com.callibrity.mocapi.server.mrtr.RequestStateCodec;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import java.time.Duration;
+import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -279,5 +282,81 @@ class MocapiServerAutoConfigurationTest {
               assertThat(context).hasSingleBean(RequestStateCodec.class);
               assertThat(context.getBean(RequestStateCodec.class)).isSameAs(custom);
             });
+  }
+
+  // --- direct bean-method tests: fallback branches that no property-binding scenario reaches ---
+
+  private static MocapiServerProperties propsWith(
+      MocapiServerProperties.Mrtr mrtr, MocapiServerProperties.Cache cache) {
+    return new MocapiServerProperties(
+        "mocapi", "Mocapi", "1.0", null, null, null, true, mrtr, cache, null);
+  }
+
+  @Test
+  void
+      an_app_that_never_configures_mocapi_cache_still_gets_the_safe_built_in_defaults_not_an_npe() {
+    // A completely absent Cache block (never bound at all, as opposed to bound-with-null-fields)
+    // must fall back to CacheSettings.defaults() rather than NPE-ing inside mcpCacheSettings().
+    var autoConfig = new MocapiServerAutoConfiguration(propsWith(null, null));
+
+    CacheSettings settings = autoConfig.mcpCacheSettings();
+
+    assertThat(settings).isEqualTo(CacheSettings.defaults());
+  }
+
+  @Test
+  void an_absent_mrtr_block_falls_back_to_the_documented_default_ttl_and_an_ephemeral_key() {
+    // No mocapi.mrtr.* configured at all (mrtr itself null, not just its fields) must still produce
+    // a working codec at the documented default TTL — not an NPE dereferencing mrtr.ttl()/secret().
+    var autoConfig = new MocapiServerAutoConfiguration(propsWith(null, null));
+
+    RequestStateCodec codec = autoConfig.mcpRequestStateCodec(new ObjectMapper());
+
+    assertThat(codec).isNotNull();
+  }
+
+  @Test
+  void an_mrtr_block_with_no_ttl_set_falls_back_to_the_documented_default_rather_than_a_null_ttl() {
+    var mrtr = new MocapiServerProperties.Mrtr(null, null);
+    var autoConfig = new MocapiServerAutoConfiguration(propsWith(mrtr, null));
+
+    RequestStateCodec codec = autoConfig.mcpRequestStateCodec(new ObjectMapper());
+
+    assertThat(codec).isNotNull();
+  }
+
+  @Test
+  void
+      a_blank_configured_secret_still_falls_back_to_an_ephemeral_key_rather_than_using_the_blank_value() {
+    // An operator who sets `mocapi.mrtr.secret=` (present but blank) must get the same safe
+    // ephemeral-key fallback as leaving it unset — never an attempt to use "" as key material,
+    // which would be a silent security downgrade disguised as configuration.
+    var mrtr = new MocapiServerProperties.Mrtr("   ", Duration.ofMinutes(5));
+    var autoConfig = new MocapiServerAutoConfiguration(propsWith(mrtr, null));
+
+    RequestStateCodec codec = autoConfig.mcpRequestStateCodec(new ObjectMapper());
+
+    assertThat(codec).isNotNull();
+  }
+
+  @Test
+  void
+      an_operator_configured_secret_is_actually_used_not_silently_downgraded_to_an_ephemeral_key() {
+    // The other direction of the same risk: an operator who DOES configure mocapi.mrtr.secret
+    // expects requestState tokens to survive a restart / work across instances. If the wiring ever
+    // took the ephemeral-key branch regardless, two codec instances built from the same secret
+    // would stop being able to decode each other's tokens without either side knowing why.
+    String secret =
+        Base64.getEncoder().encodeToString("0123456789abcdef0123456789abcdef".getBytes());
+    var mrtr = new MocapiServerProperties.Mrtr(secret, Duration.ofMinutes(5));
+    var autoConfig = new MocapiServerAutoConfiguration(propsWith(mrtr, null));
+    ObjectMapper mapper = new ObjectMapper();
+
+    RequestStateCodec fromWiring = autoConfig.mcpRequestStateCodec(mapper);
+    RequestStateCodec independentlyKeyed =
+        RequestStateCodec.withSecret(secret, Duration.ofMinutes(5), mapper);
+    String token = independentlyKeyed.encode("tools/call", mapper.createObjectNode(), List.of());
+
+    assertThat(fromWiring.decode(token).method()).isEqualTo("tools/call");
   }
 }

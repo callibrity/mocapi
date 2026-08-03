@@ -20,6 +20,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.callibrity.mocapi.model.CacheScope;
 import com.callibrity.mocapi.model.DiscoverResult;
 import com.callibrity.mocapi.model.Prompt;
@@ -32,6 +36,7 @@ import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.resources.ReadResourceHandler;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandler;
 import com.callibrity.mocapi.server.tools.McpToolsService;
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -39,6 +44,7 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
@@ -192,6 +198,76 @@ class MocapiStartupBannerTest {
     void falls_back_to_the_compiled_in_version_without_a_discover_bean() {
       String banner = banner().build().render();
       assertThat(banner).contains("Protocol: " + McpServer.PROTOCOL_VERSION);
+    }
+  }
+
+  @Nested
+  class Onready_logging_gate {
+
+    @Test
+    void the_banner_is_emitted_at_info_so_ops_can_see_the_startup_summary_in_the_logs() {
+      Logger logger = (Logger) LoggerFactory.getLogger(MocapiStartupBanner.class);
+      Level original = logger.getLevel();
+      var appender = new ListAppender<ILoggingEvent>();
+      appender.start();
+      logger.addAppender(appender);
+      logger.setLevel(Level.INFO);
+      try {
+        banner().build().onReady();
+
+        assertThat(appender.list)
+            .anySatisfy(event -> assertThat(event.getFormattedMessage()).contains(":: @Mocapi ::"));
+      } finally {
+        logger.detachAppender(appender);
+        logger.setLevel(original);
+      }
+    }
+
+    @Test
+    void the_banner_is_skipped_entirely_when_info_logging_is_disabled_avoiding_wasted_rendering() {
+      // isInfoEnabled() guards the (non-trivial) render() call: with INFO filtered out, nothing
+      // should be rendered or logged at all — not even at a suppressed level.
+      Logger logger = (Logger) LoggerFactory.getLogger(MocapiStartupBanner.class);
+      Level original = logger.getLevel();
+      var appender = new ListAppender<ILoggingEvent>();
+      appender.start();
+      logger.addAppender(appender);
+      logger.setLevel(Level.WARN);
+      try {
+        banner().build().onReady();
+
+        assertThat(appender.list).isEmpty();
+      } finally {
+        logger.detachAppender(appender);
+        logger.setLevel(original);
+      }
+    }
+  }
+
+  @Nested
+  class Bean_presence_detection {
+
+    @Test
+    void an_optional_module_missing_from_the_classpath_is_reported_absent_not_thrown_as_an_error() {
+      // beanPresent() looks up transport/audit/logging/o11y/JwtDecoder classes by name specifically
+      // so this autoconfig has no hard compile dependency on them. A ClassNotFoundException for a
+      // module the deployment genuinely didn't include must degrade to "not present", never bubble
+      // up and crash application startup over a cosmetic banner line.
+      MocapiStartupBanner instance = banner().build();
+
+      boolean present = invokeBeanPresent(instance, "com.callibrity.mocapi.totally.NotOnClasspath");
+
+      assertThat(present).isFalse();
+    }
+
+    private static boolean invokeBeanPresent(MocapiStartupBanner instance, String fqcn) {
+      try {
+        Method method = MocapiStartupBanner.class.getDeclaredMethod("beanPresent", String.class);
+        method.setAccessible(true);
+        return (boolean) method.invoke(instance, fqcn);
+      } catch (ReflectiveOperationException e) {
+        throw new IllegalStateException(e);
+      }
     }
   }
 

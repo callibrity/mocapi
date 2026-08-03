@@ -187,6 +187,23 @@ class McpActuatorEndpointTest {
   }
 
   @Test
+  void
+      a_prompt_with_no_declared_arguments_reports_null_arguments_instead_of_npe_ing_the_endpoint() {
+    // Prompt.arguments() is nullable (no-argument prompts are common). If toPromptInfo() ever
+    // dereferenced it unconditionally, every actuator snapshot request would 500 the moment it hit
+    // one argument-less prompt, hiding the whole /actuator/mcp endpoint behind one bad prompt.
+    Prompt promptWithoutArguments = new Prompt("ping", "Ping", "No-op prompt", null, null);
+    GetPromptHandler handler =
+        promptHandler(
+            promptWithoutArguments,
+            new HandlerDescriptor(HandlerKind.PROMPT, "com.example.Ping", "ping", List.of()));
+
+    McpActuatorSnapshot.PromptInfo info = McpActuatorSnapshots.toPromptInfo(handler);
+
+    assertThat(info.arguments()).isNull();
+  }
+
+  @Test
   void digest_is_deterministic_for_equivalent_schemas() {
     ObjectNode a = MAPPER.createObjectNode().put("type", "object");
     ObjectNode b = MAPPER.createObjectNode().put("type", "object");

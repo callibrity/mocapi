@@ -21,12 +21,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.mocapi.model.ElicitAction;
 import com.callibrity.mocapi.model.ElicitResult;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.List;
+import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Nested;
@@ -172,6 +176,41 @@ class RequestStateCodecTest {
       assertThatThrownBy(() -> codec.decode(tooShort))
           .isInstanceOf(InvalidRequestStateException.class)
           .hasMessageContaining("too short");
+    }
+  }
+
+  @Nested
+  class Payload_integrity {
+
+    private static final String AES = "AES";
+    private static final String TRANSFORMATION = "AES/GCM/NoPadding";
+    private static final int NONCE_LENGTH = 12;
+    private static final int TAG_LENGTH_BITS = 128;
+
+    @Test
+    void
+        a_token_that_decrypts_correctly_but_carries_non_json_garbage_is_rejected_as_invalid_not_silently_accepted()
+            throws GeneralSecurityException {
+      // A forged or corrupted token that happens to decrypt under the right key (so GCM
+      // authentication passes) must still be rejected if the plaintext isn't a valid
+      // RequestStatePayload — otherwise a client could smuggle arbitrary bytes past the codec by
+      // encrypting them with a leaked or guessed key and skipping the JSON envelope entirely.
+      byte[] keyBytes = Base64.getDecoder().decode(SECRET);
+      byte[] nonce = new byte[NONCE_LENGTH];
+      Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+      cipher.init(
+          Cipher.ENCRYPT_MODE,
+          new SecretKeySpec(keyBytes, AES),
+          new GCMParameterSpec(TAG_LENGTH_BITS, nonce));
+      byte[] ciphertext = cipher.doFinal("not a json payload".getBytes(StandardCharsets.UTF_8));
+      byte[] combined = new byte[nonce.length + ciphertext.length];
+      System.arraycopy(nonce, 0, combined, 0, nonce.length);
+      System.arraycopy(ciphertext, 0, combined, nonce.length, ciphertext.length);
+      String forgedToken = Base64.getUrlEncoder().withoutPadding().encodeToString(combined);
+
+      assertThatThrownBy(() -> codec.decode(forgedToken))
+          .isInstanceOf(InvalidRequestStateException.class)
+          .hasMessageContaining("malformed");
     }
   }
 
