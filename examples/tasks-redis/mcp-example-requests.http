@@ -1,0 +1,260 @@
+### (1) tools/call batch_resize — capable client (tasks extension declared) -> CreateTaskResult
+# Response: {"result":{"taskId":"...","status":"working","statusMessage":null,"createdAt":"...",
+# "lastUpdatedAt":"...","ttlMs":600000,"pollIntervalMs":1000,"resultType":"task"}}
+# Copy the taskId into {{taskId}} below (or use the response handler to capture it automatically).
+POST http://localhost:8083/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: batch_resize
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": { "extensions": { "io.modelcontextprotocol/tasks": {} } },
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "name": "batch_resize",
+    "arguments": { "items": 5 }
+  }
+}
+
+> {%
+    client.global.set("taskId", response.body.result.taskId);
+%}
+
+### (2) tasks/get poll — Mcp-Name is the taskId from step 1
+# Response while running: {"result":{"taskId":"...","status":"working",
+# "statusMessage":"item 3", ...}} — poll a few times (pollIntervalMs is 1000) and watch
+# statusMessage move ("item 1", "item 2", ...) until status flips to "completed" with a
+# "result" containing the BatchResizeResult structured content.
+POST http://localhost:8083/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tasks/get
+Mcp-Name: {{taskId}}
+
+{
+  "id": 2,
+  "jsonrpc": "2.0",
+  "method": "tasks/get",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": { "extensions": { "io.modelcontextprotocol/tasks": {} } },
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "taskId": "{{taskId}}"
+  }
+}
+
+### (3) tools/call confirmed_report — tasks + elicitation capabilities declared -> CreateTaskResult
+# Response: {"result":{"taskId":"...","status":"working" or "input_required", ...}}
+# The handler runs to its ctx.elicit(...) call almost immediately, so the very first
+# tasks/get poll in step (4) below will most likely already show "input_required".
+POST http://localhost:8083/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: confirmed_report
+
+{
+  "id": 3,
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {
+        "elicitation": {},
+        "extensions": { "io.modelcontextprotocol/tasks": {} }
+      },
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "name": "confirmed_report",
+    "arguments": { "subject": "Q3 revenue" }
+  }
+}
+
+> {%
+    client.global.set("reportTaskId", response.body.result.taskId);
+%}
+
+### (4) tasks/get — shows input_required with the pending elicit request
+# Response: {"result":{"taskId":"...","status":"input_required",
+# "inputRequests":{"<key>":{"message":"Publish the report about Q3 revenue?","requestedSchema":{...}}},
+# ...}}
+# Capture the inputRequests key into {{elicitKey}} for step (5).
+POST http://localhost:8083/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tasks/get
+Mcp-Name: {{reportTaskId}}
+
+{
+  "id": 4,
+  "jsonrpc": "2.0",
+  "method": "tasks/get",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {
+        "elicitation": {},
+        "extensions": { "io.modelcontextprotocol/tasks": {} }
+      },
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "taskId": "{{reportTaskId}}"
+  }
+}
+
+> {%
+    client.global.set("elicitKey", Object.keys(response.body.result.inputRequests)[0]);
+%}
+
+### (5) tasks/update — answers the elicitation (accept, publish=true) and resumes the task
+# Response: {"result":{"taskId":"...","status":"working" or "completed", ...}} — the
+# acknowledgement that the answer was accepted; the tool then re-runs from the top
+# (MRTR replay) and this time the elicit call returns immediately with the answer.
+POST http://localhost:8083/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tasks/update
+Mcp-Name: {{reportTaskId}}
+
+{
+  "id": 5,
+  "jsonrpc": "2.0",
+  "method": "tasks/update",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {
+        "elicitation": {},
+        "extensions": { "io.modelcontextprotocol/tasks": {} }
+      },
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "taskId": "{{reportTaskId}}",
+    "inputResponses": {
+      "{{elicitKey}}": {
+        "action": "accept",
+        "content": { "publish": true }
+      }
+    }
+  }
+}
+
+### (6) tasks/get — shows completed, with the published ReportResult in `result`
+# Response: {"result":{"taskId":"...","status":"completed",
+# "result":{"content":[{"type":"text","text":"{\"subject\":\"Q3 revenue\",\"published\":true,...}"}],
+# "structuredContent":{"subject":"Q3 revenue","published":true,
+# "message":"Report on Q3 revenue compiled. Published."}}, ...}}
+POST http://localhost:8083/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tasks/get
+Mcp-Name: {{reportTaskId}}
+
+{
+  "id": 6,
+  "jsonrpc": "2.0",
+  "method": "tasks/get",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {
+        "elicitation": {},
+        "extensions": { "io.modelcontextprotocol/tasks": {} }
+      },
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "taskId": "{{reportTaskId}}"
+  }
+}
+
+### (7) tasks/cancel — cancel the batch_resize task from step (1) (run step 1 again first if it already completed)
+# Response: {"result":{"taskId":"...","status":"cancelled", ...}} if it was still running,
+# or a JSON-RPC error if it had already reached a terminal status.
+POST http://localhost:8083/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tasks/cancel
+Mcp-Name: {{taskId}}
+
+{
+  "id": 7,
+  "jsonrpc": "2.0",
+  "method": "tasks/cancel",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": { "extensions": { "io.modelcontextprotocol/tasks": {} } },
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "taskId": "{{taskId}}"
+  }
+}
+
+### (8) tools/call batch_resize — NON-capable client (no tasks extension) -> sync degrade
+# Response: the call blocks for ~items*300ms and returns an ordinary tools/call result —
+# {"result":{"content":[{"type":"text","text":"..."}],
+# "structuredContent":{"items":3,"message":"Resized 3 image(s)"}}} — no CreateTaskResult,
+# no polling; @McpTask without required=true falls back to plain synchronous execution.
+POST http://localhost:8083/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: batch_resize
+
+{
+  "id": 8,
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "name": "batch_resize",
+    "arguments": { "items": 3 }
+  }
+}
+
+### (9) tools/call must_run_as_task — NON-capable client -> rejected with -32021
+# Response: {"error":{"code":-32021,"message":"..."}} — @McpTask(required = true) rejects
+# rather than degrading to synchronous execution.
+POST http://localhost:8083/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: must_run_as_task
+
+{
+  "id": 9,
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": { "name": "httpie", "version": "1.0" },
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+    },
+    "name": "must_run_as_task",
+    "arguments": {}
+  }
+}

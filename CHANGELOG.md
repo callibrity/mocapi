@@ -28,7 +28,11 @@ All notable changes to this project are documented in this file. The format is b
   The Substrate baseline is 0.8.1, which ships the upstream fix for the
   codec/substrate auto-configuration ordering bug this work surfaced;
   mocapi's `SubstrateOrderingAutoConfiguration` shim is retained as
-  defense-in-depth for applications pinned to Substrate 0.8.0.
+  defense-in-depth for applications pinned to Substrate 0.8.0. A runnable
+  Redis-backed example (`examples/tasks-redis`) demonstrates
+  kill-and-resume: Spring Boot's Docker Compose support starts Redis,
+  the app is killed at `input_required`, and after a restart the
+  elicitation answer resumes the task via MRTR replay through the store.
 
 ### Fixed
 

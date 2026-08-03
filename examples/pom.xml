@@ -35,6 +35,7 @@
         <module>stdio</module>
         <module>apps</module>
         <module>tasks</module>
+        <module>tasks-redis</module>
     </modules>
 
     <!--
