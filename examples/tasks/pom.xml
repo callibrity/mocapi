@@ -133,5 +133,33 @@
                 </plugins>
             </build>
         </profile>
+
+        <!--
+            Substrate-backed store swap: proves that adding mocapi-tasks-substrate + a
+            Substrate Atom SPI backend to the classpath swaps InMemoryTaskStore for the
+            Substrate-backed TaskStore with zero app-code changes. substrate-core alone
+            gives the in-memory Atom SPI fallback (fine for this single-node example);
+            the point is proving the wiring, not clustering the demo.
+
+            mvn -pl examples/tasks -am -Psubstrate spring-boot:run
+        -->
+        <profile>
+            <id>substrate</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.callibrity.mocapi</groupId>
+                    <artifactId>mocapi-tasks-substrate</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.jwcarman.substrate</groupId>
+                    <artifactId>substrate-core</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.jwcarman.codec</groupId>
+                    <artifactId>codec-jackson</artifactId>
+                </dependency>
+            </dependencies>
+        </profile>
     </profiles>
 </project>
