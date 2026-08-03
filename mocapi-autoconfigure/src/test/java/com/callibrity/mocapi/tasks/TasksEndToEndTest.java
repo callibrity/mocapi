@@ -409,14 +409,11 @@ class TasksEndToEndTest {
 
     final AtomicInteger confirmTwiceExecutions = new AtomicInteger();
 
-    @McpTool(name = "slow_echo", description = "Echoes its input after a short delay")
+    @McpTool(name = "slow_echo", description = "Echoes its input")
     @McpTask
     public String slowEcho(String message) {
-      try {
-        Thread.sleep(30);
-      } catch (InterruptedException _) {
-        Thread.currentThread().interrupt();
-      }
+      // No artificial delay: the create -> poll -> completed flow is timing-independent (the
+      // first poll simply finds the task already completed), and no test observes "working".
       return "echo:" + message;
     }
 
