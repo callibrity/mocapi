@@ -121,3 +121,26 @@ Denial of either hides the handler at list time and returns JSON-RPC
 shape (`mocapi-oauth2` + `mocapi-spring-security-guards` + a transport
 starter). Other guard packages (tenant checks, rate limits, custom auth
 schemes) are user or third-party concerns.
+
+### Externalizing scope/role values
+
+Each element of `@RequiresScope`/`@RequiresRole`'s `value()` resolves
+`${...}`/`#{...}` placeholders via the same `mcpAnnotationValueResolver`
+convention as every other mocapi annotation (see
+[Externalizing Metadata](externalizing-metadata.md)), resolved once at
+handler-build (startup) time — before the `ScopeGuard`/`RoleGuard`
+instance is constructed:
+
+```java
+@McpTool(name = "tenant_admin_op")
+@RequiresScope("${app.admin-scope}")
+public void tenantAdminOp(...) { ... }
+```
+
+```properties
+app.admin-scope=admin:write
+```
+
+A placeholder that fails to resolve fails application startup with
+Spring's standard `PlaceholderResolutionException` — the same fail-fast
+behavior as every other externalized mocapi annotation attribute.

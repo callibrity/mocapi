@@ -96,9 +96,24 @@ System.out.println(java.util.Base64.getEncoder().encodeToString(k));
 
 Generate the key once per environment and store it in your secret manager (Vault, AWS Secrets Manager, Kubernetes Secret, etc.) -- not in source control. Rotating the key invalidates outstanding `requestState` tokens, so in-flight elicitations at rotation time fail with `-32602` and the client starts the call over -- annoying but harmless, given the short TTL.
 
+## Apps Properties
+
+`mocapi-apps` reads these as config fallbacks for `@McpAppResource`'s
+`csp`/`sandbox` attributes when they're left at their empty defaults —
+see [Apps](apps.md#csp-sandbox-defaults-and-the-mocapiapps-properties).
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `mocapi.apps.csp.connect` | (empty) | Fallback CSP `connect` domains, applied when a `@Csp#connect()` list is empty. |
+| `mocapi.apps.csp.resource` | (empty) | Fallback CSP `resource` domains, applied when a `@Csp#resource()` list is empty. |
+| `mocapi.apps.csp.frame` | (empty) | Fallback CSP `frame` domains, applied when a `@Csp#frame()` list is empty. |
+| `mocapi.apps.csp.base-uri` | (empty) | Fallback CSP `baseUri` domains, applied when a `@Csp#baseUri()` list is empty. |
+| `mocapi.apps.sandbox` | (empty) | Fallback sandbox tokens, applied when `@McpAppResource#sandbox()` is left at its `{}` default. |
+
 ## Module-Specific Properties
 
 Some optional modules carry their own property prefixes, documented in their guides:
 
 - `mocapi.oauth2.*` -- OAuth2 resource-server settings; see [Authorization](authorization.md).
 - `mocapi.audit.*` -- audit-log options such as `mocapi.audit.hash-arguments`; see [Audit](audit.md).
+- `mocapi.tasks.*` -- `@McpTask` `ttl`/`pollInterval` defaults and store sweep interval; see [Tasks](tasks.md).

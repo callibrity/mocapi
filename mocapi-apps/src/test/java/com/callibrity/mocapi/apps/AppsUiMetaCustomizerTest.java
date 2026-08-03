@@ -23,6 +23,8 @@ import com.callibrity.mocapi.server.guards.Guard;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerConfig;
 import com.callibrity.mocapi.server.tools.CallToolHandlerConfig;
 import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInterceptor;
@@ -76,6 +78,23 @@ class AppsUiMetaCustomizerTest {
 
     public void plain() {
       // Reflection fixture: an un-annotated method to exercise the no-op path.
+    }
+
+    @McpUi(
+        value = "${app.ui-uri}",
+        visibility = {"${app.ui-visibility}"})
+    public void toolPlaceholder() {
+      // Reflection fixture: only the annotations are read; the body is intentionally empty.
+    }
+
+    @McpAppResource(uri = "ui://empty")
+    public void resNoCspNoSandbox() {
+      // Reflection fixture: exercises the config-fallback path (both unset).
+    }
+
+    @McpAppResource(uri = "ui://res", csp = @Csp(connect = "${app.cdn}"))
+    public void resPlaceholderCsp() {
+      // Reflection fixture: only the annotations are read; the body is intentionally empty.
     }
   }
 
@@ -226,7 +245,7 @@ class AppsUiMetaCustomizerTest {
 
   @Test
   void tool_customizer_stamps_ui_meta_when_McpUi_present() throws Exception {
-    var customizer = new AppsToolUiMetaCustomizer(mapper);
+    var customizer = new AppsToolUiMetaCustomizer(mapper, v -> v);
     var config =
         new FakeToolConfig(
             method("tool"), new Tool("t", "T", "d", mapper.createObjectNode(), null));
@@ -238,7 +257,7 @@ class AppsUiMetaCustomizerTest {
 
   @Test
   void tool_customizer_is_a_noop_without_McpUi() throws Exception {
-    var customizer = new AppsToolUiMetaCustomizer(mapper);
+    var customizer = new AppsToolUiMetaCustomizer(mapper, v -> v);
     Tool in = new Tool("t", "T", "d", mapper.createObjectNode(), null);
     var config = new FakeToolConfig(method("plain"), in);
     customizer.customize(config);
@@ -247,7 +266,7 @@ class AppsUiMetaCustomizerTest {
 
   @Test
   void resource_customizer_stamps_ui_csp_when_McpAppResource_present() throws Exception {
-    var customizer = new AppsResourceUiMetaCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper, v -> v, AppsUiDefaults.none());
     var config =
         new FakeResourceConfig(
             method("ui"), new Resource("ui://dash", "Dash", "d", "text/html;profile=mcp-app"));
@@ -259,7 +278,7 @@ class AppsUiMetaCustomizerTest {
 
   @Test
   void resource_customizer_is_a_noop_without_McpAppResource() throws Exception {
-    var customizer = new AppsResourceUiMetaCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper, v -> v, AppsUiDefaults.none());
     Resource in = new Resource("res://x", "X", "d", "text/plain");
     var config = new FakeResourceConfig(method("plain"), in);
     customizer.customize(config);
@@ -268,7 +287,7 @@ class AppsUiMetaCustomizerTest {
 
   @Test
   void resource_customizer_omits_csp_when_no_domains_are_declared() throws Exception {
-    var customizer = new AppsResourceUiMetaCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper, v -> v, AppsUiDefaults.none());
     var config =
         new FakeResourceConfig(
             method("resNoCsp"), new Resource("ui://plain", "Plain", "d", "text/html"));
@@ -280,7 +299,7 @@ class AppsUiMetaCustomizerTest {
 
   @Test
   void resource_customizer_stamps_resource_domains() throws Exception {
-    var customizer = new AppsResourceUiMetaCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper, v -> v, AppsUiDefaults.none());
     var config =
         new FakeResourceConfig(method("resResourceCsp"), new Resource("ui://res", "R", "d", "t"));
     customizer.customize(config);
@@ -291,7 +310,7 @@ class AppsUiMetaCustomizerTest {
 
   @Test
   void resource_customizer_stamps_frame_domains() throws Exception {
-    var customizer = new AppsResourceUiMetaCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper, v -> v, AppsUiDefaults.none());
     var config =
         new FakeResourceConfig(method("resFrameCsp"), new Resource("ui://res", "R", "d", "t"));
     customizer.customize(config);
@@ -302,7 +321,7 @@ class AppsUiMetaCustomizerTest {
 
   @Test
   void resource_customizer_stamps_base_uri_domains() throws Exception {
-    var customizer = new AppsResourceUiMetaCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper, v -> v, AppsUiDefaults.none());
     var config =
         new FakeResourceConfig(method("resBaseUriCsp"), new Resource("ui://res", "R", "d", "t"));
     customizer.customize(config);
@@ -313,7 +332,7 @@ class AppsUiMetaCustomizerTest {
 
   @Test
   void resource_customizer_stamps_sandbox_tokens() throws Exception {
-    var customizer = new AppsResourceUiMetaCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper, v -> v, AppsUiDefaults.none());
     var config =
         new FakeResourceConfig(method("resSandbox"), new Resource("ui://res", "R", "d", "t"));
     customizer.customize(config);
@@ -323,8 +342,75 @@ class AppsUiMetaCustomizerTest {
   }
 
   @Test
+  void tool_customizer_resolves_placeholders_in_value_and_visibility() throws Exception {
+    Map<String, String> properties =
+        Map.of("${app.ui-uri}", "ui://dash", "${app.ui-visibility}", "app");
+    var customizer = new AppsToolUiMetaCustomizer(mapper, properties::get);
+    var config =
+        new FakeToolConfig(
+            method("toolPlaceholder"), new Tool("t", "T", "d", mapper.createObjectNode(), null));
+    customizer.customize(config);
+    Tool out = config.descriptor();
+    assertThat(out.meta().path("ui").path("resourceUri").asString()).isEqualTo("ui://dash");
+    assertThat(out.meta().path("ui").path("visibility").get(0).asString()).isEqualTo("app");
+  }
+
+  @Test
+  void resource_customizer_falls_back_to_config_defaults_when_csp_and_sandbox_are_unset()
+      throws Exception {
+    var defaults =
+        new AppsUiDefaults(
+            List.of("https://default-connect.example.com"),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of("allow-scripts"));
+    var customizer = new AppsResourceUiMetaCustomizer(mapper, v -> v, defaults);
+    var config =
+        new FakeResourceConfig(
+            method("resNoCspNoSandbox"), new Resource("ui://empty", "Empty", "d", "text/html"));
+    customizer.customize(config);
+    Resource out = config.descriptor();
+    assertThat(out.meta().path("ui").path("csp").path("connectDomains").get(0).asString())
+        .isEqualTo("https://default-connect.example.com");
+    assertThat(out.meta().path("ui").path("sandbox").get(0).asString()).isEqualTo("allow-scripts");
+  }
+
+  @Test
+  void resource_customizer_annotation_values_win_over_config_defaults() throws Exception {
+    var defaults =
+        new AppsUiDefaults(
+            List.of("https://default-connect.example.com"),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of("allow-scripts"));
+    var customizer = new AppsResourceUiMetaCustomizer(mapper, v -> v, defaults);
+    var config =
+        new FakeResourceConfig(method("resSandbox"), new Resource("ui://res", "R", "d", "t"));
+    customizer.customize(config);
+    Resource out = config.descriptor();
+    assertThat(out.meta().path("ui").path("sandbox").get(0).asString()).isEqualTo("allow-scripts");
+    assertThat(out.meta().path("ui").path("sandbox").get(1).asString()).isEqualTo("allow-forms");
+  }
+
+  @Test
+  void resource_customizer_resolves_placeholders_in_csp_elements() throws Exception {
+    Map<String, String> properties = Map.of("${app.cdn}", "https://cdn.example.com");
+    var customizer =
+        new AppsResourceUiMetaCustomizer(mapper, properties::get, AppsUiDefaults.none());
+    var config =
+        new FakeResourceConfig(
+            Fixture.class.getMethod("resPlaceholderCsp"), new Resource("ui://res", "R", "d", "t"));
+    customizer.customize(config);
+    Resource out = config.descriptor();
+    assertThat(out.meta().path("ui").path("csp").path("connectDomains").get(0).asString())
+        .isEqualTo("https://cdn.example.com");
+  }
+
+  @Test
   void resource_customizer_preserves_existing_meta() throws Exception {
-    var customizer = new AppsResourceUiMetaCustomizer(mapper);
+    var customizer = new AppsResourceUiMetaCustomizer(mapper, v -> v, AppsUiDefaults.none());
     Resource withMeta =
         new Resource("ui://dash", "Dash", "d", "text/html")
             .withMeta(mapper.createObjectNode().put("existing", "kept"));

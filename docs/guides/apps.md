@@ -132,7 +132,42 @@ permissions on `@McpAppResource` itself:
 Both `csp` and `sandbox` show up in the resource's `_meta.ui` — see
 [Wire shape](#wire-shape) below.
 
-## Link a tool to its UI with `@McpUi`
+Every `String`/`String[]` attribute here — `@McpUi`'s `value`, `resource`,
+and `visibility`; `@Csp`'s four domain lists; `@McpAppResource`'s
+`sandbox` — resolves `${...}`/`#{...}` placeholders per element, the same
+`mcpAnnotationValueResolver` convention the rest of mocapi's annotations
+follow (see [Externalizing Metadata](externalizing-metadata.md)).
+`McpUiReferenceValidator` compares the *resolved* `@McpUi` URI against
+*resolved* resource URIs, so a shared placeholder like
+`${app.dashboard-uri}` on both sides still matches after resolution.
+
+### CSP/sandbox defaults and the `mocapi.apps.*` properties
+
+A `@McpAppResource` that leaves `csp`/`sandbox` at their empty defaults
+falls back to server-wide defaults from `mocapi.apps.*`:
+
+```properties
+mocapi.apps.csp.connect=https://api.example.com
+mocapi.apps.csp.resource=https://cdn.example.com
+mocapi.apps.csp.frame=
+mocapi.apps.csp.base-uri=
+mocapi.apps.sandbox=allow-scripts
+```
+
+The fallback applies **per CSP domain list**, not per-`@Csp`-instance: if
+your resource declares `@Csp(connect = "https://api.example.com")` and
+leaves `resource`/`frame`/`baseUri` empty, those three fall back to the
+matching `mocapi.apps.csp.*` default while `connect` keeps its literal
+value. `sandbox` falls back as a whole when left at `{}`.
+
+This is deliberately per-list rather than "annotation present vs.
+absent": Java gives no reflective way to tell "`@Csp` was written with no
+elements" apart from "`@Csp` wasn't written at all" — both produce the
+identical all-empty default instance. `sandbox`'s `{}` default has the
+same limitation. If you need a resource with *zero* CSP/sandbox even
+though a server-wide default is configured, that specific combination
+isn't expressible today — declare the resource without a global default,
+or accept the default.
 
 Add `@McpUi` to an existing `@McpTool` method to tell the host which
 `ui://` resource renders that tool's results:

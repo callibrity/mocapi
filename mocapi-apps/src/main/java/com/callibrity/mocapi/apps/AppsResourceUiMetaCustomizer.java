@@ -18,22 +18,33 @@ package com.callibrity.mocapi.apps;
 import com.callibrity.mocapi.model.Resource;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerConfig;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
+import com.callibrity.mocapi.server.util.AnnotationStrings;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.UnaryOperator;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Writes a UI resource's {@code _meta.ui} (CSP/sandbox) from an {@link McpAppResource}, when
- * present (ADR-0039).
+ * present (ADR-0039). Each {@code csp}/{@code sandbox} domain list resolves {@code ${...}}
+ * placeholders per-element, then falls back to the matching {@link AppsUiDefaults} entry when the
+ * resolved list is empty.
  */
 public class AppsResourceUiMetaCustomizer implements ReadResourceHandlerCustomizer {
 
   private final ObjectMapper mapper;
+  private final UnaryOperator<String> resolver;
+  private final AppsUiDefaults defaults;
 
-  public AppsResourceUiMetaCustomizer(ObjectMapper mapper) {
+  public AppsResourceUiMetaCustomizer(
+      ObjectMapper mapper, UnaryOperator<String> resolver, AppsUiDefaults defaults) {
     this.mapper = mapper;
+    this.resolver = resolver;
+    this.defaults = defaults;
   }
 
   @Override
@@ -43,7 +54,7 @@ public class AppsResourceUiMetaCustomizer implements ReadResourceHandlerCustomiz
     if (app == null) {
       return;
     }
-    UiResourceMeta uiMeta = new UiResourceMeta(csp(app.csp()), listOrNull(app.sandbox()));
+    UiResourceMeta uiMeta = new UiResourceMeta(csp(app.csp()), sandbox(app.sandbox()));
     Resource descriptor = config.descriptor();
     ObjectNode meta = descriptor.meta() != null ? descriptor.meta() : mapper.createObjectNode();
     meta.set("ui", mapper.valueToTree(uiMeta));
@@ -53,10 +64,10 @@ public class AppsResourceUiMetaCustomizer implements ReadResourceHandlerCustomiz
   private McpUiResourceCsp csp(Csp csp) {
     McpUiResourceCsp result =
         new McpUiResourceCsp(
-            listOrNull(csp.connect()),
-            listOrNull(csp.resource()),
-            listOrNull(csp.frame()),
-            listOrNull(csp.baseUri()));
+            resolvedOrDefault(csp.connect(), defaults.cspConnect()),
+            resolvedOrDefault(csp.resource(), defaults.cspResource()),
+            resolvedOrDefault(csp.frame(), defaults.cspFrame()),
+            resolvedOrDefault(csp.baseUri(), defaults.cspBaseUri()));
     boolean empty =
         result.connectDomains() == null
             && result.resourceDomains() == null
@@ -65,7 +76,17 @@ public class AppsResourceUiMetaCustomizer implements ReadResourceHandlerCustomiz
     return empty ? null : result;
   }
 
-  private static List<String> listOrNull(String[] values) {
-    return values.length == 0 ? null : List.of(values);
+  private List<String> sandbox(String[] values) {
+    return resolvedOrDefault(values, defaults.sandbox());
+  }
+
+  private List<String> resolvedOrDefault(String[] values, List<String> fallback) {
+    List<String> resolved =
+        Arrays.stream(values)
+            .map(v -> AnnotationStrings.resolveOrNull(resolver, v))
+            .filter(Objects::nonNull)
+            .toList();
+    List<String> effective = resolved.isEmpty() ? fallback : resolved;
+    return effective.isEmpty() ? null : effective;
   }
 }

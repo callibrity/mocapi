@@ -23,9 +23,11 @@ import com.callibrity.mocapi.server.autoconfigure.HandlerMethodsCache;
 import com.callibrity.mocapi.server.resources.ReadResourceHandler;
 import com.callibrity.mocapi.server.resources.ResourceContributor;
 import com.callibrity.mocapi.server.resources.ResourceResults;
+import com.callibrity.mocapi.server.util.AnnotationStrings;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -53,7 +55,10 @@ public final class AppUiResourceContributor implements ResourceContributor {
   private final List<ReadResourceHandler> resources;
 
   public AppUiResourceContributor(
-      HandlerMethodsCache cache, ResourceLoader resourceLoader, ObjectMapper mapper) {
+      HandlerMethodsCache cache,
+      ResourceLoader resourceLoader,
+      ObjectMapper mapper,
+      UnaryOperator<String> resolver) {
     if (cache == null) {
       this.resources = List.of();
       return;
@@ -61,18 +66,21 @@ public final class AppUiResourceContributor implements ResourceContributor {
     Map<String, String> locationByUri = new LinkedHashMap<>();
     for (HandlerMethodsCache.BeanMethod bm : cache.forAnnotation(McpTool.class)) {
       McpUi ui = AnnotatedElementUtils.findMergedAnnotation(bm.method(), McpUi.class);
-      if (ui == null || ui.resource().isBlank()) {
+      String resourceLocation =
+          ui == null ? null : AnnotationStrings.resolveOrNull(resolver, ui.resource());
+      if (ui == null || resourceLocation == null) {
         continue;
       }
-      String existing = locationByUri.putIfAbsent(ui.value(), ui.resource());
-      if (existing != null && !existing.equals(ui.resource())) {
+      String uri = AnnotationStrings.resolveOrNull(resolver, ui.value());
+      String existing = locationByUri.putIfAbsent(uri, resourceLocation);
+      if (existing != null && !existing.equals(resourceLocation)) {
         throw new IllegalStateException(
             "MCP Apps: @McpUi(\""
-                + ui.value()
+                + uri
                 + "\") is served from two different locations: \""
                 + existing
                 + "\" and \""
-                + ui.resource()
+                + resourceLocation
                 + "\"");
       }
     }

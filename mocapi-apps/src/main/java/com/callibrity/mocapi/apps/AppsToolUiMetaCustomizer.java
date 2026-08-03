@@ -18,8 +18,11 @@ package com.callibrity.mocapi.apps;
 import com.callibrity.mocapi.model.Tool;
 import com.callibrity.mocapi.server.tools.CallToolHandlerConfig;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
+import com.callibrity.mocapi.server.util.AnnotationStrings;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.UnaryOperator;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -27,9 +30,11 @@ import tools.jackson.databind.node.ObjectNode;
 public class AppsToolUiMetaCustomizer implements CallToolHandlerCustomizer {
 
   private final ObjectMapper mapper;
+  private final UnaryOperator<String> resolver;
 
-  public AppsToolUiMetaCustomizer(ObjectMapper mapper) {
+  public AppsToolUiMetaCustomizer(ObjectMapper mapper, UnaryOperator<String> resolver) {
     this.mapper = mapper;
+    this.resolver = resolver;
   }
 
   @Override
@@ -39,7 +44,12 @@ public class AppsToolUiMetaCustomizer implements CallToolHandlerCustomizer {
     if (ui == null) {
       return;
     }
-    McpUiToolMeta uiMeta = new McpUiToolMeta(ui.value(), List.of(ui.visibility()));
+    String resourceUri = AnnotationStrings.resolveOrNull(resolver, ui.value());
+    List<String> visibility =
+        Arrays.stream(ui.visibility())
+            .map(v -> AnnotationStrings.resolveOrNull(resolver, v))
+            .toList();
+    McpUiToolMeta uiMeta = new McpUiToolMeta(resourceUri, visibility);
     Tool descriptor = config.descriptor();
     ObjectNode meta = descriptor.meta() != null ? descriptor.meta() : mapper.createObjectNode();
     meta.set("ui", mapper.valueToTree(uiMeta));

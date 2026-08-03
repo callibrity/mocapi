@@ -8,6 +8,19 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- **`${...}` placeholder resolution extended to `mocapi-apps` and
+  `mocapi-spring-security-guards`.** `@McpUi` (`value`, `resource`,
+  `visibility`), `@McpAppResource` (`csp` domain lists, `sandbox`), and
+  `@RequiresScope`/`@RequiresRole` (`value`, per element) now resolve
+  `${...}`/`#{...}` through the same `mcpAnnotationValueResolver`
+  convention already used by `@McpTool`/`@McpPrompt`/`@McpResource`/
+  `@McpResourceTemplate`/`@McpTask`. New `mocapi.apps.csp.connect` /
+  `.resource` / `.frame` / `.base-uri` / `mocapi.apps.sandbox`
+  configuration properties supply a server-wide CSP/sandbox default,
+  applied per CSP domain list when a `@McpAppResource`'s corresponding
+  attribute is left empty. See
+  [Externalizing Metadata](docs/guides/externalizing-metadata.md) and
+  [Apps](docs/guides/apps.md#csp-sandbox-defaults-and-the-mocapiapps-properties).
 - **`_meta` on `Prompt` and `ResourceTemplate`.** Both 1.0.0-vintage
   `mocapi-model` records gain an optional `_meta` field and a `withMeta`
   convenience method, matching the shape already carried by `Tool` and

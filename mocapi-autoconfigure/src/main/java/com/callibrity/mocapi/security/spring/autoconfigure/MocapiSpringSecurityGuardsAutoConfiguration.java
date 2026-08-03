@@ -21,12 +21,15 @@ import com.callibrity.mocapi.server.prompts.GetPromptHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceHandlerCustomizer;
 import com.callibrity.mocapi.server.resources.ReadResourceTemplateHandlerCustomizer;
 import com.callibrity.mocapi.server.tools.CallToolHandlerCustomizer;
+import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.Authentication;
+import org.springframework.util.StringValueResolver;
 
 /**
  * Wires {@link SpringSecurityGuards}-driven guards onto every MCP handler via the per-handler
@@ -47,12 +50,28 @@ public class MocapiSpringSecurityGuardsAutoConfiguration {
   private final Logger log =
       LoggerFactory.getLogger(MocapiSpringSecurityGuardsAutoConfiguration.class);
 
+  /**
+   * The {@code mcpAnnotationValueResolver} bean lives in {@code MocapiServerAutoConfiguration},
+   * which some minimal test/embedding apps deliberately exclude while still pulling in this module
+   * via classpath auto-configuration. {@link ObjectProvider} keeps that combination working: absent
+   * the bean, {@code ${...}} placeholders in {@code @RequiresScope}/{@code @RequiresRole} values
+   * simply pass through unresolved instead of failing context startup.
+   */
+  private static UnaryOperator<String> resolver(
+      ObjectProvider<StringValueResolver> mcpAnnotationValueResolver) {
+    StringValueResolver resolver = mcpAnnotationValueResolver.getIfAvailable(() -> value -> value);
+    return resolver::resolveStringValue;
+  }
+
   @Bean
-  public CallToolHandlerCustomizer springSecurityToolGuardCustomizer() {
+  public CallToolHandlerCustomizer springSecurityToolGuardCustomizer(
+      ObjectProvider<StringValueResolver> mcpAnnotationValueResolver) {
+    UnaryOperator<String> resolver = resolver(mcpAnnotationValueResolver);
     return config ->
         SpringSecurityGuards.attach(
             config,
             config.method(),
+            resolver,
             (c, g) -> {
               c.guard(g);
               log.info(
@@ -63,11 +82,14 @@ public class MocapiSpringSecurityGuardsAutoConfiguration {
   }
 
   @Bean
-  public GetPromptHandlerCustomizer springSecurityPromptGuardCustomizer() {
+  public GetPromptHandlerCustomizer springSecurityPromptGuardCustomizer(
+      ObjectProvider<StringValueResolver> mcpAnnotationValueResolver) {
+    UnaryOperator<String> resolver = resolver(mcpAnnotationValueResolver);
     return config ->
         SpringSecurityGuards.attach(
             config,
             config.method(),
+            resolver,
             (c, g) -> {
               c.guard(g);
               log.info(
@@ -78,11 +100,14 @@ public class MocapiSpringSecurityGuardsAutoConfiguration {
   }
 
   @Bean
-  public ReadResourceHandlerCustomizer springSecurityResourceGuardCustomizer() {
+  public ReadResourceHandlerCustomizer springSecurityResourceGuardCustomizer(
+      ObjectProvider<StringValueResolver> mcpAnnotationValueResolver) {
+    UnaryOperator<String> resolver = resolver(mcpAnnotationValueResolver);
     return config ->
         SpringSecurityGuards.attach(
             config,
             config.method(),
+            resolver,
             (c, g) -> {
               c.guard(g);
               log.info(
@@ -93,11 +118,14 @@ public class MocapiSpringSecurityGuardsAutoConfiguration {
   }
 
   @Bean
-  public ReadResourceTemplateHandlerCustomizer springSecurityResourceTemplateGuardCustomizer() {
+  public ReadResourceTemplateHandlerCustomizer springSecurityResourceTemplateGuardCustomizer(
+      ObjectProvider<StringValueResolver> mcpAnnotationValueResolver) {
+    UnaryOperator<String> resolver = resolver(mcpAnnotationValueResolver);
     return config ->
         SpringSecurityGuards.attach(
             config,
             config.method(),
+            resolver,
             (c, g) -> {
               c.guard(g);
               log.info(

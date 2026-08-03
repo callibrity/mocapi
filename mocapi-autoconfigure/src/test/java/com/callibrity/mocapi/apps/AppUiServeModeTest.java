@@ -143,7 +143,7 @@ class AppUiServeModeTest {
   @Test
   void a_null_handler_cache_contributes_no_resources() {
     var contributor =
-        new AppUiResourceContributor(null, new DefaultResourceLoader(), new ObjectMapper());
+        new AppUiResourceContributor(null, new DefaultResourceLoader(), new ObjectMapper(), v -> v);
     assertThat(contributor.resources()).isEmpty();
   }
 

@@ -21,6 +21,7 @@ import com.callibrity.mocapi.server.guards.Guard;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -53,6 +54,13 @@ class SpringSecurityGuardsTest {
     public void neither() {
       /* empty reflection target — see class javadoc. */
     }
+
+    /** Fixture target exercising {@code ${...}} placeholder resolution. */
+    @RequiresScope("${app.admin-scope}")
+    @RequiresRole("${app.admin-role}")
+    public void placeholders() {
+      /* empty reflection target — see class javadoc. */
+    }
   }
 
   @Test
@@ -82,11 +90,25 @@ class SpringSecurityGuardsTest {
     assertThat(attachFor("neither")).isEmpty();
   }
 
+  @Test
+  void resolves_placeholders_in_scope_and_role_values() throws Exception {
+    Method method = Fixture.class.getMethod("placeholders");
+    Object config = new Object();
+    List<Guard> collected = new ArrayList<>();
+    Map<String, String> properties =
+        Map.of("${app.admin-scope}", "admin:write", "${app.admin-role}", "ADMIN");
+    SpringSecurityGuards.attach(
+        config, method, properties::get, (cfg, guard) -> collected.add(guard));
+    assertThat(collected).hasSize(2);
+    assertThat(collected.get(0)).asString().isEqualTo("RequiresScope(admin:write)");
+    assertThat(collected.get(1)).asString().isEqualTo("RequiresRole(ADMIN)");
+  }
+
   private static List<Guard> attachFor(String methodName) throws NoSuchMethodException {
     Method method = Fixture.class.getMethod(methodName);
     Object config = new Object();
     List<Guard> collected = new ArrayList<>();
-    SpringSecurityGuards.attach(config, method, (cfg, guard) -> collected.add(guard));
+    SpringSecurityGuards.attach(config, method, v -> v, (cfg, guard) -> collected.add(guard));
     return collected;
   }
 }

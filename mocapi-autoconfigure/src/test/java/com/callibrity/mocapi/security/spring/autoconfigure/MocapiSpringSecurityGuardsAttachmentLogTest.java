@@ -32,6 +32,8 @@ import java.lang.reflect.Method;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.util.StringValueResolver;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MocapiSpringSecurityGuardsAttachmentLogTest {
@@ -39,13 +41,22 @@ class MocapiSpringSecurityGuardsAttachmentLogTest {
   private final MocapiSpringSecurityGuardsAutoConfiguration autoConfig =
       new MocapiSpringSecurityGuardsAutoConfiguration();
 
+  /** No {@code mcpAnnotationValueResolver} bean in this reflection-only fixture: pass-through. */
+  private static final ObjectProvider<StringValueResolver> NO_RESOLVER =
+      new ObjectProvider<>() {
+        @Override
+        public StringValueResolver getObject() {
+          return null;
+        }
+      };
+
   @Test
   void tool_customizer_logs_scope_guard_attachment() {
     var method = methodOf("scoped");
     var config = new StubToolConfig(new Tool("scoped-tool", null, null, null, null), method);
 
     try (var captor = LogCaptor.forClass(MocapiSpringSecurityGuardsAutoConfiguration.class)) {
-      autoConfig.springSecurityToolGuardCustomizer().customize(config);
+      autoConfig.springSecurityToolGuardCustomizer(NO_RESOLVER).customize(config);
       assertThat(captor.formattedMessages())
           .containsExactly("Attached ScopeGuard guard to tool \"scoped-tool\"");
     }
@@ -57,7 +68,7 @@ class MocapiSpringSecurityGuardsAttachmentLogTest {
     var config = new StubToolConfig(new Tool("dual-tool", null, null, null, null), method);
 
     try (var captor = LogCaptor.forClass(MocapiSpringSecurityGuardsAutoConfiguration.class)) {
-      autoConfig.springSecurityToolGuardCustomizer().customize(config);
+      autoConfig.springSecurityToolGuardCustomizer(NO_RESOLVER).customize(config);
       assertThat(captor.formattedMessages())
           .containsExactly(
               "Attached ScopeGuard guard to tool \"dual-tool\"",
@@ -71,7 +82,7 @@ class MocapiSpringSecurityGuardsAttachmentLogTest {
     var config = new StubToolConfig(new Tool("plain-tool", null, null, null, null), method);
 
     try (var captor = LogCaptor.forClass(MocapiSpringSecurityGuardsAutoConfiguration.class)) {
-      autoConfig.springSecurityToolGuardCustomizer().customize(config);
+      autoConfig.springSecurityToolGuardCustomizer(NO_RESOLVER).customize(config);
       assertThat(captor.formattedMessages()).isEmpty();
     }
   }
@@ -82,7 +93,7 @@ class MocapiSpringSecurityGuardsAttachmentLogTest {
     var config = new StubPromptConfig(new Prompt("my-prompt", null, null, null, null), method);
 
     try (var captor = LogCaptor.forClass(MocapiSpringSecurityGuardsAutoConfiguration.class)) {
-      autoConfig.springSecurityPromptGuardCustomizer().customize(config);
+      autoConfig.springSecurityPromptGuardCustomizer(NO_RESOLVER).customize(config);
       assertThat(captor.formattedMessages())
           .containsExactly("Attached RoleGuard guard to prompt \"my-prompt\"");
     }
@@ -94,7 +105,7 @@ class MocapiSpringSecurityGuardsAttachmentLogTest {
     var config = new StubResourceConfig(new Resource("mem://x", "x", null, null), method);
 
     try (var captor = LogCaptor.forClass(MocapiSpringSecurityGuardsAutoConfiguration.class)) {
-      autoConfig.springSecurityResourceGuardCustomizer().customize(config);
+      autoConfig.springSecurityResourceGuardCustomizer(NO_RESOLVER).customize(config);
       assertThat(captor.formattedMessages())
           .containsExactly("Attached ScopeGuard guard to resource \"mem://x\"");
     }
@@ -108,7 +119,7 @@ class MocapiSpringSecurityGuardsAttachmentLogTest {
             new ResourceTemplate("mem://x/{id}", "x", null, null), method);
 
     try (var captor = LogCaptor.forClass(MocapiSpringSecurityGuardsAutoConfiguration.class)) {
-      autoConfig.springSecurityResourceTemplateGuardCustomizer().customize(config);
+      autoConfig.springSecurityResourceTemplateGuardCustomizer(NO_RESOLVER).customize(config);
       assertThat(captor.formattedMessages())
           .containsExactly("Attached ScopeGuard guard to resource_template \"mem://x/{id}\"");
     }

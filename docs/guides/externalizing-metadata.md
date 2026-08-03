@@ -14,7 +14,7 @@ Keep the annotation value literal when the string is short and stable (e.g. `nam
 
 ## Which fields support it
 
-Every string attribute on `@McpTool`, `@McpPrompt`, `@McpResource`, and `@McpResourceTemplate` flows through the Spring environment:
+Every String annotation attribute across mocapi's annotation-based API flows through the same shared `StringValueResolver` (the `mcpAnnotationValueResolver` bean) — this is a uniform convention, not something each module opts into separately:
 
 | Annotation | Fields |
 |---|---|
@@ -22,6 +22,24 @@ Every string attribute on `@McpTool`, `@McpPrompt`, `@McpResource`, and `@McpRes
 | `@McpPrompt` | `name`, `title`, `description` |
 | `@McpResource` | `uri`, `name`, `title`, `description`, `mimeType` |
 | `@McpResourceTemplate` | `uriTemplate`, `name`, `title`, `description`, `mimeType` |
+| `@McpTask` | `ttl`, `pollInterval` |
+| `@McpUi` (mocapi-apps) | `value`, `resource`, `visibility` (per element) |
+| `@McpAppResource` (mocapi-apps) | `uri`, `name` (via `@McpResource` aliasing), `csp` domain lists (per element), `sandbox` (per element) |
+| `@RequiresScope` / `@RequiresRole` (mocapi-spring-security-guards) | `value` (per element) |
+
+`String[]` attributes (`visibility`, the four `@Csp` domain lists, `sandbox`, and the guards' `value()`) resolve **per element** — each array entry is an independent `${...}`/`#{...}` expression. Arrays are never comma-split.
+
+## Fallback policy for operational attributes
+
+A few attributes are operational defaults rather than descriptive text, and fall back to a `mocapi.*` configuration property when left unset instead of generating a name from the method:
+
+| Attribute | Blank/unset behavior | Config fallback |
+|---|---|---|
+| `@McpTask` `ttl` / `pollInterval` | Resolves blank → falls back | `mocapi.tasks.default-ttl` / `mocapi.tasks.default-poll-interval` |
+| `@McpAppResource` `csp` (per domain list) | List resolves empty → falls back **per list** | `mocapi.apps.csp.connect` / `.resource` / `.frame` / `.base-uri` |
+| `@McpAppResource` `sandbox` | Resolves empty (`{}`) → falls back | `mocapi.apps.sandbox` |
+
+The CSP/sandbox fallback is **per-list**, not per-annotation: `@Csp` is itself an annotation attribute whose all-default instance (`@Csp` written with no elements) is structurally identical to `@Csp` being altogether absent — there's no reflective way to distinguish "explicitly empty" from "not specified" for a nested-annotation attribute, the same limitation `sandbox`'s `{}` default already has. See [Apps](apps.md#csp-sandbox-defaults-and-the-mocapiapps-properties) for the full behavior.
 
 ## Example
 

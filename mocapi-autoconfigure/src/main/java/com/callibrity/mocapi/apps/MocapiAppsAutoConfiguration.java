@@ -19,12 +19,15 @@ import com.callibrity.mocapi.server.autoconfigure.HandlerMethodsCache;
 import com.callibrity.mocapi.server.resources.McpResourcesService;
 import com.callibrity.mocapi.server.resources.ResourceContributor;
 import com.callibrity.mocapi.server.tools.McpToolsService;
+import java.util.function.UnaryOperator;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.util.StringValueResolver;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -33,18 +36,37 @@ import tools.jackson.databind.ObjectMapper;
  */
 @AutoConfiguration
 @ConditionalOnClass(UiCapabilityCustomizer.class)
+@EnableConfigurationProperties(MocapiAppsProperties.class)
 public class MocapiAppsAutoConfiguration {
 
-  @Bean
-  @ConditionalOnMissingBean
-  public AppsToolUiMetaCustomizer appsToolUiMetaCustomizer(ObjectMapper objectMapper) {
-    return new AppsToolUiMetaCustomizer(objectMapper);
+  /**
+   * The {@code mcpAnnotationValueResolver} bean lives in {@code MocapiServerAutoConfiguration},
+   * which some minimal test/embedding apps deliberately exclude while still pulling in mocapi-apps
+   * via classpath auto-configuration. {@link ObjectProvider} keeps that combination working: absent
+   * the bean, {@code ${...}} placeholders in Apps annotation attributes simply pass through
+   * unresolved instead of failing context startup.
+   */
+  private static UnaryOperator<String> resolver(
+      ObjectProvider<StringValueResolver> mcpAnnotationValueResolver) {
+    StringValueResolver resolver = mcpAnnotationValueResolver.getIfAvailable(() -> value -> value);
+    return resolver::resolveStringValue;
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public AppsResourceUiMetaCustomizer appsResourceUiMetaCustomizer(ObjectMapper objectMapper) {
-    return new AppsResourceUiMetaCustomizer(objectMapper);
+  public AppsToolUiMetaCustomizer appsToolUiMetaCustomizer(
+      ObjectMapper objectMapper, ObjectProvider<StringValueResolver> mcpAnnotationValueResolver) {
+    return new AppsToolUiMetaCustomizer(objectMapper, resolver(mcpAnnotationValueResolver));
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AppsResourceUiMetaCustomizer appsResourceUiMetaCustomizer(
+      ObjectMapper objectMapper,
+      ObjectProvider<StringValueResolver> mcpAnnotationValueResolver,
+      MocapiAppsProperties properties) {
+    return new AppsResourceUiMetaCustomizer(
+        objectMapper, resolver(mcpAnnotationValueResolver), properties.toAppsUiDefaults());
   }
 
   @Bean
@@ -62,9 +84,13 @@ public class MocapiAppsAutoConfiguration {
   public ResourceContributor appUiResourceContributor(
       ObjectProvider<HandlerMethodsCache> handlerMethodsCache,
       ResourceLoader resourceLoader,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      ObjectProvider<StringValueResolver> mcpAnnotationValueResolver) {
     return new AppUiResourceContributor(
-        handlerMethodsCache.getIfAvailable(), resourceLoader, objectMapper);
+        handlerMethodsCache.getIfAvailable(),
+        resourceLoader,
+        objectMapper,
+        resolver(mcpAnnotationValueResolver));
   }
 
   @Bean
