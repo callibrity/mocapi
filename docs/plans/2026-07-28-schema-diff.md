@@ -887,3 +887,62 @@ No other deltas. No ADR required: this hits none of the ADR triggers (no
 SPI/transport/capability/not-implemented-list change, no new behavioral seam) —
 a spec-alignment rename with identical wire output, in the same class as the
 prior re-pin commits.
+
+## 2026-08-02 monitor check — no drift, finalized pin still current
+
+Daily MCP `2026-07-28` monitor run. **No convergence work needed.**
+
+**RELEASE status:** confirmed still finalized (unchanged since the
+2026-07-28 finalization above). `schema/` on upstream `main` contains
+`2024-11-05`, `2025-03-26`, `2025-06-18`, `2025-11-25`, `2026-07-28`, and
+`draft` — no newer date-stamped directory has appeared.
+
+**`schema/2026-07-28/schema.ts` commit history:** exactly the two commits
+already accounted for in the finalization re-pin above — `b488c16` ("Add
+2026-07-28 MCP specification") and `271ecc9` ("fix(schema): apply
+subscriptions/listen envelope and MetaObject rename to 2026-07-28"). No
+commits have landed on the finalized directory since. The pinned
+`docs/plans/2026-07-28-schema.ts` already contains both
+`SubscriptionsListenResultMetaObject` (line 1326) and
+`SubscriptionsListenResultResponse` (line 1362) from the second commit —
+spot-checked directly against the committed snapshot today.
+
+**`schema/draft/schema.ts` commit history:** one new commit since the prior
+baseline (`71e3069`, 2026-07-16) — `f7e99af` ("schema(draft): align
+subscriptions/listen with envelope and `_meta` naming conventions",
+2026-07-28). Fetched its patch: it applies the *identical* two changes
+already documented above (`SubscriptionsListenResultMeta` →
+`SubscriptionsListenResultMetaObject` rename, plus the
+`SubscriptionsListenResultResponse` envelope addition) to `schema/draft/`,
+evidently to keep `draft/` in sync with the now-finalized `2026-07-28/`
+content rather than starting a new revision. `draft/schema.ts` still
+reports `LATEST_PROTOCOL_VERSION = "2026-07-28"`. → **mocapi:** no action.
+This is a backport of a change mocapi already converged (delta 2 already
+applied; delta 3, the `*ResultResponse` envelope, already deliberately
+declined per the reasoning above, which still holds). No new draft
+revision has begun.
+
+**PR #7 disposition:** closed as superseded. It was opened 2026-07-20
+against the pre-finalization draft state and its branch predates the
+finalization commits that landed directly on `mcp-2026-07-28`
+(`07d24db`); it showed `mergeable_state: dirty` and its "still draft, not
+finalized" conclusion is now stale. This addendum supersedes it.
+
+**Snapshot status:** not re-pinned — not needed. The existing pin
+(byte-identical to `schema/2026-07-28/` per the prior re-pin) is still
+current; verified no new commits exist to re-pin against.
+
+**`mvn verify`:** not run. This is a docs-only change (no
+`mocapi-model`/`mocapi-server`/transport code touched), so the build is
+unaffected. Note for future runs: this sandbox still only has JDK 21
+(`mocapi-parent` enforces `[25,)`), same pre-existing environment gap
+noted in the 2026-07-20 addendum — unrelated to this change.
+
+**Confidence:** high. Three independent checks agree there is no
+unconverged drift: (1) the finalized directory's commit list is unchanged
+and both its commits are already reflected in the pinned snapshot and
+model code, (2) the one new draft commit is a content-identical backport
+of already-converged work, (3) the `schema/` directory listing shows no
+new revision has started. No open uncertainties beyond the
+already-tracked `HeaderMismatch` location note (unchanged, not touched by
+this run).
