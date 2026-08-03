@@ -126,6 +126,11 @@
             </dependency>
             <dependency>
                 <groupId>com.callibrity.mocapi</groupId>
+                <artifactId>mocapi-tasks-substrate</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.callibrity.mocapi</groupId>
                 <artifactId>mocapi-actuator</artifactId>
                 <version>${project.version}</version>
             </dependency>

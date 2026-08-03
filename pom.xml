@@ -74,6 +74,7 @@
         <module>mocapi-audit</module>
         <module>mocapi-apps</module>
         <module>mocapi-tasks</module>
+        <module>mocapi-tasks-substrate</module>
         <module>mocapi-actuator</module>
         <module>mocapi-spring-security-guards</module>
         <module>mocapi-prompts-mustache</module>
@@ -89,11 +90,13 @@
         <required.maven.version>3.6</required.maven.version>
 
         <!-- Dependency Versions -->
+        <codec.version>0.1.0</codec.version>
         <jmustache.version>1.16</jmustache.version>
         <json-skema.version>0.29.0</json-skema.version>
         <methodical.version>0.10.0</methodical.version>
         <ripcurl.version>2.12.0</ripcurl.version>
         <spring-boot.version>4.0.5</spring-boot.version>
+        <substrate.version>0.8.0</substrate.version>
         <swagger-annotations.version>2.2.52</swagger-annotations.version>
         <victools.version>5.0.0</victools.version>
 
@@ -185,6 +188,18 @@
                 <groupId>com.samskivert</groupId>
                 <artifactId>jmustache</artifactId>
                 <version>${jmustache.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jwcarman.substrate</groupId>
+                <artifactId>substrate-bom</artifactId>
+                <version>${substrate.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.jwcarman.codec</groupId>
+                <artifactId>codec-jackson</artifactId>
+                <version>${codec.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
