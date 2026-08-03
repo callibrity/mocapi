@@ -489,10 +489,10 @@ class McpTasksServiceTest {
 
   @Test
   void update_skips_an_already_answered_entry_and_one_no_longer_outstanding() {
-    // "elicit-old" was answered in a prior round (isAnswered() true, so it's skipped outright);
-    // "elicit-mismatch" is unanswered but not a key the record currently lists as outstanding
-    // (SEP-2322 SHOULD-ignore: stale/unrecognized ledger state must not fail the request). Neither
-    // entry should get merged, so the task stays INPUT_REQUIRED with no resume.
+    // The "elicit-old" entry already carries an answer from a prior round, so the merge skips it
+    // outright. The "elicit-mismatch" entry is unanswered but is not a key the record currently
+    // lists as outstanding — per SEP-2322's SHOULD-ignore, stale or unrecognized ledger state must
+    // not fail the request. Neither entry merges, so the task stays INPUT_REQUIRED with no resume.
     ElicitRequest request = new ElicitRequest(new ElicitRequestFormParams("please answer", null));
     TaskRecord base = baseRecord("t-stale-ledger", TaskStatus.INPUT_REQUIRED);
     TaskRecord rec =
