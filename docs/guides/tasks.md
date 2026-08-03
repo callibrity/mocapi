@@ -11,7 +11,8 @@ task.
 For the architecture behind this guide, see the
 [MCP Tasks design doc](../design/tasks.md), and
 [ADR-0037](../adr/0037-mcp-tasks-extension.md) /
-[ADR-0038](../adr/0038-server-seams-for-extensions.md) for the
+[ADR-0038](../adr/0038-server-seams-for-extensions.md) /
+[ADR-0040](../adr/0040-substrate-taskstore-adapter.md) for the
 decisions.
 
 ## Add the dependency
@@ -128,14 +129,81 @@ rule.
   multi-instance deployment behind a load balancer will route a
   `tasks/get` to an instance that never saw the `tasks/create` call.
 
-- **Multi-node:** supply your own `TaskStore` bean (see below) reachable
-  from every node. Load balancing on `Mcp-Name` alone does not give you
-  create→poll affinity — the creating `tools/call` hashes on the tool
-  name, the follow-up `tasks/get` hashes on the `taskId`, a different
-  value — so a shared store is the supported answer, not routing tricks.
-  See [the design doc's deployment-topology section](../design/tasks.md#deployment-topology)
+- **Multi-node:** supply a shared `TaskStore` bean reachable from every
+  node — either [`mocapi-tasks-substrate`](#using-a-distributed-taskstore-substrate)
+  below, or your own (see [Writing a custom `TaskStore`](#writing-a-custom-taskstore)).
+  Load balancing on `Mcp-Name` alone does not give you create→poll
+  affinity — the creating `tools/call` hashes on the tool name, the
+  follow-up `tasks/get` hashes on the `taskId`, a different value — so a
+  shared store is the supported answer, not routing tricks. See
+  [the design doc's deployment-topology section](../design/tasks.md#deployment-topology)
   for the full picture, including the documented limitation around a
   node dying mid-execution.
+
+## Using a distributed TaskStore (Substrate)
+
+`mocapi-tasks-substrate` ships a `TaskStore` backed by
+[Substrate](https://github.com/jwcarman/substrate) `Atom`s — durable and
+shared across nodes, available on any of Substrate's backends via token
+compare-and-set. See [ADR-0040](../adr/0040-substrate-taskstore-adapter.md)
+and the [design doc's substrate-store section](../design/tasks.md#distributed-store-mocapi-tasks-substrate)
+for the full mechanics (TTL/lease model, autoconfiguration ordering).
+
+Add the adapter, a Substrate backend module, and a Substrate codec to
+your app:
+
+```xml
+<dependency>
+    <groupId>com.callibrity.mocapi</groupId>
+    <artifactId>mocapi-tasks-substrate</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.jwcarman.substrate</groupId>
+    <artifactId>substrate-redis</artifactId> <!-- or any other Substrate backend -->
+</dependency>
+<dependency>
+    <groupId>org.jwcarman.codec</groupId>
+    <artifactId>codec-jackson</artifactId>
+</dependency>
+```
+
+Substrate's own autoconfiguration wires up an `AtomFactory` bean from
+whatever backend module and connection properties you provide (see that
+backend's own docs for its connection properties — e.g.
+`substrate-redis`'s `spring.data.redis.*`). No custom `ObjectMapper`
+configuration is needed for the `TaskRecord` round trip — a plain
+`JsonMapper` is sufficient, `codec-jackson`'s default.
+
+Once an `AtomFactory` bean exists, `MocapiTasksSubstrateAutoConfiguration`
+activates automatically and backs off `InMemoryTaskStore` — no
+`@Enable...` annotation, no manual bean wiring. Startup logs:
+
+```
+Using the Substrate-backed TaskStore (key prefix 'mocapi:tasks:'): task
+state is shared across nodes and survives restarts.
+```
+
+Configure the backend key prefix if the default would collide with
+another application sharing the same Substrate backend:
+
+```properties
+mocapi.tasks.substrate.key-prefix=my-app:tasks:
+```
+
+**Deployment requirement:** configure your Substrate backend's
+`TtlBounds` maximum to be at least as large as the largest `@McpTask`
+`ttl` in use. The adapter computes each write's backend lease as the
+task's *remaining* time to its absolute deadline and passes that
+straight through to Substrate; a task whose remaining time exceeds the
+backend's configured maximum TTL will fail to write.
+
+`examples/tasks`'s `substrate` Maven profile demonstrates this end to
+end (in-memory Substrate `AtomSpi`, single node — enough to prove the
+wiring, not a clustering demo):
+
+```bash
+mvn -pl examples/tasks -am -Psubstrate spring-boot:run
+```
 
 ## Writing a custom `TaskStore`
 
@@ -201,3 +269,5 @@ guarantee your backend doesn't yet provide.
   progress emitters, unchanged for task tools.
 - [ADR-0037](../adr/0037-mcp-tasks-extension.md) — the extension and
   execution-model decision.
+- [ADR-0040](../adr/0040-substrate-taskstore-adapter.md) — the
+  `mocapi-tasks-substrate` distributed `TaskStore` adapter.

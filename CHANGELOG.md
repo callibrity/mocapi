@@ -6,6 +6,50 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- **Substrate-backed TaskStore (`mocapi-tasks-substrate`)** — a
+  distributed, durable `TaskStore` for the MCP Tasks extension, backed
+  by [Substrate](https://github.com/jwcarman/substrate) `Atom`s (token
+  compare-and-set) across any of Substrate's nine backends
+  ([ADR-0040](docs/adr/0040-substrate-taskstore-adapter.md)). Add the
+  module, a Substrate backend, and `codec-jackson` to your app and it
+  activates automatically once an `AtomFactory` bean exists, backing
+  off the `InMemoryTaskStore` default with no other code changes.
+  Configurable backend key prefix via
+  `mocapi.tasks.substrate.key-prefix` (default `mocapi:tasks:`).
+  Verified with the same `TaskStoreContractTest` TCK
+  `InMemoryTaskStore` is held to (in-memory Atom SPI + real Redis via
+  Testcontainers), a full autoconfiguration-chain proof test, and
+  end-to-end lifecycle runs — including a mid-task elicitation task
+  through `working → input_required → tasks/update → completed` — on
+  both a live JVM and a genuine GraalVM native image. See the
+  [Tasks guide](docs/guides/tasks.md#using-a-distributed-taskstore-substrate).
+
+### Fixed
+
+- **`PrimitiveSchemaDefinition` deserialization routing
+  (`mocapi-model`).** The sealed elicitation-schema hierarchy had no
+  deserialization routing at all, breaking `tasks/get` with `-32603`
+  for any task whose ledger held an elicitation schema, through any
+  serializing `TaskStore`. `PrimitiveSchemaDefinitionDeserializer` now
+  shape-sniffs the wire payload to route to the correct one of the
+  eight leaf types per `docs/plans/2026-07-28-schema.ts`, including the
+  documented `LegacyTitledEnumSchema`(no `enumNames`)-vs-
+  `UntitledSingleSelectEnumSchema` wire ambiguity, resolved toward the
+  non-deprecated variant. Wire serialization is unchanged; the released
+  1.2.0 wire path was not affected, since `RequestStateCodec` only ever
+  carries response ledgers, never schema definitions.
+- **`InMemoryTaskStore` now serializes records (`mocapi-tasks`).**
+  Records are held as JSON strings and round-tripped on every
+  read/write instead of as live object graphs, giving the shipped
+  default the same serialization coverage as every external store
+  (closing the blind spot the fix above hid behind) and removing an
+  aliasing hazard where a caller could mutate a returned record's
+  `JsonNode` and corrupt stored state. The sweeper is hardened against
+  a malformed stored entry (logged and skipped, rather than killing the
+  sweeper thread). Public constructors are unchanged.
+
 ## [1.2.0] - 2026-08-03
 
 ### Added

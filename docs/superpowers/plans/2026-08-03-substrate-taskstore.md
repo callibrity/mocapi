@@ -515,6 +515,20 @@ git commit -m "test(tasks): TaskRecord maximal-population round-trip through cod
 
 ### Task 4: Autoconfiguration + properties
 
+> **Amended 2026-08-03 (James, mid-execution):** the autoconfiguration,
+> properties record, tests, and imports entry live in **`mocapi-autoconfigure`**
+> (package `com.callibrity.mocapi.tasks`), not in `mocapi-tasks-substrate` —
+> matching the repo's centralized-autoconfiguration pattern. The class-level
+> guard is `@ConditionalOnClass({AtomFactory.class, TaskExecutionEngine.class,
+> SubstrateTaskStore.class})`; `before = MocapiTasksAutoConfiguration.class` is
+> a same-package typed reference; the entry joins mocapi-autoconfigure's
+> existing `AutoConfiguration.imports`. Dependency changes:
+> `mocapi-autoconfigure` gains optional `substrate-api` + optional
+> `mocapi-tasks-substrate` and test-scoped `substrate-core` + `codec-jackson`;
+> `mocapi-tasks-substrate` drops its optional `mocapi-autoconfigure` and
+> `spring-boot-autoconfigure` deps. File paths below are superseded
+> accordingly.
+
 **Files:**
 - Create: `mocapi-tasks-substrate/src/main/java/com/callibrity/mocapi/tasks/substrate/MocapiTasksSubstrateProperties.java`
 - Create: `mocapi-tasks-substrate/src/main/java/com/callibrity/mocapi/tasks/substrate/MocapiTasksSubstrateAutoConfiguration.java`

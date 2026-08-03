@@ -23,6 +23,8 @@ For decisions, see:
 - [ADR-0031](../adr/0031-server-capabilities-customizer.md) —
   `ServerCapabilitiesCustomizer`, which `TasksCapabilityCustomizer` uses
   to declare the `tasks` extension capability
+- [ADR-0040](../adr/0040-substrate-taskstore-adapter.md) — the
+  `mocapi-tasks-substrate` distributed `TaskStore` adapter
 
 ## The `@McpTask` surface
 
@@ -170,10 +172,10 @@ activates, mocapi logs a prominent `WARN` (mirroring the
 > multi-node safe, and in-flight tasks are lost on restart. Provide a
 > shared TaskStore bean for clustered or durable deployments.
 
-A production, multi-node deployment supplies its own `TaskStore` bean
-(user-written, or a future Substrate-side adapter — outside mocapi's
-dependency graph either way; see
-[ADR-0037](../adr/0037-mcp-tasks-extension.md#rejected-alternatives)).
+A production, multi-node deployment supplies its own `TaskStore` bean —
+either a user-written store, or the shipped
+[`mocapi-tasks-substrate`](#distributed-store-mocapi-tasks-substrate)
+adapter below.
 
 ### The contract TCK
 
@@ -184,6 +186,126 @@ monotonicity. `InMemoryTaskStore` is tested against it; any external
 implementation extends it to prove the same bar. See the
 [Tasks guide](../guides/tasks.md#writing-a-custom-taskstore) for the
 how-to.
+
+## Distributed store: mocapi-tasks-substrate
+
+[ADR-0040](../adr/0040-substrate-taskstore-adapter.md) ships a second
+`TaskStore` implementation, `SubstrateTaskStore`, in its own reactor
+module (`mocapi-tasks-substrate`), backed by
+[Substrate](https://github.com/jwcarman/substrate)'s `Atom<T>` — one
+`Atom<TaskRecord>` per task, reachable from any of Substrate's backends
+(Redis included) via token compare-and-set. The module itself is a thin
+leaf: it owns only `SubstrateTaskStore` and its native hints
+(`SubstrateTaskStoreRuntimeHints`), depending on `mocapi-tasks` and
+`substrate-api` alone.
+
+### Layout and the CAS update loop
+
+Each task is one Atom, keyed `<key-prefix><taskId>` — the prefix
+defaults to `mocapi:tasks:` and is configurable via
+`mocapi.tasks.substrate.key-prefix`
+(`MocapiTasksSubstrateProperties.keyPrefix`). `create` calls
+`AtomFactory.create`; `get`, `update`, and `delete` connect to the
+existing Atom via `AtomFactory.connect`. `update` is an optimistic
+read → mutate → `Atom.compareAndSet(snapshot, mutated, ttl)` loop: a
+lost race (a concurrent writer won first) re-reads the fresh snapshot
+and retries the mutation — exactly the kind of possibly-repeated
+invocation the `TaskStore` contract's determinism requirement exists to
+permit.
+
+### Absolute deadline vs. lease TTL
+
+A `TaskRecord`'s deadline is absolute (`createdAt + ttl`); a Substrate
+Atom's TTL is a *lease* that resets on every write. Every write
+therefore computes the remaining time to the record's real deadline and
+passes that as the backend lease, so the lease never outlives the
+record — and clamps it to a 1ms floor once remaining time reaches or
+passes zero, since Substrate requires a positive TTL and the record has
+already failed liveness by that point regardless.
+
+**`TaskRecord.isExpired(clock.instant())` is the sole liveness gate**,
+checked on every `get`, `update`, and `create`-collision retry; the
+backend lease is garbage collection only, never the correctness
+mechanism. This matters at the exact-deadline boundary: an earlier draft
+of this adapter proposed skipping the backend write once remaining time
+reached zero, which would have made a record unreadable slightly before
+its documented deadline — `isExpired` alone governs, so a record stays
+readable through the instant it expires, matching `TaskStore`'s
+durability contract. Eager purges (on `get`, `update`, and a `create`
+retry after a collision) are best-effort and can race a concurrent
+re-create — the Atom SPI has no token-conditioned delete — but this is
+safe precisely because `isExpired` is authoritative, not the purge.
+
+### Serialization parity with `InMemoryTaskStore`
+
+Because `SubstrateTaskStore` necessarily serializes every `TaskRecord`
+through a Substrate `CodecFactory` (`codec-jackson` in the shipped
+configuration), `InMemoryTaskStore` was changed to serialize too — every
+record now round-trips through a JSON string on write and read, instead
+of holding a live object graph. This closes a blind spot a serialization
+bug could previously hide behind (see the
+[`PrimitiveSchemaDefinition` fix](../../CHANGELOG.md) uncovered by this
+work) and removes an aliasing hazard where a caller could mutate a
+returned record's `JsonNode` and corrupt stored state. Both of
+`InMemoryTaskStore`'s public constructors are unchanged.
+
+### Autoconfiguration activation and back-off order
+
+`MocapiTasksSubstrateAutoConfiguration` and `MocapiTasksSubstrateProperties`
+live in `mocapi-autoconfigure` (package `com.callibrity.mocapi.tasks`,
+alongside `MocapiTasksAutoConfiguration`), gated
+`@ConditionalOnClass({AtomFactory.class, TaskExecutionEngine.class,
+SubstrateTaskStore.class})`, `@AutoConfiguration(before =
+MocapiTasksAutoConfiguration.class)`. The `SubstrateTaskStore` bean
+itself adds `@ConditionalOnBean(AtomFactory.class)` +
+`@ConditionalOnMissingBean(TaskStore.class)`. Back-off order, highest
+priority first:
+
+1. A user-supplied `TaskStore` bean always wins.
+2. `SubstrateTaskStore`, if a Substrate `AtomFactory` bean is present
+   (i.e. Substrate is on the classpath and configured).
+3. `InMemoryTaskStore`, the `MocapiTasksAutoConfiguration` default.
+
+`SubstrateOrderingAutoConfiguration` (also in `mocapi-autoconfigure`, an
+empty ordering-only `@AutoConfiguration` class) exists purely to force
+Substrate's own autoconfiguration to run *after* `codec-jackson`'s
+`JacksonCodecAutoConfiguration`: Substrate 0.8.0's factory beans are
+`@ConditionalOnBean(CodecFactory.class)` but Substrate declares no
+ordering against the codec autoconfigurations, so without this shim the
+condition can evaluate before the `CodecFactory` bean registers and the
+whole chain silently backs off to the in-memory default with no error.
+This resurrects an identical pre-2026-07-28-clean-break fix; the proper
+fix belongs upstream (Substrate declaring `@AutoConfigureAfter` on the
+codec autoconfigs) and the shim is harmless once that lands.
+
+When active, `MocapiTasksSubstrateAutoConfiguration` logs:
+
+> Using the Substrate-backed TaskStore (key prefix 'mocapi:tasks:'):
+> task state is shared across nodes and survives restarts.
+
+### Verification
+
+`TaskStoreContractTest` — the same TCK `InMemoryTaskStore` proves itself
+against — runs against `SubstrateTaskStore` twice: on Substrate's
+in-memory `AtomSpi` (`SubstrateTaskStoreTest`, still serializing through
+`codec-jackson` bytes) and against a real Redis via Testcontainers
+(`RedisSubstrateTaskStoreIT`, Failsafe `*IT` naming convention).
+`SubstrateTaskStoreLeaseTest` covers lease-clamping at and around the
+exact-deadline boundary as dedicated unit tests, and
+`MocapiTasksSubstrateAutoConfigurationTest` proves the full chain —
+`JacksonCodecAutoConfiguration` → `SubstrateOrderingAutoConfiguration` →
+`SubstrateAutoConfiguration` → `MocapiTasksSubstrateAutoConfiguration` —
+activates `SubstrateTaskStore`, plus the conditional back-off matrix and
+the key-prefix property. `examples/tasks`'s `substrate` Maven profile
+swaps stores with zero application-code changes, verified end-to-end on
+a live JVM and a genuine GraalVM native image (Cloud Native Buildpacks)
+for both a plain task (`batch_resize`) and an elicitation-bearing task
+(`confirmed_report`, exercising `working → input_required →
+tasks/update → completed` through the store).
+
+See [ADR-0040](../adr/0040-substrate-taskstore-adapter.md) for the full
+decision, including the `TtlBounds` deployment requirement and this
+module's non-goals.
 
 ## Execution model
 

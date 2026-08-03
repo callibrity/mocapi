@@ -75,3 +75,4 @@ authored at decision time and dated accordingly.
 - [ADR-0037 — `mocapi-tasks`: the MCP Tasks extension and its execution model](0037-mcp-tasks-extension.md)
 - [ADR-0038 — Three generic `mocapi-server` seams for the Tasks extension](0038-server-seams-for-extensions.md) *(Amended by ADR-0039)*
 - [ADR-0039 — Extension-seam taxonomy and dispatch interception](0039-extension-seam-taxonomy-and-dispatch-interception.md)
+- [ADR-0040 — Substrate-backed TaskStore lives in mocapi as mocapi-tasks-substrate](0040-substrate-taskstore-adapter.md)

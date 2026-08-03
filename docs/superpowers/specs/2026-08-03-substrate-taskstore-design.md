@@ -146,8 +146,33 @@ mapper customizations, the guide documents wiring the app's
 
 ### Autoconfiguration + native image
 
-`MocapiTasksSubstrateAutoConfiguration`, registered by the module's own
-`AutoConfiguration.imports` (extension-owns-its-wiring pattern):
+> **Amended 2026-08-03 (James, during implementation):** the autoconfiguration
+> lives in `mocapi-autoconfigure` — the repo's centralized wiring module —
+> NOT in `mocapi-tasks-substrate` as originally written below. This matches
+> the established pattern (`MocapiTasksAutoConfiguration` precedent: hints
+> are extension-owned, autoconfiguration is centralized), and reverses the
+> awkward `mocapi-tasks-substrate → mocapi-autoconfigure` optional edge into
+> the standard `mocapi-autoconfigure --optional--> mocapi-tasks-substrate`
+> direction. `mocapi-autoconfigure` gains optional `substrate-api` +
+> `mocapi-tasks-substrate` deps; the entry joins the central
+> `AutoConfiguration.imports`; `before = MocapiTasksAutoConfiguration.class`
+> becomes a same-package typed reference. The class-level guard widens to
+> `@ConditionalOnClass({AtomFactory, TaskExecutionEngine, SubstrateTaskStore})`
+> so the autoconfig backs off unless BOTH substrate-api and the adapter
+> module are on the classpath.
+>
+> **Second amendment (same day, after live verification):** Substrate 0.8.0's
+> `SubstrateAutoConfiguration` evaluates its `@ConditionalOnBean(CodecFactory)`
+> factory-bean conditions before `JacksonCodecAutoConfiguration` registers its
+> bean (no upstream `@AutoConfigureAfter`; confirmed via condition-evaluation
+> report in the live example). mocapi resurrects its pre-clean-break fix — an
+> ordering-only, zero-bean `SubstrateOrderingAutoConfiguration`
+> (`beforeName` substrate, `afterName` codec-jackson, both string-referenced) —
+> in `mocapi-autoconfigure`, plus a full-chain activation test. The proper fix
+> (substrate declaring the ordering itself) is filed for a future substrate
+> 0.8.1 and the shim stays harmless after it.
+
+`MocapiTasksSubstrateAutoConfiguration`:
 
 - `@ConditionalOnClass(AtomFactory.class)`,
   `@ConditionalOnBean(AtomFactory.class)`,
