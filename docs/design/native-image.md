@@ -74,6 +74,52 @@ The scanner is configured with `useDefaultFilters=false`, `isCandidateComponent`
 
 When new model types land, these tests currently pass automatically because of the package scan — but it's worth adding an assertion for anything with a non-trivial shape (new sealed hierarchies especially) to catch regressions if the scan filters ever change.
 
+## Extension modules own their hints
+
+`MocapiRuntimeHints` only scans `com.callibrity.mocapi.model` — core has no
+reason to know about extension-owned packages, and widening the scan to reach
+into `mocapi-tasks` or `mocapi-apps` would leak extension knowledge into core
+(a layering violation the same way a new SPI or transport dependency would
+be). Each extension that introduces its own wire types crossing the Jackson
+codec boundary is responsible for registering its own hints, following the
+same `RuntimeHintsRegistrar` + `META-INF/spring/aot.factories` contribution
+pattern `MocapiRuntimeHints` uses.
+
+This gap was found empirically: a native-image build of `examples/tasks`
+returned HTTP 500 on any `tools/call` that dispatched as a task, with
+`com.oracle.svm.core.jdk.UnsupportedFeatureError: Record components not
+available for record class com.callibrity.mocapi.tasks.model.CreateTaskResult`
+in the server log. `mocapi-tasks`' wire records lived entirely outside
+`MocapiRuntimeHints`' scan, so Jackson's record introspection had no
+reflection metadata for them at runtime.
+
+### `TasksRuntimeHints` (`mocapi-tasks`)
+
+`com.callibrity.mocapi.tasks.aot.TasksRuntimeHints` scans
+`com.callibrity.mocapi.tasks.model` — a dedicated model package, mirroring
+core's `com.callibrity.mocapi.model` — using the same
+`ClassPathScanningCandidateComponentProvider` configuration as
+`MocapiRuntimeHints` (`useDefaultFilters=false`, `isCandidateComponent`
+overridden to `true`, pass-through include filter). The scanner is copied
+locally rather than shared from core, keeping core extension-agnostic.
+Covers `CreateTaskResult`, `GetTaskResult`, `UpdateTaskResult`,
+`CancelTaskResult`, their `*Params` counterparts, and the `TaskStatus` enum.
+
+### `AppsRuntimeHints` (`mocapi-apps`)
+
+`com.callibrity.mocapi.apps.aot.AppsRuntimeHints` takes a different shape
+because `mocapi-apps` has no dedicated `.model` subpackage — its
+`com.callibrity.mocapi.apps` package mixes wire records with annotations,
+customizers, and services that never cross the Jackson codec boundary.
+Rather than widen a package-wide scan to cover a handful of types, it
+explicitly registers the three records `AppsToolUiMetaCustomizer` and
+`AppsResourceUiMetaCustomizer` hand to `ObjectMapper#valueToTree`:
+`McpUiToolMeta`, `UiResourceMeta`, and its nested `McpUiResourceCsp` — the
+same explicit-registration style `MocapiRuntimeHints` uses for `McpExchange`
+and `RequestStatePayload`. `AppsRuntimeHints` was added by symmetry with the
+tasks fix (structurally identical `_meta` exposure via `valueToTree`) but has
+not itself been exercised against a native rebuild.
+
 ## Verification
 
 The cowork-connector-example at `~/IdeaProjects/cowork-connector-example` is the reference consumer. After publishing a mocapi candidate:

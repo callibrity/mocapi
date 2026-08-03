@@ -108,6 +108,12 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Fixed
 
+- **Native-image reflection gap in `mocapi-tasks` and `mocapi-apps`.** Their wire
+  records (`CreateTaskResult`, `GetTaskResult`, etc.; `McpUiToolMeta`,
+  `UiResourceMeta`, `McpUiResourceCsp`) are now registered for GraalVM
+  native-image via module-owned `RuntimeHintsRegistrar`s
+  (`TasksRuntimeHints`, `AppsRuntimeHints`), so a task-shaped `tools/call`
+  response no longer throws `UnsupportedFeatureError` under `native-image`.
 - **`withMeta` on `Tool` and `Resource` now deep-copies its input.**
   Both released-1.1.0 methods take a defensive `deepCopy()` of the
   `ObjectNode` passed in, so a caller mutating the node after calling
