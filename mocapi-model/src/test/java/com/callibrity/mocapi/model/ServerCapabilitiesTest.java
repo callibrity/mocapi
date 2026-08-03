@@ -50,7 +50,8 @@ class ServerCapabilitiesTest {
     Map<String, ObjectNode> extensions = caps.extensions();
 
     assertThat(extensions).isEqualTo(Map.of());
-    assertThatThrownBy(() -> extensions.put("x", mapper.createObjectNode()))
+    ObjectNode node = mapper.createObjectNode();
+    assertThatThrownBy(() -> extensions.put("x", node))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 
@@ -99,7 +100,8 @@ class ServerCapabilitiesTest {
     ServerCapabilities caps = builder.build();
     Map<String, ObjectNode> extensions = caps.extensions();
 
-    assertThatThrownBy(() -> extensions.put("new", mapper.createObjectNode()))
+    ObjectNode fresh = mapper.createObjectNode();
+    assertThatThrownBy(() -> extensions.put("new", fresh))
         .isInstanceOf(UnsupportedOperationException.class);
     assertThatThrownBy(() -> extensions.remove("io.modelcontextprotocol/tasks"))
         .isInstanceOf(UnsupportedOperationException.class);
