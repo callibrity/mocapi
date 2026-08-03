@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-03
+
 ### Added
 
 - **MCP Tasks extension (`mocapi-tasks`)** — a task-eligible tool gets a
@@ -1615,6 +1617,7 @@ the handler runs to completion).
 Initial public release on Maven Central.
 
 [Unreleased]: https://github.com/callibrity/mocapi/compare/1.0.0...HEAD
+[1.2.0]: https://github.com/callibrity/mocapi/releases/tag/1.2.0
 [1.1.0]: https://github.com/callibrity/mocapi/releases/tag/1.1.0
 [1.0.0]: https://github.com/callibrity/mocapi/releases/tag/1.0.0
 [0.17.0]: https://github.com/callibrity/mocapi/releases/tag/0.17.0

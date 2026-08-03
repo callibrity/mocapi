@@ -32,7 +32,7 @@ Building an MCP server from scratch means solving the same problems every team s
 [![Maven Central](https://img.shields.io/maven-central/v/com.callibrity.mocapi/mocapi-server)](https://central.sonatype.com/artifact/com.callibrity.mocapi/mocapi-server)
 ![GitHub License](https://img.shields.io/github/license/callibrity/mocapi)
 ![Java](https://img.shields.io/badge/Java-25%2B-orange)
-[![MCP Conformance](https://img.shields.io/badge/MCP%202026--07--28%20conformance-79%20passed%20%C2%B7%2013%20baselined-brightgreen)](mocapi-conformance/README.md)
+[![MCP Conformance](https://img.shields.io/badge/MCP%202026--07--28%20conformance-core%2079%2F13%20%C2%B7%20tasks%2033%2F2-brightgreen)](mocapi-conformance/README.md)
 
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=callibrity_mocapi&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=callibrity_mocapi)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=callibrity_mocapi&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=callibrity_mocapi)
@@ -50,7 +50,7 @@ Add the starter dependency:
 <dependency>
     <groupId>com.callibrity.mocapi</groupId>
     <artifactId>mocapi-streamable-http-spring-boot-starter</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
@@ -62,7 +62,7 @@ If you depend on multiple mocapi artifacts (e.g., a starter plus one of the `moc
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
             <artifactId>mocapi-bom</artifactId>
-            <version>1.1.0</version>
+            <version>1.2.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -276,7 +276,7 @@ See [`examples/stdio/README.md`](examples/stdio/README.md) for Claude Desktop co
 
 ## MCP Conformance
 
-Mocapi targets the [MCP 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28) specification and is validated against the official conformance suite: **79 checks pass, 13 are baselined** — every baselined failure is a deliberate omission (see [ADR-0022](docs/adr/0022-2026-07-28-features-not-implemented.md)) or a documented suite defect, not a protocol-correctness gap. Mocapi passes every check that tests actual protocol behavior. The [expected-failures baseline](mocapi-conformance/conformance-expected-failures.yaml) records each exception with its reason; see [mocapi-conformance/README.md](mocapi-conformance/README.md) to reproduce:
+Mocapi targets the [MCP 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28) specification and is validated against the official conformance suite: **core 79 checks pass / 13 baselined; tasks extension 33 pass / 2 baselined** — every baselined failure is a deliberate omission (see [ADR-0022](docs/adr/0022-2026-07-28-features-not-implemented.md)) or a documented suite defect, not a protocol-correctness gap. Mocapi passes every check that tests actual protocol behavior. The [expected-failures baseline](mocapi-conformance/conformance-expected-failures.yaml) records each exception with its reason; see [mocapi-conformance/README.md](mocapi-conformance/README.md) to reproduce:
 
 ```bash
 # Start the conformance server
