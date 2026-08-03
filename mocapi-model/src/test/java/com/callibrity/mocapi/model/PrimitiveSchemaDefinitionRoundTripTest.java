@@ -16,15 +16,19 @@
 package com.callibrity.mocapi.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.exc.MismatchedInputException;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Proves every {@link PrimitiveSchemaDefinition} leaf variant round-trips through a plain {@link
@@ -89,7 +93,7 @@ class PrimitiveSchemaDefinitionRoundTripTest {
   // compatibility (docs/plans/2026-07-28-schema.ts)
   void serialized_shape_matches_the_schema_ts_type_and_enum_discriminators(
       PrimitiveSchemaDefinition schema) {
-    var node = mapper.convertValue(schema, tools.jackson.databind.node.ObjectNode.class);
+    var node = mapper.convertValue(schema, ObjectNode.class);
 
     switch (schema) {
       case StringSchema _ -> assertThat(node.path("type").asString()).isEqualTo("string");
@@ -118,5 +122,54 @@ class PrimitiveSchemaDefinitionRoundTripTest {
         assertThat(node.has("enumNames")).isTrue();
       }
     }
+  }
+
+  @Test
+  void missing_type_property_is_a_clear_deserialization_error() {
+    assertThatThrownBy(() -> mapper.readValue("{\"title\":\"x\"}", PrimitiveSchemaDefinition.class))
+        .isInstanceOf(MismatchedInputException.class)
+        .hasMessageContaining("requires a string \"type\" property");
+  }
+
+  @Test
+  void unknown_type_value_is_a_clear_deserialization_error() {
+    assertThatThrownBy(
+            () -> mapper.readValue("{\"type\":\"object\"}", PrimitiveSchemaDefinition.class))
+        .isInstanceOf(MismatchedInputException.class)
+        .hasMessageContaining("Unknown PrimitiveSchemaDefinition \"type\" value: \"object\"");
+  }
+
+  @Test
+  void array_type_missing_items_is_a_clear_deserialization_error() {
+    assertThatThrownBy(
+            () ->
+                mapper.readValue(
+                    "{\"type\":\"array\",\"title\":\"x\"}", PrimitiveSchemaDefinition.class))
+        .isInstanceOf(MismatchedInputException.class)
+        .hasMessageContaining("requires an \"items\" property");
+  }
+
+  @Test
+  void array_type_with_items_lacking_anyof_and_enum_is_a_clear_deserialization_error() {
+    assertThatThrownBy(
+            () ->
+                mapper.readValue(
+                    "{\"type\":\"array\",\"title\":\"x\",\"items\":{}}",
+                    PrimitiveSchemaDefinition.class))
+        .isInstanceOf(MismatchedInputException.class)
+        .hasMessageContaining("requires \"items.anyOf\" or \"items.enum\"");
+  }
+
+  @Test
+  void untitled_enum_without_enum_names_resolves_to_the_non_deprecated_variant() {
+    // Pins the documented ambiguity resolution: a "type":"string" payload with an "enum" array
+    // but no "enumNames" is genuinely indistinguishable on the wire from an
+    // UntitledSingleSelectEnumSchema, so the deserializer must consistently prefer the
+    // non-deprecated variant rather than guessing LegacyTitledEnumSchema. A refactor that flips
+    // this tie-break would silently change what tasks/get returns for every such payload.
+    PrimitiveSchemaDefinition deserialized =
+        mapper.readValue("{\"type\":\"string\",\"enum\":[\"a\"]}", PrimitiveSchemaDefinition.class);
+
+    assertThat(deserialized).isInstanceOf(UntitledSingleSelectEnumSchema.class);
   }
 }

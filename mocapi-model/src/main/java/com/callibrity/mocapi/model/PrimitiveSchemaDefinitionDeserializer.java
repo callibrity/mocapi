@@ -36,8 +36,9 @@ import tools.jackson.databind.deser.std.StdDeserializer;
  * <ul>
  *   <li>{@code type: "boolean"} → {@link BooleanSchema}
  *   <li>{@code type: "number" | "integer"} → {@link NumberSchema}
- *   <li>{@code type: "array"} → {@link TitledMultiSelectEnumSchema} if {@code items.anyOf} is
- *       present, else {@link UntitledMultiSelectEnumSchema}
+ *   <li>{@code type: "array"} with {@code items.anyOf} → {@link TitledMultiSelectEnumSchema}; with
+ *       {@code items.enum} → {@link UntitledMultiSelectEnumSchema}; missing {@code items}, or
+ *       {@code items} with neither, is an error
  *   <li>{@code type: "string"} with {@code oneOf} → {@link TitledSingleSelectEnumSchema}
  *   <li>{@code type: "string"} with {@code enum} and {@code enumNames} → {@link
  *       LegacyTitledEnumSchema} (the one wire signal that distinguishes it from the untitled
@@ -104,8 +105,15 @@ final class PrimitiveSchemaDefinitionDeserializer
           PrimitiveSchemaDefinition.class,
           "PrimitiveSchemaDefinition with \"type\":\"array\" requires an \"items\" property");
     }
-    return items.has("anyOf")
-        ? ctxt.readTreeAsValue(node, TitledMultiSelectEnumSchema.class)
-        : ctxt.readTreeAsValue(node, UntitledMultiSelectEnumSchema.class);
+    if (items.has("anyOf")) {
+      return ctxt.readTreeAsValue(node, TitledMultiSelectEnumSchema.class);
+    }
+    if (items.has("enum")) {
+      return ctxt.readTreeAsValue(node, UntitledMultiSelectEnumSchema.class);
+    }
+    return ctxt.reportInputMismatch(
+        PrimitiveSchemaDefinition.class,
+        "PrimitiveSchemaDefinition with \"type\":\"array\" requires \"items.anyOf\" or"
+            + " \"items.enum\"; found neither");
   }
 }

@@ -16,6 +16,7 @@
 package com.callibrity.mocapi.tasks.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import com.callibrity.mocapi.model.BooleanSchema;
@@ -27,6 +28,7 @@ import com.callibrity.mocapi.model.PrimitiveSchemaDefinition;
 import com.callibrity.mocapi.model.RequestedSchema;
 import com.callibrity.mocapi.model.StringSchema;
 import com.callibrity.mocapi.tasks.model.TaskStatus;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.time.Clock;
 import java.time.Duration;
@@ -36,6 +38,7 @@ import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -196,6 +199,87 @@ class InMemoryTaskStoreTest extends TaskStoreContractTest {
       store.create(rec);
 
       assertThat(store.get("t1")).contains(rec);
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void sweeper_survives_a_malformed_entry_and_keeps_sweeping_other_expired_records()
+      throws Exception {
+    MutableClock clock = MutableClock.at(Instant.parse("2026-08-02T00:00:00Z"));
+    try (InMemoryTaskStore store = new InMemoryTaskStore(clock, Duration.ofMillis(20))) {
+      store.create(
+          new TaskRecord(
+              "good",
+              "demo.tool",
+              null,
+              "user-1",
+              "2026-07-28",
+              null,
+              TaskStatus.WORKING,
+              "0",
+              clock.instant(),
+              clock.instant(),
+              Duration.ofMillis(50),
+              Duration.ofSeconds(1),
+              List.of(),
+              Map.of(),
+              null,
+              null,
+              0L));
+
+      // Directly inject a malformed entry the public API has no way to produce, simulating
+      // corruption, to prove one bad entry can't kill the sweeper thread for every other record.
+      Field recordsField = InMemoryTaskStore.class.getDeclaredField("records");
+      recordsField.setAccessible(true);
+      ((ConcurrentHashMap<String, String>) recordsField.get(store))
+          .put("malformed", "not valid json");
+      assertThat(store.size()).isEqualTo(2);
+
+      clock.advance(Duration.ofMinutes(5));
+
+      await()
+          .atMost(Duration.ofSeconds(2))
+          .pollInterval(Duration.ofMillis(10))
+          .until(() -> store.size() == 1);
+
+      // The malformed entry survives (deserialization failure is treated as "not expired", not
+      // silently dropped or, worse, allowed to kill the sweeper thread); the good, now-expired
+      // entry is gone.
+      assertThat(store.size()).isEqualTo(1);
+    }
+  }
+
+  @Test
+  void update_with_a_mutation_that_returns_null_throws_instead_of_corrupting_the_store() {
+    MutableClock clock = MutableClock.at(Instant.parse("2026-08-02T00:00:00Z"));
+    try (InMemoryTaskStore store = new InMemoryTaskStore(clock, Duration.ofDays(1))) {
+      store.create(
+          new TaskRecord(
+              "t1",
+              "demo.tool",
+              null,
+              "user-1",
+              "2026-07-28",
+              null,
+              TaskStatus.WORKING,
+              "0",
+              clock.instant(),
+              clock.instant(),
+              Duration.ofHours(1),
+              Duration.ofSeconds(1),
+              List.of(),
+              Map.of(),
+              null,
+              null,
+              0L));
+
+      assertThatThrownBy(() -> store.update("t1", _ -> null))
+          .isInstanceOf(NullPointerException.class)
+          .hasMessageContaining("mutation must not return null");
+
+      // The record is untouched by the failed update.
+      assertThat(store.get("t1")).isPresent();
     }
   }
 

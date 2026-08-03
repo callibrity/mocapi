@@ -18,9 +18,13 @@ package com.callibrity.mocapi.tasks.store;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.UnaryOperator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -38,13 +42,18 @@ import tools.jackson.databind.json.JsonMapper;
  * mutate a node after {@link #create(TaskRecord)} and silently corrupt the stored state, or mutate
  * a {@link #get(String)}-returned record's node and corrupt what a subsequent {@code get} returns.
  * Serializing on write and deserializing on every read make that aliasing impossible: every {@link
- * #get(String)}/{@link #update(String, UnaryOperator)} result is a fresh instance.
+ * #get(String)}/{@link #update(String, UnaryOperator)} result is a fresh instance. One consequence
+ * of round-tripping through JSON is that read-back fidelity is bounded by wire round-trip fidelity:
+ * for example a {@code LegacyTitledEnumSchema} stored without {@code enumNames} legitimately comes
+ * back as an {@code UntitledSingleSelectEnumSchema} on the next {@code get}, because the two are
+ * indistinguishable on the wire (see {@code PrimitiveSchemaDefinitionDeserializer}).
  */
 public class InMemoryTaskStore implements TaskStore, AutoCloseable {
 
   private static final Duration DEFAULT_SWEEP_INTERVAL = Duration.ofSeconds(30);
   private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
+  private final Logger log = LoggerFactory.getLogger(InMemoryTaskStore.class);
   private final ConcurrentHashMap<String, String> records = new ConcurrentHashMap<>();
   private final Clock clock;
   private final Thread sweeper;
@@ -63,12 +72,34 @@ public class InMemoryTaskStore implements TaskStore, AutoCloseable {
     try {
       while (!Thread.currentThread().isInterrupted()) {
         Thread.sleep(sweepInterval);
-        Instant now = clock.instant();
-        records.values().removeIf(json -> deserialize(json).isExpired(now));
+        sweepOnce();
       }
     } catch (InterruptedException _) {
       Thread.currentThread().interrupt();
     }
+  }
+
+  /**
+   * Removes expired entries for one sweep pass. A malformed entry that fails to deserialize is
+   * logged and skipped rather than allowed to escape and kill the sweeper thread — otherwise a
+   * single bad record would silently stop all future expiry sweeps for the life of the store.
+   */
+  private void sweepOnce() {
+    Instant now = clock.instant();
+    records
+        .entrySet()
+        .removeIf(
+            entry -> {
+              try {
+                return deserialize(entry.getValue()).isExpired(now);
+              } catch (RuntimeException e) {
+                log.warn(
+                    "Skipping sweep of task {}: failed to deserialize stored record",
+                    entry.getKey(),
+                    e);
+                return false;
+              }
+            });
   }
 
   @Override
@@ -96,17 +127,23 @@ public class InMemoryTaskStore implements TaskStore, AutoCloseable {
   @Override
   public Optional<TaskRecord> update(String taskId, UnaryOperator<TaskRecord> mutation) {
     Instant now = clock.instant();
-    String updatedJson =
-        records.compute(
-            taskId,
-            (id, currentJson) -> {
-              if (currentJson == null) {
-                return null;
-              }
-              TaskRecord current = deserialize(currentJson);
-              return current.isExpired(now) ? null : serialize(mutation.apply(current));
-            });
-    return updatedJson == null ? Optional.empty() : Optional.of(deserialize(updatedJson));
+    AtomicReference<TaskRecord> mutated = new AtomicReference<>();
+    records.compute(
+        taskId,
+        (id, currentJson) -> {
+          if (currentJson == null) {
+            return null;
+          }
+          TaskRecord current = deserialize(currentJson);
+          if (current.isExpired(now)) {
+            return null;
+          }
+          TaskRecord result =
+              Objects.requireNonNull(mutation.apply(current), "mutation must not return null");
+          mutated.set(result);
+          return serialize(result);
+        });
+    return Optional.ofNullable(mutated.get());
   }
 
   @Override
