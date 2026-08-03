@@ -96,7 +96,7 @@
         <methodical.version>0.10.0</methodical.version>
         <ripcurl.version>2.12.0</ripcurl.version>
         <spring-boot.version>4.0.5</spring-boot.version>
-        <substrate.version>0.8.0</substrate.version>
+        <substrate.version>0.8.1</substrate.version>
         <swagger-annotations.version>2.2.52</swagger-annotations.version>
         <victools.version>5.0.0</victools.version>
 

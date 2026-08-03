@@ -25,6 +25,10 @@ All notable changes to this project are documented in this file. The format is b
   through `working → input_required → tasks/update → completed` — on
   both a live JVM and a genuine GraalVM native image. See the
   [Tasks guide](docs/guides/tasks.md#using-a-distributed-taskstore-substrate).
+  The Substrate baseline is 0.8.1, which ships the upstream fix for the
+  codec/substrate auto-configuration ordering bug this work surfaced;
+  mocapi's `SubstrateOrderingAutoConfiguration` shim is retained as
+  defense-in-depth for applications pinned to Substrate 0.8.0.
 
 ### Fixed
 

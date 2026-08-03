@@ -32,9 +32,9 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
  * classpath.
  *
  * <p>Resurrects the identical pre-2026-07-28 fix ({@code SubstrateOrderingAutoConfiguration} in the
- * old mocapi-protocol module). The proper fix belongs upstream (Substrate declaring
- * {@code @AutoConfigureAfter} on the codec auto-configurations) and is tracked for a future
- * Substrate release; this shim remains harmless once that lands.
+ * old mocapi-protocol module). The proper fix landed upstream in Substrate 0.8.1 ({@code
+ * SubstrateAutoConfiguration} now declares the codec ordering itself), which is mocapi's baseline;
+ * this shim is retained as harmless defense-in-depth for applications that pin Substrate 0.8.0.
  */
 @AutoConfiguration(
     beforeName = "org.jwcarman.substrate.core.autoconfigure.SubstrateAutoConfiguration",

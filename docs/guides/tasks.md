@@ -161,7 +161,7 @@ mocapi releases to theirs. Import Substrate's own BOM alongside
         <dependency>
             <groupId>org.jwcarman.substrate</groupId>
             <artifactId>substrate-bom</artifactId>
-            <version>0.8.0</version>
+            <version>0.8.1</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>

@@ -35,6 +35,7 @@ import org.jwcarman.substrate.core.memory.atom.InMemoryAtomSpi;
 import org.jwcarman.substrate.core.memory.notifier.InMemoryNotifier;
 import org.jwcarman.substrate.core.notifier.DefaultNotifier;
 import org.jwcarman.substrate.core.transform.PayloadTransformer;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import tools.jackson.databind.ObjectMapper;
@@ -59,16 +60,26 @@ class MocapiTasksSubstrateAutoConfigurationTest {
             });
   }
 
+  /**
+   * Substrate 0.8.1 declares its own codec ordering, so the 0.8.0-era negative control (the same
+   * chain minus the shim failing to produce a {@code TaskStore}) no longer fails and cannot prove
+   * the shim load-bearing. Pin the shim's ordering metadata instead: an upstream class rename would
+   * silently turn {@link SubstrateOrderingAutoConfiguration} into a no-op for 0.8.0-pinned
+   * applications, and this assertion turns that into a test failure.
+   */
   @Test
-  void fullAutoConfigurationChainBacksOffWithoutOrderingShim() {
-    new ApplicationContextRunner()
-        .withBean(ObjectMapper.class, () -> JsonMapper.builder().build())
-        .withConfiguration(
-            AutoConfigurations.of(
-                JacksonCodecAutoConfiguration.class,
-                SubstrateAutoConfiguration.class,
-                MocapiTasksSubstrateAutoConfiguration.class))
-        .run(context -> assertThat(context).doesNotHaveBean(TaskStore.class));
+  void orderingShimPinsSubstrateAfterEveryCodecAutoConfiguration() {
+    AutoConfiguration annotation =
+        SubstrateOrderingAutoConfiguration.class.getAnnotation(AutoConfiguration.class);
+
+    assertThat(annotation).isNotNull();
+    assertThat(annotation.beforeName())
+        .containsExactly("org.jwcarman.substrate.core.autoconfigure.SubstrateAutoConfiguration");
+    assertThat(annotation.afterName())
+        .containsExactlyInAnyOrder(
+            "org.jwcarman.codec.jackson.JacksonCodecAutoConfiguration",
+            "org.jwcarman.codec.gson.GsonCodecAutoConfiguration",
+            "org.jwcarman.codec.protobuf.ProtobufCodecAutoConfiguration");
   }
 
   @Test

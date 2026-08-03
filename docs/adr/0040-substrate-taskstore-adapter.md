@@ -113,11 +113,12 @@ that identical class in `mocapi-autoconfigure`
 (`beforeName = "...SubstrateAutoConfiguration"`, `afterName` listing all
 three codec auto-configurations, all referenced by name so neither
 `substrate-core` nor any `codec-*` module is a compile dependency of
-`mocapi-autoconfigure`). The proper fix belongs upstream — Substrate
-declaring `@AutoConfigureAfter` on the codec auto-configurations it
-conditions on — and is tracked for a future Substrate release; this shim
-is harmless once that lands (an ordering declaration between two classes
-that no longer need one is a no-op).
+`mocapi-autoconfigure`). The proper fix landed upstream in Substrate
+0.8.1 (`SubstrateAutoConfiguration` now declares `@AutoConfigureAfter`
+on the codec auto-configurations itself), which is mocapi's baseline;
+the shim is retained as harmless defense-in-depth for applications that
+pin Substrate 0.8.0 (an ordering declaration between two classes that no
+longer need one is a no-op).
 
 ## Consequences
 
