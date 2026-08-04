@@ -37,7 +37,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerProperties;
-import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.Ordered;
@@ -71,7 +70,17 @@ import org.springframework.security.web.SecurityFilterChain;
  *       via the registered {@link McpTokenStrategy}.
  * </ul>
  */
-@AutoConfiguration(after = OAuth2ResourceServerAutoConfiguration.class)
+// OAuth2ResourceServerAutoConfiguration is referenced by name, at BOTH of its homes: Spring Boot
+// 4.1 dropped the `servlet` package segment (servlet/reactive split collapsed). Absent names are
+// ordering no-ops, so listing both keeps one mocapi artifact ordered correctly on the 4.0 and 4.1
+// lines alike. Never reference Boot-owned auto-configurations by type: a typed reference breaks
+// compilation against the line that moved it and silently mis-orders at runtime everywhere else.
+// BootOrderingReferenceIntegrityTest asserts each dual set still resolves on the running Boot.
+@AutoConfiguration(
+    afterName = {
+      "org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration",
+      "org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerAutoConfiguration"
+    })
 @ConditionalOnClass({McpMetadataCustomizer.class, HttpSecurity.class})
 @EnableConfigurationProperties(MocapiOAuth2Properties.class)
 @PropertySource("classpath:mocapi-oauth2-defaults.properties")

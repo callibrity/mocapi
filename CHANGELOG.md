@@ -6,6 +6,21 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Fixed
+
+- **Spring Boot 4.1 compatibility.** Boot 4.1 relocated
+  `OAuth2ResourceServerAutoConfiguration` (the `servlet` package segment
+  was dropped), which silently disabled `mocapi-oauth2`'s
+  auto-configuration ordering on 4.1 apps — name-based ordering
+  references to absent classes are no-ops, so nothing crashed, the
+  OAuth2 auto-configuration simply mis-ordered. The reference now names
+  both the 4.0 and 4.1 locations (absent names are ignored, so one
+  artifact orders correctly on either line), a new
+  `BootOrderingReferenceIntegrityTest` fails the build loudly if Spring
+  Boot ever moves a referenced class again, and CI gained a `boot-next`
+  leg running the full reactor against the newest Boot minor. Baseline
+  unchanged (Spring Boot 4.0 line, now built against 4.0.7).
+
 ## [1.3.0] - 2026-08-04
 
 ### Added
