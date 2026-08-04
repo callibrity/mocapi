@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-04
+
 ### Added
 
 - **Substrate-backed TaskStore (`mocapi-tasks-substrate`)** — a
@@ -1670,6 +1672,7 @@ the handler runs to completion).
 Initial public release on Maven Central.
 
 [Unreleased]: https://github.com/callibrity/mocapi/compare/1.0.0...HEAD
+[1.3.0]: https://github.com/callibrity/mocapi/releases/tag/1.3.0
 [1.2.0]: https://github.com/callibrity/mocapi/releases/tag/1.2.0
 [1.1.0]: https://github.com/callibrity/mocapi/releases/tag/1.1.0
 [1.0.0]: https://github.com/callibrity/mocapi/releases/tag/1.0.0

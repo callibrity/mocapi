@@ -26,7 +26,7 @@ Building an MCP server from scratch means solving the same problems every team s
 - **Typed extension SPI.** One customizer interface per handler kind. Attach interceptors, guards, or parameter resolvers with full access to the handler's descriptor, method, and bean — no blind bean-list autowiring.
 - **Virtual-thread-friendly.** Context propagates across the per-call virtual-thread spawn so tracing spans parent correctly and `SecurityContextHolder` works on the handler thread. A standing soak test sustained ~565 req/s with full observability on a laptop (see [Performance Benchmarking](docs/guides/performance/benchmarking.md)).
 - **MCP Apps (the server half).** Serve interactive `ui://` HTML resources and link them to tools — declare them with `@McpAppResource`, or serve a bundle straight from the classpath with `@McpUi(resource=…)`; mocapi emits the `io.modelcontextprotocol/ui` capability, `_meta.ui` (CSP/sandbox), and fails fast on dangling links. Add `mocapi-apps`. See [MCP Apps](docs/guides/apps.md).
-- **MCP Tasks.** Add `@McpTask` to any tool and it transparently runs as a polled background task (`io.modelcontextprotocol/tasks`) for clients that declare the extension — same tool code serves everyone else synchronously. Progress emits become the task's `statusMessage`, mid-task elicitation flows through `tasks/get`/`tasks/update`, and state lives behind a pluggable `TaskStore` (in-memory default; contract TCK for custom stores). Add `mocapi-tasks`. See [MCP Tasks](docs/guides/tasks.md).
+- **MCP Tasks.** Add `@McpTask` to any tool and it transparently runs as a polled background task (`io.modelcontextprotocol/tasks`) for clients that declare the extension — same tool code serves everyone else synchronously. Progress emits become the task's `statusMessage`, mid-task elicitation flows through `tasks/get`/`tasks/update`, and state lives behind a pluggable `TaskStore` (in-memory default; contract TCK for custom stores). For durable, multi-node task state add `mocapi-tasks-substrate` — a [Substrate](https://github.com/jwcarman/substrate)-backed store that works across any of its nine backends (Redis, PostgreSQL, MongoDB, …) and survives application restarts. Add `mocapi-tasks`. See [MCP Tasks](docs/guides/tasks.md).
 - **GraalVM native-image hints included.**
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.callibrity.mocapi/mocapi-server)](https://central.sonatype.com/artifact/com.callibrity.mocapi/mocapi-server)
@@ -50,7 +50,7 @@ Add the starter dependency:
 <dependency>
     <groupId>com.callibrity.mocapi</groupId>
     <artifactId>mocapi-streamable-http-spring-boot-starter</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 
@@ -62,7 +62,7 @@ If you depend on multiple mocapi artifacts (e.g., a starter plus one of the `moc
         <dependency>
             <groupId>com.callibrity.mocapi</groupId>
             <artifactId>mocapi-bom</artifactId>
-            <version>1.2.0</version>
+            <version>1.3.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
