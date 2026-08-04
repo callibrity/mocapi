@@ -136,7 +136,9 @@ class MocapiTasksSubstrateAutoConfigurationTest {
 
   private static final class InMemoryStub implements TaskStore {
     @Override
-    public void create(TaskRecord rec) {}
+    public void create(TaskRecord rec) {
+      // intentional no-op: the stub exists only to occupy the TaskStore bean slot
+    }
 
     @Override
     public Optional<TaskRecord> get(String taskId) {
@@ -149,6 +151,8 @@ class MocapiTasksSubstrateAutoConfigurationTest {
     }
 
     @Override
-    public void delete(String taskId) {}
+    public void delete(String taskId) {
+      // intentional no-op: the stub exists only to occupy the TaskStore bean slot
+    }
   }
 }

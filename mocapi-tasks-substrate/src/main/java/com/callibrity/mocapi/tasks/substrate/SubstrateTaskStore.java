@@ -104,7 +104,7 @@ public class SubstrateTaskStore implements TaskStore {
         return Optional.empty();
       }
       return Optional.of(current);
-    } catch (AtomNotFoundException | AtomExpiredException e) {
+    } catch (AtomNotFoundException | AtomExpiredException _) {
       return Optional.empty();
     }
   }
@@ -130,7 +130,7 @@ public class SubstrateTaskStore implements TaskStore {
           return Optional.of(mutated);
         }
       }
-    } catch (AtomNotFoundException | AtomExpiredException e) {
+    } catch (AtomNotFoundException | AtomExpiredException _) {
       return Optional.empty();
     }
   }
@@ -144,7 +144,7 @@ public class SubstrateTaskStore implements TaskStore {
     try {
       atomFactory.create(keyPrefix + rec.taskId(), TaskRecord.class, rec, remaining);
       return true;
-    } catch (AtomAlreadyExistsException e) {
+    } catch (AtomAlreadyExistsException _) {
       return false;
     }
   }
@@ -152,7 +152,7 @@ public class SubstrateTaskStore implements TaskStore {
   private boolean incumbentIsExpired(String taskId) {
     try {
       return connect(taskId).get().value().isExpired(clock.instant());
-    } catch (AtomNotFoundException | AtomExpiredException e) {
+    } catch (AtomNotFoundException | AtomExpiredException _) {
       return true;
     }
   }
