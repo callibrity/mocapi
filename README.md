@@ -248,6 +248,7 @@ Working examples are in the [`examples/`](examples/) directory:
 | [Stdio](examples/stdio) | stdio | Minimal echo server launchable by Claude Desktop or MCP Inspector over stdio |
 | [Apps](examples/apps) | Streamable HTTP | MCP Apps: a `get-time` tool linked to a `ui://` React UI served via `@McpUi(resource=…)`, built by Vite into a single self-contained bundle |
 | [Tasks](examples/tasks) | Streamable HTTP | MCP Tasks: `@McpTask` tools showing the task lifecycle — progress-driven `statusMessage` polling, mid-task elicitation via `tasks/update`, sync degrade, and `required = true` |
+| [Tasks + Redis](examples/tasks-redis) | Streamable HTTP | The tasks example on a durable Redis `TaskStore` (`mocapi-tasks-substrate`): Spring Boot's Docker Compose support starts Redis, and task state survives application restarts — kill the app at `input_required`, restart, answer, and MRTR replay completes the task |
 
 To run the HTTP example:
 

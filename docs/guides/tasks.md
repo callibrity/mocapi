@@ -226,6 +226,16 @@ wiring, not a clustering demo):
 mvn -pl examples/tasks -am -Psubstrate spring-boot:run
 ```
 
+For the durable, real-backend version, see
+[`examples/tasks-redis`](../../examples/tasks-redis/README.md): Spring
+Boot's Docker Compose support starts a Redis, `substrate-redis`
+supplies the Atom SPI from the resulting `RedisConnectionFactory`, and
+task state survives application restarts. Its README walks the
+kill-and-resume scenario this store exists for — parking a task at
+`input_required`, killing the app, restarting, and completing the task
+via `tasks/update` (MRTR replay through the store; no in-flight thread
+needed).
+
 ## Writing a custom `TaskStore`
 
 Supply a `TaskStore` bean and `MocapiTasksAutoConfiguration` backs off
