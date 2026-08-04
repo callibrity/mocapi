@@ -18,15 +18,16 @@ package com.callibrity.mocapi.oauth2;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.util.ClassUtils;
 
 /**
  * MCP compliance guardrails — the auto-configuration fails at startup when either prerequisite for
@@ -41,8 +42,31 @@ class MocapiOAuth2ValidationTest {
       new ApplicationContextRunner()
           .withConfiguration(
               AutoConfigurations.of(
-                  OAuth2ResourceServerAutoConfiguration.class,
-                  MocapiOAuth2AutoConfiguration.class));
+                  oauth2ResourceServerAutoConfiguration(), MocapiOAuth2AutoConfiguration.class));
+
+  /**
+   * Boot 4.1 relocated {@code OAuth2ResourceServerAutoConfiguration} (the {@code servlet} package
+   * segment was dropped), so the class is resolved by name from its known homes — mirroring the
+   * dual-location {@code afterName} reference in {@link MocapiOAuth2AutoConfiguration} — to keep
+   * this test compiling and meaningful on both the 4.0 and 4.1 lines (the {@code boot-next} CI leg
+   * runs it against the newest minor).
+   */
+  private static Class<?> oauth2ResourceServerAutoConfiguration() {
+    ClassLoader cl = MocapiOAuth2ValidationTest.class.getClassLoader();
+    return List.of(
+            "org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration",
+            "org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerAutoConfiguration")
+        .stream()
+        .filter(name -> ClassUtils.isPresent(name, cl))
+        .findFirst()
+        .map(name -> ClassUtils.resolveClassName(name, cl))
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "OAuth2ResourceServerAutoConfiguration not found at any known location — "
+                        + "Spring Boot moved it again; update the dual-location lists here and in "
+                        + "MocapiOAuth2AutoConfiguration"));
+  }
 
   @Test
   void startup_fails_when_neither_jwt_decoder_nor_opaque_introspector_is_registered() {
@@ -63,26 +87,14 @@ class MocapiOAuth2ValidationTest {
                     .hasMessageContaining("neither JwtDecoder nor OpaqueTokenIntrospector"));
   }
 
-  @Test
-  void startup_fails_when_mocapi_oauth2_resource_is_not_configured() {
-    // mocapi.oauth2.resource is @NotBlank per RFC 9728 §2 (the metadata document's 'resource'
-    // field is REQUIRED and has no safe default since it depends on the deployed host).
-    // Spring Boot's property binder runs the validation when MocapiOAuth2Properties is
-    // @Validated, so an unset property fails the bind at startup rather than emitting a
-    // malformed metadata document.
-    runner
-        .withUserConfiguration(StubJwtDecoderConfig.class)
-        .withPropertyValues(
-            "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://idp.example.com",
-            "spring.security.oauth2.resourceserver.jwt.audiences[0]=https://mcp.example.com")
-        .run(
-            context ->
-                assertThat(context)
-                    .hasFailed()
-                    .getFailure()
-                    .rootCause()
-                    .hasMessageContaining("resource"));
-  }
+  // NOTE: there is deliberately no context-level "resource not configured" test here. The
+  // RFC 9728 resource resolution/validation contract (explicit-must-be-in-audiences,
+  // default-from-sole-audience, ambiguous-fails-fast) lives in ResourceMetadataCustomizer and is
+  // covered path-by-path in ResourceMetadataCustomizerTest via direct instantiation — which is
+  // deterministic on every Spring Boot line. A context-runner variant here asserted only a
+  // bean-instantiation-order race: it passed on Boot 4.0 by coincidentally substring-matching
+  // "resource" inside an unrelated missing-bean FQCN, and Boot 4.1's different instantiation
+  // order exposed it.
 
   @Test
   void startup_fails_when_audiences_is_empty() {
