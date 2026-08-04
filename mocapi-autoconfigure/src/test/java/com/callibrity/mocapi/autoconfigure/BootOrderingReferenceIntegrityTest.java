@@ -17,7 +17,6 @@ package com.callibrity.mocapi.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -121,7 +120,7 @@ class BootOrderingReferenceIntegrityTest {
 
   /** Compile-time proof this test's assumptions match Jackson-free plain-JUnit execution. */
   @Test
-  void scannerFindsTheOauth2AndO11yReferenceSites() throws IOException {
+  void scannerFindsTheOauth2AndO11yReferenceSites() {
     Map<String, Boolean> expectations =
         Map.of(
             "org.springframework.boot.micrometer.observation.autoconfigure.ObservationAutoConfiguration",
