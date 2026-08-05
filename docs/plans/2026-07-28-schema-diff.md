@@ -989,3 +989,53 @@ confidence (medium) on the finalized directory specifically, since it
 was not independently re-walked this run (see above) — carried forward
 from the 2026-08-02 high-confidence check rather than re-verified byte
 for byte today.
+
+## 2026-08-05 monitor check — no drift, finalized pin still current
+
+Daily MCP `2026-07-28` monitor run. **No convergence work needed.**
+
+**RELEASE status:** confirmed still finalized (unchanged since the
+2026-07-28 finalization). `schema/` on upstream `main` contains
+`2024-11-05`, `2025-03-26`, `2025-06-18`, `2025-11-25`, `2026-07-28`, and
+`draft` — no newer date-stamped directory has appeared.
+
+**`schema/2026-07-28/schema.ts` (finalized) commit history:** independently
+re-walked this run — still exactly the two commits from the finalization,
+`b488c16` ("Add 2026-07-28 MCP specification") and `271ecc9` ("fix(schema):
+apply subscriptions/listen envelope and MetaObject rename to 2026-07-28").
+No commits have landed on the finalized directory since. Both are already
+reflected in the pinned snapshot and model code. → **mocapi:** no action.
+
+**`schema/draft/schema.ts` commit history:** newest commit is still
+`f7e99af` (Jul 28, 2026, "schema(draft): align subscriptions/listen with
+envelope and `_meta` naming conventions") — the same commit already
+triaged in the 2026-08-02 addendum as a content-identical backport of
+already-converged work. No commits have landed since. `draft/schema.ts`
+still reports `LATEST_PROTOCOL_VERSION = "2026-07-28"`, and spot-checks
+confirm it already contains both `SubscriptionsListenResultMetaObject` and
+`SubscriptionsListenResultResponse`. → **mocapi:** no action.
+
+**Snapshot status:** not re-pinned — not needed. No new upstream commits
+exist to re-pin against since the 2026-08-02 check. Pinned
+`docs/plans/2026-07-28-schema.ts` (3197 lines, `LATEST_PROTOCOL_VERSION =
+"2026-07-28"`) remains current.
+
+**Note on tooling:** `api.github.com` again returned HTTP 403 via WebFetch
+this run (both the commits and contents endpoints). Fell back to the
+`github.com` HTML commit-log and tree views, plus a targeted
+`raw.githubusercontent.com` fetch of `schema/draft/schema.ts` (which
+succeeded directly) to cross-check content. All sources agree with each
+other and with the 2026-08-03 findings. This is now three consecutive runs
+with `api.github.com` 403ing — flagging again in case a human wants to
+look at it, though the HTML/raw fallback continues to be reliable.
+
+**`mvn verify`:** not run. Docs-only change, no `mocapi-model`/
+`mocapi-server`/transport code touched.
+
+**Confidence:** high. This run independently re-walked *both* the
+finalized directory's commit history and the draft directory's commit
+history (unlike 2026-08-03, which carried the finalized-directory check
+forward from 2026-08-02 without re-verifying it) — both are unchanged and
+already fully converged. No open uncertainties beyond the
+already-tracked `HeaderMismatch` location note (unchanged, not touched by
+this run).
